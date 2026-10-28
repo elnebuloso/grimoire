@@ -1,8 +1,15 @@
 name: Release
 
-# Started by hand in the Actions tab. Add `push: branches: [main]` to release on every push.
+# Releases on every push to main; a push without `feat` or `fix` since the last tag releases nothing.
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
+
+# Two quick pushes must not both try to tag the same version.
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 permissions:
   contents: write

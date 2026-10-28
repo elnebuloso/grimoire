@@ -94,7 +94,7 @@ described in [docs/handbook/database.md](docs/handbook/database.md).
 rules and types.
 
 Commits follow [Conventional Commits](https://www.conventionalcommits.org). Releases are cut from
-them by the `Release` workflow, started by hand in the Actions tab: `feat` raises the minor
+them by the `Release` workflow on every push to `main`: `feat` raises the minor
 version, `fix` the patch version, other types release nothing.
 
 ## License
