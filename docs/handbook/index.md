@@ -7,6 +7,9 @@ in Git; grimoire only reads it.
 
 This handbook is for the people who run grimoire.
 
+- [Running with Docker](docker.md): building the image, starting the container, its environment
+  and volume.
 - [Database](database.md): configuration, the volume for the SQLite file, the sync schedule,
   access tokens and backups.
-- [Admin area](admin.md): setting up the admin account, logging in and a lost password.
+- [Admin area](admin.md): the admin account, projects and sources, their status, API keys and a
+  lost password.

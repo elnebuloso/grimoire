@@ -32,8 +32,8 @@ how to use them.
 
 ## Status
 
-Before `1.0.0`. Sync, search, the HTTP API, the MCP server and the admin area work. The Docker
-image is not built yet.
+Before `1.0.0`. Sync, search, the HTTP API, the MCP server, the admin area and the Docker image
+work. The image is built locally with `make image`; it is not published to a registry yet.
 
 ## Connecting agents
 
@@ -75,7 +75,16 @@ once per session and follow it.
 
 ## Running
 
-grimoire needs Node 24.22.1 or newer and `git`.
+With Docker:
+
+```bash
+make image
+docker run --detach --name grimoire --publish 3000:3000 --volume grimoire-data:/data \
+  --env TOKEN_ENCRYPTION_KEY="$(openssl rand -base64 32)" grimoire:latest
+```
+
+Keep the key: every start needs the same one. Without Docker, grimoire needs Node 24.22.1 or
+newer and `git`:
 
 ```bash
 cp app/.env.example app/.env   # then set TOKEN_ENCRYPTION_KEY=$(openssl rand -base64 32)
@@ -86,8 +95,9 @@ make dev                       # or: make build, then in app/: node --env-file=.
 Open `/admin`, set up the admin account with the setup token from the log, add a project with a
 source and create an API key under **API keys**.
 
-The environment variables, the volume for the SQLite file, the sync schedule and backups are
-described in [docs/handbook/database.md](docs/handbook/database.md).
+The container is described in [docs/handbook/docker.md](docs/handbook/docker.md); the environment
+variables, the volume for the SQLite file, the sync schedule and backups in
+[docs/handbook/database.md](docs/handbook/database.md).
 
 ## Development
 
