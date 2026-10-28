@@ -104,7 +104,7 @@ export function renderSnippet(hit: SnippetHit): string {
 		`Source: ${snippetId(hit)}`,
 		`Edit: ${redactUrl(hit.gitUrl)} (${hit.branch}) ${file}`,
 		'',
-		hit.content
+		hit.content.trimEnd()
 	].join('\n');
 }
 
