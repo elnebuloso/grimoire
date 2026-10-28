@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-28T21:03:00Z'
-updated_date: '2026-10-28T21:06:00Z'
+updated_date: '2026-10-28T21:08:00Z'
 labels:
   - sync
 milestone: m-0
@@ -21,7 +21,7 @@ ordinal: 27000
 ## Description
 
 <!-- SECTION:DESCRIPTION:BEGIN -->
-grimoire is planned for about 200 sources. Syncs run strictly one after another (`app/src/lib/server/sync/queue.ts`), and every git call may take up to 5 minutes. One unresponsive Git server therefore stalls the whole queue, and checking 200 sources one by one may not fit into the 5-minute interval the agent instructions promise. A check (`git ls-remote`) only waits on the network; clone, parsing and writing the index cost disk, CPU and the single SQLite write lock.
+grimoire is planned for about 200 sources. Syncs ran strictly one after another (`app/src/lib/server/sync/queue.ts`), and every git call could take up to 5 minutes. One unresponsive Git server therefore stalled the whole queue, and checking 200 sources one by one may not fit into the default 5-minute polling interval. A check (`git ls-remote`) only waits on the network; clone, parsing and writing the index cost disk, CPU and the single SQLite write lock.
 <!-- SECTION:DESCRIPTION:END -->
 
 ## Acceptance Criteria

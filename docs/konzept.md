@@ -312,8 +312,10 @@ Writing
 - Search first whether the topic exists. Extend instead of creating duplicates.
 - One topic per file. Every section must stand on its own: descriptive heading,
   one sentence of context, then the specifics.
-- Changes show up in grimoire after the next sync (up to 5 minutes).
 ```
+
+Wann eine Änderung in grimoire ankommt, steht bewusst nicht im Text: Das Sync-Intervall ist
+Sache des Betriebs und geht die Agenten nichts an.
 
 ## Stack und Betrieb
 
