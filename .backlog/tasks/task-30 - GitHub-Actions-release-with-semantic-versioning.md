@@ -1,11 +1,11 @@
 ---
 id: TASK-30
 title: GitHub Actions release with semantic versioning
-status: In Progress
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-28T22:15:00Z'
-updated_date: '2026-10-28T22:22:00Z'
+updated_date: '2026-10-28T22:25:00Z'
 labels:
   - ops
 milestone: m-0
@@ -26,9 +26,9 @@ Releases are cut by hand on GitHub so far, and the version is chosen by eye. The
 - [x] #1 A workflow in `.github/workflows/` runs semantic-release on `main` when started by hand (`workflow_dispatch`)
 - [x] #2 It derives the version from the commits since the last tag: `feat` bumps minor, `fix` bumps patch, other types release nothing
 - [x] #3 It continues from the existing tag `v0.0.0`, so the first run cuts `v0.1.0`, and never cuts `1.0.0` without a `BREAKING CHANGE:` footer
-- [ ] #4 Each release creates a `vX.Y.Z` tag and a GitHub release with notes generated from the commits
+- [x] #4 Each release creates a `vX.Y.Z` tag and a GitHub release with notes generated from the commits
 - [x] #5 Switching to automatic releases on every push to `main` needs only a `push` trigger added to the workflow
-- [ ] #6 Verified by one run on GitHub that releases a real `feat` or `fix` commit
+- [x] #6 Verified by one run on GitHub that releases a real `feat` or `fix` commit
 <!-- AC:END -->
 
 ## Implementation Plan
@@ -47,4 +47,12 @@ Releases are cut by hand on GitHub so far, and the version is chosen by eye. The
 Agreed with the user: a proper README.md is part of this task.
 
 Dry run locally (`npx semantic-release@25.0.9 --dry-run --no-ci` with only commit-analyzer and release-notes-generator, since `gh` is not logged in here): found tag v0.0.0 on main, 47 commits since, next version 0.1.0, notes list all feat and fix commits grouped by type. That `!` without a `BREAKING CHANGE:` footer does not leave 0.x is the documented behaviour of the default angular preset, not tested here. Open: AC #4 and #6 need the real run on GitHub after the push.
+
+First run on GitHub (started by hand) created tag v0.1.0 on 6fdc93f and the GitHub release v0.1.0 by github-actions. The run warned that actions/checkout@v4 and actions/setup-node@v4 target Node 20; moved both to v7, which run on node24. The notice that ubuntu-latest moves to Ubuntu 26 needs no change: the job only needs git and Node.
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Releases are cut by semantic-release 25.0.9 from the Conventional Commits on main, started by hand via the Release workflow (.github/workflows/release.yml); adding a push trigger makes it automatic. .releaserc.json keeps only commit-analyzer, release-notes-generator and github (no npm publish, no commit back to main). Baseline tag v0.0.0 on the initial commit, set by the user; the dry run and the first real run cut v0.1.0 with notes for all feat and fix commits. Also rewrote README.md: what grimoire is, how it works, status, connecting agents over MCP and HTTP, running, development and releases. Follow-up: the next workflow run checks the v7 actions.
+<!-- SECTION:FINAL_SUMMARY:END -->
