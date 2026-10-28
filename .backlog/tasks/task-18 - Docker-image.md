@@ -4,7 +4,7 @@ title: Docker image
 status: To Do
 assignee: []
 created_date: '2026-10-28T19:32:00Z'
-updated_date: '2026-10-28T21:23:00Z'
+updated_date: '2026-10-28T22:48:00Z'
 labels:
   - ops
 milestone: m-0
@@ -29,9 +29,10 @@ grimoire is operated as a single Docker image: Node plus git for syncing, one vo
 <!-- AC:BEGIN -->
 - [ ] #1 One image contains the app and `git`
 - [ ] #2 The SQLite file lives on a volume and survives container restarts
-- [ ] #3 Admin credentials, polling interval and database path are set via environment variables
+- [ ] #3 Polling interval, database path and token encryption key are set via environment variables
 - [ ] #4 A `make` target builds the image
 - [ ] #5 Verified: container starts, a source syncs, `query` answers via HTTP and MCP
+- [ ] #6 The image contains `scripts/reset-admin.ts`, runnable with `node` in the container
 <!-- AC:END -->
 
 ## Implementation Notes
