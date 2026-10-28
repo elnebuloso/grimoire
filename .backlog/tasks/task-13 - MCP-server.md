@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-28T19:32:00Z'
-updated_date: '2026-10-28T22:07:00Z'
+updated_date: '2026-10-28T22:09:00Z'
 labels:
   - agent-api
 milestone: m-0
@@ -22,7 +22,7 @@ ordinal: 13000
 ## Description
 
 <!-- SECTION:DESCRIPTION:BEGIN -->
-MCP is the main channel for agents: connect with URL and API key, nothing to install, works in Claude Code, Claude Desktop, claude.ai, Cursor and others. The server instructions land in agent context automatically, so no `CLAUDE.md` block is needed.
+MCP is the main channel for agents: connect with URL and API key, nothing to install, works in any client that sends the key as a header, such as Claude Code. Access is by API key only, no OAuth; clients that connect only via OAuth are not supported. The server instructions land in agent context automatically, so no `CLAUDE.md` block is needed.
 <!-- SECTION:DESCRIPTION:END -->
 
 ## Acceptance Criteria
