@@ -25,7 +25,8 @@ export interface SnippetHit {
 	content: string;
 }
 
-interface SnippetRow extends Omit<SnippetHit, 'titlePath'> {
+/** A database row with the columns of `SnippetHit`, the title path still as JSON. */
+export interface SnippetRow extends Omit<SnippetHit, 'titlePath'> {
 	title_path: string;
 }
 
@@ -71,6 +72,10 @@ export function searchSnippets(db: DatabaseSync, options: SearchOptions): string
 	return packIntoBudget(hits, options.tokens ?? DEFAULT_TOKENS);
 }
 
+export function toSnippetHit({ title_path, ...row }: SnippetRow): SnippetHit {
+	return { ...row, titlePath: JSON.parse(title_path) };
+}
+
 // Raw input breaks FTS5 syntax (`auth-service` reads as a column filter, `?` and `=` are errors).
 // OR keeps natural-language questions matching; BM25 still ranks hits with more terms higher.
 function toMatchExpression(query: string): string {
@@ -108,7 +113,7 @@ export function renderSnippet(hit: SnippetHit): string {
 	].join('\n');
 }
 
-function snippetId(hit: SnippetHit): string {
+export function snippetId(hit: SnippetHit): string {
 	const page = `${hit.project}/${hit.source}/${hit.file.replace(/\.md$/, '')}`;
 	return hit.anchor ? `${page}#${hit.anchor}` : page;
 }
