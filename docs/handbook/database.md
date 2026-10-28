@@ -11,7 +11,19 @@ projects, sources and API keys exist only in this file.
 | `DATABASE_PATH` | Path of the SQLite file. Required; the server does not start without it. The file and its schema are created on first start. |
 | `MIGRATE_ONLY` | With `true`, the server brings the schema up to date and exits without serving requests. |
 | `TOKEN_ENCRYPTION_KEY` | Key encrypting the Git access tokens of all sources: 32 random bytes, base64-encoded. Required; the server does not start without it, also with `MIGRATE_ONLY`. |
-| `SYNC_INTERVAL_MINUTES` | How often every source is checked for new commits, in minutes. Default `5`. A check only asks the Git server for the branch head; sources are cloned only when it moved. Up to four sources are checked at once and one is cloned at a time; a server that does not answer a check within 30 seconds is skipped for that round and shows as error of the source. |
+| `SYNC_SCHEDULE` | When sources without their own schedule are checked for new commits: a cron expression with the five standard fields (minute, hour, day of month, month, day of week), in the server's time zone (`TZ`, UTC in most containers). Default `*/5 * * * *`. An invalid expression stops the start. |
+
+## Sync schedule
+
+Every source is checked by its own cron expression, set in the admin area, or by `SYNC_SCHEDULE`
+when it has none — for example `0 * * * *` for a Git server that allows few requests, or
+`0 6 * * 1-5` for a source that changes rarely. A check only asks the Git server for the branch
+head; a source is cloned only when the branch moved.
+
+A check starts at most 15 seconds after its scheduled time. Up to four sources are checked at once
+and one is cloned at a time; a server that does not answer within 30 seconds is skipped until the
+next scheduled run and shows as error of the source. A run missed while grimoire was stopped is made
+up once when it starts again. An invalid source schedule is shown as error of that source.
 
 ## Volume
 

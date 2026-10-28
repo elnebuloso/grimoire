@@ -2,7 +2,13 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { DatabaseSync } from 'node:sqlite';
-import { clearSyncError, recordSyncError, replaceSourceIndex, sourceForSync } from '../db/sources';
+import {
+	clearSyncError,
+	recordCheck,
+	recordSyncError,
+	replaceSourceIndex,
+	sourceForSync
+} from '../db/sources';
 import { decryptToken } from '../token-encryption';
 import {
 	addSparseDirectories,
@@ -46,12 +52,18 @@ export async function syncSource(
 	const source = sourceForSync(db, sourceId);
 	const lanes = options.lanes ?? IMMEDIATELY;
 	let remote: GitRemote = { url: source.gitUrl, username: source.username };
+	// Set again when the check really starts; also recorded when it never got that far, so a
+	// broken source waits for its next scheduled run instead of being retried on every tick.
+	let checkedAt = new Date();
 
 	try {
 		const token = source.encryptedToken && decryptToken(source.encryptedToken, options.key);
 		remote = { ...remote, token };
 
-		const latest = await lanes.check(() => remoteCommit(remote, source.branch));
+		const latest = await lanes.check(() => {
+			checkedAt = new Date();
+			return remoteCommit(remote, source.branch);
+		});
 		if (latest === source.lastCommit && !options.force) {
 			clearSyncError(db, sourceId);
 			return { status: 'unchanged', commit: latest };
@@ -80,5 +92,7 @@ export async function syncSource(
 		const message = redact((error as Error).message, remote);
 		recordSyncError(db, sourceId, message);
 		return { status: 'failed', error: message };
+	} finally {
+		recordCheck(db, sourceId, checkedAt);
 	}
 }

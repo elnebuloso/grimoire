@@ -62,6 +62,7 @@ Projekt „platform“
 | Branch | Quelle | `main` |
 | Pfad | Quelle | `docs/` |
 | Ausschlüsse | Quelle | `docs/drafts/**` (optional) |
+| Zeitplan | Quelle | Cron-Ausdruck, z.B. `0 * * * *` (optional, sonst der globale Standard) |
 | Benutzer + Token | Quelle | Lese-Token des Anbieters (GitLab Deploy Token, GitHub Fine-grained Token, Forgejo/Gitea Access Token) |
 
 Entscheidungen:
@@ -200,7 +201,9 @@ eingeschränkt.
 
 grimoire spricht nur Git, keine Anbieter-API. Damit funktioniert jeder Git-Server gleich.
 
-**Prüfen (Polling alle 5 Minuten).** `git ls-remote <url> refs/heads/<branch>` liefert den
+**Prüfen (Polling nach Zeitplan).** Jede Quelle wird nach ihrem Cron-Ausdruck geprüft, ohne eigenen
+nach dem globalen Standard (alle 5 Minuten). Ein Cron-Ausdruck statt eines Intervalls, weil manche
+Git-Server nur wenige Anfragen erlauben und manche Quellen sich selten ändern. `git ls-remote <url> refs/heads/<branch>` liefert den
 aktuellen Commit-Hash, ohne etwas herunterzuladen. Unverändert → nichts tun. Zusätzlich ein Button
 „Jetzt synchronisieren“ im Admin-Bereich. Webhooks später – jeder Anbieter hat ein eigenes Format.
 

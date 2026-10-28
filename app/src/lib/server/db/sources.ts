@@ -46,11 +46,27 @@ interface SourceRow {
 	last_commit: string | null;
 }
 
-export function listSourceIds(db: DatabaseSync): number[] {
+export interface SourceSchedule {
+	id: number;
+	/** Cron expression of the source; null for the global default. */
+	schedule: string | null;
+	lastCheckedAt: Date | null;
+}
+
+export function listSchedules(db: DatabaseSync): SourceSchedule[] {
 	return db
-		.prepare('SELECT id FROM sources ORDER BY id')
+		.prepare('SELECT id, sync_schedule, last_checked_at FROM sources ORDER BY id')
 		.all()
-		.map((row) => Number(row.id));
+		.map((row) => ({
+			id: Number(row.id),
+			schedule: row.sync_schedule as string | null,
+			lastCheckedAt: row.last_checked_at ? new Date(row.last_checked_at as string) : null
+		}));
+}
+
+/** Records when a source was last asked for new commits, whatever came of it. */
+export function recordCheck(db: DatabaseSync, sourceId: number, at: Date) {
+	db.prepare('UPDATE sources SET last_checked_at = ? WHERE id = ?').run(at.toISOString(), sourceId);
 }
 
 export function sourceForSync(db: DatabaseSync, sourceId: number): SyncSource {

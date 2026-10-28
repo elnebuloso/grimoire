@@ -170,6 +170,26 @@ describe('syncSource', () => {
 		expect(readdirSync(work)).toEqual([]);
 	});
 
+	it('records when every check started, whether it synced, found nothing new or failed', async () => {
+		const checkedAt = () =>
+			new Date(
+				rows('SELECT last_checked_at FROM sources WHERE id = ?', source)[0]
+					.last_checked_at as string
+			);
+		const expectCheckedDuring = async (sync: () => Promise<unknown>) => {
+			const before = new Date();
+			await sync();
+			const after = new Date();
+			expect(checkedAt().getTime()).toBeGreaterThanOrEqual(before.getTime());
+			expect(checkedAt().getTime()).toBeLessThanOrEqual(after.getTime());
+		};
+
+		await expectCheckedDuring(() => syncSource(db, source, { key, workDirectory: work }));
+		await expectCheckedDuring(() => syncSource(db, source, { key, workDirectory: work }));
+		rmSync(bare, { recursive: true });
+		await expectCheckedDuring(() => syncSource(db, source, { key, workDirectory: work }));
+	});
+
 	it('never stores the access token, not even in an error', async () => {
 		const token = 'glpat-very-secret-token';
 		const withToken = addSource(`https://deploy:${token}@127.0.0.1:9/auth.git`, { token });

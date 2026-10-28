@@ -1,6 +1,7 @@
 import { defineEnvVars } from '@sveltejs/kit/env';
 import { building } from '$app/env';
 import { parseEncryptionKey } from '#lib/server/token-encryption.js';
+import { parseSchedule } from '#lib/server/sync/schedule.js';
 
 export const variables = defineEnvVars({
 	DATABASE_PATH: {
@@ -21,13 +22,9 @@ export const variables = defineEnvVars({
 			'Key encrypting the Git access tokens of sources in the database; 32 bytes, base64',
 		schema: (value) => (building ? Buffer.alloc(0) : parseEncryptionKey(value))
 	},
-	SYNC_INTERVAL_MINUTES: {
-		description: 'How often every source is checked for new commits, in minutes; default 5',
-		schema: (value) => {
-			if (value === undefined || value === '') return 5;
-			const minutes = Number(value);
-			if (!(minutes > 0)) throw new Error('must be a positive number of minutes');
-			return minutes;
-		}
+	SYNC_SCHEDULE: {
+		description:
+			'When sources without their own schedule are checked for new commits: cron expression with five fields, in the server time zone; default every 5 minutes',
+		schema: (value) => parseSchedule(value || '*/5 * * * *')
 	}
 });
