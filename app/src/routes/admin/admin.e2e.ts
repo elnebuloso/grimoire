@@ -114,3 +114,27 @@ test('creates an API key that works for its project until it is revoked', async 
 	await expect(page.getByText('No API keys yet.')).toBeVisible();
 	expect((await projects()).status()).toBe(401);
 });
+
+// Last, because every test before it logs in with the old password.
+test('changes the password and logs in with the new one', async ({ page }) => {
+	const newPassword = 'staple battery horse';
+	await logIn(page);
+	await page.getByRole('link', { name: 'Change the password' }).click();
+
+	await page.getByLabel('Current password').fill('wrong password');
+	await page.getByLabel('New password').fill(newPassword);
+	await page.getByRole('button', { name: 'Change password' }).click();
+	await expect(page.getByRole('alert')).toHaveText('Wrong current password.');
+
+	await page.getByLabel('Current password').fill(PASSWORD);
+	await page.getByLabel('New password').fill(newPassword);
+	await page.getByRole('button', { name: 'Change password' }).click();
+	await expect(page.getByRole('status')).toContainText('Password changed.');
+
+	await page.goto('/admin');
+	await page.getByRole('button', { name: 'Log out' }).click();
+	await logIn(page);
+	await expect(page.getByRole('alert')).toHaveText('Wrong username or password.');
+	await logIn(page, newPassword);
+	await expect(page).toHaveURL('/admin');
+});

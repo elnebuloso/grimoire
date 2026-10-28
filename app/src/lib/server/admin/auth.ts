@@ -9,6 +9,7 @@ const MIN_PASSWORD_LENGTH = 12;
 const SESSION_HOURS = 12;
 const MAX_FAILED_LOGINS = 10;
 const BLOCK_MINUTES = 15;
+const BLOCKED = 'Too many failed logins. Try again later.';
 
 // Kept in memory only: it exists solely to prove access to the server log, so it is never stored.
 let setupTokenValue: string | undefined;
@@ -98,10 +99,7 @@ export function login(
 	form: { username: string; password: string },
 	now = new Date()
 ): { session: string } | { error: string } {
-	const failures = failedLogins.get(client);
-	if (failures && failures.blockedUntil > now.getTime()) {
-		return { error: 'Too many failed logins. Try again later.' };
-	}
+	if (isBlocked(client, now)) return { error: BLOCKED };
 	const admin = findAdmin(db);
 	// The password is checked even for a wrong username, so the answer time does not tell which.
 	const valid =
@@ -109,15 +107,57 @@ export function login(
 		passwordMatches(form.password, admin.password_hash) &&
 		sameText(form.username, admin.username);
 	if (!valid) {
-		const count = (failures?.count ?? 0) + 1;
-		failedLogins.set(client, {
-			count: count >= MAX_FAILED_LOGINS ? 0 : count,
-			blockedUntil: count >= MAX_FAILED_LOGINS ? now.getTime() + BLOCK_MINUTES * 60_000 : 0
-		});
+		recordFailedLogin(client, now);
 		return { error: 'Wrong username or password.' };
 	}
 	failedLogins.delete(client);
 	return { session: createSession(db, now) };
+}
+
+function isBlocked(client: string, now: Date): boolean {
+	return (failedLogins.get(client)?.blockedUntil ?? 0) > now.getTime();
+}
+
+function recordFailedLogin(client: string, now: Date) {
+	const count = (failedLogins.get(client)?.count ?? 0) + 1;
+	failedLogins.set(client, {
+		count: count >= MAX_FAILED_LOGINS ? 0 : count,
+		blockedUntil: count >= MAX_FAILED_LOGINS ? now.getTime() + BLOCK_MINUTES * 60_000 : 0
+	});
+}
+
+/**
+ * Replaces the admin password and ends every session but `session`, the one making the change.
+ * A wrong current password counts as a failed login of `client`. Returns a message for the form
+ * when nothing was changed.
+ */
+export function changePassword(
+	db: DatabaseSync,
+	client: string,
+	session: string,
+	form: { current: string; password: string },
+	now = new Date()
+): string | undefined {
+	if (isBlocked(client, now)) return BLOCKED;
+	const admin = findAdmin(db);
+	if (!admin || !passwordMatches(form.current, admin.password_hash)) {
+		recordFailedLogin(client, now);
+		return 'Wrong current password.';
+	}
+	failedLogins.delete(client);
+	if (form.password.length < MIN_PASSWORD_LENGTH) {
+		return `The new password needs at least ${MIN_PASSWORD_LENGTH} characters.`;
+	}
+	db.exec('BEGIN IMMEDIATE');
+	try {
+		db.prepare('UPDATE admin SET password_hash = ? WHERE id = 1').run(hashPassword(form.password));
+		db.prepare('DELETE FROM admin_sessions WHERE token_hash != ?').run(sha256(session));
+		db.exec('COMMIT');
+	} catch (error) {
+		if (db.isTransaction) db.exec('ROLLBACK');
+		throw error;
+	}
+	return undefined;
 }
 
 function createSession(db: DatabaseSync, now: Date): string {

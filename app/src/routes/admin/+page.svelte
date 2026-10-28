@@ -11,7 +11,10 @@
 	<button>Log out</button>
 </form>
 
-<p><a href={resolve('/admin/api-keys')}>API keys</a></p>
+<p>
+	<a href={resolve('/admin/api-keys')}>API keys</a>
+	<a href={resolve('/admin/password')}>Change the password</a>
+</p>
 
 <h2>Projects</h2>
 {#if data.projects.length === 0}

@@ -132,6 +132,61 @@ describe('login', () => {
 	});
 });
 
+describe('changePassword', () => {
+	const NEW_PASSWORD = 'staple battery horse';
+	let current: string;
+	let other: string;
+
+	beforeEach(() => {
+		setUp();
+		current = sessionOf(auth.login(db, 'laptop', { username: 'admin', password: PASSWORD }, NOW));
+		other = sessionOf(auth.login(db, 'phone', { username: 'admin', password: PASSWORD }, NOW));
+	});
+
+	function login(password: string) {
+		return auth.login(db, 'check', { username: 'admin', password }, NOW);
+	}
+
+	it('replaces the password and ends every session but the current one', () => {
+		expect(
+			auth.changePassword(db, 'laptop', current, { current: PASSWORD, password: NEW_PASSWORD }, NOW)
+		).toBeUndefined();
+
+		expect('session' in login(NEW_PASSWORD)).toBe(true);
+		expect(login(PASSWORD)).toEqual({ error: 'Wrong username or password.' });
+		expect(auth.sessionValid(db, current, NOW)).toBe(true);
+		expect(auth.sessionValid(db, other, NOW)).toBe(false);
+		const stored = db.prepare('SELECT password_hash FROM admin').get() as { password_hash: string };
+		expect(stored.password_hash).not.toContain(NEW_PASSWORD);
+	});
+
+	it('changes nothing for a wrong current password and counts it as a failed login', () => {
+		for (let attempt = 0; attempt < 9; attempt++) {
+			expect(
+				auth.changePassword(db, 'laptop', current, { current: 'nope', password: NEW_PASSWORD }, NOW)
+			).toBe('Wrong current password.');
+		}
+		auth.login(db, 'laptop', { username: 'admin', password: 'nope' }, NOW);
+
+		expect(auth.login(db, 'laptop', { username: 'admin', password: PASSWORD }, NOW)).toEqual({
+			error: 'Too many failed logins. Try again later.'
+		});
+		expect(
+			auth.changePassword(db, 'laptop', current, { current: PASSWORD, password: NEW_PASSWORD }, NOW)
+		).toBe('Too many failed logins. Try again later.');
+		expect('session' in login(PASSWORD)).toBe(true);
+		expect(auth.sessionValid(db, other, NOW)).toBe(true);
+	});
+
+	it('rejects a new password shorter than 12 characters', () => {
+		expect(
+			auth.changePassword(db, 'laptop', current, { current: PASSWORD, password: 'short pass' }, NOW)
+		).toBe('The new password needs at least 12 characters.');
+		expect('session' in login(PASSWORD)).toBe(true);
+		expect(auth.sessionValid(db, other, NOW)).toBe(true);
+	});
+});
+
 describe('adminAccessRedirect', () => {
 	it('sends everything to the setup while there is no admin', () => {
 		expect(auth.adminAccessRedirect(db, '/admin', undefined)).toBe('/admin/setup');

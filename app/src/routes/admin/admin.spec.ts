@@ -59,6 +59,7 @@ async function load() {
 		setup: (await import('./setup/+page.server')).actions.default,
 		login: (await import('./login/+page.server')).actions.default,
 		logout: (await import('./logout/+server')).POST,
+		password: (await import('./password/+page.server')).actions.default,
 		handle: (await import('../../hooks.server')).handle
 	};
 }
@@ -189,6 +190,38 @@ describe('logout', () => {
 		expect(cookies.calls).toEqual([
 			{ name: 'grimoire_session', options: SESSION_OPTIONS, deleted: true }
 		]);
+	});
+});
+
+describe('password action', () => {
+	it('changes the password for the session that sent it', async () => {
+		const session = await setUpAdmin();
+		const result = await admin.password({
+			request: formRequest('/admin/password', {
+				current: PASSWORD,
+				password: 'staple battery horse'
+			}),
+			cookies: fakeCookies({ grimoire_session: session }),
+			getClientAddress: () => 'client'
+		} as never);
+
+		expect(result).toEqual({ changed: true });
+		expect(admin.auth.sessionValid(db, session)).toBe(true);
+		expect(
+			'session' in
+				admin.auth.login(db, 'other', { username: 'admin', password: 'staple battery horse' })
+		).toBe(true);
+	});
+
+	it('answers a wrong current password with 400 and the message', async () => {
+		const session = await setUpAdmin();
+		const result = await admin.password({
+			request: formRequest('/admin/password', { current: 'wrong', password: 'x'.repeat(12) }),
+			cookies: fakeCookies({ grimoire_session: session }),
+			getClientAddress: () => 'client'
+		} as never);
+
+		expect(result).toMatchObject({ status: 400, data: { error: 'Wrong current password.' } });
 	});
 });
 
