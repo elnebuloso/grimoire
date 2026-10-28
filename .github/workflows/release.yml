@@ -1,0 +1,24 @@
+name: Release
+
+# Started by hand in the Actions tab. Add `push: branches: [main]` to release on every push.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # semantic-release reads every commit since the last tag.
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      # ponytail: npx without a lockfile, so the plugins float within their ^ ranges; pin them in a root package.json with a lockfile if a release ever breaks from it.
+      - run: npx semantic-release@25.0.9
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
