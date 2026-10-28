@@ -1,11 +1,5 @@
 # Agent Guide
 
-## Basics
-
-Start every reply to the user with `[grimoire:dev]` on the first line.
-Chat only – never in files, commits, or tool calls.
-Why: proves this guide was loaded.
-
 <!-- BACKLOG.MD GUIDELINES START -->
 <!-- backlog.md-instructions-version: 1.55.3 -->
 <CRITICAL_INSTRUCTION>
