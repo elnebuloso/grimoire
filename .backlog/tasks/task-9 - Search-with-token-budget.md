@@ -4,7 +4,7 @@ title: Search with token budget
 status: To Do
 assignee: []
 created_date: '2026-10-28T19:31:00Z'
-updated_date: '2026-10-28T20:00:00Z'
+updated_date: '2026-10-28T20:21:00Z'
 labels:
   - search
 milestone: m-0
@@ -38,4 +38,6 @@ ordinal: 9000
 
 <!-- SECTION:NOTES:BEGIN -->
 Handoff from TASK-5: `Snippet.tokens` counts only the content. The rendered output adds title path, `Source:` and `Edit:` lines; the budget must include them.
+
+Handoff from TASK-2: `snippets_fts` columns are `title_path`, `text`, `code` in that order, so weights go to `bm25(snippets_fts, <title>, <text>, <code>)`; `rowid` is the snippet id. Default tokenizer `unicode61` splits `auth-service` into `auth` and `service`.
 <!-- SECTION:NOTES:END -->

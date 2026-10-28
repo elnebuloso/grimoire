@@ -4,7 +4,7 @@ help: ## List all targets
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "} {printf "  %-8s %s\n", $$1, $$2}'
 
 dev: ## Start the dev server
-	npm --prefix app run dev
+	DATABASE_PATH=$${DATABASE_PATH:-grimoire.db} npm --prefix app run dev
 
 build: ## Build the production server into app/build
 	npm --prefix app run build
