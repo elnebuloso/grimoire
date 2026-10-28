@@ -24,6 +24,8 @@ export interface Snippet {
 
 export interface ChunkedPage {
 	title: string;
+	/** Anchor of the `#` heading that became the title; MkDocs renders it, but it is no snippet. */
+	titleAnchor?: string;
 	description?: string;
 	snippets: Snippet[];
 }
@@ -67,6 +69,7 @@ export function chunkPage(page: PreprocessedPage, location: PageLocation): Chunk
 	const root: Section = { title: 'Overview', aliases: [], nodes: [], children: [] };
 	const stack: { depth: number; section: Section }[] = [{ depth: 0, section: root }];
 	let firstH1: string | undefined;
+	let titleAnchor: string | undefined;
 
 	for (const node of nodes) {
 		if (node.type !== 'heading') {
@@ -75,6 +78,7 @@ export function chunkPage(page: PreprocessedPage, location: PageLocation): Chunk
 		}
 		if (node.depth === 1 && firstH1 === undefined && stack.length === 1) {
 			firstH1 = toString(node, { includeHtml: false });
+			titleAnchor = anchors.get(node);
 			continue;
 		}
 		while (stack[stack.length - 1].depth >= node.depth) stack.pop();
@@ -98,7 +102,7 @@ export function chunkPage(page: PreprocessedPage, location: PageLocation): Chunk
 	mergeSmallSections(root);
 	const snippets: Snippet[] = [];
 	collectSnippets(root, [location.project, location.source, title], location.file, snippets);
-	return { title, description: description || undefined, snippets };
+	return { title, titleAnchor, description: description || undefined, snippets };
 }
 
 // Mirrors Python-Markdown: ids from attribute lists (`{#id}`) are reserved first, then every

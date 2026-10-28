@@ -4,7 +4,7 @@ title: Git sync of a source
 status: To Do
 assignee: []
 created_date: '2026-10-28T19:31:00Z'
-updated_date: '2026-10-28T20:04:00Z'
+updated_date: '2026-10-28T20:09:00Z'
 labels:
   - sync
 milestone: m-0
@@ -37,10 +37,13 @@ Git is the source of truth; grimoire only reads. A sync brings one source (repo,
 - [ ] #7 Exclusion patterns of the source are applied
 - [ ] #8 The access token never appears in errors, warnings, logs or stored URLs
 - [ ] #9 Integration test syncs a local test repository
+- [ ] #10 Link records produced by link resolution are stored with the pages and snippets of the source
 <!-- AC:END -->
 
 ## Implementation Notes
 
 <!-- SECTION:NOTES:BEGIN -->
 Handoff from TASK-4: run `resolveIncludes(raw, { path, sourcePath }, read)` (`app/src/lib/server/parsing/include.ts`) on every page before `preprocessPage`; `read` takes repo-relative paths and returns undefined for missing files. Collect `outsideSourcePath` over all pages, `git sparse-checkout add` the directories not yet checked out, rerun until nothing new appears; keep only the warnings of the last run.
+
+Handoff from TASK-6: after chunking every page of the source, call `resolveLinks(pages, { project, source })` (`app/src/lib/server/parsing/links.ts`) with the pages keyed by file relative to the source path; store its `pages` (snippet text with rewritten links) and its `links` (`{ file, anchor, target, dead }`; `target` is the link as written when it leaves the source path).
 <!-- SECTION:NOTES:END -->

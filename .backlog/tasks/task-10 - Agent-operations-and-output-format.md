@@ -4,7 +4,7 @@ title: Agent operations and output format
 status: To Do
 assignee: []
 created_date: '2026-10-28T19:31:00Z'
-updated_date: '2026-10-28T20:00:00Z'
+updated_date: '2026-10-28T20:09:00Z'
 labels:
   - agent-api
 milestone: m-0
@@ -37,4 +37,6 @@ HTTP and MCP offer the same four operations and must answer identically, so the 
 
 <!-- SECTION:NOTES:BEGIN -->
 Handoff from TASK-5: (1) `read <page>#<anchor>` must also look up `Snippet.aliases` (anchors of merged small subsections). (2) The overview snippet has no anchor, so its ID equals the page ID; `read` on the page ID returns the whole page – decide deliberately how the overview is addressed.
+
+Handoff from TASK-6: IDs keep the file name as written, so they can contain spaces or other characters that need URL encoding over HTTP. A link to a page's H1 anchor (`ChunkedPage.titleAnchor`) resolves to the page ID without anchor.
 <!-- SECTION:NOTES:END -->
