@@ -250,8 +250,10 @@ read <projekt>/<seite>[#abschnitt]         ganze Seite oder ein Abschnitt
 
 Angeboten über **HTTP-API und MCP-Server in derselben App**. Eine CLI kommt später oder gar nicht.
 
-- **MCP** (Remote, nur URL und API-Key): nichts zu installieren, funktioniert in Claude Code,
-  Claude Desktop, claude.ai, Cursor usw. Vier Tools kosten nur einige hundert Tokens Kontext.
+- **MCP** (Remote, nur URL und API-Key): nichts zu installieren, funktioniert in jedem Client,
+  der den Key als Header mitschickt, etwa Claude Code. Zugang nur per API-Key, kein OAuth –
+  Clients, die sich ausschließlich per OAuth verbinden, bleiben außen vor. Vier Tools kosten nur
+  einige hundert Tokens Kontext.
 - **HTTP** antwortet mit Markdown statt JSON, damit Agenten auch per curl oder WebFetch zugreifen
   können:
 
