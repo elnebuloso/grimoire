@@ -1,4 +1,4 @@
-.PHONY: help dev build test lint
+.PHONY: help dev build test lint format
 
 help: ## List all targets
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "} {printf "  %-8s %s\n", $$1, $$2}'
@@ -15,3 +15,6 @@ test: ## Run the unit tests once
 lint: ## Check formatting, lint rules and types
 	npm --prefix app run lint
 	npm --prefix app run check
+
+format: ## Format all files with Prettier
+	npm --prefix app run format
