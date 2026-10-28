@@ -4,6 +4,7 @@ site_description = "Self-hosted knowledge base for AI agents."
 site_url = "https://elnebuloso.github.io/grimoire/"
 docs_dir = "docs/handbook"
 site_dir = "site"
+nav = [{ "Overview" = "index.md" }, { "Database" = "database.md" }]
 
 [project.plugins.llmstxt]
-sections = { Handbook = ["*.md"] }
+sections = { Handbook = ["index.md", "*.md"] }
