@@ -1,0 +1,11 @@
+**/node_modules
+app/build
+app/.svelte-kit
+app/data
+app/test-results
+app/.env
+.git
+.backlog
+.cache
+.claude
+site

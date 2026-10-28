@@ -1,4 +1,4 @@
-.PHONY: help dev build test e2e lint format admin-reset handbook
+.PHONY: help dev build test e2e lint format image admin-reset handbook
 
 help: ## List all targets
 	@grep -E '^[a-z0-9-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "} {printf "  %-12s %s\n", $$1, $$2}'
@@ -21,6 +21,9 @@ lint: ## Check formatting, lint rules and types
 
 format: ## Format all files with Prettier
 	npm --prefix app run format
+
+image: ## Build the Docker image grimoire:latest
+	docker build --tag grimoire:latest .
 
 admin-reset: ## Delete the admin account after a lost password; asks for its username
 	cd app && node --env-file=.env ../scripts/reset-admin.ts
