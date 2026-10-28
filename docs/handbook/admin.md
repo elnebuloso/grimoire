@@ -52,6 +52,19 @@ server it was not entered for.
 Saving a source starts a sync right away, so a changed path or exclusion applies without waiting
 for a new commit. Deleting a project deletes its sources and their index.
 
+## Status and sync
+
+The page of a source shows when it was last checked and synced, the commit, and how many pages,
+snippets and tokens it holds. A sync that failed shows its error; the index of the last
+successful sync stays in use until the next one succeeds. Pages that could not be processed are
+listed as warnings, and links that lead nowhere as dead links, each with the page and section
+it is on.
+
+Every page links to a preview: the page exactly as the agent operation `read` returns it, split
+into its snippets with their `Source:` and `Edit:` lines.
+
+**Sync now** syncs the source at once, even when the branch has not moved, and shows the result.
+
 ## Lost password
 
 Delete the admin account with the script in the container:
