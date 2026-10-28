@@ -2,43 +2,37 @@
 
 ## Wo wir stehen
 
-grimoire ist nach außen benutzbar: Git-Sync, Suche, HTTP-API (Markdown, inkl.
-`/p/<project>/llms.txt`), MCP-Server unter `/mcp` (SDK v2, stateless, nur API-Key, kein OAuth)
-und Admin-Login. Der Admin wird beim Erststart im Browser eingerichtet, mit einem Setup-Token
-aus dem Server-Log. Ein vergessenes Passwort setzt `node scripts/reset-admin.ts` im Container
-zurück, nach Eingabe des Admin-Benutzernamens im Terminal.
-
-Releases laufen automatisch: Jeder Push auf `main` mit `feat`/`fix` seit dem letzten Tag erzeugt
-per semantic-release einen Release. Das Handbuch (`docs/handbook/`) erscheint per Zensical unter
-https://elnebuloso.github.io/grimoire/, mit `llms.txt`, Logo und „Copy as Markdown“.
-
-Die Admin-Seiten bestehen bisher nur aus Formularen für Setup, Login und Logout. Projekte,
-Quellen und Keys lassen sich noch nicht verwalten; Keys kommen solange aus `make api-key`.
+Version 1 ist funktional komplett. Der Admin-Bereich verwaltet Projekte und Quellen (TASK-15),
+zeigt den Status einer Quelle mit Seitenvorschau und „Sync now“ (TASK-16), legt API-Keys an und
+widerruft sie (TASK-17), und das Admin-Passwort lässt sich ändern (TASK-32). Playwright-Tests
+decken die Admin-Abläufe im Browser ab (TASK-34, `make e2e`). Das Docker-Image baut `make image`
+(TASK-18); es wird noch nirgends veröffentlicht. `make api-key` gibt es nicht mehr, Keys kommen
+aus dem Admin-Bereich.
 
 Details stehen in den Notizen der Backlog-Tasks (`backlog task view TASK-n --plain`), im
-Handbuch und in `.claude/rules/memory.md`.
+Handbuch (`docs/handbook/`) und in `.claude/rules/memory.md`.
 
 ## Als Nächstes
 
-1. **TASK-15** Admin: Projekte und Quellen (HIGH). Muster für Actions und Tests:
-   `app/src/routes/admin/*/+page.server.ts` und `app/src/routes/admin/admin.spec.ts`.
-2. **TASK-34** Playwright-End-to-End-Tests, sobald TASK-15 steht. `npx sv add playwright` führt
-   der Nutzer aus, nicht der Agent (`.claude/rules/svelte-kit.md`).
-3. **TASK-16** Status und Sync → **TASK-17** API-Keys (danach kann `make api-key` weg) →
-   **TASK-18** Docker-Image.
-4. Jederzeit: TASK-32 (Passwort ändern), TASK-19/20 (Handbuch, Konzept auf Englisch).
-   TASK-29 (Migrationen zusammenfassen) ganz am Ende von Version 1.
+1. **TASK-35** Tests in der GitHub-Pipeline vor dem Release (HIGH). Heute läuft in CI nur
+   semantic-release (`.github/workflows/release.yml`), ohne Tests.
+2. **TASK-36** Docker-Image bei jedem Release nach Docker Hub (HIGH, hängt an TASK-35).
+3. TASK-19 (Handbuch für Betreiber und Agenten), TASK-20 (Konzept auf Englisch).
+4. TASK-29 (Migrationen zusammenfassen) kurz vor `1.0.0`.
+5. **TASK-37** Frontend-Design ganz am Ende; abgeschlossen erst, wenn der Nutzer das Design
+   ausdrücklich bestätigt.
 
 ## Offene Entscheidungen
 
+- **TASK-36:** Name des Docker-Hub-Repos; Image-Tag `0.2.0` oder `v0.2.0`; ob `latest`
+  mitgezogen wird. Der Nutzer hat nur `DOCKER_USERNAME`/`DOCKER_PASSWORD` und „nach dem
+  Release-Step auf `main`“ festgelegt.
 - `make setup` (`.env` anlegen, Schlüssel erzeugen, `npm ci`) – vorgeschlagen, nicht entschieden.
-- Storybook erst, wenn die Designphase beginnt (`until-v1.md`). Bis dahin: kein eigenes Styling
-  im Frontend; das Favicon (= Logo) hat der Nutzer ausdrücklich freigegeben.
 
 ## Offen vor dem Release 1.0
 
 - Login per HTTP-Basic nur über `file://` getestet, nicht gegen GitLab/GitHub/Forgejo/Gitea
-  (TASK-7).
+  (TASK-7). Synchronisiert wurde bisher nur das öffentliche GitHub-Repo ohne Token.
 - Blockieren großer Repos im Hauptthread nicht gemessen (TASK-27).
 - Suchgewichte 10 / 1 / 0,25 sind ein Startwert, nicht an echter Doku geprüft.
 - `index` ordnet nach Dateibaum; `nav` aus `mkdocs.yml`/`zensical.toml` wird nicht gelesen.
@@ -46,43 +40,54 @@ Handbuch und in `.claude/rules/memory.md`.
 
 ## Stolperfallen
 
-- **Jeder Push mit `feat`/`fix` ist ein Release.** Den Commit-Typ nach dem wählen, was
-  ausgeliefert wird; `chore`/`docs`/`ci`/`test` releasen nichts.
-- **Kein `ORIGIN` mehr (adapter-node 6).** Die App nimmt `https` an; über reines `http` scheitert
-  jedes Admin-Formular mit 403 (`Cross-site POST form submissions are forbidden`). Lokal testen
-  mit `PROTOCOL_HEADER=x-forwarded-proto` und dem Header `X-Forwarded-Proto: http`. Hinter einem
-  Proxy außerdem `ADDRESS_HEADER`, sonst zählen Fehlversuche beim Login für den Proxy.
+- **Die Bash-Shell des Agenten startet mit Node 24.21.0**, obwohl nvm `default` auf 24.22.1
+  steht. Vor `npm`, `make e2e` oder `make build`: `source ~/.nvm/nvm.sh && nvm use 24.22.1`.
+  `npm ci` bricht sonst an `engine-strict` ab; `make test` läuft zufällig auch so.
+- **`npx sv add …` installiert nichts**, es schreibt nur Dateien. Abhängigkeiten installiert der
+  Nutzer (`npm --prefix app install`), nicht der Agent (`.claude/rules/svelte-kit.md`).
+- **E2E-Tests laufen seriell und bauen aufeinander auf** (`app/src/routes/admin/admin.e2e.ts`):
+  das Setup zuerst, der Passwort-Wechsel zuletzt. Neue Tests vor den Passwort-Test stellen.
+  Den Setup-Token lesen sie aus dem Server-Log in `$E2E_DIR` (Temp-Verzeichnis, gesetzt in
+  `app/playwright.config.ts`); jeder Lauf lässt dort ein Verzeichnis `grimoire-e2e-*` liegen.
+- **Für CI (TASK-35):** `make e2e` lädt nur Chromium (`playwright install chromium`), ohne
+  Systempakete. Auf einem nackten Runner fehlen die vermutlich – `--with-deps` prüfen.
+  Ungetestet.
+- **Hydration setzt Eingaben zurück.** Ein Feld mit `value={…}`, in das getippt wird, bevor die
+  Seite hydriert ist, verliert den Text. Login und Setup haben deshalb `csr = false`. Die anderen
+  Formulare erreichen die E2E-Tests per Klick (nach der Hydration); ein `page.goto` mit sofortigem
+  `fill` auf diese Seiten wird flaky.
+- **Admin-Formulare per curl:** POST ohne Body gibt 415 → `-d ""`. Über `http` außerdem
+  `PROTOCOL_HEADER=x-forwarded-proto` am Server und `-H X-Forwarded-Proto:http -H Origin:<url>`.
+  Mit `-H 'x-sveltekit-action: true'` kommt das Ergebnis der Action als JSON.
+- **MCP per curl** braucht `Accept: application/json, text/event-stream`, sonst lehnt der
+  Transport ab.
+- **Quelle speichern startet einen erzwungenen Sync** (ohne darauf zu warten) und leitet auf die
+  Quellseite. Ein gespeicherter Token geht nicht an einen anderen Server: Ändert sich die Origin
+  der Git-URL, muss der Token neu eingegeben oder entfernt werden.
+- **Docker-Image:** Basis `node:24.22.1-trixie-slim` – 24.22.1 war beim Einbau 9 Tage alt,
+  Ausnahme von der Zwei-Wochen-Regel als Sicherheits-Release. Das Image kopiert für
+  `scripts/reset-admin.ts` nur `app/src/lib/server/admin/auth.ts`; importiert `auth.ts` je etwas
+  anderes als `node:`-Module, bricht das Skript im Container.
+- **`docker exec -it` braucht ein Terminal.** Ohne TTY im Agenten:
+  `printf 'admin\n' | script -qec "docker exec -it <container> node scripts/reset-admin.ts" /dev/null`.
+- **Jeder Push mit `feat`/`fix` ist ein Release.** Commit-Typ nach dem wählen, was ausgeliefert
+  wird.
+- **Modulzustand in `admin/auth.ts`** (Setup-Token, Fehlversuche – auch die des Passwort-Wechsels
+  –, „Admin gesehen“). Tests brauchen `vi.resetModules()` und einen dynamischen Import.
 - **`scopeForKey`: `{ scope: undefined }` heißt alle Projekte**, nur `undefined` heißt ablehnen.
-  `scopeForRequest` in `agent/http.ts` kapselt das; HTTP und MCP nutzen beide diese Funktion.
-- **Modulzustand in `admin/auth.ts`** (Setup-Token, Fehlversuche, „Admin gesehen“). Tests brauchen
-  `vi.resetModules()` und einen dynamischen Import, sonst sickert Zustand zwischen Tests durch.
-  `$app/env/private` lässt sich mit `vi.mock` mocken.
-- **Skripte in `scripts/` laufen mit reinem `node`** (Type-Stripping, `node:sqlite`) ohne
-  `import.meta.glob`: Sie migrieren nicht. Die Datenbank muss einmal vom Server angelegt
-  worden sein. Importierte `.ts`-Dateien brauchen deshalb die Endung im Import und dürfen nur
-  `node:`-Module importieren.
-- **Testserver über die PID beenden, die `ss -ltnp` zum Port zeigt.**
-  `cd app && node build &` schickt eine Subshell in den Hintergrund, `$!` trifft dann nicht den
-  Node-Prozess – so blieb in dieser Session ein Server stundenlang laufen.
-- **Node ≥ 24.22.1** (`engines` + `engine-strict`): ältere Versionen haben die Brotli-Lücke
-  CVE-2026-111497, und `npm ci` bricht dort ab. Lokal per nvm als `default` gesetzt.
-  `process.versions.brotli` zeigt trotz Fix `1.2.0`; maßgeblich ist, ob
-  `zlib.constants.BROTLI_DECODER_ERROR_FORMAT_BLOCK_SWITCH` existiert. Für TASK-18 ein
-  Node-Basis-Image nehmen, nicht das Debian-Paket `nodejs`.
-- **Zensical:** `make handbook` legt Python 3.12 fest, weil uv sonst Zensical aus dem Quellcode
-  baut (braucht Rust). Neue Handbuch-Seiten brauchen einen Eintrag in `nav` in `zensical.toml`.
-  `sections = ["index.md", "*.md"]` erfasst nur die oberste Ebene; Unterordner brauchen ein
-  eigenes Muster, sonst fehlen sie in `llms.txt` und haben keinen Copy-Button.
-- **Neue Abhängigkeiten:** Versionen mindestens zwei Wochen alt und exakt festlegen (croner
-  10.0.1, `@modelcontextprotocol/server` 2.3.1, zod 4.6.7). Ausnahme: Sicherheitsfixes.
+- **Skripte in `scripts/` laufen mit reinem `node`** ohne `import.meta.glob`: Sie migrieren
+  nicht, importierte `.ts`-Dateien brauchen die Endung und dürfen nur `node:`-Module importieren.
+- **Testserver über die PID beenden, die `ss -ltnp` zum Port zeigt**, nicht über `$!`.
+- **Zensical:** neue Handbuch-Seiten brauchen einen Eintrag in `nav` in `zensical.toml`;
+  `make handbook` baut strikt.
+- **Neue Abhängigkeiten:** mindestens zwei Wochen alt und exakt festlegen (zuletzt
+  `@playwright/test` 1.64.1). Ausnahme: Sicherheitsfixes.
+- **`git pull --rebase` meldete einmal „Cannot rebase onto multiple branches“**, Ursache nicht
+  geklärt. Kommt es wieder: `git fetch` und `git rebase origin/main` getrennt ausführen.
+- **Exit-Codes nicht durch eine Pipe prüfen:** Ausgabe in eine Datei im Scratchpad, Exit-Code
+  separat.
 - **Playwright-MCP schreibt `.playwright-mcp/` ins Repo** (nicht ignoriert) – nach Gebrauch
   löschen.
-- **`git pull --rebase` meldete einmal „Cannot rebase onto multiple branches“**, obwohl das
-  Tracking von `main` stimmt; der Push war ein Fast-Forward. Ursache nicht geklärt. Kommt es
-  wieder: `git fetch` und `git rebase origin/main` getrennt ausführen.
-- **Exit-Codes nicht durch eine Pipe prüfen:** `make lint | tail` meldet Erfolg, auch wenn Lint
-  fehlschlägt. Ausgabe in eine Datei im Scratchpad, Exit-Code separat.
 - **Frischer Clone:** `cp app/.env.example app/.env`, `TOKEN_ENCRYPTION_KEY` mit
   `openssl rand -base64 32` füllen, `npm --prefix app ci`.
-- **Temporäres ins Scratchpad**, nicht nach `/tmp`.
 - **Diese Datei ist bewusst committet** (Entscheidung des Nutzers).
