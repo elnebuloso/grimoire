@@ -1,0 +1,11 @@
+# grimoire
+
+grimoire is a self-hosted knowledge base for AI agents. It reads Markdown documentation from Git
+repositories, splits every page into snippets along its headings and serves the matching ones to
+agents within a token budget, over MCP and HTTP. People and agents keep writing the documentation
+in Git; grimoire only reads it.
+
+This handbook is for the people who run grimoire.
+
+- [Database](database.md): configuration, the volume for the SQLite file, the sync schedule,
+  access tokens and backups.

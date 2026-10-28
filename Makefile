@@ -1,4 +1,4 @@
-.PHONY: help dev build test lint format api-key
+.PHONY: help dev build test lint format api-key handbook
 
 help: ## List all targets
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "} {printf "  %-8s %s\n", $$1, $$2}'
@@ -21,3 +21,7 @@ format: ## Format all files with Prettier
 
 api-key: ## Create an API key and print it once: NAME=<name> [PROJECTS=<slug>,<slug>]
 	cd app && node --env-file=.env ../scripts/create-api-key.ts "$(NAME)" "$(PROJECTS)"
+
+# Without --python, uv picked an interpreter for which it built zensical from source.
+handbook: ## Build the handbook site into site/
+	uvx --python 3.12 zensical==0.0.70 build --strict

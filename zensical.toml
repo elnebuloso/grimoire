@@ -1,0 +1,9 @@
+[project]
+site_name = "grimoire"
+site_description = "Self-hosted knowledge base for AI agents."
+site_url = "https://elnebuloso.github.io/grimoire/"
+docs_dir = "docs/handbook"
+site_dir = "site"
+
+[project.plugins.llmstxt]
+sections = { Handbook = ["*.md"] }
