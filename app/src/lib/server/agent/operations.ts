@@ -46,10 +46,7 @@ export function indexProject(
 	project: string,
 	scope: ProjectScope
 ): OperationResult {
-	const projectRow = db
-		.prepare(`SELECT id, description FROM projects WHERE slug = :project AND ${IN_SCOPE}`)
-		.get({ project, scope: scopeParameter(scope) }) as
-		{ id: number; description: string } | undefined;
+	const projectRow = findProject(db, project, scope);
 	if (!projectRow) return projectNotFound(project);
 
 	const rows = db
@@ -89,6 +86,46 @@ export function indexProject(
 		const depth = titlePath.length - 3;
 		const title = titlePath.at(-1)!.replace(/ \(\d+\/\d+\)$/, '');
 		lines.push(`${'  '.repeat(depth)}- ${pageId}#${anchor}: ${title}`);
+	}
+	return { found: true, markdown: lines.join('\n') };
+}
+
+/**
+ * Lists the pages of a project as an llms.txt file, each linked to its HTTP route under
+ * `origin`. Sections are left out: agents follow the links, not the IDs.
+ */
+export function llmsTxt(
+	db: DatabaseSync,
+	project: string,
+	scope: ProjectScope,
+	origin: string
+): OperationResult {
+	const projectRow = findProject(db, project, scope);
+	if (!projectRow) return projectNotFound(project);
+
+	const rows = db
+		.prepare(
+			`SELECT sources.slug AS source, pages.file, pages.title
+			FROM sources
+			LEFT JOIN pages ON pages.source_id = sources.id
+			WHERE sources.project_id = ?
+			ORDER BY sources.slug, pages.file`
+		)
+		.all(projectRow.id) as { source: string; file: string | null; title: string | null }[];
+
+	const lines = [`# ${project}`];
+	if (projectRow.description) lines.push('', `> ${projectRow.description}`);
+	let source: string | undefined;
+	for (const row of rows) {
+		if (row.source !== source) {
+			source = row.source;
+			lines.push('', `## ${source}`, '');
+		}
+		if (row.file === null) continue;
+		const path = [project, source, ...row.file.replace(/\.md$/, '').split('/')]
+			.map(encodeURIComponent)
+			.join('/');
+		lines.push(`- [${row.title}](${origin}/p/${path})`);
 	}
 	return { found: true, markdown: lines.join('\n') };
 }
@@ -153,12 +190,19 @@ export function readById(db: DatabaseSync, id: string, scope: ProjectScope): Ope
 	return { found: true, markdown: rows.map(toSnippetHit).map(renderSnippet).join('\n\n') };
 }
 
+function findProject(
+	db: DatabaseSync,
+	project: string,
+	scope: ProjectScope
+): { id: number; description: string } | undefined {
+	return db
+		.prepare(`SELECT id, description FROM projects WHERE slug = :project AND ${IN_SCOPE}`)
+		.get({ project, scope: scopeParameter(scope) }) as
+		{ id: number; description: string } | undefined;
+}
+
 function projectVisible(db: DatabaseSync, project: string, scope: ProjectScope): boolean {
-	return (
-		db
-			.prepare(`SELECT 1 FROM projects WHERE slug = :project AND ${IN_SCOPE}`)
-			.get({ project, scope: scopeParameter(scope) }) !== undefined
-	);
+	return findProject(db, project, scope) !== undefined;
 }
 
 function projectNotFound(project: string): OperationResult {

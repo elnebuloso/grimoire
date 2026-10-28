@@ -8,6 +8,7 @@ import {
 	agentInstructions,
 	indexProject,
 	listProjects,
+	llmsTxt,
 	queryProjects,
 	readById
 } from './operations';
@@ -164,6 +165,35 @@ describe('queryProjects', () => {
 		]);
 		expect(queryProjects(db, { query: 'rollback', project: 'platform' }, ['billing']).found).toBe(
 			false
+		);
+	});
+});
+
+describe('llmsTxt', () => {
+	it('links every page of the project to its HTTP route, sections left out', () => {
+		addSource(addProject('ops'), 'ops', 'runbooks', { 'On Call/first day.md': '# First day' });
+
+		expect(llmsTxt(db, 'platform', undefined, 'https://grimoire.example')).toEqual({
+			found: true,
+			markdown: [
+				'# platform',
+				'',
+				'> Login and gateway',
+				'',
+				'## auth',
+				'',
+				'- [Deploy](https://grimoire.example/p/platform/auth/deploy)',
+				'- [Start](https://grimoire.example/p/platform/auth/guide/start)'
+			].join('\n')
+		});
+		expect(llmsTxt(db, 'ops', undefined, 'https://grimoire.example').markdown).toContain(
+			'- [First day](https://grimoire.example/p/ops/runbooks/On%20Call/first%20day)'
+		);
+	});
+
+	it('treats a project out of scope like an unknown one', () => {
+		expect(llmsTxt(db, 'platform', ['billing'], 'https://grimoire.example')).toEqual(
+			indexProject(db, 'platform', ['billing'])
 		);
 	});
 });
