@@ -29,6 +29,29 @@ example `x-forwarded-proto`), otherwise every admin form is rejected with
 `Cross-site POST form submissions are forbidden`. Behind a proxy, also set `ADDRESS_HEADER` (for
 example `x-forwarded-for`), so failed logins are counted per client and not for the proxy.
 
+## Projects and sources
+
+A project groups sources; agents search a project as a whole. A source is one Git repository,
+one branch and one path in it. To serve two paths of the same repository, add it twice as two
+sources with different slugs.
+
+| Field | Meaning |
+|---|---|
+| Slug | Part of every ID agents see (`<project>/<source>/<page>`): lowercase letters, digits and single hyphens. A source slug is unique within its project. |
+| Git URL | `https://` only, without `user:token@`; username and token have their own fields. |
+| Path | Relative to the repository root, e.g. `docs/`; empty for the whole repository. |
+| Exclusions | Glob patterns relative to the repository root, one per line, e.g. `docs/drafts/**`. |
+| Schedule | Cron expression with five fields, in the server time zone; empty uses `SYNC_SCHEDULE`. |
+| Username, token | A read-only token of the Git host, e.g. a GitLab deploy token or a GitHub fine-grained token. |
+
+The token is stored encrypted with `TOKEN_ENCRYPTION_KEY` and never shown again. Leave the field
+empty to keep the stored token, or tick "Remove the stored token" to drop it. When the Git URL
+moves to another server, grimoire asks for the token again, so a stored token never goes to a
+server it was not entered for.
+
+Saving a source starts a sync right away, so a changed path or exclusion applies without waiting
+for a new commit. Deleting a project deletes its sources and their index.
+
 ## Lost password
 
 Delete the admin account with the script in the container:
