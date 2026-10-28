@@ -4,7 +4,7 @@ title: Docker image
 status: To Do
 assignee: []
 created_date: '2026-10-28T19:32:00Z'
-updated_date: '2026-10-28T20:39:00Z'
+updated_date: '2026-10-28T20:42:00Z'
 labels:
   - ops
 milestone: m-0
@@ -38,4 +38,6 @@ grimoire is operated as a single Docker image: Node plus git for syncing, one vo
 
 <!-- SECTION:NOTES:BEGIN -->
 Handoff from TASK-26: the image needs no migrations folder (SQL is bundled). For Kubernetes, the same image runs as init container with `MIGRATE_ONLY=true` and the same `DATABASE_PATH`; see `docs/handbook/database.md` (one instance, `Recreate`, RWO/RWOP volume).
+
+Handoff from TASK-25: the container needs `TOKEN_ENCRYPTION_KEY` (also the init container with `MIGRATE_ONLY`); the image must not contain a default key.
 <!-- SECTION:NOTES:END -->

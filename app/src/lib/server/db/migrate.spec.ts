@@ -115,6 +115,19 @@ describe('migrate', () => {
 		migrate(db, shippedMigrations);
 		expect(userVersion(db)).toBe(shippedMigrations.length);
 	});
+
+	it('keeps sources but drops their clear tokens when tokens become encrypted', () => {
+		const db = new DatabaseSync(':memory:');
+		migrate(db, shippedMigrations.slice(0, 1));
+		db.exec(`INSERT INTO projects (id, slug) VALUES (1, 'platform');
+			INSERT INTO sources (project_id, slug, git_url, branch, path, token)
+			VALUES (1, 'auth', 'https://git.example/auth.git', 'main', 'docs/', 'clear-token');`);
+
+		migrate(db, shippedMigrations.slice(0, 2));
+		expect(rows(db, 'SELECT slug, encrypted_token FROM sources')).toEqual([
+			{ slug: 'auth', encrypted_token: null }
+		]);
+	});
 });
 
 describe('openMigratedDatabase', () => {

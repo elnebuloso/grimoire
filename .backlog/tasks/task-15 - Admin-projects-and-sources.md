@@ -4,6 +4,7 @@ title: 'Admin: projects and sources'
 status: To Do
 assignee: []
 created_date: '2026-10-28T19:32:00Z'
+updated_date: '2026-10-28T20:42:00Z'
 labels:
   - admin
 milestone: m-0
@@ -31,3 +32,9 @@ Projects group sources; a source is one Git repo with branch and exactly one pat
 - [ ] #4 The token is write-only: never rendered, editing a source without entering a token keeps the old one
 - [ ] #5 Git URLs are always shown without credentials
 <!-- AC:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Handoff from TASK-25: store a source token with `encryptToken(token, TOKEN_ENCRYPTION_KEY)` in `sources.encrypted_token`; never send the stored or clear value back to the browser.
+<!-- SECTION:NOTES:END -->

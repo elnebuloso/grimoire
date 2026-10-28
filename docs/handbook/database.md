@@ -10,9 +10,23 @@ projects, sources and API keys exist only in this file.
 |---|---|
 | `DATABASE_PATH` | Path of the SQLite file. Required; the server does not start without it. The file and its schema are created on first start. |
 | `MIGRATE_ONLY` | With `true`, the server brings the schema up to date and exits without serving requests. |
+| `TOKEN_ENCRYPTION_KEY` | Key encrypting the Git access tokens of all sources: 32 random bytes, base64-encoded. Required; the server does not start without it, also with `MIGRATE_ONLY`. |
 
 SQLite writes two companion files next to the database, `<file>-wal` and `<file>-shm`. Keep all
 three on the same volume.
+
+## Access tokens
+
+The Git access token of every source is stored encrypted with `TOKEN_ENCRYPTION_KEY`; the
+database file alone does not reveal it. Generate the key once and keep it with your other secrets:
+
+```bash
+openssl rand -base64 32
+```
+
+Keep the key for as long as the database: a backup restored with a different key still opens, but
+every source fails to sync until its token is entered again. Never put the key next to the
+database backups — together they reveal every token.
 
 ## One instance
 

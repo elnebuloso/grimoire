@@ -4,7 +4,7 @@ title: Git sync of a source
 status: To Do
 assignee: []
 created_date: '2026-10-28T19:31:00Z'
-updated_date: '2026-10-28T20:21:00Z'
+updated_date: '2026-10-28T20:42:00Z'
 labels:
   - sync
 milestone: m-0
@@ -38,6 +38,7 @@ Git is the source of truth; grimoire only reads. A sync brings one source (repo,
 - [ ] #8 The access token never appears in errors, warnings, logs or stored URLs
 - [ ] #9 Integration test syncs a local test repository
 - [ ] #10 Link records produced by link resolution are stored with the pages and snippets of the source
+- [ ] #11 The sync decrypts the token only to run git; the clear value is never stored, logged or returned by the API
 <!-- AC:END -->
 
 ## Implementation Notes
@@ -48,4 +49,6 @@ Handoff from TASK-4: run `resolveIncludes(raw, { path, sourcePath }, read)` (`ap
 Handoff from TASK-6: after chunking every page of the source, call `resolveLinks(pages, { project, source })` (`app/src/lib/server/parsing/links.ts`) with the pages keyed by file relative to the source path; store its `pages` (snippet text with rewritten links) and its `links` (`{ file, anchor, target, dead }`; `target` is the link as written when it leaves the source path).
 
 Handoff from TASK-2: open the database with `database()` (`app/src/lib/server/db/index.ts`). Writing a snippet means two inserts: the `snippets` row, then `snippets_fts` with `rowid` = snippet id and the text split into `text` and `code`. Deleting the source's pages cascades to snippets, links and (by trigger) FTS rows. JSON columns: `sources.exclusions`, `sources.warnings`, `pages.tags`, `snippets.aliases`, `snippets.title_path`.
+
+Handoff from TASK-25: `sources.encrypted_token` holds the token encrypted; decrypt it with `decryptToken(stored, TOKEN_ENCRYPTION_KEY)` (`app/src/lib/server/token-encryption.ts`, key from `$app/env/private`) right before running git. A decryption error is a sync error of the source; its message is safe to store.
 <!-- SECTION:NOTES:END -->
