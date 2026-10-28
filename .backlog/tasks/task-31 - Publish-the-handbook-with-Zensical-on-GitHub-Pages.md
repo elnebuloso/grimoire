@@ -1,11 +1,11 @@
 ---
 id: TASK-31
 title: Publish the handbook with Zensical on GitHub Pages
-status: In Progress
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-28T22:27:00Z'
-updated_date: '2026-10-28T22:31:00Z'
+updated_date: '2026-10-28T22:33:00Z'
 labels: []
 milestone: m-0
 dependencies: []
@@ -24,10 +24,10 @@ The handbook in `docs/handbook/` is written to be published on its own, but noth
 <!-- AC:BEGIN -->
 - [x] #1 A Zensical configuration builds the pages in `docs/handbook/`; `zensical build --strict` passes
 - [x] #2 The Zensical version is pinned
-- [ ] #3 A workflow publishes the site to GitHub Pages at https://elnebuloso.github.io/grimoire/ on a push to `main` that changes the handbook or its configuration, and when started by hand
+- [x] #3 A workflow publishes the site to GitHub Pages at https://elnebuloso.github.io/grimoire/ on a push to `main` that changes the handbook or its configuration, and when started by hand
 - [x] #4 The published site serves `llms.txt` at its root, listing the handbook pages
 - [x] #5 A `make` target builds the site locally
-- [ ] #6 Verified after one run on GitHub: the site and its `llms.txt` are reachable
+- [x] #6 Verified after one run on GitHub: the site and its `llms.txt` are reachable
 <!-- AC:END -->
 
 ## Implementation Plan
@@ -44,4 +44,12 @@ The handbook in `docs/handbook/` is written to be published on its own, but noth
 
 <!-- SECTION:NOTES:BEGIN -->
 Zensical 0.0.70 (newest at least two weeks old; 0.0.72 has a reported privacy-plugin bug) generates llms.txt natively from `[project.plugins.llmstxt]` in zensical.toml; verified locally: `make handbook` passes --strict and writes site/llms.txt with the site description and both pages. Without `--python`, uv built zensical from source (needs Rust) instead of using the abi3 wheel, so the target pins Python 3.12. Added `docs/handbook/index.md` as home page. Deployment uses actions/deploy-pages, so GitHub Pages must be set to source "GitHub Actions" in the repository settings (Pages was not enabled yet).
+
+First run on GitHub after the push (triggered by the handbook change): https://elnebuloso.github.io/grimoire/, /database/, /llms.txt and the Markdown copy /index.md all answer 200; llms.txt lists both pages.
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+The handbook in docs/handbook is published at https://elnebuloso.github.io/grimoire/ with Zensical 0.0.70: zensical.toml at the repo root with the native llmstxt plugin, a new home page docs/handbook/index.md, `make handbook` (uvx, Python pinned to 3.12) building into site/, and .github/workflows/handbook.yml deploying via actions/deploy-pages on handbook changes on main or by hand. GitHub Pages is set to source "GitHub Actions". Verified locally (--strict) and on the live site, including llms.txt.
+<!-- SECTION:FINAL_SUMMARY:END -->
