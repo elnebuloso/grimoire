@@ -4,7 +4,7 @@ title: Docker image
 status: To Do
 assignee: []
 created_date: '2026-10-28T19:32:00Z'
-updated_date: '2026-10-28T20:46:00Z'
+updated_date: '2026-10-28T21:23:00Z'
 labels:
   - ops
 milestone: m-0
@@ -42,4 +42,6 @@ Handoff from TASK-26: the image needs no migrations folder (SQL is bundled). For
 Handoff from TASK-25: the container needs `TOKEN_ENCRYPTION_KEY` (also the init container with `MIGRATE_ONLY`); the image must not contain a default key.
 
 Database volume: mount a directory (e.g. `/data`), not the file – SQLite keeps `-wal` and `-shm` next to it; set `DATABASE_PATH=/data/grimoire.db`. A missing directory is created on start. See `docs/handbook/database.md`.
+
+The image needs Node 24 (built-in `node:sqlite`; the test suite also loads TypeScript directly in child processes) and `git`. The Node version is not pinned anywhere in the repo yet (no `engines`, no `.nvmrc`).
 <!-- SECTION:NOTES:END -->

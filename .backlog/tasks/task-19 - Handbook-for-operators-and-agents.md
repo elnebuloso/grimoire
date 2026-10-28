@@ -4,7 +4,7 @@ title: Handbook for operators and agents
 status: To Do
 assignee: []
 created_date: '2026-10-28T19:32:00Z'
-updated_date: '2026-10-28T20:39:00Z'
+updated_date: '2026-10-28T21:23:00Z'
 labels: []
 milestone: m-0
 dependencies:
@@ -34,4 +34,6 @@ Operators need to know how to run grimoire, and doc authors how to write docs th
 
 <!-- SECTION:NOTES:BEGIN -->
 Handoff from TASK-26: the handbook starts with `docs/handbook/database.md` (database configuration, schema updates, backups); link it from the operator pages.
+
+`docs/handbook/database.md` also holds the sync schedule section by now; decide whether it becomes its own operator page.
 <!-- SECTION:NOTES:END -->
