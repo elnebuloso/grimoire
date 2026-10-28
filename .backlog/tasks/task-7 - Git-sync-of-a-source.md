@@ -4,6 +4,7 @@ title: Git sync of a source
 status: To Do
 assignee: []
 created_date: '2026-10-28T19:31:00Z'
+updated_date: '2026-10-28T20:04:00Z'
 labels:
   - sync
 milestone: m-0
@@ -37,3 +38,9 @@ Git is the source of truth; grimoire only reads. A sync brings one source (repo,
 - [ ] #8 The access token never appears in errors, warnings, logs or stored URLs
 - [ ] #9 Integration test syncs a local test repository
 <!-- AC:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Handoff from TASK-4: run `resolveIncludes(raw, { path, sourcePath }, read)` (`app/src/lib/server/parsing/include.ts`) on every page before `preprocessPage`; `read` takes repo-relative paths and returns undefined for missing files. Collect `outsideSourcePath` over all pages, `git sparse-checkout add` the directories not yet checked out, rerun until nothing new appears; keep only the warnings of the last run.
+<!-- SECTION:NOTES:END -->
