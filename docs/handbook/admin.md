@@ -65,6 +65,17 @@ into its snippets with their `Source:` and `Edit:` lines.
 
 **Sync now** syncs the source at once, even when the branch has not moved, and shows the result.
 
+## API keys
+
+Agents authenticate with an API key, sent as `Authorization: Bearer <key>`. Under **API keys**,
+create one with a name and the projects it may read: all of them, including projects added
+later, or a selection.
+
+The key is shown once, right after it is created. grimoire stores only its SHA-256 hash, so a
+lost key cannot be recovered: revoke it and create a new one. Revoking takes effect with the next
+request. A key limited to a selection loses a project when the project is deleted, and sees
+nothing once all of them are gone.
+
 ## Lost password
 
 Delete the admin account with the script in the container:
