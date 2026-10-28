@@ -1,7 +1,18 @@
-# grimoire
+<p align="center">
+  <img src="logo.png" alt="grimoire" width="128">
+</p>
 
-Self-hosted knowledge base for AI agents. Indexes Markdown docs from your Git repositories into
-searchable snippets and serves them via MCP and HTTP.
+<h1 align="center">grimoire</h1>
+
+<p align="center">
+  Self-hosted knowledge base for AI agents. Indexes Markdown docs from your Git repositories into
+  searchable snippets and serves them via MCP and HTTP.
+</p>
+
+<p align="center">
+  <a href="https://elnebuloso.github.io/grimoire/">Handbook</a> ·
+  <a href="https://github.com/elnebuloso/grimoire/releases">Releases</a>
+</p>
 
 Inspired by [Context7](https://context7.com), which does this for public libraries. grimoire does
 it for the internal knowledge of an organisation: how your services, tools and processes work and

@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#4b2c8a"/>
+      <stop offset="1" stop-color="#25164d"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <!-- open book -->
+  <path d="M256 196 C 214 170, 160 162, 104 172 L 104 384 C 160 374, 214 382, 256 408 Z" fill="#f4efff"/>
+  <path d="M256 196 C 298 170, 352 162, 408 172 L 408 384 C 352 374, 298 382, 256 408 Z" fill="#e4dafb"/>
+  <path d="M256 196 L 256 408" stroke="#25164d" stroke-width="6" stroke-linecap="round"/>
+  <!-- lines of text: the snippets -->
+  <g stroke="#8a6cc7" stroke-width="12" stroke-linecap="round">
+    <path d="M136 226 C 170 220, 200 222, 228 232"/>
+    <path d="M136 264 C 170 258, 200 260, 228 270"/>
+    <path d="M136 302 C 160 297, 180 298, 196 302"/>
+    <path d="M284 232 C 312 222, 342 220, 376 226"/>
+    <path d="M284 270 C 312 260, 342 258, 376 264"/>
+    <path d="M284 308 C 312 298, 342 296, 376 302"/>
+  </g>
+  <!-- spark -->
+  <path d="M256 54 C 262 96, 272 106, 312 112 C 272 118, 262 128, 256 170 C 250 128, 240 118, 200 112 C 240 106, 250 96, 256 54 Z" fill="#f6c453"/>
+  <circle cx="352" cy="78" r="10" fill="#f6c453"/>
+  <circle cx="162" cy="96" r="7" fill="#f6c453" opacity="0.8"/>
+</svg>

@@ -7,6 +7,8 @@ site_dir = "site"
 nav = [{ "Overview" = "index.md" }, { "Database" = "database.md" }, { "Admin area" = "admin.md" }]
 
 [project.theme]
+logo = "assets/logo.png"
+favicon = "assets/logo.png"
 features = ["content.action.copy"]
 
 [project.plugins.llmstxt]
