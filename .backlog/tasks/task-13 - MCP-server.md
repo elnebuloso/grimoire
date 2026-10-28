@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-28T19:32:00Z'
-updated_date: '2026-10-28T22:06:00Z'
+updated_date: '2026-10-28T22:07:00Z'
 labels:
   - agent-api
 milestone: m-0
@@ -52,6 +52,8 @@ Decided with the user: SDK v2 @modelcontextprotocol/server 2.3.1; AC #5 verified
 Stateless Streamable HTTP with JSON responses (enableJsonResponse): one server and transport per request, no sessions to keep, a revoked key fails on the next request. Unknown and out-of-scope IDs are tool results with isError, not protocol errors. The key check is shared with the HTTP API (scopeForRequest, unauthorizedResponse in agent/http.ts).
 
 Verified with MCP Inspector CLI 2.11.0 against the production build, synced from a local file:// repo: tools/list shows all four tools; projects, index, query (with tokens), read with #anchor and an ID with a space answer; an unknown ID returns isError. Without a key the Inspector answers the 401 + WWW-Authenticate: Bearer by starting OAuth discovery; grimoire has no OAuth, so clients must send the key as a header. Whether clients that only connect via OAuth (e.g. connector UIs) can use grimoire is not checked.
+
+Decided with the user: access by API key only is enough; no OAuth, and no task for OAuth-only clients.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
