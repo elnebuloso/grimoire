@@ -4,7 +4,7 @@ title: Docker image
 status: To Do
 assignee: []
 created_date: '2026-10-28T19:32:00Z'
-updated_date: '2026-10-28T22:48:00Z'
+updated_date: '2026-10-28T22:59:00Z'
 labels:
   - ops
 milestone: m-0
@@ -45,4 +45,6 @@ Handoff from TASK-25: the container needs `TOKEN_ENCRYPTION_KEY` (also the init 
 Database volume: mount a directory (e.g. `/data`), not the file – SQLite keeps `-wal` and `-shm` next to it; set `DATABASE_PATH=/data/grimoire.db`. A missing directory is created on start. See `docs/handbook/database.md`.
 
 The image needs Node 24 (built-in `node:sqlite`; the test suite also loads TypeScript directly in child processes) and `git`. The Node version is not pinned anywhere in the repo yet (no `engines`, no `.nvmrc`).
+
+The image needs Node 24.22.1 or newer: older versions carry the Brotli decoder flaw CVE-2026-111497 (fixed in 24.22.1 by a cherry-pick, so `process.versions.brotli` still says 1.2.0; check `zlib.constants.BROTLI_DECODER_ERROR_FORMAT_BLOCK_SWITCH` instead). Use a Node base image of at least that version, not the Debian `nodejs` package (bookworm and trixie are still vulnerable there).
 <!-- SECTION:NOTES:END -->

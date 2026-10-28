@@ -65,7 +65,7 @@ once per session and follow it.
 
 ## Running
 
-grimoire needs Node 24 and `git`.
+grimoire needs Node 24.22.1 or newer and `git`.
 
 ```bash
 cp app/.env.example app/.env   # then set TOKEN_ENCRYPTION_KEY=$(openssl rand -base64 32)
