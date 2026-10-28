@@ -1,4 +1,4 @@
-.PHONY: help dev build test lint format
+.PHONY: help dev build test lint format api-key
 
 help: ## List all targets
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "} {printf "  %-8s %s\n", $$1, $$2}'
@@ -18,3 +18,6 @@ lint: ## Check formatting, lint rules and types
 
 format: ## Format all files with Prettier
 	npm --prefix app run format
+
+api-key: ## Create an API key and print it once: NAME=<name> [PROJECTS=<slug>,<slug>]
+	cd app && node --env-file=.env ../scripts/create-api-key.ts "$(NAME)" "$(PROJECTS)"
