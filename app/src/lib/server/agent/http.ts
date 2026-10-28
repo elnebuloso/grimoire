@@ -12,6 +12,25 @@ export function markdownResponse(markdown: string, status = 200, headers: Header
 }
 
 /**
+ * The scope of the `Authorization: Bearer <key>` of a request, or undefined when the key is
+ * missing or unknown. `{ scope: undefined }` is a key for all projects, not a rejection.
+ */
+export function scopeForRequest(
+	db: DatabaseSync,
+	request: Request
+): { scope: ProjectScope } | undefined {
+	const key = request.headers.get('Authorization')?.match(/^Bearer (.+)$/i)?.[1];
+	return key ? scopeForKey(db, key) : undefined;
+}
+
+/** The 401 for a request without a valid API key. */
+export function unauthorizedResponse(): Response {
+	return markdownResponse('Missing or invalid API key. Send `Authorization: Bearer <key>`.', 401, {
+		'WWW-Authenticate': 'Bearer'
+	});
+}
+
+/**
  * Answers an agent request: rejects it without a valid `Authorization: Bearer <key>`, otherwise
  * runs the operation within the key's scope. A result that was not found becomes a 404.
  */
@@ -20,16 +39,8 @@ export function agentResponse(
 	operation: (db: DatabaseSync, scope: ProjectScope) => OperationResult | Response
 ): Response {
 	const db = database();
-	const key = request.headers.get('Authorization')?.match(/^Bearer (.+)$/i)?.[1];
-	// `{ scope: undefined }` is a key for all projects; only a missing result means rejected.
-	const result = key ? scopeForKey(db, key) : undefined;
-	if (!result) {
-		return markdownResponse(
-			'Missing or invalid API key. Send `Authorization: Bearer <key>`.',
-			401,
-			{ 'WWW-Authenticate': 'Bearer' }
-		);
-	}
+	const result = scopeForRequest(db, request);
+	if (!result) return unauthorizedResponse();
 	const answer = operation(db, result.scope);
 	if (answer instanceof Response) return answer;
 	return markdownResponse(answer.markdown, answer.found ? 200 : 404);

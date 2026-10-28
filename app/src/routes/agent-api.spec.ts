@@ -13,6 +13,7 @@ import { GET as projectIndex } from './p/[project]/index/+server';
 import { GET as llmsTxt } from './p/[project]/llms.txt/+server';
 import { GET as projectQuery } from './p/[project]/query/+server';
 import { GET as page } from './p/[project]/[source]/[...page]/+server';
+import { fallback as mcp } from './mcp/+server';
 
 // Each route types its own event; `never` lets one helper call all of them.
 type RouteHandler = (event: never) => Response | Promise<Response>;
@@ -217,5 +218,86 @@ describe('GET /p/<project>/<source>/<page>', () => {
 		expect(unknownPage.body).toContain('"platform/auth/nope" not found');
 		expect(unknownSection.status).toBe(404);
 		expect(unknownSection.type).toBe('text/markdown; charset=utf-8');
+	});
+});
+
+describe('POST /mcp', () => {
+	let id = 0;
+
+	async function call(method: string, params: object = {}, key: string | null = allKey) {
+		const headers: Record<string, string> = {
+			'Content-Type': 'application/json',
+			Accept: 'application/json, text/event-stream'
+		};
+		if (key) headers.Authorization = `Bearer ${key}`;
+		const request = new Request('https://grimoire.example/mcp', {
+			method: 'POST',
+			headers,
+			body: JSON.stringify({ jsonrpc: '2.0', id: ++id, method, params })
+		});
+		return mcp({ request } as never);
+	}
+
+	async function tool(name: string, args: object = {}, key = allKey) {
+		const { result } = await (await call('tools/call', { name, arguments: args }, key)).json();
+		return { error: result.isError as boolean, text: result.content[0].text as string };
+	}
+
+	it('rejects a missing or unknown key before any MCP message', async () => {
+		for (const key of [null, 'grimoire_unknown']) {
+			const response = await call('tools/list', {}, key);
+
+			expect(response.status).toBe(401);
+			expect(response.headers.get('WWW-Authenticate')).toBe('Bearer');
+		}
+	});
+
+	it('sends the agent instructions on initialize', async () => {
+		const response = await call('initialize', {
+			protocolVersion: '2025-06-18',
+			capabilities: {},
+			clientInfo: { name: 'test', version: '1' }
+		});
+
+		expect((await response.json()).result.instructions).toBe(agentInstructions);
+	});
+
+	it('offers the four operations as tools', async () => {
+		const { result } = await (await call('tools/list')).json();
+
+		expect(result.tools.map((entry: { name: string }) => entry.name)).toEqual([
+			'projects',
+			'index',
+			'query',
+			'read'
+		]);
+	});
+
+	it('answers each tool in Markdown within the key scope', async () => {
+		expect(await tool('projects', {}, billingKey)).toEqual({ error: false, text: '- billing' });
+		expect((await tool('index', { project: 'platform' })).text).toContain(
+			'platform/auth/run books/deploy#upgrade: Upgrade'
+		);
+		expect((await tool('query', { query: 'rollback', tokens: 3000 })).text).toContain(
+			'Source: platform/auth/'
+		);
+		expect((await tool('query', { query: 'rollback' }, billingKey)).text).not.toContain('platform');
+	});
+
+	it('reads a section by an ID with #anchor', async () => {
+		const section = await tool('read', { id: 'platform/auth/run books/deploy#upgrade' });
+
+		expect(section.error).toBe(false);
+		expect(section.text).toContain('Source: platform/auth/run books/deploy#upgrade');
+		expect(section.text).not.toContain('Rollback');
+	});
+
+	it('reports unknown and out-of-scope IDs alike as a tool error', async () => {
+		const unknown = await tool('index', { project: 'nope' });
+		const hidden = await tool('index', { project: 'platform' }, billingKey);
+
+		expect(unknown.error).toBe(true);
+		expect(hidden).toEqual({ ...unknown, text: unknown.text.replace('nope', 'platform') });
+		expect((await tool('read', { id: 'platform/auth/nope' })).error).toBe(true);
 	});
 });
