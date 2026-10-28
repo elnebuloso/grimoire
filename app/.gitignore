@@ -24,3 +24,5 @@ vite.config.ts.timestamp-*
 
 # Local database of make dev
 /data/
+# Playwright
+test-results

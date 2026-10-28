@@ -90,8 +90,9 @@ described in [docs/handbook/database.md](docs/handbook/database.md).
 
 ## Development
 
-`make help` lists all targets; `make test` runs the tests, `make lint` checks formatting, lint
-rules and types.
+`make help` lists all targets; `make test` runs the unit tests, `make e2e` the browser tests of
+the admin area against the production build (it downloads Chromium on first use), `make lint`
+checks formatting, lint rules and types.
 
 Commits follow [Conventional Commits](https://www.conventionalcommits.org). Releases are cut from
 them by the `Release` workflow on every push to `main`: `feat` raises the minor
