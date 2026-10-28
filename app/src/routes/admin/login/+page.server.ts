@@ -3,6 +3,9 @@ import type { Actions } from './$types';
 import { database } from '#lib/server/db/index.js';
 import { login, SESSION_COOKIE, sessionCookieOptions } from '#lib/server/admin/auth.js';
 
+// A plain form needs no JavaScript; hydrating it would reset what was typed before it finished.
+export const csr = false;
+
 export const actions = {
 	default: async ({ request, cookies, getClientAddress }) => {
 		const data = await request.formData();
