@@ -6,5 +6,8 @@ docs_dir = "docs/handbook"
 site_dir = "site"
 nav = [{ "Overview" = "index.md" }, { "Database" = "database.md" }]
 
+[project.theme]
+features = ["content.action.copy"]
+
 [project.plugins.llmstxt]
 sections = { Handbook = ["index.md", "*.md"] }
