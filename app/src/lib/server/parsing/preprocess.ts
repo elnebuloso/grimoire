@@ -1,10 +1,7 @@
 import { parse as parseYaml } from 'yaml';
-import { unified } from 'unified';
-import remarkParse from 'remark-parse';
-import remarkGfm from 'remark-gfm';
-import remarkStringify from 'remark-stringify';
 import { visit, SKIP } from 'unist-util-visit';
 import type { Root, RootContent } from 'mdast';
+import { parseMarkdown, stringifyMarkdown } from './markdown';
 
 export interface PreprocessedPage {
 	title?: string;
@@ -32,15 +29,9 @@ const HTML_PICTURE_SOURCE = /<source\b[^>]*>/gi;
  */
 export function preprocessPage(source: string): PreprocessedPage {
 	const { metadata, body } = splitFrontmatter(source);
-	const markdown = String(
-		unified()
-			.use(remarkParse)
-			.use(remarkGfm)
-			.use(dropImageUrlsAndComments)
-			.use(remarkStringify, { bullet: '-' })
-			.processSync(convertBlocks(body))
-	);
-	return { ...metadata, markdown };
+	const tree = parseMarkdown(convertBlocks(body));
+	dropImageUrlsAndComments(tree);
+	return { ...metadata, markdown: stringifyMarkdown(tree) };
 }
 
 function splitFrontmatter(source: string) {
@@ -132,32 +123,30 @@ function quote(label: string | undefined, content: string): string[] {
 	return lines.map((line) => (line === '' ? '>' : `> ${line}`));
 }
 
-function dropImageUrlsAndComments() {
-	return (tree: Root) => {
-		visit(tree, (node, index, parent) => {
-			if (!parent || index === undefined) return;
-			const siblings = parent.children as RootContent[];
+function dropImageUrlsAndComments(tree: Root) {
+	visit(tree, (node, index, parent) => {
+		if (!parent || index === undefined) return;
+		const siblings = parent.children as RootContent[];
 
-			if (node.type === 'image' || node.type === 'imageReference') {
-				if (!node.alt) {
-					siblings.splice(index, 1);
-					return [SKIP, index];
-				}
-				siblings[index] = { type: 'text', value: node.alt };
-				return;
+		if (node.type === 'image' || node.type === 'imageReference') {
+			if (!node.alt) {
+				siblings.splice(index, 1);
+				return [SKIP, index];
 			}
+			siblings[index] = { type: 'text', value: node.alt };
+			return;
+		}
 
-			if (node.type === 'html') {
-				const value = node.value
-					.replace(HTML_COMMENT, '')
-					.replace(HTML_IMAGE, (tag) => HTML_ALT.exec(tag)?.slice(1).find(Boolean) ?? '')
-					.replace(HTML_PICTURE_SOURCE, '');
-				if (value.trim() === '') {
-					siblings.splice(index, 1);
-					return [SKIP, index];
-				}
-				node.value = value;
+		if (node.type === 'html') {
+			const value = node.value
+				.replace(HTML_COMMENT, '')
+				.replace(HTML_IMAGE, (tag) => HTML_ALT.exec(tag)?.slice(1).find(Boolean) ?? '')
+				.replace(HTML_PICTURE_SOURCE, '');
+			if (value.trim() === '') {
+				siblings.splice(index, 1);
+				return [SKIP, index];
 			}
-		});
-	};
+			node.value = value;
+		}
+	});
 }
