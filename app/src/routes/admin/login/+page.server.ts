@@ -1,0 +1,18 @@
+import { fail, redirect } from '@sveltejs/kit';
+import type { Actions } from './$types';
+import { database } from '#lib/server/db/index.js';
+import { login, SESSION_COOKIE, sessionCookieOptions } from '#lib/server/admin/auth.js';
+
+export const actions = {
+	default: async ({ request, cookies, getClientAddress }) => {
+		const data = await request.formData();
+		const form = {
+			username: String(data.get('username') ?? ''),
+			password: String(data.get('password') ?? '')
+		};
+		const result = login(database(), getClientAddress(), form);
+		if ('error' in result) return fail(400, { error: result.error, username: form.username });
+		cookies.set(SESSION_COOKIE, result.session, sessionCookieOptions);
+		redirect(303, '/admin');
+	}
+} satisfies Actions;

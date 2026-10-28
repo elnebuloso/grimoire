@@ -84,6 +84,8 @@ describe('openDatabase', () => {
 			.all()
 			.map((row) => row.name);
 		expect(tables).toEqual([
+			'admin',
+			'admin_sessions',
 			'api_key_projects',
 			'api_keys',
 			'links',

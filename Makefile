@@ -1,7 +1,7 @@
-.PHONY: help dev build test lint format api-key handbook
+.PHONY: help dev build test lint format api-key admin-reset handbook
 
 help: ## List all targets
-	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "} {printf "  %-8s %s\n", $$1, $$2}'
+	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "} {printf "  %-12s %s\n", $$1, $$2}'
 
 dev: ## Start the dev server
 	npm --prefix app run dev
@@ -21,6 +21,9 @@ format: ## Format all files with Prettier
 
 api-key: ## Create an API key and print it once: NAME=<name> [PROJECTS=<slug>,<slug>]
 	cd app && node --env-file=.env ../scripts/create-api-key.ts "$(NAME)" "$(PROJECTS)"
+
+admin-reset: ## Delete the admin account after a lost password; asks for its username
+	cd app && node --env-file=.env ../scripts/reset-admin.ts
 
 # Without --python, uv picked an interpreter for which it built zensical from source.
 handbook: ## Build the handbook site into site/
