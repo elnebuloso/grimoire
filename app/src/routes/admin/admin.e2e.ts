@@ -67,8 +67,7 @@ test('creates a project with a source and never shows its token', async ({ page 
 	await page.getByLabel('Access token').fill(TOKEN);
 	await page.getByRole('button', { name: 'Create source' }).click();
 
-	await expect(page.getByRole('heading', { name: 'Project platform' })).toBeVisible();
-	await page.getByRole('link', { name: 'auth-service' }).click();
+	await expect(page.getByRole('heading', { name: 'Source auth-service' })).toBeVisible();
 	await expect(page.getByLabel('Git URL')).toHaveValue('https://git.invalid/platform/auth.git');
 	await expect(page.getByLabel('Access token')).toHaveValue('');
 	await expect(page.getByText('stored; leave empty to keep it')).toBeVisible();
@@ -76,4 +75,16 @@ test('creates a project with a source and never shows its token', async ({ page 
 
 	await page.goto('/admin');
 	await expect(page.getByRole('link', { name: 'platform' })).toBeVisible();
+});
+
+test('syncs a source now and shows why it failed', async ({ page }) => {
+	await logIn(page);
+	await page.getByRole('link', { name: 'platform' }).click();
+	await page.getByRole('link', { name: 'auth-service' }).click();
+
+	await page.getByRole('button', { name: 'Sync now' }).click();
+
+	await expect(page.getByRole('status')).toContainText('Sync failed: git ls-remote failed');
+	await expect(page.getByRole('alert')).toContainText('git ls-remote failed');
+	expect(await page.content()).not.toContain(TOKEN);
 });

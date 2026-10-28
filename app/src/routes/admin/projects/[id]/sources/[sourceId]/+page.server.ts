@@ -14,6 +14,7 @@ import {
 	type Project,
 	type SourceSettings
 } from '#lib/server/admin/projects.js';
+import { previewPage, sourceStatus } from '#lib/server/admin/status.js';
 
 function pageFor(params: { id: string; sourceId: string }): {
 	project: Project;
@@ -29,12 +30,21 @@ function pageFor(params: { id: string; sourceId: string }): {
 	return { project, source };
 }
 
-export const load: PageServerLoad = ({ params }) => {
+export const load: PageServerLoad = ({ params, url }) => {
 	const { project, source } = pageFor(params);
 	const schedule = source?.schedule ?? SYNC_SCHEDULE;
+	const previewFile = url.searchParams.get('preview');
 	return {
 		project,
 		source,
+		status: source && sourceStatus(database(), source.id),
+		preview:
+			source && previewFile
+				? {
+						file: previewFile,
+						markdown: previewPage(database(), project.slug, source.slug, previewFile)
+					}
+				: undefined,
 		globalSchedule: SYNC_SCHEDULE,
 		nextCheck: new Cron(schedule, { mode: '5-part' }).nextRun()?.toISOString()
 	};
@@ -71,7 +81,12 @@ export const actions = {
 		requestSync(result.id, { force: true }).catch((error: Error) => {
 			console.error(`sync of source ${result.id} failed: ${error.message}`);
 		});
-		redirect(303, `/admin/projects/${project.id}`);
+		redirect(303, `/admin/projects/${project.id}/sources/${result.id}`);
+	},
+	sync: async ({ params }) => {
+		const { source } = pageFor(params);
+		if (!source) error(404);
+		return { sync: await requestSync(source.id, { force: true }) };
 	},
 	delete: ({ params }) => {
 		const { project, source } = pageFor(params);

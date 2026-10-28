@@ -1,0 +1,111 @@
+import { describe, it, expect, beforeEach } from 'vitest';
+import type { DatabaseSync } from 'node:sqlite';
+import { openDatabase } from '../db/schema';
+import { readById } from '../agent/operations';
+import { previewPage, sourceStatus } from './status';
+
+let db: DatabaseSync;
+
+function insertPage(
+	sourceId: number,
+	file: string,
+	snippets: { anchor: string | null; tokens: number }[]
+) {
+	const pageId = Number(
+		db
+			.prepare(`INSERT INTO pages (source_id, file, title, content) VALUES (?, ?, ?, '')`)
+			.run(sourceId, file, `Title of ${file}`).lastInsertRowid
+	);
+	snippets.forEach(({ anchor, tokens }, position) => {
+		db.prepare(
+			`INSERT INTO snippets (page_id, position, anchor, title_path, content, tokens)
+			VALUES (?, ?, ?, '["Title"]', ?, ?)`
+		).run(pageId, position, anchor, `Content of ${file} ${position}`, tokens);
+	});
+	return pageId;
+}
+
+function insertLink(pageId: number, anchor: string | null, target: string, dead: boolean) {
+	db.prepare('INSERT INTO links (page_id, anchor, target, dead) VALUES (?, ?, ?, ?)').run(
+		pageId,
+		anchor,
+		target,
+		dead ? 1 : 0
+	);
+}
+
+beforeEach(() => {
+	db = openDatabase(':memory:');
+	db.exec(`
+		INSERT INTO projects (id, slug) VALUES (1, 'platform');
+		INSERT INTO sources (id, project_id, slug, git_url, branch, path)
+		VALUES (1, 1, 'auth', 'https://git.example.com/auth.git', 'main', 'docs/'),
+			(2, 1, 'billing', 'https://git.example.com/billing.git', 'main', 'docs/');
+	`);
+});
+
+describe('sourceStatus', () => {
+	it('reports a source that was never synced', () => {
+		expect(sourceStatus(db, 1)).toEqual({
+			lastCheckedAt: null,
+			lastSyncedAt: null,
+			lastCommit: null,
+			error: null,
+			warnings: [],
+			pages: [],
+			totals: { pages: 0, snippets: 0, tokens: 0 },
+			deadLinks: []
+		});
+	});
+
+	it('counts pages, snippets and tokens of this source only, and lists its dead links', () => {
+		const deploy = insertPage(1, 'deploy.md', [
+			{ anchor: null, tokens: 10 },
+			{ anchor: 'rollback', tokens: 25 }
+		]);
+		const index = insertPage(1, 'index.md', [{ anchor: null, tokens: 5 }]);
+		insertPage(2, 'other.md', [{ anchor: null, tokens: 1000 }]);
+		insertLink(deploy, 'rollback', 'platform/auth/missing', true);
+		insertLink(index, null, 'platform/auth/deploy#nope', true);
+		insertLink(index, null, 'platform/auth/deploy', false);
+		db.prepare(
+			`UPDATE sources SET last_commit = 'abc', last_synced_at = '2026-10-01T10:00:00.000Z',
+				error = 'git ls-remote failed', warnings = '["broken.md: unclosed include"]'
+			WHERE id = 1`
+		).run();
+
+		expect(sourceStatus(db, 1)).toMatchObject({
+			lastCommit: 'abc',
+			lastSyncedAt: '2026-10-01T10:00:00.000Z',
+			error: 'git ls-remote failed',
+			warnings: ['broken.md: unclosed include'],
+			pages: [
+				{ file: 'deploy.md', title: 'Title of deploy.md', snippets: 2, tokens: 35 },
+				{ file: 'index.md', title: 'Title of index.md', snippets: 1, tokens: 5 }
+			],
+			totals: { pages: 2, snippets: 3, tokens: 40 },
+			deadLinks: [
+				{ file: 'deploy.md', anchor: 'rollback', target: 'platform/auth/missing' },
+				{ file: 'index.md', anchor: null, target: 'platform/auth/deploy#nope' }
+			]
+		});
+	});
+});
+
+describe('previewPage', () => {
+	it('returns the page exactly as the agent operation read does', () => {
+		insertPage(1, 'guides/deploy.md', [{ anchor: null, tokens: 10 }]);
+
+		const preview = previewPage(db, 'platform', 'auth', 'guides/deploy.md');
+
+		expect(preview).toContain('Content of guides/deploy.md 0');
+		expect(preview).toBe(readById(db, 'platform/auth/guides/deploy', undefined).markdown);
+	});
+
+	it('returns undefined for a page the source does not have', () => {
+		insertPage(2, 'other.md', [{ anchor: null, tokens: 1 }]);
+
+		expect(previewPage(db, 'platform', 'auth', 'other.md')).toBeUndefined();
+		expect(previewPage(db, 'platform', 'auth', 'other')).toBeUndefined();
+	});
+});

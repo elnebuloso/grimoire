@@ -46,6 +46,13 @@ async function saveSource(id: string, sourceId: string, fields: Record<string, s
 	} as never);
 }
 
+function loadSource(id: string, sourceId: string, search = '') {
+	return sourcePage.load({
+		params: { id, sourceId },
+		url: new URL(`https://grimoire.example/admin/projects/${id}/sources/${sourceId}${search}`)
+	} as never);
+}
+
 const SOURCE = {
 	slug: 'auth-service',
 	gitUrl: 'https://gitlab.example.com/platform/auth.git',
@@ -112,12 +119,12 @@ describe('source page', () => {
 		await thrown(() => saveProject('new', { slug: 'platform', description: '' }));
 	});
 
-	it('creates a source, requests a forced sync and redirects to the project', async () => {
+	it('creates a source, requests a forced sync and redirects to its page', async () => {
 		const result = await thrown(() => saveSource('1', 'new', SOURCE));
 
 		expect(isRedirect(result) && [result.status, result.location]).toEqual([
 			303,
-			'/admin/projects/1'
+			'/admin/projects/1/sources/1'
 		]);
 		expect(requestSync).toHaveBeenCalledExactlyOnceWith(1, { force: true });
 	});
@@ -126,7 +133,7 @@ describe('source page', () => {
 		await thrown(() => saveSource('1', 'new', SOURCE));
 
 		const data = [
-			sourcePage.load({ params: { id: '1', sourceId: '1' } } as never),
+			loadSource('1', '1'),
 			projectPage.load({ params: { id: '1' } } as never),
 			await saveSource('1', 'new', SOURCE)
 		];
@@ -158,11 +165,42 @@ describe('source page', () => {
 		await thrown(() => saveSource('1', 'new', SOURCE));
 		await thrown(() => saveProject('new', { slug: 'other', description: '' }));
 
-		const result = await thrown(() =>
-			sourcePage.load({ params: { id: '2', sourceId: '1' } } as never)
-		);
+		const result = await thrown(() => loadSource('2', '1'));
 
 		expect(isHttpError(result) && result.status).toBe(404);
+	});
+
+	it('syncs now, forced, and returns the result', async () => {
+		await thrown(() => saveSource('1', 'new', SOURCE));
+		requestSync.mockClear();
+
+		const result = await sourcePage.actions.sync({
+			params: { id: '1', sourceId: '1' }
+		} as never);
+
+		expect(requestSync).toHaveBeenCalledExactlyOnceWith(1, { force: true });
+		expect(result).toEqual({ sync: { status: 'unchanged', commit: 'abc' } });
+	});
+
+	it('shows the status and the preview of a page the query names', async () => {
+		await thrown(() => saveSource('1', 'new', SOURCE));
+		const page = db
+			.prepare(
+				`INSERT INTO pages (source_id, file, title, content) VALUES (1, 'deploy.md', 'Deploy', '')`
+			)
+			.run().lastInsertRowid;
+		db.prepare(
+			`INSERT INTO snippets (page_id, position, title_path, content, tokens)
+			VALUES (?, 0, '["Deploy"]', 'Run make deploy.', 4)`
+		).run(page);
+
+		const data = loadSource('1', '1', '?preview=deploy.md');
+
+		expect(data).toMatchObject({
+			status: { totals: { pages: 1, snippets: 1, tokens: 4 } },
+			preview: { file: 'deploy.md', markdown: expect.stringContaining('Run make deploy.') }
+		});
+		expect(loadSource('1', '1')).toMatchObject({ preview: undefined });
 	});
 
 	it('deletes the source and redirects to the project', async () => {
