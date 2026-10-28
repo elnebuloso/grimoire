@@ -9,3 +9,4 @@ This handbook is for the people who run grimoire.
 
 - [Database](database.md): configuration, the volume for the SQLite file, the sync schedule,
   access tokens and backups.
+- [Admin area](admin.md): setting up the admin account, logging in and a lost password.
