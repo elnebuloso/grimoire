@@ -85,7 +85,11 @@ describe('searchSnippets', () => {
 
 	it('renders the title path, the ID and where to edit, without credentials', () => {
 		const source = addSource('platform', 'auth', 'https://bot:secret@git.example/auth.git');
-		addPage(source, 'guide/deploy.md', { anchor: 'rollback', title: 'Rollback', text: 'Run it.\n' });
+		addPage(source, 'guide/deploy.md', {
+			anchor: 'rollback',
+			title: 'Rollback',
+			text: 'Run it.\n'
+		});
 		addPage(source, 'index.md', { title: 'Overview', text: 'Rollback basics.' });
 
 		expect(searchSnippets(db, { query: 'rollback' })).toBe(
