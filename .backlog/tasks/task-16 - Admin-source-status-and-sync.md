@@ -4,6 +4,7 @@ title: 'Admin: source status and sync'
 status: To Do
 assignee: []
 created_date: '2026-10-28T19:32:00Z'
+updated_date: '2026-10-28T20:54:00Z'
 labels:
   - admin
 milestone: m-0
@@ -31,3 +32,9 @@ Doc authors and operators need to see whether their docs arrived and what is bro
 - [ ] #4 Dead links are listed with the page they occur on
 - [ ] #5 A "Sync now" button starts a sync of the source
 <!-- AC:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Handoff from TASK-7: the "sync now" button should pass `force: true` to `syncSource`, so changed source settings (path, exclusions) take effect without a new commit.
+<!-- SECTION:NOTES:END -->
