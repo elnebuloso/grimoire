@@ -29,6 +29,12 @@ example `x-forwarded-proto`), otherwise every admin form is rejected with
 `Cross-site POST form submissions are forbidden`. Behind a proxy, also set `ADDRESS_HEADER` (for
 example `x-forwarded-for`), so failed logins are counted per client and not for the proxy.
 
+## Changing the password
+
+**Change the password** in the admin area asks for the current password and a new one of at least
+12 characters. A wrong current password counts as a failed login. After the change, every other
+session is logged out; the browser that made the change stays logged in.
+
 ## Projects and sources
 
 A project groups sources; agents search a project as a whole. A source is one Git repository,
@@ -78,7 +84,8 @@ nothing once all of them are gone.
 
 ## Lost password
 
-Delete the admin account with the script in the container:
+Without the current password, the password cannot be changed in the admin area. Delete the admin
+account with the script in the container:
 
 ```bash
 docker exec -it grimoire node scripts/reset-admin.ts
