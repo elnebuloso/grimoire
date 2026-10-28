@@ -148,7 +148,9 @@ Pfad der Quelle verlässt, ist auch in MkDocs kaputt und gilt als tot.
 
 **IDs.** `<projekt>/<quelle>/<datei ohne .md>#<anker>`. Anker werden genau wie in MkDocs aus der
 Überschrift gebildet (doppelte bekommen `_1`, `_2`), damit grimoire-IDs und gerenderte Seite
-übereinstimmen.
+übereinstimmen. Zensical nutzt dafür dieselbe `toc`-Erweiterung von Python-Markdown wie MkDocs.
+Version 1 bildet nur deren Standard-Slugify nach; ändert eine Seite `toc.slugify` (etwa auf
+`pymdownx.slugs.slugify`), weichen die Anker ab.
 
 **Ausgabeformat.** Wie Context7, aber ohne generierte Beschreibung und mit einer „Edit:“-Zeile:
 
@@ -352,6 +354,7 @@ Writing
 | Weiterleitungen für verschobene Dateien | tote Links werden angezeigt und im Repo korrigiert |
 | LLM-generierte Snippet-Beschreibungen | kostet bei jedem Sync, Titelpfad reicht |
 | Mehrere Instanzen / horizontale Skalierung | SQLite, eine Instanz reicht |
+| Eigenes `toc.slugify` aus `mkdocs.yml`/`zensical.toml` | Version 2: Seiten mit eigener Slug-Funktion bekommen sonst andere Anker als die gerenderte Seite |
 | HTML-Quellen (gerenderte MkDocs-/Zensical-Seiten) | Version 2: für Doku ohne Repo-Zugriff. HTML → Markdown, danach dieselbe Zerlegung. Offen: Inhalt je Theme herausschneiden, Änderungserkennung ohne `ls-remote`, `Edit:`-Zeile, SSO |
 
 ## Offene Themen
