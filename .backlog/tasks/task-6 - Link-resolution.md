@@ -4,6 +4,7 @@ title: Link resolution
 status: To Do
 assignee: []
 created_date: '2026-10-28T19:31:00Z'
+updated_date: '2026-10-28T20:00:00Z'
 labels:
   - parsing
 milestone: m-0
@@ -30,3 +31,9 @@ Agents follow links with `read`, so relative Markdown links (`deploy.md#rollback
 - [ ] #4 Backlinks of a page can be queried
 - [ ] #5 External links stay unchanged
 <!-- AC:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Handoff from TASK-5: subsections under 50 tokens are merged into their parent snippet; their anchors are kept in `Snippet.aliases` (`app/src/lib/server/parsing/chunk.ts`). A link to such an anchor (e.g. `#port`) must resolve via aliases, otherwise it is wrongly reported as dead.
+<!-- SECTION:NOTES:END -->

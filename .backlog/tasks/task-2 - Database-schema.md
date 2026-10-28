@@ -4,6 +4,7 @@ title: Database schema
 status: To Do
 assignee: []
 created_date: '2026-10-28T19:31:00Z'
+updated_date: '2026-10-28T20:00:00Z'
 labels:
   - search
 milestone: m-0
@@ -30,3 +31,9 @@ All data lives in one SQLite file: projects, their sources, the pages and snippe
 - [ ] #4 A second source with the same slug in the same project is rejected by the database; the same slug in another project is allowed
 - [ ] #5 Deleting a source removes its pages, snippets and links
 <!-- AC:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Handoff from TASK-5: parts of a split section (`Heading (1/2)`, `(2/2)`) share the same anchor, and the overview snippet has none – (page, anchor) is not a unique key for snippets.
+<!-- SECTION:NOTES:END -->

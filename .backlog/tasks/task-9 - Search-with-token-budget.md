@@ -4,6 +4,7 @@ title: Search with token budget
 status: To Do
 assignee: []
 created_date: '2026-10-28T19:31:00Z'
+updated_date: '2026-10-28T20:00:00Z'
 labels:
   - search
 milestone: m-0
@@ -32,3 +33,9 @@ ordinal: 9000
 - [ ] #5 Search can be limited to the projects an API key may see
 - [ ] #6 Tests cover ranking weights, budget packing and the skipped-IDs line
 <!-- AC:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Handoff from TASK-5: `Snippet.tokens` counts only the content. The rendered output adds title path, `Source:` and `Edit:` lines; the budget must include them.
+<!-- SECTION:NOTES:END -->
