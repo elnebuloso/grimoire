@@ -4,7 +4,7 @@ title: 'Admin: source status and sync'
 status: To Do
 assignee: []
 created_date: '2026-10-28T19:32:00Z'
-updated_date: '2026-10-28T20:54:00Z'
+updated_date: '2026-10-28T21:00:00Z'
 labels:
   - admin
 milestone: m-0
@@ -37,4 +37,6 @@ Doc authors and operators need to see whether their docs arrived and what is bro
 
 <!-- SECTION:NOTES:BEGIN -->
 Handoff from TASK-7: the "sync now" button should pass `force: true` to `syncSource`, so changed source settings (path, exclusions) take effect without a new commit.
+
+Handoff from TASK-8: start "sync now" with `requestSync(sourceId, { force: true })` (`app/src/lib/server/sync/index.ts`); it waits behind running syncs and resolves with `{ status: unchanged | synced | failed }`.
 <!-- SECTION:NOTES:END -->

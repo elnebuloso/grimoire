@@ -20,5 +20,14 @@ export const variables = defineEnvVars({
 		description:
 			'Key encrypting the Git access tokens of sources in the database; 32 bytes, base64',
 		schema: (value) => (building ? Buffer.alloc(0) : parseEncryptionKey(value))
+	},
+	SYNC_INTERVAL_MINUTES: {
+		description: 'How often every source is checked for new commits, in minutes; default 5',
+		schema: (value) => {
+			if (value === undefined || value === '') return 5;
+			const minutes = Number(value);
+			if (!(minutes > 0)) throw new Error('must be a positive number of minutes');
+			return minutes;
+		}
 	}
 });

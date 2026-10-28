@@ -46,6 +46,13 @@ interface SourceRow {
 	last_commit: string | null;
 }
 
+export function listSourceIds(db: DatabaseSync): number[] {
+	return db
+		.prepare('SELECT id FROM sources ORDER BY id')
+		.all()
+		.map((row) => Number(row.id));
+}
+
 export function sourceForSync(db: DatabaseSync, sourceId: number): SyncSource {
 	const row = db
 		.prepare(
