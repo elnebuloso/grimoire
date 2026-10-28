@@ -1,32 +1,68 @@
 import type { SyncResult } from './sync';
 
-export type RunSync = (sourceId: number, force: boolean) => Promise<SyncResult>;
+/** Runs `work` once a slot is free. */
+export type Lane = <T>(work: () => Promise<T>) => Promise<T>;
+
+/**
+ * Where the stages of a sync run: `check` asks the Git server whether the branch moved and only
+ * waits on the network; `sync` clones, indexes and writes, which costs disk, CPU and the single
+ * database write lock.
+ */
+export interface SyncLanes {
+	check: Lane;
+	sync: Lane;
+}
+
+export type RunSync = (sourceId: number, force: boolean, lanes: SyncLanes) => Promise<SyncResult>;
 
 interface Job {
 	promise: Promise<SyncResult>;
 	force: boolean;
 }
 
+// Enough to check 200 sources well within a polling interval without flooding a Git server.
+const PARALLEL_CHECKS = 4;
+
+/** Lets at most `max` pieces of work run at once; the others wait in order. */
+export function createLimiter(max: number): Lane {
+	let active = 0;
+	const waiting: (() => void)[] = [];
+	return async (work) => {
+		// A finished piece hands its slot straight to the next waiting one, so a newcomer
+		// cannot slip in between and exceed the limit.
+		if (active < max) active++;
+		else await new Promise<void>((resolve) => waiting.push(resolve));
+		try {
+			return await work();
+		} finally {
+			const next = waiting.shift();
+			if (next) next();
+			else active--;
+		}
+	};
+}
+
 /**
- * Runs syncs strictly one after another: a sync holds the database write lock while it replaces
- * an index, and the same source must never be synced twice at once.
+ * Runs syncs with checks of several sources in parallel and the expensive stage one at a time.
+ * The same source is never synced twice at once.
  */
-export function createSyncQueue(run: RunSync) {
+export function createSyncQueue(run: RunSync, { parallelChecks = PARALLEL_CHECKS } = {}) {
+	const lanes: SyncLanes = { check: createLimiter(parallelChecks), sync: createLimiter(1) };
 	const pending = new Map<number, Job>();
-	let tail: Promise<unknown> = Promise.resolve();
 
 	/**
-	 * Queues a sync of one source. While one is already waiting, its result is shared – unless
-	 * this request forces a sync and the waiting one does not, so "sync now" is never swallowed.
+	 * Queues a sync of one source. While one is pending, its result is shared – unless this
+	 * request forces a sync and the pending one does not, so "sync now" is never swallowed;
+	 * the forced sync then starts after it.
 	 */
 	function request(sourceId: number, { force = false } = {}): Promise<SyncResult> {
 		const waiting = pending.get(sourceId);
 		if (waiting && (waiting.force || !force)) return waiting.promise;
 
-		const promise = tail.then(() => run(sourceId, force));
+		const previous = waiting ? waiting.promise.catch(() => undefined) : Promise.resolve();
+		const promise = previous.then(() => run(sourceId, force, lanes));
 		const job = { promise, force };
 		pending.set(sourceId, job);
-		tail = promise.catch(() => undefined);
 		promise
 			.finally(() => {
 				if (pending.get(sourceId) === job) pending.delete(sourceId);

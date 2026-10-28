@@ -5,6 +5,8 @@ const run = promisify(execFile);
 
 // A clone of a large repository over a slow link takes long; a hung server must not block forever.
 const GIT_TIMEOUT_MS = 5 * 60 * 1000;
+// A check only exchanges a few lines; with many sources one silent server must not hold up the rest.
+export const CHECK_TIMEOUT_MS = 30 * 1000;
 
 export interface GitRemote {
 	url: string;
@@ -13,8 +15,12 @@ export interface GitRemote {
 }
 
 /** Hash of the latest commit of `branch` on the remote; nothing is downloaded. */
-export async function remoteCommit(remote: GitRemote, branch: string): Promise<string> {
-	const output = await git(['ls-remote', remote.url, `refs/heads/${branch}`], remote);
+export async function remoteCommit(
+	remote: GitRemote,
+	branch: string,
+	timeoutMs = CHECK_TIMEOUT_MS
+): Promise<string> {
+	const output = await git(['ls-remote', remote.url, `refs/heads/${branch}`], remote, timeoutMs);
 	const hash = output.split('\t')[0].trim();
 	if (!hash) throw new Error(`branch "${branch}" not found in ${redactUrl(remote.url)}`);
 	return hash;
@@ -54,24 +60,29 @@ export async function headCommit(dir: string): Promise<string> {
 	return (await git(['-C', dir, 'rev-parse', 'HEAD'])).trim();
 }
 
-async function git(args: string[], remote?: GitRemote): Promise<string> {
+async function git(
+	args: string[],
+	remote?: GitRemote,
+	timeoutMs = GIT_TIMEOUT_MS
+): Promise<string> {
+	const command = args[0] === '-C' ? args[2] : args[0];
 	try {
 		const { stdout } = await run('git', args, {
 			env: { ...process.env, ...credentialEnvironment(remote) },
-			timeout: GIT_TIMEOUT_MS,
+			timeout: timeoutMs,
 			maxBuffer: 16 * 1024 * 1024
 		});
 		return stdout;
 	} catch (error) {
-		const { stderr, message } = error as { stderr?: string; message: string };
+		const { stderr, message, killed } = error as {
+			stderr?: string;
+			message: string;
+			killed?: boolean;
+		};
+		const reason = killed ? `no answer within ${timeoutMs / 1000} s` : stderr?.trim() || message;
 		// No `cause`: the original error carries the unredacted command line and output.
 		// eslint-disable-next-line preserve-caught-error
-		throw new Error(
-			redact(
-				`git ${args[0] === '-C' ? args[2] : args[0]} failed: ${stderr?.trim() || message}`,
-				remote
-			)
-		);
+		throw new Error(redact(`git ${command} failed: ${reason}`, remote));
 	}
 }
 

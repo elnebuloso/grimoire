@@ -4,8 +4,8 @@ import { listSourceIds } from '../db/sources';
 import { createSyncQueue, startPolling } from './queue';
 import { syncSource } from './sync';
 
-const queue = createSyncQueue((sourceId, force) =>
-	syncSource(database(), sourceId, { key: TOKEN_ENCRYPTION_KEY, force })
+const queue = createSyncQueue((sourceId, force, lanes) =>
+	syncSource(database(), sourceId, { key: TOKEN_ENCRYPTION_KEY, force, lanes })
 );
 
 /** Syncs one source as soon as the syncs before it are done, e.g. for "sync now". */

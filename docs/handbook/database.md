@@ -11,7 +11,7 @@ projects, sources and API keys exist only in this file.
 | `DATABASE_PATH` | Path of the SQLite file. Required; the server does not start without it. The file and its schema are created on first start. |
 | `MIGRATE_ONLY` | With `true`, the server brings the schema up to date and exits without serving requests. |
 | `TOKEN_ENCRYPTION_KEY` | Key encrypting the Git access tokens of all sources: 32 random bytes, base64-encoded. Required; the server does not start without it, also with `MIGRATE_ONLY`. |
-| `SYNC_INTERVAL_MINUTES` | How often every source is checked for new commits, in minutes. Default `5`. A check only asks the Git server for the branch head; sources are cloned only when it moved. |
+| `SYNC_INTERVAL_MINUTES` | How often every source is checked for new commits, in minutes. Default `5`. A check only asks the Git server for the branch head; sources are cloned only when it moved. Up to four sources are checked at once and one is cloned at a time; a server that does not answer a check within 30 seconds is skipped for that round and shows as error of the source. |
 
 ## Volume
 
