@@ -10,6 +10,10 @@ Facts learned while building grimoire.
   from `$app/env/private`. A variable without `schema` is required at build and start; use
   `building` from `$app/env` in the schema to require it only at start.
 - `ServerInit` comes from `@sveltejs/kit/hooks`. adapter-node awaits `init` before it listens.
+- adapter-node 6 has no `ORIGIN` variable: the origin is `paths.origin` from the config, else
+  derived per request with protocol `https` unless `PROTOCOL_HEADER` names a header. Form POSTs
+  over plain `http` therefore fail the CSRF check; test locally with
+  `PROTOCOL_HEADER=x-forwarded-proto` and `X-Forwarded-Proto: http`.
 
 ## Runtime
 
