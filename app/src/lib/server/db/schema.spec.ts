@@ -59,10 +59,10 @@ function count(db: DatabaseSync, table: string): number {
 }
 
 describe('openDatabase', () => {
-	it('creates the schema in a new file and keeps the data when opened again', () => {
+	it('creates directory, file and schema, and keeps the data when opened again', () => {
 		const dir = mkdtempSync(join(tmpdir(), 'grimoire-db-'));
 		try {
-			const path = join(dir, 'grimoire.db');
+			const path = join(dir, 'data', 'grimoire.db');
 			const first = openDatabase(path);
 			insert(first, "INSERT INTO projects (slug) VALUES ('platform')");
 			first.close();

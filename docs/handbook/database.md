@@ -12,8 +12,12 @@ projects, sources and API keys exist only in this file.
 | `MIGRATE_ONLY` | With `true`, the server brings the schema up to date and exits without serving requests. |
 | `TOKEN_ENCRYPTION_KEY` | Key encrypting the Git access tokens of all sources: 32 random bytes, base64-encoded. Required; the server does not start without it, also with `MIGRATE_ONLY`. |
 
-SQLite writes two companion files next to the database, `<file>-wal` and `<file>-shm`. Keep all
-three on the same volume.
+## Volume
+
+Mount a directory as the volume, not the database file: SQLite writes two companion files next to
+it, `<file>-wal` and `<file>-shm`, and all three must live in the same directory on the same
+volume. With the volume at `/data`, set `DATABASE_PATH=/data/grimoire.db`. A missing directory is
+created on start.
 
 ## Access tokens
 

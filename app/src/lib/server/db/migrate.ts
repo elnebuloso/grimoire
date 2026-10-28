@@ -1,3 +1,5 @@
+import { mkdirSync } from 'node:fs';
+import { dirname } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 
 export interface Migration {
@@ -10,8 +12,12 @@ export interface Migration {
 const BUSY_TIMEOUT_MS = 5000;
 const SQLITE_BUSY = 5;
 
-/** Opens the SQLite file at `path` and applies the migrations it has not seen yet. */
+/**
+ * Opens the SQLite file at `path`, creating its directory if needed, and applies the migrations
+ * it has not seen yet.
+ */
 export function openMigratedDatabase(path: string, migrations: Migration[]): DatabaseSync {
+	mkdirSync(dirname(path), { recursive: true });
 	const db = new DatabaseSync(path, { timeout: BUSY_TIMEOUT_MS });
 	enableWriteAheadLog(db);
 	migrate(db, migrations);
