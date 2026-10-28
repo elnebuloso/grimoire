@@ -28,11 +28,11 @@ deshalb auf Englisch.
 ## Ablauf
 
 ```
-Git-Repo (docs/, handbook/ …)
+Git-Repo (docs/ …)
    │  Mensch oder Agent ändert Markdown → Commit / MR / PR
    ▼
 Sync (Polling, Button) ──► grimoire
-                            ├─ zieht die konfigurierten Pfade
+                            ├─ zieht den konfigurierten Pfad
                             ├─ zerlegt nach Überschriften in Snippets
                             └─ aktualisiert den Suchindex
    │
@@ -43,11 +43,12 @@ Sync (Polling, Button) ──► grimoire
 ## Admin-Bereich
 
 Ein **Projekt** hat einen Namen (Slug), eine Kurzbeschreibung und eine oder mehrere **Quellen**.
-Eine Quelle ist ein Git-Repo mit Branch und einem oder mehreren Pfaden.
+Eine Quelle ist ein Git-Repo mit Branch und genau einem Pfad.
 
 ```
 Projekt „platform“
-├── Quelle: auth-service     main   docs/, handbook/
+├── Quelle: auth-service     main   docs/
+├── Quelle: auth-handbook    main   handbook/      (gleiches Repo wie auth-service)
 ├── Quelle: billing-service  main   docs/
 └── Quelle: gateway          main   docs/
 ```
@@ -56,16 +57,18 @@ Projekt „platform“
 |---|---|---|
 | Slug | Projekt | `platform` |
 | Kurzbeschreibung | Projekt | „Login, Abrechnung, Gateway“ – erscheint in `projects` |
+| Slug | Quelle | `auth-service` – eindeutig im Projekt, Teil der ID |
 | Git-URL (HTTPS) | Quelle | `https://gitlab.thoemo.net/platform/auth-service.git` |
 | Branch | Quelle | `main` |
-| Pfade | Quelle | `docs/`, `handbook/` |
+| Pfad | Quelle | `docs/` |
 | Ausschlüsse | Quelle | `docs/drafts/**` (optional) |
 | Benutzer + Token | Quelle | Lese-Token des Anbieters (GitLab Deploy Token, GitHub Fine-grained Token, Forgejo/Gitea Access Token) |
 
 Entscheidungen:
 
-- **Mehrere Pfade eines Repos landen im selben Projekt.** Der Pfad erscheint nur im Titelpfad des
-  Snippets.
+- **Ein Pfad pro Quelle.** Braucht man mehrere Pfade eines Repos, legt man das Repo mehrfach als
+  Quelle an, jede mit eigenem Slug. Eine Quelle entspricht damit genau einer MkDocs-Seite
+  (`docs_dir`), und Dateien aus verschiedenen Pfaden können keine gleiche ID bekommen.
 - **Mehrere Repos können ein Projekt bilden.** Agenten durchsuchen dann mit einer Anfrage alles,
   was zusammengehört. Wer es einfach will, legt pro Projekt eine Quelle an.
 
@@ -80,7 +83,7 @@ Fehlermeldungen, Logs oder der API. Git-URLs werden immer ohne Zugangsdaten ange
 | Objekt | Inhalt |
 |---|---|
 | Projekt | Slug, Kurzbeschreibung |
-| Quelle | gehört zu Projekt; Git-URL, Branch, Pfade, Ausschlüsse, Benutzer, Token, letzter Commit, letzter Sync, Fehler/Warnungen |
+| Quelle | gehört zu Projekt; Slug (eindeutig im Projekt), Git-URL, Branch, Pfad, Ausschlüsse, Benutzer, Token, letzter Commit, letzter Sync, Fehler/Warnungen |
 | Seite | gehört zu Quelle; Dateipfad, Titel, Beschreibung, Tags, Volltext |
 | Snippet | gehört zu Seite; Anker, Titelpfad, Inhalt, geschätzte Tokens – im FTS5-Index |
 | Link | von Seite/Anker zu Ziel-ID; für Backlinks und tote Links |
@@ -133,14 +136,15 @@ mit den winzigen Unterabschnitten `### Port` und `### Timeout` wird ein Snippet 
 | Frontmatter | Metadaten (Titel, Beschreibung, Tags), nicht im Text |
 | Admonitions `!!! warning "Achtung"` | `> **Achtung:** …`, Inhalt bleibt |
 | Content-Tabs `=== "Linux"` | `**Linux:**`, Inhalt bleibt |
-| Includes `--8<-- "datei.md"` | werden aufgelöst, Inhalt aus dem Repo eingesetzt |
+| Includes `--8<-- "datei.md"` | werden aufgelöst, Inhalt aus dem Repo eingesetzt – auch von außerhalb des Pfads (siehe Sync) |
 | Mermaid | bleibt als Codeblock |
 | Bilder | Alt-Text bleibt, URL entfällt |
 | HTML-Kommentare | entfallen |
 
 **Links.** Relative Links (`deploy.md#rollback`) werden zu grimoire-IDs
 (`platform/auth-service/deploy#rollback`), damit Agenten ihnen mit `read` folgen können. Daraus
-ergeben sich nebenbei Backlinks und tote Links für den Admin-Bereich.
+ergeben sich nebenbei Backlinks und tote Links für den Admin-Bereich. Ein relativer Link, der den
+Pfad der Quelle verlässt, ist auch in MkDocs kaputt und gilt als tot.
 
 **IDs.** `<projekt>/<quelle>/<datei ohne .md>#<anker>`. Anker werden genau wie in MkDocs aus der
 Überschrift gebildet (doppelte bekommen `_1`, `_2`), damit grimoire-IDs und gerenderte Seite
@@ -198,14 +202,20 @@ grimoire spricht nur Git, keine Anbieter-API. Damit funktioniert jeder Git-Serve
 aktuellen Commit-Hash, ohne etwas herunterzuladen. Unverändert → nichts tun. Zusätzlich ein Button
 „Jetzt synchronisieren“ im Admin-Bereich. Webhooks später – jeder Anbieter hat ein eigenes Format.
 
-**Einlesen.** Flacher Sparse-Clone in ein temporäres Verzeichnis, nur die konfigurierten Pfade:
+**Einlesen.** Flacher Sparse-Clone in ein temporäres Verzeichnis, nur der konfigurierte Pfad:
 
 ```
 git clone --depth 1 --filter=blob:none --sparse --branch main <url> tmp/
-git -C tmp sparse-checkout set docs handbook
+git -C tmp sparse-checkout set docs
 ```
 
-Danach zerlegen und das Verzeichnis löschen. Kein dauerhafter Clone.
+Includes, deren Ziel außerhalb des Pfads liegt, werden per `git -C tmp sparse-checkout add <verzeichnis des ziels>`
+nachgeladen (der Cone-Modus nimmt nur Verzeichnisse), wiederholt, bis keine neuen Ziele mehr
+auftauchen – Includes können selbst Includes enthalten. Das endet sicher, weil jede Runde nur noch
+nicht ausgecheckte Verzeichnisse holt. Beim Einsetzen dagegen wäre ein Kreis (`a.md` → `b.md` →
+`a.md`) endlos: Steckt eine Datei schon in der aktuellen Include-Kette, wird sie nicht erneut
+eingesetzt, sondern als Warnung gemeldet. Fehlt ein Ziel auch im Repo, wird das als Warnung gemeldet. Danach zerlegen und das
+Verzeichnis löschen. Kein dauerhafter Clone.
 
 **Zugang.** HTTPS mit Token als Passwort; das unterstützen alle Anbieter. SSH-Deploy-Keys
 eventuell später.
@@ -246,8 +256,13 @@ GET /query?q=rollback&tokens=3000
 GET /p/platform/index
 GET /p/platform/llms.txt
 GET /p/platform/query?q=rollback&tokens=3000
-GET /p/platform/auth-service/deploy#rollback
+GET /p/platform/auth-service/deploy
+GET /p/platform/auth-service/deploy?section=rollback
 ```
+
+Den Teil nach `#` schicken HTTP-Clients nicht an den Server. Deshalb wird über HTTP aus dem Anker
+der ID `?section=`. So kann sich ein Agent auch per HTTP von `query` zu einem einzelnen Abschnitt
+hangeln, statt ganze Seiten zu laden. Über MCP bleibt die ID unverändert, inklusive `#`.
 
 ## Authentifizierung
 
@@ -285,7 +300,8 @@ Reading
 - Before making assumptions about internal systems, call `query` with a concrete
   question. Pass the project if known, otherwise search everything.
 - `query` returns matching sections within a token budget. For more context, `read`
-  the ID from "Source:". Read whole pages only when needed.
+  the ID from "Source:". Read whole pages only when needed. Over HTTP, `#anchor`
+  becomes `?section=anchor`.
 - No results: try other terms, then look at the project's `index`.
 
 Writing
@@ -336,6 +352,7 @@ Writing
 | Weiterleitungen für verschobene Dateien | tote Links werden angezeigt und im Repo korrigiert |
 | LLM-generierte Snippet-Beschreibungen | kostet bei jedem Sync, Titelpfad reicht |
 | Mehrere Instanzen / horizontale Skalierung | SQLite, eine Instanz reicht |
+| HTML-Quellen (gerenderte MkDocs-/Zensical-Seiten) | Version 2: für Doku ohne Repo-Zugriff. HTML → Markdown, danach dieselbe Zerlegung. Offen: Inhalt je Theme herausschneiden, Änderungserkennung ohne `ls-remote`, `Edit:`-Zeile, SSO |
 
 ## Offene Themen
 
