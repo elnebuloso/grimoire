@@ -124,4 +124,11 @@ describe('resolveLinks', () => {
 		const snippet = result.pages.get('index.md')!.snippets[0];
 		expect(snippet.tokens).toBe(Math.ceil(snippet.content.length / 4));
 	});
+
+	it('records a reference-style link under the snippet using it, not where it is defined', () => {
+		const result = resolve({
+			'deploy.md': `${deployPage}\n## Notes\n\nSee [rollback][rb]. ${text(60)}\n\n## Other\n\n${text(60)}\n\n[rb]: #rollback\n`
+		});
+		expect(result.links.map((link) => link.anchor)).toEqual(['notes']);
+	});
 });

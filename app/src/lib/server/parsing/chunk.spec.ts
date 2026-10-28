@@ -160,4 +160,18 @@ describe('chunkPage', () => {
 		]);
 		expect(page.snippets[12].titlePath.at(-1)).toBe('Custom title');
 	});
+
+	it('moves link definitions into every snippet that references them', () => {
+		const page = chunk(
+			`# Page\n\n## A\n\nSee [docs][rb] and [again][RB]. ${text(80)}\n\n## B\n\n${text(80)}\n\n## C\n\n[docs][rb] ${text(80)}\n\n[rb]: https://example.com/docs\n[unused]: https://example.com/unused\n`
+		);
+		const definitionsOf = (anchor: string) =>
+			page.snippets
+				.find((s) => s.anchor === anchor)!
+				.content.split('\n')
+				.filter((line) => /^\[[^\]]+\]: /.test(line));
+		expect(definitionsOf('a')).toEqual(['[rb]: https://example.com/docs']);
+		expect(definitionsOf('b')).toEqual([]);
+		expect(definitionsOf('c')).toEqual(['[rb]: https://example.com/docs']);
+	});
 });

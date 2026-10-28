@@ -1,5 +1,6 @@
-import type { Heading, RootContent } from 'mdast';
+import type { Definition, Heading, Root, RootContent } from 'mdast';
 import { toString } from 'mdast-util-to-string';
+import { visit, SKIP } from 'unist-util-visit';
 import { parseMarkdown, stringifyMarkdown } from './markdown';
 import type { PreprocessedPage } from './preprocess';
 
@@ -63,7 +64,9 @@ function slugify(text: string): string {
  * parent, large ones split at block boundaries. Anchors match the page MkDocs renders.
  */
 export function chunkPage(page: PreprocessedPage, location: PageLocation): ChunkedPage {
-	const nodes = parseMarkdown(page.markdown).children;
+	const tree = parseMarkdown(page.markdown);
+	const definitions = takeDefinitions(tree);
+	const nodes = tree.children;
 	const anchors = assignAnchors(nodes.filter((node) => node.type === 'heading'));
 
 	const root: Section = { title: 'Overview', aliases: [], nodes: [], children: [] };
@@ -101,7 +104,13 @@ export function chunkPage(page: PreprocessedPage, location: PageLocation): Chunk
 
 	mergeSmallSections(root);
 	const snippets: Snippet[] = [];
-	collectSnippets(root, [location.project, location.source, title], location.file, snippets);
+	collectSnippets(
+		root,
+		[location.project, location.source, title],
+		location.file,
+		definitions,
+		snippets
+	);
 	return { title, titleAnchor, description: description || undefined, snippets };
 }
 
@@ -153,12 +162,44 @@ function mergeSmallSections(section: Section) {
 	section.children = kept;
 }
 
-function collectSnippets(section: Section, titlePath: string[], file: string, out: Snippet[]) {
+// Definitions usually sit at the end of a page, far from the sections that use them, and a
+// snippet is delivered alone: each one gets its own copy of the definitions it references.
+function takeDefinitions(tree: Root): Map<string, Definition> {
+	const definitions = new Map<string, Definition>();
+	visit(tree, 'definition', (node, index, parent) => {
+		if (!definitions.has(node.identifier)) definitions.set(node.identifier, node);
+		parent!.children.splice(index!, 1);
+		return [SKIP, index!];
+	});
+	return definitions;
+}
+
+function definitionsUsedBy(nodes: RootContent[], definitions: Map<string, Definition>) {
+	const used = new Map<string, Definition>();
+	for (const node of nodes) {
+		visit(node, 'linkReference', (reference) => {
+			const definition = definitions.get(reference.identifier);
+			if (definition) used.set(reference.identifier, definition);
+		});
+	}
+	return [...used.values()];
+}
+
+function collectSnippets(
+	section: Section,
+	titlePath: string[],
+	file: string,
+	definitions: Map<string, Definition>,
+	out: Snippet[]
+) {
 	const path = [...titlePath, section.title];
 	const parts = splitAtBlocks(section.nodes);
 
 	parts.forEach((part, index) => {
-		const content = stringifyMarkdown({ type: 'root', children: part });
+		const content = stringifyMarkdown({
+			type: 'root',
+			children: [...part, ...definitionsUsedBy(part, definitions)]
+		});
 		const partTitle =
 			parts.length > 1 ? `${section.title} (${index + 1}/${parts.length})` : section.title;
 		out.push({
@@ -172,7 +213,7 @@ function collectSnippets(section: Section, titlePath: string[], file: string, ou
 	});
 
 	for (const child of section.children) {
-		collectSnippets(child, section.heading ? path : titlePath, file, out);
+		collectSnippets(child, section.heading ? path : titlePath, file, definitions, out);
 	}
 }
 
