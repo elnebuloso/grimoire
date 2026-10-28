@@ -32,14 +32,13 @@ how to use them.
 
 ## Status
 
-Before `1.0.0`. Sync, search, the HTTP API and the MCP server work. The admin area and the Docker
-image are not built yet: projects and sources are not yet managed through a UI, and API keys are
-created with `make api-key`.
+Before `1.0.0`. Sync, search, the HTTP API, the MCP server and the admin area work. The Docker
+image is not built yet.
 
 ## Connecting agents
 
-Every request needs an API key: `Authorization: Bearer <key>`. A key sees all projects or a
-selection of them.
+Every request needs an API key: `Authorization: Bearer <key>`. Keys are created in the admin area
+under **API keys**; a key sees all projects or a selection of them.
 
 ### MCP
 
@@ -82,8 +81,10 @@ grimoire needs Node 24.22.1 or newer and `git`.
 cp app/.env.example app/.env   # then set TOKEN_ENCRYPTION_KEY=$(openssl rand -base64 32)
 npm --prefix app ci
 make dev                       # or: make build, then in app/: node --env-file=.env build
-make api-key NAME=my-agent     # all projects; PROJECTS=a,b for a selection
 ```
+
+Open `/admin`, set up the admin account with the setup token from the log, add a project with a
+source and create an API key under **API keys**.
 
 The environment variables, the volume for the SQLite file, the sync schedule and backups are
 described in [docs/handbook/database.md](docs/handbook/database.md).
