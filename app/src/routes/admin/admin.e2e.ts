@@ -88,3 +88,29 @@ test('syncs a source now and shows why it failed', async ({ page }) => {
 	await expect(page.getByRole('alert')).toContainText('git ls-remote failed');
 	expect(await page.content()).not.toContain(TOKEN);
 });
+
+test('creates an API key that works for its project until it is revoked', async ({
+	page,
+	request
+}) => {
+	await logIn(page);
+	await page.getByRole('link', { name: 'API keys' }).click();
+	await page.getByLabel('Name').fill('ci');
+	await page.getByLabel('Only these:').check();
+	await page.getByLabel('platform').check();
+	await page.getByRole('button', { name: 'Create key' }).click();
+
+	const key = await page.locator('output').textContent();
+	expect(key).toMatch(/^grimoire_/);
+	const projects = () => request.get('/projects', { headers: { Authorization: `Bearer ${key}` } });
+	expect(await (await projects()).text()).toBe('- platform: Login and billing');
+
+	await page.goto('/admin/api-keys');
+	expect(await page.content()).not.toContain(key!);
+	await expect(page.getByText('ci – platform')).toBeVisible();
+
+	page.once('dialog', (dialog) => dialog.accept());
+	await page.getByRole('button', { name: 'Revoke ci' }).click();
+	await expect(page.getByText('No API keys yet.')).toBeVisible();
+	expect((await projects()).status()).toBe(401);
+});
