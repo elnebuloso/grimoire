@@ -9,5 +9,10 @@ export const variables = defineEnvVars({
 			if (!value && !building) throw new Error('path of the SQLite file is required');
 			return value ?? '';
 		}
+	},
+	MIGRATE_ONLY: {
+		description:
+			'With `true`, migrate the database and exit without serving, e.g. in an init container',
+		schema: (value) => value === 'true'
 	}
 });

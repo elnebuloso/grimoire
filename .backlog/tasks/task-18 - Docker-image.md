@@ -4,6 +4,7 @@ title: Docker image
 status: To Do
 assignee: []
 created_date: '2026-10-28T19:32:00Z'
+updated_date: '2026-10-28T20:39:00Z'
 labels:
   - ops
 milestone: m-0
@@ -32,3 +33,9 @@ grimoire is operated as a single Docker image: Node plus git for syncing, one vo
 - [ ] #4 A `make` target builds the image
 - [ ] #5 Verified: container starts, a source syncs, `query` answers via HTTP and MCP
 <!-- AC:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Handoff from TASK-26: the image needs no migrations folder (SQL is bundled). For Kubernetes, the same image runs as init container with `MIGRATE_ONLY=true` and the same `DATABASE_PATH`; see `docs/handbook/database.md` (one instance, `Recreate`, RWO/RWOP volume).
+<!-- SECTION:NOTES:END -->
