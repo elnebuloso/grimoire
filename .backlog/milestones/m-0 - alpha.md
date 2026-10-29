@@ -1,6 +1,6 @@
 ---
 id: m-0
-title: "Version 1"
+title: "Alpha"
 ---
 
 ## Description
