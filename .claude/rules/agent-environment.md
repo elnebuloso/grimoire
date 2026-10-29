@@ -24,7 +24,7 @@ without a restart. It runs beside `make dev` (5173) and `make e2e` (4173).
 | `platform/docs` | `zensical/docs` | synced within about 15 s of a reset, pages, snippets and 3 dead links |
 | `billing/docs` | `mkdocs/docs` | synced within about 15 s of a reset, pages, snippets and 3 dead links |
 | `billing/archive` | `archive/docs` (does not exist) | sync fails with an error |
-| `platform/next` | `zensical/docs` | never synced: yearly schedule, checked at the reset; syncs on "sync now" or on 1 January |
+| `platform/next` | `zensical/docs` | never synced: its schedule never comes due (`0 0 30 2 *`); syncs only on "sync now" |
 
 The dev server runs over plain `http`, so curl needs no `X-Forwarded-Proto` header here; the
 other curl notes in `memory.md` apply.

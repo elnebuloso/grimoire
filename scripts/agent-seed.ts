@@ -65,13 +65,14 @@ try {
 	insertSource.run(billing, 'docs', FIXTURE_REPOSITORY, 'mkdocs/docs', null, null);
 	// The path does not exist in the repository, so every sync fails.
 	insertSource.run(billing, 'archive', FIXTURE_REPOSITORY, 'archive/docs', null, null);
-	// Checked just now with a yearly schedule: the server leaves it alone until "sync now".
+	// Checked just now on a schedule that never comes (30 February): the server never syncs it,
+	// only "sync now" does.
 	insertSource.run(
 		platform,
 		'next',
 		FIXTURE_REPOSITORY,
 		'zensical/docs',
-		'0 0 1 1 *',
+		'0 0 30 2 *',
 		new Date().toISOString()
 	);
 	db.exec('COMMIT');
