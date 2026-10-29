@@ -4,16 +4,17 @@ title: Separate agent environment with fixture data
 status: To Do
 assignee: []
 created_date: '2026-10-29T07:07:00Z'
-updated_date: '2026-10-29T07:15:00Z'
+updated_date: '2026-10-29 17:48'
 labels:
   - ops
+milestone: m-0
 dependencies:
   - TASK-56
 references:
   - Makefile
   - app/.env.example
   - app/playwright.config.ts
-  - https://github.com/elnebuloso/grimoire-fixture-docs
+  - 'https://github.com/elnebuloso/grimoire-fixture-docs'
 priority: medium
 type: chore
 ordinal: 117000

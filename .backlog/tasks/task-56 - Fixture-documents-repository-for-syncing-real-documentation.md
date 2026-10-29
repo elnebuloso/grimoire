@@ -4,13 +4,14 @@ title: Fixture documents repository for syncing real documentation
 status: To Do
 assignee: []
 created_date: '2026-10-29T07:11:00Z'
-updated_date: '2026-10-29T07:15:00Z'
+updated_date: '2026-10-29 17:48'
 labels:
   - ops
+milestone: m-0
 dependencies: []
 references:
   - docs/handbook/writing.md
-  - https://github.com/elnebuloso/grimoire-fixture-docs
+  - 'https://github.com/elnebuloso/grimoire-fixture-docs'
 priority: medium
 type: chore
 ordinal: 118000
