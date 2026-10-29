@@ -26,7 +26,7 @@ function sameText(a: string, b: string): boolean {
 	return timingSafeEqual(Buffer.from(sha256(a)), Buffer.from(sha256(b)));
 }
 
-function hashPassword(password: string): string {
+export function hashPassword(password: string): string {
 	const salt = randomBytes(16);
 	return `${salt.toString('base64')}$${scryptSync(password, salt, 64).toString('base64')}`;
 }

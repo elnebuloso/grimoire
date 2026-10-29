@@ -15,7 +15,7 @@ export interface ApiKey {
 
 // A slow hash protects passwords people choose; a random 256-bit key cannot be guessed, so
 // SHA-256 suffices and a key is found by a plain lookup on the unique hash.
-function hashKey(key: string): string {
+export function hashKey(key: string): string {
 	return createHash('sha256').update(key).digest('hex');
 }
 
