@@ -3,6 +3,7 @@ import { toString } from 'mdast-util-to-string';
 import { visit, SKIP } from 'unist-util-visit';
 import { parseMarkdown, stringifyMarkdown } from './markdown';
 import type { PreprocessedPage } from './preprocess';
+import { pythonMarkdownSlugify, type Slugify } from './slugs';
 
 export interface PageLocation {
 	project: string;
@@ -48,26 +49,23 @@ export function estimateTokens(text: string): number {
 	return Math.ceil(text.length / 4);
 }
 
-// Python-Markdown's default `toc` slugify, which MkDocs and Zensical use for heading ids.
-function slugify(text: string): string {
-	return text
-		.normalize('NFKD')
-		.replace(/[\u0080-￿]/g, '')
-		.replace(/[^\w\s-]/g, '')
-		.trim()
-		.toLowerCase()
-		.replace(/[-\s]+/g, '-');
-}
-
 /**
  * Splits a preprocessed page into snippets: one per heading, small sections merged into their
- * parent, large ones split at block boundaries. Anchors match the page MkDocs renders.
+ * parent, large ones split at block boundaries. Anchors match the page MkDocs renders with the
+ * given slug function.
  */
-export function chunkPage(page: PreprocessedPage, location: PageLocation): ChunkedPage {
+export function chunkPage(
+	page: PreprocessedPage,
+	location: PageLocation,
+	slugify: Slugify = pythonMarkdownSlugify
+): ChunkedPage {
 	const tree = parseMarkdown(page.markdown);
 	const definitions = takeDefinitions(tree);
 	const nodes = tree.children;
-	const anchors = assignAnchors(nodes.filter((node) => node.type === 'heading'));
+	const anchors = assignAnchors(
+		nodes.filter((node) => node.type === 'heading'),
+		slugify
+	);
 
 	const root: Section = { title: 'Overview', aliases: [], nodes: [], children: [] };
 	const stack: { depth: number; section: Section }[] = [{ depth: 0, section: root }];
@@ -116,7 +114,7 @@ export function chunkPage(page: PreprocessedPage, location: PageLocation): Chunk
 
 // Mirrors Python-Markdown: ids from attribute lists (`{#id}`) are reserved first, then every
 // heading in document order gets its slug, made unique with `_1`, `_2`.
-function assignAnchors(headings: Heading[]): Map<Heading, string> {
+function assignAnchors(headings: Heading[], slugify: Slugify): Map<Heading, string> {
 	const customIds = new Map(headings.map((heading) => [heading, takeAttributeListId(heading)]));
 	const used = new Set([...customIds.values()].filter((id) => id !== undefined));
 	const anchors = new Map<Heading, string>();

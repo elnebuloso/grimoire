@@ -58,6 +58,7 @@ extensions and turns them into plain Markdown for agents:
 | Admonitions `!!! warning "Caution"` | `> **Caution:** …`, with the content. |
 | Content tabs `=== "Linux"` | `**Linux:**`, with the content. |
 | `nav` in `zensical.toml` or `mkdocs.yml` | The order of the pages in the index; pages missing from `nav` follow by path. The first of the two files found in the source path or above it counts. |
+| `toc` `slugify` and `separator` in the site config | Heading IDs are built the same way, for `pymdownx.slugs.slugify` with its options, `markdown.extensions.toc.slugify` and `slugify_unicode`. Any other function falls back to the default and shows a warning at the source. |
 | Includes `--8<-- "file.md"` | The included file, also from outside the path of the source. |
 | Partial includes `--8<-- "file.md:4:6"`, `--8<-- "app.py:main"` | Only the selected lines, or the lines between `--8<-- [start:main]` and `--8<-- [end:main]`; the markers themselves are dropped everywhere. |
 | Mermaid diagrams | Kept as a code block. |

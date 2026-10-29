@@ -154,6 +154,20 @@ describe('syncSource', () => {
 		]);
 	});
 
+	it('builds heading IDs with the slug function of the site config', async () => {
+		commitFiles({
+			'mkdocs.yml':
+				'markdown_extensions:\n  - toc:\n      slugify: !!python/object/apply:pymdownx.slugs.slugify\n        kwds:\n          case: lower\n',
+			'docs/index.md': '# Home\n\n## Größe & Gewicht\n\nText.\n'
+		});
+		await syncSource(db, source, { key, workDirectory: work });
+
+		// The short section is merged into the overview, which keeps its ID as an alias.
+		expect(rows("SELECT aliases FROM snippets WHERE aliases != '[]'")).toEqual([
+			{ aliases: '["größe--gewicht"]' }
+		]);
+	});
+
 	it('skips an unchanged branch and replaces the index after a new commit', async () => {
 		await syncSource(db, source, { key, workDirectory: work });
 		expect(await syncSource(db, source, { key, workDirectory: work })).toMatchObject({

@@ -1,6 +1,6 @@
 import { posix } from 'node:path';
 import { parse as parseToml } from 'smol-toml';
-import { parse as parseYaml } from 'yaml';
+import { isNode, parseDocument, visit } from 'yaml';
 import type { ReadFile } from './include';
 
 export interface SiteConfig {
@@ -9,6 +9,11 @@ export interface SiteConfig {
 	/** Settings of the site; in `zensical.toml` the ones under `[project]`. */
 	settings: Record<string, unknown>;
 }
+
+// MkDocs refers to Python functions with YAML tags; they are kept in the shape `zensical.toml`
+// uses, `{ object, kwds }` for a call and `{ python_name }` for the function itself.
+const PYTHON_NAME = 'tag:yaml.org,2002:python/name:';
+const PYTHON_APPLY = 'tag:yaml.org,2002:python/object/apply:';
 
 // Zensical reads `mkdocs.yml` too, but prefers its own file when both exist.
 const CONFIG_FILES = ['zensical.toml', 'mkdocs.yml'];
@@ -38,8 +43,19 @@ function parseSettings(name: string, content: string): Record<string, unknown> {
 		const project = parseToml(content).project;
 		return isRecord(project) ? project : {};
 	}
-	// Python tags such as `!!python/name:` are not resolved; their values are not needed here.
-	const settings = parseYaml(content, { logLevel: 'error' });
+	const document = parseDocument(content, { logLevel: 'error' });
+	if (document.errors.length > 0) throw document.errors[0];
+	visit(document, (_, node) => {
+		const tag = isNode(node) ? node.tag : undefined;
+		if (tag?.startsWith(PYTHON_NAME)) {
+			return document.createNode({ python_name: tag.slice(PYTHON_NAME.length) });
+		}
+		if (tag?.startsWith(PYTHON_APPLY)) {
+			const { kwds } = (node as { toJSON(): { kwds?: unknown } }).toJSON() ?? {};
+			return document.createNode({ object: tag.slice(PYTHON_APPLY.length), kwds: kwds ?? {} });
+		}
+	});
+	const settings = document.toJS();
 	return isRecord(settings) ? settings : {};
 }
 

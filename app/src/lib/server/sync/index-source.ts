@@ -5,7 +5,8 @@ import { chunkPage } from '../parsing/chunk';
 import { resolveIncludes, type IncludeResult } from '../parsing/include';
 import { resolveLinks } from '../parsing/links';
 import { preprocessPage } from '../parsing/preprocess';
-import { findSiteConfig, navOrder } from '../parsing/site-config';
+import { findSiteConfig, navOrder, type SiteConfig } from '../parsing/site-config';
+import { configuredSlugify, pythonMarkdownSlugify, type Slugify } from '../parsing/slugs';
 
 export interface IndexedSource {
 	project: string;
@@ -55,13 +56,19 @@ export async function indexCheckout(
 	}
 
 	const warnings: string[] = [];
-	const navPositions = new Map<string, number>();
+	let config: SiteConfig | undefined;
 	try {
-		const config = findSiteConfig(sourcePath, read);
-		const nav = config && navOrder(config, sourcePath);
-		nav?.forEach((file, position) => navPositions.set(file, position));
+		config = findSiteConfig(sourcePath, read);
 	} catch (error) {
 		warnings.push(`site config ignored, ${(error as Error).message}`);
+	}
+	const navPositions = new Map<string, number>();
+	if (config) navOrder(config, sourcePath)?.forEach((file, index) => navPositions.set(file, index));
+	let slugify: Slugify = pythonMarkdownSlugify;
+	if (config) {
+		const configured = configuredSlugify(config.settings);
+		slugify = configured.slugify;
+		if (configured.warning) warnings.push(`${config.file}: ${configured.warning}`);
 	}
 
 	const indexed: IndexedPage[] = [];
@@ -70,7 +77,8 @@ export async function indexCheckout(
 		warnings.push(...includeWarnings);
 		try {
 			const metadata = preprocessPage(markdown);
-			const chunked = chunkPage(metadata, { project: source.project, source: source.slug, file });
+			const location = { project: source.project, source: source.slug, file };
+			const chunked = chunkPage(metadata, location, slugify);
 			indexed.push({ file, navPosition: navPositions.get(file), metadata, chunked });
 		} catch (error) {
 			warnings.push(`${posix.join(sourcePath, file)}: skipped, ${(error as Error).message}`);
