@@ -58,23 +58,15 @@ try {
 	const billing = insertProject.run('billing', 'Billing team documentation').lastInsertRowid;
 
 	const insertSource = db.prepare(
-		`INSERT INTO sources (project_id, slug, git_url, branch, path, sync_schedule, last_checked_at)
-		 VALUES (?, ?, ?, 'main', ?, ?, ?)`
+		`INSERT INTO sources (project_id, slug, git_url, branch, path, paused)
+		 VALUES (?, ?, ?, 'main', ?, ?)`
 	);
-	insertSource.run(platform, 'docs', FIXTURE_REPOSITORY, 'zensical/docs', null, null);
-	insertSource.run(billing, 'docs', FIXTURE_REPOSITORY, 'mkdocs/docs', null, null);
+	insertSource.run(platform, 'docs', FIXTURE_REPOSITORY, 'zensical/docs', 0);
+	insertSource.run(billing, 'docs', FIXTURE_REPOSITORY, 'mkdocs/docs', 0);
 	// The path does not exist in the repository, so every sync fails.
-	insertSource.run(billing, 'archive', FIXTURE_REPOSITORY, 'archive/docs', null, null);
-	// Checked just now on a schedule that never comes (30 February): the server never syncs it,
-	// only "sync now" does.
-	insertSource.run(
-		platform,
-		'next',
-		FIXTURE_REPOSITORY,
-		'zensical/docs',
-		'0 0 30 2 *',
-		new Date().toISOString()
-	);
+	insertSource.run(billing, 'archive', FIXTURE_REPOSITORY, 'archive/docs', 0);
+	// Paused before its first check: polling never syncs it, only "sync now" does.
+	insertSource.run(platform, 'next', FIXTURE_REPOSITORY, 'zensical/docs', 1);
 	db.exec('COMMIT');
 } catch (error) {
 	if (db.isTransaction) db.exec('ROLLBACK');

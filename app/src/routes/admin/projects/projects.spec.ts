@@ -177,6 +177,26 @@ describe('source page', () => {
 		expect(isHttpError(result) && result.status).toBe(404);
 	});
 
+	it('creates a paused source without syncing it, and syncs it now while it stays paused', async () => {
+		await thrown(() => saveSource('1', 'new', { ...SOURCE, paused: 'on' }));
+		expect(requestSync).not.toHaveBeenCalled();
+		expect(loadSource('1', '1')).toMatchObject({ source: { paused: true }, nextCheck: undefined });
+
+		await sourcePage.actions.sync({ params: { id: '1', sourceId: '1' } } as never);
+
+		expect(requestSync).toHaveBeenCalledExactlyOnceWith(1, { force: true });
+		expect(loadSource('1', '1')).toMatchObject({ source: { paused: true } });
+	});
+
+	it('resumes a paused source when saved without the checkbox and syncs it', async () => {
+		await thrown(() => saveSource('1', 'new', { ...SOURCE, paused: 'on' }));
+
+		await thrown(() => saveSource('1', '1', SOURCE));
+
+		expect(loadSource('1', '1')).toMatchObject({ source: { paused: false } });
+		expect(requestSync).toHaveBeenCalledExactlyOnceWith(1, { force: true });
+	});
+
 	it('syncs now, forced, and returns the result', async () => {
 		await thrown(() => saveSource('1', 'new', SOURCE));
 		requestSync.mockClear();

@@ -14,6 +14,7 @@
 				path: 'docs/',
 				exclusions: '',
 				schedule: '',
+				paused: false,
 				username: ''
 			},
 			encryptedToken: ''
@@ -65,6 +66,12 @@
 				<input name="schedule" value={values.source.schedule} />
 			</label>
 		</p>
+		<p>
+			<label>
+				<input name="paused" type="checkbox" checked={values.source.paused} /> Paused: polling skips this
+				source, only "Sync now" syncs it
+			</label>
+		</p>
 		<p><label>Username <input name="username" value={values.source.username} /></label></p>
 		<p>
 			<label>
@@ -82,6 +89,7 @@
 		<input type="hidden" name="path" value={values.source.path} />
 		<input type="hidden" name="exclusions" value={values.source.exclusions} />
 		<input type="hidden" name="schedule" value={values.source.schedule} />
+		{#if values.source.paused}<input type="hidden" name="paused" value="on" />{/if}
 		<input type="hidden" name="username" value={values.source.username} />
 	{/if}
 	<input type="hidden" name="encryptedToken" value={values.encryptedToken} />
@@ -124,6 +132,8 @@
 			<dd>{values.source.exclusions.trim() || 'none'}</dd>
 			<dt>Schedule</dt>
 			<dd>{values.source.schedule || `global (${data.globalSchedule})`}</dd>
+			<dt>Polling</dt>
+			<dd>{values.source.paused ? 'paused' : 'active'}</dd>
 			<dt>Username</dt>
 			<dd>{values.source.username || 'none'}</dd>
 			<dt>Access token</dt>

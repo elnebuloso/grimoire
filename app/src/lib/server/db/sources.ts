@@ -55,9 +55,10 @@ export interface SourceSchedule {
 	lastCheckedAt: Date | null;
 }
 
+/** The schedules polling checks; paused sources are left out. */
 export function listSchedules(db: DatabaseSync): SourceSchedule[] {
 	return db
-		.prepare('SELECT id, sync_schedule, last_checked_at FROM sources ORDER BY id')
+		.prepare('SELECT id, sync_schedule, last_checked_at FROM sources WHERE paused = 0 ORDER BY id')
 		.all()
 		.map((row) => ({
 			id: Number(row.id),

@@ -58,6 +58,7 @@ last sync. It shows nothing about the sources themselves, neither Git URLs nor e
 | Path | Relative to the repository root, e.g. `docs/`; empty for the whole repository. |
 | Exclusions | Glob patterns relative to the repository root, one per line, e.g. `docs/drafts/**`. |
 | Schedule | Cron expression with five fields, in the server time zone; empty uses `SYNC_SCHEDULE`. An expression that never runs, such as `0 0 30 2 *` (30 February), is rejected. |
+| Paused | Polling skips the source; only **Sync now** syncs it. |
 | Username, token | A read-only token of the Git host, e.g. a GitLab deploy token or a GitHub fine-grained token. |
 
 The token is stored encrypted with `TOKEN_ENCRYPTION_KEY` and never shown again. Leave the field
@@ -66,7 +67,7 @@ moves to another server, grimoire asks for the token again, so a stored token ne
 server it was not entered for.
 
 Saving a source starts a sync right away, so a changed path or exclusion applies without waiting
-for a new commit. Deleting a project deletes its sources and their index.
+for a new commit; a paused source is saved without one. Deleting a project deletes its sources and their index.
 
 ## Status and sync
 
@@ -85,6 +86,12 @@ Every page links to a preview: the page exactly as the agent operation `read` re
 into its snippets with their `Source:` and `Edit:` lines.
 
 **Sync now** syncs the source at once, even when the branch has not moved, and shows the result.
+
+Pause a source while its repository moves, its token is being replaced or its Git server is
+down for maintenance: polling then leaves it alone instead of collecting the same error at every
+check. Its index, schedule and settings stay; **Sync now** still syncs it once without resuming
+it. Untick "Paused" to resume it, and polling syncs it again when its schedule next comes due.
+The page of the source and the source list of the project show that it is paused.
 
 ## API keys
 

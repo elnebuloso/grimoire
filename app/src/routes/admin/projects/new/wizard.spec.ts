@@ -146,6 +146,18 @@ describe('project wizard', () => {
 		expect(requestSync).toHaveBeenCalledWith(1, { force: true });
 	});
 
+	it('carries the paused setting through the steps and creates the source paused without syncing it', async () => {
+		const back = (await submit('source', await throughSummary({ paused: 'on' }))) as {
+			values: { source: { paused: boolean } };
+		};
+		expect(back.values.source.paused).toBe(true);
+
+		await submit('create', await throughSummary({ paused: 'on' }));
+
+		expect(db.prepare('SELECT paused FROM sources').get()).toEqual({ paused: 1 });
+		expect(requestSync).not.toHaveBeenCalled();
+	});
+
 	it('creates nothing and returns to the project step when the slug was taken meanwhile', async () => {
 		const summary = await throughSummary();
 		db.prepare("INSERT INTO projects (slug) VALUES ('platform')").run();

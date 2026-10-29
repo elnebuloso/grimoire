@@ -35,6 +35,7 @@ function readValues(data: FormData): WizardValues {
 			path: field('path'),
 			exclusions: field('exclusions'),
 			schedule: field('schedule'),
+			paused: data.get('paused') === 'on',
 			username: field('username')
 		},
 		encryptedToken: field('encryptedToken')
@@ -107,9 +108,11 @@ export const actions = {
 		if ('error' in result)
 			return reject(firstProblem(values) ?? { step: 'summary', ...result }, values);
 
-		requestSync(result.sourceId, { force: true }).catch((error: Error) => {
-			console.error(`sync of source ${result.sourceId} failed: ${error.message}`);
-		});
+		if (!values.source.paused) {
+			requestSync(result.sourceId, { force: true }).catch((error: Error) => {
+				console.error(`sync of source ${result.sourceId} failed: ${error.message}`);
+			});
+		}
 		redirect(303, `/admin/projects/${result.projectId}`);
 	}
 } satisfies Actions;

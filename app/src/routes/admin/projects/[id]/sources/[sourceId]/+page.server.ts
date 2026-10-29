@@ -46,7 +46,9 @@ export const load: PageServerLoad = ({ params, url }) => {
 					}
 				: undefined,
 		globalSchedule: SYNC_SCHEDULE,
-		nextCheck: new Cron(schedule, { mode: '5-part' }).nextRun()?.toISOString()
+		nextCheck: source?.paused
+			? undefined
+			: new Cron(schedule, { mode: '5-part' }).nextRun()?.toISOString()
 	};
 };
 
@@ -61,6 +63,7 @@ export const actions = {
 			path: String(data.get('path') ?? ''),
 			exclusions: String(data.get('exclusions') ?? ''),
 			schedule: String(data.get('schedule') ?? ''),
+			paused: data.get('paused') === 'on',
 			username: String(data.get('username') ?? ''),
 			removeToken: data.get('removeToken') === 'on'
 		};
@@ -78,9 +81,11 @@ export const actions = {
 		}
 
 		// Forced, so a changed path or exclusions take effect without waiting for a new commit.
-		requestSync(result.id, { force: true }).catch((error: Error) => {
-			console.error(`sync of source ${result.id} failed: ${error.message}`);
-		});
+		if (!form.paused) {
+			requestSync(result.id, { force: true }).catch((error: Error) => {
+				console.error(`sync of source ${result.id} failed: ${error.message}`);
+			});
+		}
 		redirect(303, `/admin/projects/${project.id}/sources/${result.id}`);
 	},
 	sync: async ({ params }) => {

@@ -27,6 +27,7 @@ export interface SourceSettings {
 	path: string;
 	exclusions: string[];
 	schedule: string | null;
+	paused: boolean;
 	username: string | null;
 	hasToken: boolean;
 }
@@ -39,6 +40,7 @@ export interface SourceForm {
 	/** One glob pattern per line. */
 	exclusions: string;
 	schedule: string;
+	paused: boolean;
 	username: string;
 	/** Empty keeps the stored token. */
 	token: string;
@@ -111,12 +113,13 @@ interface SourceRow {
 	path: string;
 	exclusions: string;
 	sync_schedule: string | null;
+	paused: number;
 	username: string | null;
 	has_token: number;
 }
 
-const SOURCE_COLUMNS = `id, slug, git_url, branch, path, exclusions, sync_schedule, username,
-	encrypted_token IS NOT NULL AS has_token`;
+const SOURCE_COLUMNS = `id, slug, git_url, branch, path, exclusions, sync_schedule, paused,
+	username, encrypted_token IS NOT NULL AS has_token`;
 
 function toSettings(row: SourceRow): SourceSettings {
 	return {
@@ -127,6 +130,7 @@ function toSettings(row: SourceRow): SourceSettings {
 		path: row.path,
 		exclusions: JSON.parse(row.exclusions) as string[],
 		schedule: row.sync_schedule,
+		paused: row.paused === 1,
 		username: row.username,
 		hasToken: row.has_token === 1
 	};
@@ -238,6 +242,7 @@ export function saveSource(
 				.filter(Boolean)
 		),
 		sync_schedule: schedule,
+		paused: form.paused ? 1 : 0,
 		username: form.username.trim() || null
 	};
 	const encryptedToken = token ? encryptToken(token, key) : null;
@@ -246,16 +251,17 @@ export function saveSource(
 		const result = db
 			.prepare(
 				`INSERT INTO sources (project_id, slug, git_url, branch, path, exclusions, sync_schedule,
-					username, encrypted_token)
+					paused, username, encrypted_token)
 				VALUES (:project_id, :slug, :git_url, :branch, :path, :exclusions, :sync_schedule,
-					:username, :encrypted_token)`
+					:paused, :username, :encrypted_token)`
 			)
 			.run({ ...values, project_id: projectId, encrypted_token: encryptedToken });
 		return { id: Number(result.lastInsertRowid) };
 	}
 	db.prepare(
 		`UPDATE sources SET slug = :slug, git_url = :git_url, branch = :branch, path = :path,
-			exclusions = :exclusions, sync_schedule = :sync_schedule, username = :username
+			exclusions = :exclusions, sync_schedule = :sync_schedule, paused = :paused,
+			username = :username
 		WHERE id = :id`
 	).run({ ...values, id: sourceId });
 	if (token || form.removeToken) {

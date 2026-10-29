@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import type { DatabaseSync } from 'node:sqlite';
 import { openDatabase } from '../db/schema';
+import { listSchedules, recordCheck } from '../db/sources';
 import { decryptToken } from '../token-encryption';
 import { findSource, parseIdParam, saveProject, saveSource, type SourceForm } from './projects';
 
@@ -17,6 +18,7 @@ function sourceForm(changes: Partial<SourceForm> = {}): SourceForm {
 		path: 'docs/',
 		exclusions: '',
 		schedule: '',
+		paused: false,
 		username: '',
 		token: '',
 		removeToken: false,
@@ -82,9 +84,25 @@ describe('saveSource', () => {
 			path: 'docs/',
 			exclusions: ['a/**', 'b.md'],
 			schedule: null,
+			paused: false,
 			username: null,
 			hasToken: false
 		});
+	});
+
+	it('leaves a paused source out of polling and brings it back with its last check', () => {
+		const id = created(
+			saveSource(db, KEY, projectId, undefined, sourceForm({ schedule: '0 2 * * *' }))
+		);
+		const checkedAt = new Date('2026-10-28T02:00:30Z');
+		recordCheck(db, id, checkedAt);
+
+		saveSource(db, KEY, projectId, id, sourceForm({ schedule: '0 2 * * *', paused: true }));
+		expect(findSource(db, projectId, id)).toMatchObject({ paused: true, schedule: '0 2 * * *' });
+		expect(listSchedules(db)).toEqual([]);
+
+		saveSource(db, KEY, projectId, id, sourceForm({ schedule: '0 2 * * *', paused: false }));
+		expect(listSchedules(db)).toEqual([{ id, schedule: '0 2 * * *', lastCheckedAt: checkedAt }]);
 	});
 
 	it('rejects a slug the project already has, but not one of another project', () => {

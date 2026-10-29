@@ -12,6 +12,7 @@
 			path: data.source?.path ?? 'docs/',
 			exclusions: data.source?.exclusions.join('\n') ?? '',
 			schedule: data.source?.schedule ?? '',
+			paused: data.source?.paused ?? false,
 			username: data.source?.username ?? '',
 			removeToken: false
 		}
@@ -46,6 +47,8 @@
 		</p>
 	{/if}
 	<dl>
+		<dt>Polling</dt>
+		<dd>{data.source.paused ? 'paused; only "Sync now" syncs this source' : 'active'}</dd>
 		<dt>Last check</dt>
 		<dd>{data.status.lastCheckedAt ?? 'never'}</dd>
 		<dt>Last sync</dt>
@@ -130,6 +133,12 @@
 	{#if data.nextCheck}
 		<p>Next check: <time>{data.nextCheck}</time></p>
 	{/if}
+	<p>
+		<label>
+			<input name="paused" type="checkbox" checked={values.paused} /> Paused: polling skips this source,
+			only "Sync now" syncs it
+		</label>
+	</p>
 	<p><label>Username <input name="username" value={values.username} /></label></p>
 	<p>
 		<label>

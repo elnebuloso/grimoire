@@ -32,7 +32,8 @@
 						sourceId: String(source.id)
 					})}>{source.slug}</a
 				>
-				– {source.gitUrl}, branch {source.branch}, path {source.path || '(whole repository)'}
+				– {source.gitUrl}, branch {source.branch}, path {source.path ||
+					'(whole repository)'}{source.paused ? ', paused' : ''}
 			</li>
 		{/each}
 	</ul>
