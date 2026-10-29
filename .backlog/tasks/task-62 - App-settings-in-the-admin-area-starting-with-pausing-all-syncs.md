@@ -4,11 +4,14 @@ title: 'App settings in the admin area, starting with pausing all syncs'
 status: To Do
 assignee: []
 created_date: '2026-10-29 20:31'
+updated_date: '2026-10-29 20:33'
 labels:
   - admin
   - sync
 milestone: m-0
 dependencies: []
+documentation:
+  - docs/decisions/0002-app-settings-in-a-single-row-table.md
 priority: medium
 type: feature
 ordinal: 124000
