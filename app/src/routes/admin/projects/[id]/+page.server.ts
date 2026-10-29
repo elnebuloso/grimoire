@@ -1,6 +1,7 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { database } from '#lib/server/db/index.js';
+import { log } from '#lib/server/log.js';
 import { requestSync } from '#lib/server/sync/index.js';
 import {
 	changeProjectSlug,
@@ -49,7 +50,7 @@ export const actions = {
 		// Stored links carry IDs with the old slug until each source is indexed again.
 		for (const source of listSources(database(), project.id)) {
 			requestSync(source.id, { force: true }).catch((error: Error) => {
-				console.error(`sync of source ${source.id} failed: ${error.message}`);
+				log.error({ err: error }, `sync of source ${source.id} failed`);
 			});
 		}
 		return { slugChanged: true };

@@ -109,11 +109,25 @@ version serves requests, run the same image with `MIGRATE_ONLY=true` as an init 
 | `DATABASE_PATH` | `/data/grimoire.db` | Path of the SQLite file, on the volume. |
 | `SYNC_SCHEDULE` | `*/5 * * * *` | When sources without their own schedule are checked. |
 | `TZ` | not set (UTC) | Time zone of the schedules and of the times the UI shows. |
+| `LOG_FORMAT` | not set (`ecs`) | `ecs` for one JSON object per line, `pretty` for readable text. |
+| `LOG_LEVEL` | not set (`info`) | Lowest level that is written: `error`, `warn`, `info` or `debug`. |
 | `MIGRATE_ONLY` | `false` | With `true`, update the schema and exit, e.g. in an init container. |
 | `PORT` | `3000` | Port the server listens on. |
 | `PROTOCOL_HEADER`, `ADDRESS_HEADER` | not set | Behind a reverse proxy, the headers carrying the original protocol and client address (see [Admin area](admin.md#logging-in)). |
 
 The variables are described in detail in [Database](database.md#configuration).
+
+## Logs
+
+grimoire writes its log to standard output. With `LOG_FORMAT=ecs`, the default, every entry is one
+JSON object in the Elastic Common Schema, so a log collector needs no parsing rules for it:
+`@timestamp`, `log.level`, `message`, `ecs.version`, `service.name` (`grimoire`), and
+for an error `error.type`, `error.message` and `error.stack_trace` in the same line, so a stack
+trace never splits into several entries. Git access tokens and credentials in Git URLs are removed
+from messages before they are logged.
+
+`LOG_LEVEL` sets how much is written; at `error` only failures remain, except the line with the
+setup token (see [Admin area](admin.md#first-start)), which is always written.
 
 ## Volume
 

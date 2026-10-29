@@ -34,6 +34,12 @@ export default defineConfig(
 			}
 		}
 	},
+	{
+		// The server logs through `#lib/server/log.js`, so every line follows LOG_FORMAT and LOG_LEVEL.
+		files: ['src/**'],
+		ignores: ['src/**/*.spec.ts', 'src/**/*.e2e.ts'],
+		rules: { 'no-console': 'error' }
+	},
 	...storybook.configs['flat/recommended'],
 	{
 		// Override or add rule settings here, such as:

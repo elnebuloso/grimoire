@@ -12,6 +12,13 @@ the login. Setting up needs a one-time setup token, which grimoire writes to its
 No admin account yet. Set it up at /admin/setup with the setup token 7GQm…
 ```
 
+This line is written whatever `LOG_LEVEL` says. With `LOG_FORMAT=ecs`, the default, it is the
+`message` of a JSON line:
+
+```json
+{"log.level":"warn","@timestamp":"2026-10-29T21:38:02.587Z","service.name":"grimoire","message":"No admin account yet. Set it up at /admin/setup with the setup token 7GQm…", …}
+```
+
 Enter the token, a username and a password of at least 12 characters. Only someone who can read
 the server log can set up the account, even if the URL is reachable before you get to it. The
 token exists only in memory: a restart before the setup logs a new one, and once the account

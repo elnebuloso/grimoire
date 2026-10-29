@@ -2,6 +2,7 @@ import { defineEnvVars } from '@sveltejs/kit/env';
 import { building } from '$app/env';
 import { parseEncryptionKey } from '#lib/server/token-encryption.js';
 import { parseSchedule } from '#lib/server/sync/schedule.js';
+import { parseLogFormat, parseLogLevel } from '#lib/server/log.js';
 import { parseTimeZone } from '#lib/time-zone.js';
 
 export const variables = defineEnvVars({
@@ -32,5 +33,14 @@ export const variables = defineEnvVars({
 		description:
 			'Time zone of the instance, an IANA name such as `Europe/Berlin`: schedules run and the UI shows times in it; default UTC',
 		schema: parseTimeZone
+	},
+	LOG_FORMAT: {
+		description:
+			'`ecs` writes one JSON object per line in the Elastic Common Schema, `pretty` readable text for local development; default `ecs`',
+		schema: parseLogFormat
+	},
+	LOG_LEVEL: {
+		description: 'Lowest level that is written: `error`, `warn`, `info` or `debug`; default `info`',
+		schema: parseLogLevel
 	}
 });

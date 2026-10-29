@@ -3,6 +3,7 @@ import { error, fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { SYNC_SCHEDULE, TOKEN_ENCRYPTION_KEY, TZ } from '$app/env/private';
 import { database } from '#lib/server/db/index.js';
+import { log } from '#lib/server/log.js';
 import { requestSync } from '#lib/server/sync/index.js';
 import { redactUrl } from '#lib/server/sync/git.js';
 import { nextRun } from '#lib/server/sync/schedule.js';
@@ -123,7 +124,7 @@ export const actions = {
 		// Forced, so a changed path or exclusions take effect without waiting for a new commit.
 		if (!form.paused && !readSettings(db).syncsPaused) {
 			requestSync(result.id, { force: true }).catch((error: Error) => {
-				console.error(`sync of source ${result.id} failed: ${error.message}`);
+				log.error({ err: error }, `sync of source ${result.id} failed`);
 			});
 		}
 		redirect(303, `/admin/projects/${project.id}/sources/${result.id}`);
@@ -152,7 +153,7 @@ export const actions = {
 
 		// Stored links carry IDs with the old slug until the source is indexed again, paused or not.
 		requestSync(source.id, { force: true }).catch((error: Error) => {
-			console.error(`sync of source ${source.id} failed: ${error.message}`);
+			log.error({ err: error }, `sync of source ${source.id} failed`);
 		});
 		return { slugChanged: true };
 	},

@@ -2,6 +2,7 @@ import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { SYNC_SCHEDULE, TOKEN_ENCRYPTION_KEY } from '$app/env/private';
 import { database } from '#lib/server/db/index.js';
+import { log } from '#lib/server/log.js';
 import { requestSync } from '#lib/server/sync/index.js';
 import { redactUrl } from '#lib/server/sync/git.js';
 import { decryptToken, encryptToken } from '#lib/server/token-encryption.js';
@@ -138,7 +139,7 @@ export const actions = {
 
 		if (!values.source.paused && !readSettings(database()).syncsPaused) {
 			requestSync(result.sourceId, { force: true }).catch((error: Error) => {
-				console.error(`sync of source ${result.sourceId} failed: ${error.message}`);
+				log.error({ err: error }, `sync of source ${result.sourceId} failed`);
 			});
 		}
 		redirect(303, `/admin/projects/${result.projectId}`);

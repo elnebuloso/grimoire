@@ -1,3 +1,5 @@
+// With its extension: a test runs this file in a child process with plain node.
+import { log } from '../log.ts';
 import type { SyncResult } from './sync';
 
 /** Runs `work` once a slot is free. */
@@ -88,12 +90,12 @@ export function startPolling(
 			sourceIds = listSources();
 		} catch (error) {
 			// Thrown from a timer it would end the process; the next round tries again.
-			console.error(`listing sources to sync failed: ${(error as Error).message}`);
+			log.error({ err: error }, 'listing sources to sync failed');
 			return;
 		}
 		for (const sourceId of sourceIds) {
 			queue.request(sourceId).catch((error: Error) => {
-				console.error(`sync of source ${sourceId} failed: ${error.message}`);
+				log.error({ err: error }, `sync of source ${sourceId} failed`);
 			});
 		}
 	};

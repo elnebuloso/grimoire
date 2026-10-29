@@ -1,5 +1,7 @@
 import { createHash, randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
 import type { DatabaseSync } from 'node:sqlite';
+// With its extension: the scripts in `scripts/` load this file with plain node.
+import { log, logAlways } from '../log.ts';
 
 export const SESSION_COOKIE = 'grimoire_session';
 // Every page shows whether the admin is logged in, so the cookie goes to the whole site; no
@@ -75,11 +77,11 @@ export function checkAdminAccount(db: DatabaseSync): boolean {
 	}
 	if (adminSeen) {
 		adminSeen = false;
-		console.warn('Admin account was reset.');
+		log.warn('Admin account was reset.');
 	}
 	if (!setupTokenValue) {
 		setupTokenValue = randomBytes(24).toString('base64url');
-		console.warn(
+		logAlways(
 			`No admin account yet. Set it up at /admin/setup with the setup token ${setupTokenValue}`
 		);
 	}

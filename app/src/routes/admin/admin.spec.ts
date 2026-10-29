@@ -4,13 +4,13 @@ import { isHttpError, isRedirect } from '@sveltejs/kit';
 import { openDatabase } from '#lib/server/db/schema.js';
 
 let db: DatabaseSync;
-let warnings: string[];
+let logged: () => string[];
 
 // The real accessor opens the file from the environment, and `hooks.server.ts` would start the
 // sync; the handlers get an in-memory database instead.
 vi.mock('#lib/server/db/index.js', () => ({ database: () => db }));
 vi.mock('#lib/server/sync/index.js', () => ({ startSyncPolling: () => {} }));
-vi.mock('$app/env/private', () => ({ MIGRATE_ONLY: false }));
+vi.mock('$app/env/private', () => ({ MIGRATE_ONLY: false, LOG_FORMAT: 'ecs', LOG_LEVEL: 'info' }));
 
 const PASSWORD = 'correct horse battery';
 
@@ -54,12 +54,15 @@ async function thrown(run: () => unknown): Promise<unknown> {
 // with fresh modules.
 async function load() {
 	vi.resetModules();
+	// The fresh auth module logs through the fresh log module.
+	logged = (await import('#lib/server/capture-log.js')).captureLog().messages;
 	return {
 		auth: await import('#lib/server/admin/auth.js'),
 		setup: (await import('./setup/+page.server')).actions.default,
 		login: (await import('./login/+page.server')).actions.default,
 		logout: (await import('./logout/+server')).POST,
 		password: (await import('./password/+page.server')).actions.default,
+		hooks: await import('../../hooks.server'),
 		handleAdminAccess: (await import('../../hooks.server')).handleAdminAccess
 	};
 }
@@ -68,7 +71,7 @@ let admin: Awaited<ReturnType<typeof load>>;
 
 function setupToken(): string {
 	admin.auth.checkAdminAccount(db);
-	return warnings
+	return logged()
 		.findLast((message) => message.includes('setup token'))!
 		.split(' ')
 		.at(-1)!;
@@ -91,8 +94,6 @@ async function setUpAdmin() {
 }
 
 beforeEach(async () => {
-	warnings = [];
-	vi.spyOn(console, 'warn').mockImplementation((message: string) => void warnings.push(message));
 	db = openDatabase(':memory:');
 	admin = await load();
 });
@@ -263,6 +264,25 @@ describe('admin access guard', () => {
 
 			expect(await outside.run()).toBe(served);
 		}
-		expect(warnings).toEqual([]);
+		expect(logged()).toEqual([]);
+	});
+});
+
+describe('handleError', () => {
+	const event = {
+		request: new Request('https://grimoire.example/admin/projects/1', { method: 'POST' }),
+		url: new URL('https://grimoire.example/admin/projects/1')
+	};
+
+	it('logs an unexpected error with its stack in one line', () => {
+		admin.hooks.handleError({ error: new TypeError('no route'), event, kind: 'unknown' } as never);
+
+		expect(logged()).toEqual(['POST /admin/projects/1 failed']);
+	});
+
+	it('logs nothing for an expected error such as a missing page', () => {
+		admin.hooks.handleError({ error: new Error('Not found'), event, kind: 'not_found' } as never);
+
+		expect(logged()).toEqual([]);
 	});
 });

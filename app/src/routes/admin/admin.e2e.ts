@@ -14,7 +14,8 @@ test.describe.configure({ mode: 'serial' });
 
 function setupToken(): string {
 	const log = readFileSync(join(process.env.E2E_DIR!, 'server.log'), 'utf8');
-	return log.match(/setup token (\S+)/)![1];
+	// The token is base64url; this also ends it before the quote of a JSON log line.
+	return log.match(/setup token ([\w-]+)/)![1];
 }
 
 async function logIn(page: Page, password = PASSWORD) {

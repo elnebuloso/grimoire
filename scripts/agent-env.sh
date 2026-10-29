@@ -23,6 +23,7 @@ start() {
 		DATABASE_PATH=$DIR/grimoire.db
 		TOKEN_ENCRYPTION_KEY=BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc=
 		SYNC_SCHEDULE="*/5 * * * *"
+		LOG_FORMAT=pretty
 	EOF
 	GRIMOIRE_AGENT_DIR="$DIR" nohup npm --prefix "$ROOT/app" run dev -- --port "$PORT" --strictPort \
 		> "$DIR/server.log" 2>&1 &

@@ -10,7 +10,7 @@ type Auth = typeof import('./auth');
 
 let auth: Auth;
 let db: DatabaseSync;
-let warnings: string[];
+let logged: () => string[];
 
 const PASSWORD = 'correct horse battery';
 const NOW = new Date('2026-10-28T12:00:00Z');
@@ -19,15 +19,16 @@ const NOW = new Date('2026-10-28T12:00:00Z');
 // test gets a fresh module.
 beforeEach(async () => {
 	vi.resetModules();
-	warnings = [];
-	vi.spyOn(console, 'warn').mockImplementation((message: string) => void warnings.push(message));
+	// The fresh auth module logs through the fresh log module.
+	const { captureLog } = await import('../capture-log');
+	logged = captureLog().messages;
 	auth = await import('./auth');
 	db = openDatabase(':memory:');
 });
 
 function loggedToken(): string {
 	auth.checkAdminAccount(db);
-	const line = warnings.findLast((message) => message.includes('setup token'))!;
+	const line = logged().findLast((message) => message.includes('setup token'))!;
 	return line.split(' ').at(-1)!;
 }
 
@@ -47,7 +48,7 @@ describe('setup', () => {
 		auth.checkAdminAccount(db);
 		auth.checkAdminAccount(db);
 
-		expect(warnings.filter((message) => message.includes('setup token'))).toHaveLength(1);
+		expect(logged().filter((message) => message.includes('setup token'))).toHaveLength(1);
 	});
 
 	it('needs the setup token from the log', () => {
@@ -219,13 +220,13 @@ describe('resetAdmin', () => {
 
 	it('deletes the account and its sessions; the server reports it and offers a new setup', () => {
 		const session = sessionOf(auth.login(db, 'client', { username: 'admin', password: PASSWORD }));
-		const firstToken = warnings.find((message) => message.includes('setup token'));
+		const firstToken = logged().find((message) => message.includes('setup token'));
 		auth.checkAdminAccount(db);
 
 		expect(auth.resetAdmin(db, ' admin ')).toBe(true);
 		expect(auth.sessionValid(db, session)).toBe(false);
 		expect(auth.adminAccessRedirect(db, '/admin', session)).toBe('/admin/setup');
-		expect(warnings).toContain('Admin account was reset.');
+		expect(logged()).toContain('Admin account was reset.');
 		expect(loggedToken()).not.toBe(firstToken?.split(' ').at(-1));
 		setUp('new-admin');
 	});

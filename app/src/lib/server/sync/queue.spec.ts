@@ -2,6 +2,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { spawnSync } from 'node:child_process';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { captureLog } from '../capture-log';
 import { createLimiter, createSyncQueue, startPolling, type SyncLanes } from './queue';
 import type { SyncResult } from './sync';
 
@@ -159,7 +160,7 @@ describe('startPolling', () => {
 
 	it('logs a failed sync and a failed listing without stopping', async () => {
 		vi.useFakeTimers();
-		const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+		const output = captureLog();
 		const request = vi.fn((sourceId: number) =>
 			sourceId === 1
 				? Promise.reject(new Error('boom'))
@@ -176,10 +177,12 @@ describe('startPolling', () => {
 		stop();
 
 		expect(request.mock.calls.map(([id]) => id)).toEqual([1, 2, 1, 2]);
-		expect(log.mock.calls.map(([message]) => message)).toEqual([
-			'sync of source 1 failed: boom',
-			'listing sources to sync failed: database is locked',
-			'sync of source 1 failed: boom'
+		expect(
+			output.lines().map((line) => [line.message, (line.error as { message: string }).message])
+		).toEqual([
+			['sync of source 1 failed', 'boom'],
+			['listing sources to sync failed', 'database is locked'],
+			['sync of source 1 failed', 'boom']
 		]);
 	});
 });

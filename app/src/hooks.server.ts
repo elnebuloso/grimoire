@@ -1,7 +1,13 @@
-import { sequence, type Handle, type ServerInit } from '@sveltejs/kit/hooks';
+import {
+	sequence,
+	type Handle,
+	type HandleServerError,
+	type ServerInit
+} from '@sveltejs/kit/hooks';
 import { error, redirect } from '@sveltejs/kit';
-import { MIGRATE_ONLY } from '$app/env/private';
+import { LOG_FORMAT, LOG_LEVEL, MIGRATE_ONLY } from '$app/env/private';
 import { database } from '#lib/server/db/index.js';
+import { configureLog, log, routeConsoleToLog } from '#lib/server/log.js';
 import { startSyncPolling } from '#lib/server/sync/index.js';
 import { adminAccessRedirect, checkAdminAccount, SESSION_COOKIE } from '#lib/server/admin/auth.js';
 import { getTextDirection } from '#lib/paraglide/runtime.js';
@@ -10,6 +16,8 @@ import { paraglideMiddleware } from '#lib/paraglide/server.js';
 // Migrates on start and fails fast on an unusable path. The server only listens once this has
 // returned, so MIGRATE_ONLY exits before any request is served or any source is synced.
 export const init: ServerInit = () => {
+	configureLog({ format: LOG_FORMAT, level: LOG_LEVEL });
+	routeConsoleToLog();
 	const db = database();
 	if (MIGRATE_ONLY) {
 		db.close();
@@ -18,6 +26,12 @@ export const init: ServerInit = () => {
 	// Logs the setup token right away when there is no admin account yet.
 	checkAdminAccount(db);
 	startSyncPolling();
+};
+
+// Replaces SvelteKit's default, which logs only unexpected errors; 404s and the like stay quiet.
+export const handleError: HandleServerError = ({ error, event, kind }) => {
+	if (kind !== 'unknown') return;
+	log.error({ err: error }, `${event.request.method} ${event.url.pathname} failed`);
 };
 
 export const handleAdminAccess: Handle = ({ event, resolve }) => {
