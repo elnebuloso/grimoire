@@ -26,6 +26,14 @@ test('shows the public start page before any project exists', async ({ page }) =
 	await expect(page.getByText('No projects yet.')).toBeVisible();
 });
 
+test('leads from the login action to the setup while there is no admin account', async ({
+	page
+}) => {
+	await page.goto('/');
+	await page.getByRole('link', { name: 'Log in' }).click();
+	await expect(page).toHaveURL('/admin/setup');
+});
+
 test('sets up the admin account with the token from the server log', async ({ page }) => {
 	await page.goto('/admin');
 	await expect(page).toHaveURL('/admin/setup');
@@ -60,6 +68,26 @@ test('logs out and back in, and rejects a wrong password', async ({ page }) => {
 
 	await logIn(page);
 	await expect(page).toHaveURL('/admin');
+});
+
+test('offers the login action while logged out and shows the admin once logged in', async ({
+	page
+}) => {
+	await page.goto('/');
+	await page.getByRole('link', { name: 'Log in' }).click();
+	await expect(page).toHaveURL('/admin/login');
+
+	await logIn(page);
+	await page.goto('/');
+	await expect(page.getByText(`Logged in as ${USERNAME}`)).toBeVisible();
+	await expect(page.getByRole('link', { name: 'Log in' })).toHaveCount(0);
+	await page.getByRole('link', { name: USERNAME, exact: true }).click();
+	await expect(page).toHaveURL('/admin');
+
+	await page.goto('/');
+	await page.getByRole('button', { name: 'Log out' }).click();
+	await page.goto('/');
+	await expect(page.getByRole('link', { name: 'Log in' })).toBeVisible();
 });
 
 test('creates a project with a source in the wizard and never shows its token', async ({

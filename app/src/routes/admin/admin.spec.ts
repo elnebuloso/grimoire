@@ -97,7 +97,7 @@ beforeEach(async () => {
 	admin = await load();
 });
 
-const SESSION_OPTIONS = { path: '/admin', httpOnly: true, sameSite: 'strict' };
+const SESSION_OPTIONS = { path: '/', httpOnly: true, sameSite: 'strict' };
 
 describe('setup action', () => {
 	it('creates the account, sets the session cookie and redirects to the admin area', async () => {

@@ -19,7 +19,9 @@ exists `/admin/setup` is gone.
 
 ## Logging in
 
-A login lasts 12 hours. The password is stored only as a scrypt hash. After 10 failed logins from
+Every page offers **Log in** while nobody is logged in; once logged in, the same place shows
+which admin it is, linked to the admin area, and **Log out**. A login lasts 12 hours. The
+password is stored only as a scrypt hash. After 10 failed logins from
 one address, that address is blocked for 15 minutes.
 
 The admin forms check that a request comes from grimoire's own origin. grimoire assumes `https`

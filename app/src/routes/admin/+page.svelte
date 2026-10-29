@@ -8,10 +8,6 @@
 
 <h1>grimoire admin</h1>
 
-<form method="post" action="/admin/logout">
-	<button>Log out</button>
-</form>
-
 <p>
 	<a href={resolve('/admin/api-keys')}>API keys</a>
 	<a href={resolve('/admin/password')}>Change the password</a>

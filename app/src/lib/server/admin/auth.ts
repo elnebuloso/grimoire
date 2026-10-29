@@ -2,8 +2,9 @@ import { createHash, randomBytes, scryptSync, timingSafeEqual } from 'node:crypt
 import type { DatabaseSync } from 'node:sqlite';
 
 export const SESSION_COOKIE = 'grimoire_session';
-// Only the admin area reads the session, and no other site may send it along.
-export const sessionCookieOptions = { path: '/admin', httpOnly: true, sameSite: 'strict' } as const;
+// Every page shows whether the admin is logged in, so the cookie goes to the whole site; no
+// other site may send it along.
+export const sessionCookieOptions = { path: '/', httpOnly: true, sameSite: 'strict' } as const;
 
 const MIN_PASSWORD_LENGTH = 12;
 const SESSION_HOURS = 12;
