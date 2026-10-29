@@ -4,15 +4,15 @@ title: Include files by URL
 status: To Do
 assignee: []
 created_date: '2026-10-28T20:05:00Z'
-updated_date: '2026-10-29T00:34:00Z'
+updated_date: '2026-10-29 22:26'
 labels:
   - parsing
-milestone: m-1
+milestone: m-0
 dependencies:
   - TASK-4
   - TASK-7
 references:
-  - https://facelessuser.github.io/pymdown-extensions/extensions/snippets/
+  - 'https://facelessuser.github.io/pymdown-extensions/extensions/snippets/'
 documentation:
   - docs/concept.md
 priority: low

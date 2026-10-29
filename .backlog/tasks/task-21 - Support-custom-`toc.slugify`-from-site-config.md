@@ -5,10 +5,10 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-28T19:57:00Z'
-updated_date: '2026-10-29T01:36:00Z'
+updated_date: '2026-10-29 22:26'
 labels:
   - parsing
-milestone: m-1
+milestone: m-0
 dependencies:
   - TASK-5
   - TASK-7

@@ -5,14 +5,14 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-28T20:05:00Z'
-updated_date: '2026-10-29T01:25:00Z'
+updated_date: '2026-10-29 22:26'
 labels:
   - parsing
-milestone: m-1
+milestone: m-0
 dependencies:
   - TASK-4
 references:
-  - https://facelessuser.github.io/pymdown-extensions/extensions/snippets/
+  - 'https://facelessuser.github.io/pymdown-extensions/extensions/snippets/'
 documentation:
   - docs/concept.md
 priority: medium
