@@ -60,7 +60,7 @@
 {#if data.projects.length === 0}
 	<p>{m.start_no_projects()}</p>
 {:else}
-	<ProjectStatsTable projects={data.projects}>
+	<ProjectStatsTable projects={data.projects} timeZone={data.timeZone}>
 		{#snippet name(project)}
 			<a href={resolve('/admin/projects/[id]', { id: String(project.id) })}>{project.name}</a>
 		{/snippet}

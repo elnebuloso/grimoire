@@ -1,4 +1,4 @@
-import { SYNC_SCHEDULE, TOKEN_ENCRYPTION_KEY } from '$app/env/private';
+import { SYNC_SCHEDULE, TOKEN_ENCRYPTION_KEY, TZ } from '$app/env/private';
 import { database } from '../db';
 import { listSchedules, recordSyncError } from '../db/sources';
 import { createSyncQueue, startPolling } from './queue';
@@ -26,7 +26,7 @@ function dueSources(): number[] {
 	return listSchedules(db)
 		.filter(({ id, schedule, lastCheckedAt }) => {
 			try {
-				return isDue(schedule ?? SYNC_SCHEDULE, lastCheckedAt, now);
+				return isDue(schedule ?? SYNC_SCHEDULE, lastCheckedAt, now, TZ);
 			} catch (error) {
 				recordSyncError(db, id, (error as Error).message);
 				return false;

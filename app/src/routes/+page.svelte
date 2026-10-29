@@ -14,7 +14,7 @@
 {#if data.projects.length === 0}
 	<p>{m.start_no_projects()}</p>
 {:else}
-	<ProjectStatsTable projects={data.projects} />
+	<ProjectStatsTable projects={data.projects} timeZone={data.timeZone} />
 {/if}
 
 <h2>{m.start_connect_heading()}</h2>

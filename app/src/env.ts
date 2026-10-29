@@ -2,6 +2,7 @@ import { defineEnvVars } from '@sveltejs/kit/env';
 import { building } from '$app/env';
 import { parseEncryptionKey } from '#lib/server/token-encryption.js';
 import { parseSchedule } from '#lib/server/sync/schedule.js';
+import { parseTimeZone } from '#lib/time-zone.js';
 
 export const variables = defineEnvVars({
 	DATABASE_PATH: {
@@ -24,7 +25,12 @@ export const variables = defineEnvVars({
 	},
 	SYNC_SCHEDULE: {
 		description:
-			'When sources without their own schedule are checked for new commits: cron expression with five fields, in the server time zone; default every 5 minutes',
+			'When sources without their own schedule are checked for new commits: cron expression with five fields, in the time zone `TZ`; default every 5 minutes',
 		schema: (value) => parseSchedule(value || '*/5 * * * *')
+	},
+	TZ: {
+		description:
+			'Time zone of the instance, an IANA name such as `Europe/Berlin`: schedules run and the UI shows times in it; default UTC',
+		schema: parseTimeZone
 	}
 });

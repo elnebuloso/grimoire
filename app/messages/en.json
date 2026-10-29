@@ -67,7 +67,7 @@
 	"apikeys_none": "No API keys yet.",
 	"apikeys_all_projects": "all projects",
 	"apikeys_no_projects": "no projects",
-	"apikeys_created_at": "created {date}",
+	"apikeys_created_at": "created",
 	"apikeys_revoke": "Revoke",
 	"apikeys_revoke_named": "Revoke {name}",
 	"apikeys_revoke_question": "Revoke the key {name}? Agents using it lose access at once.",

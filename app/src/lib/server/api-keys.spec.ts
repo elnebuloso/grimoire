@@ -80,6 +80,13 @@ describe('listApiKeys', () => {
 		]);
 		expect(Object.keys(keys[0]).sort()).toEqual(['createdAt', 'id', 'name', 'projects']);
 	});
+
+	it('gives the creation time as a UTC instant, which SQLite stores without a zone', () => {
+		const { id } = createApiKey(db, 'ci', 'all');
+		db.prepare("UPDATE api_keys SET created_at = '2026-10-29 20:24:12' WHERE id = ?").run(id);
+
+		expect(listApiKeys(db)[0].createdAt).toBe('2026-10-29T20:24:12.000Z');
+	});
 });
 
 describe('revokeApiKey', () => {

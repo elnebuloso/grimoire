@@ -108,7 +108,7 @@ version serves requests, run the same image with `MIGRATE_ONLY=true` as an init 
 | `TOKEN_ENCRYPTION_KEY` | not set, required | Key encrypting the Git access tokens. |
 | `DATABASE_PATH` | `/data/grimoire.db` | Path of the SQLite file, on the volume. |
 | `SYNC_SCHEDULE` | `*/5 * * * *` | When sources without their own schedule are checked. |
-| `TZ` | not set (UTC) | Time zone of `SYNC_SCHEDULE` and of the schedules of sources. |
+| `TZ` | not set (UTC) | Time zone of the schedules and of the times the UI shows. |
 | `MIGRATE_ONLY` | `false` | With `true`, update the schema and exit, e.g. in an init container. |
 | `PORT` | `3000` | Port the server listens on. |
 | `PROTOCOL_HEADER`, `ADDRESS_HEADER` | not set | Behind a reverse proxy, the headers carrying the original protocol and client address (see [Admin area](admin.md#logging-in)). |

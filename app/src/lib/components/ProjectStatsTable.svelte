@@ -1,9 +1,14 @@
 <script lang="ts">
 	import { m } from '#lib/paraglide/messages.js';
 	import type { Snippet } from 'svelte';
+	import DateTime from './DateTime.svelte';
 	import type { ProjectStats } from '#lib/server/stats.js';
 
-	let { projects, name }: { projects: ProjectStats[]; name?: Snippet<[ProjectStats]> } = $props();
+	let {
+		projects,
+		timeZone,
+		name
+	}: { projects: ProjectStats[]; timeZone: string; name?: Snippet<[ProjectStats]> } = $props();
 </script>
 
 <table>
@@ -33,7 +38,7 @@
 				<td>{project.tokens}</td>
 				<td>
 					{#if project.oldestSync}
-						<time datetime={project.oldestSync}>{project.oldestSync}</time>
+						<DateTime value={project.oldestSync} {timeZone} />
 					{:else if project.sources === 0}
 						{m.no_sources()}
 					{:else}

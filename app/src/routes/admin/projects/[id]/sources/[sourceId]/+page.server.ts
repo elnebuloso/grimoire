@@ -1,11 +1,11 @@
 import type { DatabaseSync } from 'node:sqlite';
 import { error, fail, redirect } from '@sveltejs/kit';
-import { Cron } from 'croner';
 import type { Actions, PageServerLoad } from './$types';
-import { SYNC_SCHEDULE, TOKEN_ENCRYPTION_KEY } from '$app/env/private';
+import { SYNC_SCHEDULE, TOKEN_ENCRYPTION_KEY, TZ } from '$app/env/private';
 import { database } from '#lib/server/db/index.js';
 import { requestSync } from '#lib/server/sync/index.js';
 import { redactUrl } from '#lib/server/sync/git.js';
+import { nextRun } from '#lib/server/sync/schedule.js';
 import { decryptToken, encryptToken } from '#lib/server/token-encryption.js';
 import { accessChanged, checkSourceAccess } from '#lib/server/admin/source-access.js';
 import {
@@ -52,9 +52,7 @@ export const load: PageServerLoad = ({ params, url }) => {
 					}
 				: undefined,
 		globalSchedule: SYNC_SCHEDULE,
-		nextCheck: source?.paused
-			? undefined
-			: new Cron(schedule, { mode: '5-part' }).nextRun()?.toISOString()
+		nextCheck: source?.paused ? undefined : nextRun(schedule, new Date(), TZ)?.toISOString()
 	};
 };
 

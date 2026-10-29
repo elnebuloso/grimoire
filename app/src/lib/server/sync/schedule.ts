@@ -24,16 +24,23 @@ export function parseSchedule(expression: string): string {
 /**
  * A source is due when it was never checked, or when its schedule had a run after the last check
  * that is not in the future. A run missed while the server was down is therefore made up once.
- * Times are read in `timezone`, by default the server's.
+ * Times are read in `timezone`.
  */
 export function isDue(
 	schedule: string,
 	lastCheckedAt: Date | null,
 	now: Date,
-	timezone?: string
+	timezone: string
 ): boolean {
-	const cron = new Cron(parseSchedule(schedule), { mode: '5-part', timezone });
-	if (!lastCheckedAt) return true;
-	const next = cron.nextRun(lastCheckedAt);
+	if (!lastCheckedAt) {
+		parseSchedule(schedule);
+		return true;
+	}
+	const next = nextRun(schedule, lastCheckedAt, timezone);
 	return next !== null && next <= now;
+}
+
+/** The first run of `schedule` after `after`, with times read in `timezone`. */
+export function nextRun(schedule: string, after: Date, timezone: string): Date | null {
+	return new Cron(parseSchedule(schedule), { mode: '5-part', timezone }).nextRun(after);
 }

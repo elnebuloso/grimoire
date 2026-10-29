@@ -2,6 +2,7 @@
 	import { resolve } from '$app/paths';
 	import ChoiceField from '#lib/components/ChoiceField.svelte';
 	import ConfirmForm from '#lib/components/ConfirmForm.svelte';
+	import DateTime from '#lib/components/DateTime.svelte';
 	import FormError from '#lib/components/FormError.svelte';
 	import TextField from '#lib/components/TextField.svelte';
 	import { m } from '#lib/paraglide/messages.js';
@@ -32,9 +33,8 @@
 			<li>
 				{key.name} – {key.projects === 'all'
 					? m.apikeys_all_projects()
-					: key.projects.join(', ') || m.apikeys_no_projects()}, {m.apikeys_created_at({
-					date: key.createdAt
-				})}
+					: key.projects.join(', ') || m.apikeys_no_projects()}, {m.apikeys_created_at()}
+				<DateTime value={key.createdAt} timeZone={data.timeZone} />
 				<ConfirmForm
 					action="?/revoke"
 					question={m.apikeys_revoke_question({ name: key.name })}

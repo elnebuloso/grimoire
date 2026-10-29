@@ -24,11 +24,11 @@
 
 <Story
 	name="Synced"
-	args={{ projects: [synced] }}
+	args={{ timeZone: 'UTC', projects: [synced] }}
 	play={async ({ canvas }) => {
 		const row = canvas.getByRole('row', { name: /platform/ });
 		await expect(row).toHaveTextContent('Platform team handbook');
-		await expect(canvas.getByText(synced.oldestSync!)).toHaveAttribute(
+		await expect(canvas.getByText('Oct 29, 2026, 6:06 PM UTC')).toHaveAttribute(
 			'datetime',
 			synced.oldestSync
 		);
@@ -37,7 +37,7 @@
 
 <Story
 	name="Empty"
-	args={{ projects: [] }}
+	args={{ timeZone: 'UTC', projects: [] }}
 	play={async ({ canvas }) => {
 		await expect(canvas.getAllByRole('row')).toHaveLength(1);
 	}}
@@ -46,6 +46,7 @@
 <Story
 	name="Not synced and without sources"
 	args={{
+		timeZone: 'UTC',
 		projects: [
 			{
 				...synced,
@@ -67,7 +68,7 @@
 
 <Story
 	name="Sync errors and dead links"
-	args={{ projects: [{ ...synced, sourcesWithError: 1, deadLinks: 3 }] }}
+	args={{ timeZone: 'UTC', projects: [{ ...synced, sourcesWithError: 1, deadLinks: 3 }] }}
 	play={async ({ canvas }) => {
 		const cells = canvas.getAllByRole('cell');
 		await expect(cells[5]).toHaveTextContent('1');
@@ -77,7 +78,7 @@
 
 <Story
 	name="Linked names"
-	args={{ projects: [synced] }}
+	args={{ timeZone: 'UTC', projects: [synced] }}
 	play={async ({ canvas }) => {
 		await expect(canvas.getByRole('link', { name: 'platform' })).toHaveAttribute(
 			'href',

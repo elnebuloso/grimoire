@@ -21,7 +21,8 @@ vi.mock('#lib/server/admin/source-access.js', async (original) => ({
 }));
 vi.mock('$app/env/private', () => ({
 	TOKEN_ENCRYPTION_KEY: Buffer.alloc(32, 7),
-	SYNC_SCHEDULE: '*/5 * * * *'
+	SYNC_SCHEDULE: '*/5 * * * *',
+	TZ: 'UTC'
 }));
 
 const TOKEN = 'glpat-very-secret';

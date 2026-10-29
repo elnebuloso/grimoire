@@ -2,6 +2,7 @@
 	import { resolve } from '$app/paths';
 	import ChoiceField from '#lib/components/ChoiceField.svelte';
 	import ConfirmForm from '#lib/components/ConfirmForm.svelte';
+	import DateTime from '#lib/components/DateTime.svelte';
 	import DescriptionList from '#lib/components/DescriptionList.svelte';
 	import FormError from '#lib/components/FormError.svelte';
 	import NameField from '#lib/components/NameField.svelte';
@@ -57,11 +58,25 @@
 			{/if}
 		</p>
 	{/if}
+	{#snippet lastCheck()}
+		{#if data.status?.lastCheckedAt}
+			<DateTime value={data.status.lastCheckedAt} timeZone={data.timeZone} />
+		{:else}
+			{m.never()}
+		{/if}
+	{/snippet}
+	{#snippet lastSync()}
+		{#if data.status?.lastSyncedAt}
+			<DateTime value={data.status.lastSyncedAt} timeZone={data.timeZone} />
+		{:else}
+			{m.never()}
+		{/if}
+	{/snippet}
 	<DescriptionList
 		items={[
 			[m.source_polling(), data.source.paused ? m.source_polling_paused() : m.active()],
-			[m.source_last_check(), data.status.lastCheckedAt ?? m.never()],
-			[m.source_last_sync(), data.status.lastSyncedAt ?? m.never()],
+			[m.source_last_check(), lastCheck],
+			[m.source_last_sync(), lastSync],
 			[m.source_commit(), data.status.lastCommit ?? m.none()],
 			[
 				m.source_totals(),
@@ -140,7 +155,7 @@
 		value={values.schedule}
 	/>
 	{#if data.nextCheck}
-		<p>{m.source_next_check()} <time>{data.nextCheck}</time></p>
+		<p>{m.source_next_check()} <DateTime value={data.nextCheck} timeZone={data.timeZone} /></p>
 	{/if}
 	<ChoiceField name="paused" checked={values.paused} label={m.field_paused()} />
 	<TextField label={m.field_username()} name="username" value={values.username} />

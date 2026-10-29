@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isDue, parseSchedule } from './schedule';
+import { isDue, nextRun, parseSchedule } from './schedule';
 
 const at = (time: string) => new Date(`2026-10-28T${time}Z`);
 
@@ -30,6 +30,22 @@ describe('isDue', () => {
 		// 14:00 in Berlin is 13:00 UTC on this date (winter time).
 		expect(isDue('0 14 * * *', at('11:00:00'), at('13:30:00'), 'Europe/Berlin')).toBe(true);
 		expect(isDue('0 14 * * *', at('11:00:00'), at('13:30:00'), 'UTC')).toBe(false);
+	});
+});
+
+describe('nextRun', () => {
+	it('keeps the local time across the change to winter time', () => {
+		// Berlin leaves summer time (UTC+2) for winter time (UTC+1) on 25 October 2026.
+		const before = nextRun('0 14 * * *', new Date('2026-10-23T13:00:00Z'), 'Europe/Berlin');
+		const after = nextRun('0 14 * * *', new Date('2026-10-24T13:00:00Z'), 'Europe/Berlin');
+		expect(before).toEqual(new Date('2026-10-24T12:00:00Z'));
+		expect(after).toEqual(new Date('2026-10-25T13:00:00Z'));
+	});
+
+	it('keeps the local time across the change to summer time', () => {
+		// Berlin enters summer time on 29 March 2026.
+		const after = nextRun('0 14 * * *', new Date('2026-03-28T14:00:00Z'), 'Europe/Berlin');
+		expect(after).toEqual(new Date('2026-03-29T12:00:00Z'));
 	});
 });
 

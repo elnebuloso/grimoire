@@ -59,7 +59,9 @@ export function createApiKey(
 export function listApiKeys(db: DatabaseSync): ApiKey[] {
 	const rows = db
 		.prepare(
-			`SELECT api_keys.id, api_keys.name, api_keys.created_at AS createdAt, api_keys.all_projects,
+			// CURRENT_TIMESTAMP is UTC but has no zone, which a Date would read as local time.
+			`SELECT api_keys.id, api_keys.name,
+				strftime('%Y-%m-%dT%H:%M:%fZ', api_keys.created_at) AS createdAt, api_keys.all_projects,
 				json_group_array(projects.slug) FILTER (WHERE projects.slug IS NOT NULL) AS slugs
 			FROM api_keys
 			LEFT JOIN api_key_projects ON api_key_projects.api_key_id = api_keys.id

@@ -6,6 +6,8 @@
 	const { Story } = defineMeta({ title: 'DescriptionList', component: DescriptionList });
 </script>
 
+{#snippet snippetValue()}<em>rendered by a snippet</em>{/snippet}
+
 <Story
 	name="Terms and values"
 	args={{
@@ -19,6 +21,14 @@
 		const values = canvas.getAllByRole('definition');
 		await expect(terms.map((term) => term.textContent)).toEqual(['Last sync', 'Pages']);
 		await expect(values.map((value) => value.textContent)).toEqual(['never', '12']);
+	}}
+/>
+
+<Story
+	name="Snippet as value"
+	args={{ items: [['Last sync', snippetValue]] }}
+	play={async ({ canvas }) => {
+		await expect(canvas.getByRole('definition')).toHaveTextContent('rendered by a snippet');
 	}}
 />
 

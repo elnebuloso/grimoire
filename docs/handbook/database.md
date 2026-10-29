@@ -11,7 +11,8 @@ projects, sources and API keys exist only in this file.
 | `DATABASE_PATH` | Path of the SQLite file. Required; the server does not start without it. The file and its schema are created on first start. |
 | `MIGRATE_ONLY` | With `true`, the server brings the schema up to date and exits without serving requests. |
 | `TOKEN_ENCRYPTION_KEY` | Key encrypting the Git access tokens of all sources: 32 random bytes, base64-encoded. Required; the server does not start without it, also with `MIGRATE_ONLY`. |
-| `SYNC_SCHEDULE` | When sources without their own schedule are checked for new commits: a cron expression with the five standard fields (minute, hour, day of month, month, day of week), in the server's time zone (`TZ`, UTC in most containers). Default `*/5 * * * *`. An invalid expression stops the start. |
+| `SYNC_SCHEDULE` | When sources without their own schedule are checked for new commits: a cron expression with the five standard fields (minute, hour, day of month, month, day of week), in the time zone `TZ`. Default `*/5 * * * *`. An invalid expression stops the start. |
+| `TZ` | Time zone of the instance, an IANA name such as `Europe/Berlin`. Schedules run in it, and the admin area and the start page show every date and time in it, whatever time zone the browser is in. Default `UTC`. An unknown time zone stops the start. Stored timestamps stay UTC. |
 
 ## Sync schedule
 
@@ -19,6 +20,9 @@ Every source is checked by its own cron expression, set in the admin area, or by
 when it has none — for example `0 * * * *` for a Git server that allows few requests, or
 `0 6 * * 1-5` for a source that changes rarely. A check only asks the Git server for the branch
 head; a source is cloned only when the branch moved.
+
+Both read their times in the time zone `TZ`: with `TZ=Europe/Berlin`, `0 6 * * 1-5` means 6:00 in
+Berlin, in summer and in winter time.
 
 A check starts at most 15 seconds after its scheduled time. Up to four sources are checked at once
 and one is cloned at a time; a server that does not answer within 30 seconds is skipped until the
