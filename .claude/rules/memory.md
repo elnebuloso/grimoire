@@ -19,3 +19,28 @@ Facts learned while building grimoire.
 
 - Node 24: `node:sqlite` with FTS5 is built in; `node` loads `.ts` files directly (type
   stripping), which tests use to run code in child processes.
+- The agent's Bash shell starts on Node 24.21.0 although nvm's `default` is 24.22.1. Before
+  `npm`, `make build` or `make e2e`: `source ~/.nvm/nvm.sh && nvm use 24.22.1`; `npm ci` fails
+  on `engine-strict` otherwise.
+
+## Dependencies
+
+- A new or updated dependency is at least two weeks old and pinned to an exact version; security
+  fixes are the exception. The same holds for base images and images in examples.
+
+## Trying things by hand
+
+- Admin forms with curl: a POST without a body gets 415, send `-d ""`. Over plain `http` add
+  `-H X-Forwarded-Proto:http -H Origin:<url>` (server with `PROTOCOL_HEADER=x-forwarded-proto`);
+  `-H 'x-sveltekit-action: true'` returns the action result as JSON.
+- MCP with curl needs `Accept: application/json, text/event-stream`, or the transport rejects the
+  request.
+- Stop a test server by the PID `ss -ltnp` shows for its port, not by `$!`, which is the PID of
+  the wrapping shell or npm.
+- `docker exec -it` needs a terminal; without one:
+  `printf 'admin\n' | script -qec "docker exec -it <container> node scripts/reset-admin.ts" /dev/null`.
+
+## Handbook
+
+- A new page in `docs/handbook/` needs an entry in `nav` in `zensical.toml`; `make handbook`
+  builds with `--strict`.
