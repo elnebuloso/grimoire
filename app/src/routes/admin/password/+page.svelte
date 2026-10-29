@@ -2,7 +2,7 @@
 	import { resolve } from '$app/paths';
 	import type { PageProps } from './$types';
 
-	let { form }: PageProps = $props();
+	let { data, form }: PageProps = $props();
 </script>
 
 <p><a href={resolve('/admin')}>All projects</a></p>
@@ -14,6 +14,13 @@
 
 <form method="post">
 	{#if form?.error}<p role="alert">{form.error}</p>{/if}
+	<!-- Tells a password manager which saved login the new password belongs to. -->
+	<p>
+		<label>
+			Username
+			<input name="username" readonly autocomplete="username" value={data.username} />
+		</label>
+	</p>
 	<p>
 		<label>
 			Current password

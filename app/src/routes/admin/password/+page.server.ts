@@ -1,7 +1,9 @@
 import { fail } from '@sveltejs/kit';
-import type { Actions } from './$types';
+import type { Actions, PageServerLoad } from './$types';
 import { database } from '#lib/server/db/index.js';
-import { changePassword, SESSION_COOKIE } from '#lib/server/admin/auth.js';
+import { adminUsername, changePassword, SESSION_COOKIE } from '#lib/server/admin/auth.js';
+
+export const load: PageServerLoad = () => ({ username: adminUsername(database()) });
 
 export const actions = {
 	default: async ({ request, cookies, getClientAddress }) => {

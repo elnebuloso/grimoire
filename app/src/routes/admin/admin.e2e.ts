@@ -24,6 +24,9 @@ async function logIn(page: Page, password = PASSWORD) {
 test('sets up the admin account with the token from the server log', async ({ page }) => {
 	await page.goto('/admin');
 	await expect(page).toHaveURL('/admin/setup');
+	// Without these tokens a password manager offers to save nothing, or files it under no user.
+	await expect(page.getByLabel('Username')).toHaveAttribute('autocomplete', 'username');
+	await expect(page.getByLabel('Password')).toHaveAttribute('autocomplete', 'new-password');
 
 	await page.getByLabel('Setup token').fill(setupToken());
 	await page.getByLabel('Username').fill(USERNAME);
@@ -42,6 +45,9 @@ test('logs out and back in, and rejects a wrong password', async ({ page }) => {
 	await expect(page).toHaveURL('/admin/login');
 	await page.goto('/admin');
 	await expect(page).toHaveURL('/admin/login');
+
+	await expect(page.getByLabel('Username')).toHaveAttribute('autocomplete', 'username');
+	await expect(page.getByLabel('Password')).toHaveAttribute('autocomplete', 'current-password');
 
 	await logIn(page, 'wrong password');
 	await expect(page.getByRole('alert')).toHaveText('Wrong username or password.');
@@ -122,6 +128,8 @@ test('changes the password and logs in with the new one', async ({ page }) => {
 	const newPassword = 'staple battery horse';
 	await logIn(page);
 	await page.getByRole('link', { name: 'Change the password' }).click();
+	await expect(page.getByLabel('Username')).toHaveValue(USERNAME);
+	await expect(page.getByLabel('Username')).toHaveAttribute('autocomplete', 'username');
 
 	await page.getByLabel('Current password').fill('wrong password');
 	await page.getByLabel('New password').fill(newPassword);

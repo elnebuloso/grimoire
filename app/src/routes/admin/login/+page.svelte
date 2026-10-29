@@ -8,7 +8,16 @@
 
 <form method="post">
 	{#if form?.error}<p role="alert">{form.error}</p>{/if}
-	<p><label>Username <input name="username" required value={form?.username ?? ''} /></label></p>
+	<p>
+		<label
+			>Username <input
+				name="username"
+				required
+				autocomplete="username"
+				value={form?.username ?? ''}
+			/></label
+		>
+	</p>
 	<p>
 		<label
 			>Password <input

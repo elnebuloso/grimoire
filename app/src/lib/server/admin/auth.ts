@@ -45,6 +45,10 @@ function findAdmin(db: DatabaseSync) {
 		{ username: string; password_hash: string } | undefined;
 }
 
+export function adminUsername(db: DatabaseSync): string | undefined {
+	return findAdmin(db)?.username;
+}
+
 /**
  * Whether the admin account exists. While it does not, a setup token is created and written to
  * the log once; an account that disappears while the server runs is reported as a reset.

@@ -10,7 +10,16 @@
 <form method="post">
 	{#if form?.error}<p role="alert">{form.error}</p>{/if}
 	<p><label>Setup token <input name="token" required autocomplete="off" /></label></p>
-	<p><label>Username <input name="username" required value={form?.username ?? ''} /></label></p>
+	<p>
+		<label
+			>Username <input
+				name="username"
+				required
+				autocomplete="username"
+				value={form?.username ?? ''}
+			/></label
+		>
+	</p>
 	<p>
 		<label>
 			Password (at least 12 characters)
