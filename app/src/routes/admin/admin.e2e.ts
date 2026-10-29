@@ -115,6 +115,23 @@ test('lists the projects on the public start page without any source detail', as
 	}
 });
 
+test('shows how to connect Claude Code to this instance', async ({ page }) => {
+	await page.goto('/');
+	// The server derives the origin from `x-forwarded-proto`, as it would behind a proxy.
+	await expect(page.locator('pre')).toHaveText(
+		'claude mcp add --transport http grimoire http://localhost:4173/mcp \\\n' +
+			'  --header "Authorization: Bearer <key>"'
+	);
+	await expect(page.getByRole('link', { name: 'Connecting agents' })).toHaveAttribute(
+		'href',
+		'https://elnebuloso.github.io/grimoire/agents/'
+	);
+	await expect(page.getByRole('link', { name: 'grimoire on GitHub' })).toHaveAttribute(
+		'href',
+		'https://github.com/elnebuloso/grimoire'
+	);
+});
+
 test('creates an API key that works for its project until it is revoked', async ({
 	page,
 	request
