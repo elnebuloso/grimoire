@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-29 23:07'
-updated_date: '2026-10-29 23:27'
+updated_date: '2026-10-29 23:43'
 labels:
   - sync
 milestone: m-0
@@ -51,6 +51,12 @@ Measured 2026-10-30 as in TASK-39 (built server, Kubernetes documentation, one a
 - full re-sync with the index in place: 2653 requests, p50 9.1 ms, p99 21.2 ms, max 251 ms (before: one request waited 72.6 s); same 1722 pages and 13160 snippets; the sync still takes about 80 s.
 Docker image: the container indexed the fixture repository through the worker (index-worker.ts found through #lib in app/package.json), no error.
 The server connection already waits up to 5 s for a lock (BUSY_TIMEOUT_MS); the worker's write transaction is short because the search texts are parsed before it starts. make lint, make test (449), make e2e (15), make handbook pass.
+
+Resources measured 2026-10-30 in the Docker image, first sync of the Kubernetes documentation (1722 pages), agent search every 25 ms; memory as cgroup peak (memory.peak) and process peak RSS (VmHWM):
+- no limits: sync 77 s; searches p99 11 ms, max 326 ms; cgroup peak 933 MiB, process 807 MiB (V8 keeps the heap it grew to).
+- --cpus 1 --memory 512m: sync 160 s; p99 46 ms, max 411 ms; cgroup peak 392 MiB, process 284 MiB; no OOM kill.
+- --cpus 0.5 --memory 256m: sync 383 s; p95 72 ms, p99 77 ms, max 1345 ms; cgroup at its 256 MiB limit, no OOM kill.
+Deployment unchanged: same process, same /data, temp clone in /tmp as before. Documented under Kubernetes → Resources in docs/handbook/docker.md.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
