@@ -1,7 +1,15 @@
 # Running with Docker
 
 grimoire runs as one container: the server, `git` for syncing, and a volume for the SQLite file.
-Build the image from the repository:
+
+## Image
+
+Every release is published on Docker Hub as `elnebuloso/grimoire`, tagged with the version of
+the release without its `v`: release `v1.2.0` is the image `elnebuloso/grimoire:1.2.0`. There is
+no `latest` tag: replace `<version>` below with the release you want, and change it to update.
+Releases up to `0.3.0` have no image.
+
+To build the image from the repository instead, for example to try unreleased changes:
 
 ```bash
 make image   # docker build --tag grimoire:latest .
@@ -14,7 +22,7 @@ docker run --detach --name grimoire \
   --publish 3000:3000 \
   --volume grimoire-data:/data \
   --env TOKEN_ENCRYPTION_KEY="$(openssl rand -base64 32)" \
-  grimoire:latest
+  elnebuloso/grimoire:<version>
 ```
 
 Generate the key once and keep it: the same key has to be passed on every start, or the access

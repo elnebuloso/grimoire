@@ -75,12 +75,11 @@ once per session and follow it.
 
 ## Running
 
-With Docker:
+With Docker, using the image of a release (tagged with its version, no `latest`):
 
 ```bash
-make image
 docker run --detach --name grimoire --publish 3000:3000 --volume grimoire-data:/data \
-  --env TOKEN_ENCRYPTION_KEY="$(openssl rand -base64 32)" grimoire:latest
+  --env TOKEN_ENCRYPTION_KEY="$(openssl rand -base64 32)" elnebuloso/grimoire:<version>
 ```
 
 Keep the key: every start needs the same one. Without Docker, grimoire needs Node 24.22.1 or
