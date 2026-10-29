@@ -1,11 +1,11 @@
 ---
 id: TASK-56
 title: Fixture documents repository for syncing real documentation
-status: In Progress
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-29T07:11:00Z'
-updated_date: '2026-10-29 17:59'
+updated_date: '2026-10-29 18:01'
 labels:
   - ops
 milestone: m-0
@@ -28,13 +28,13 @@ The repository is `grimoire-fixture-docs` on GitHub: https://github.com/elnebulo
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 The repository is reachable over `https` without credentials, so a source can sync it with no token
-- [ ] #2 It holds several documentation sites in separate paths, so one repository serves several sources, at least one configured with `zensical.toml` and one with `mkdocs.yml`
-- [ ] #3 Every element in the tables of `docs/handbook/writing.md` appears at least once: front matter, admonitions, content tabs, `nav` (with a page missing from it), `toc` `slugify` and `separator`, whole and partial includes (lines and named sections, one from outside the source path), Mermaid, images and HTML comments
-- [ ] #4 It contains the cases of page splitting: a page with only an overview, a section short enough to be merged, and one long enough to be cut into parts
-- [ ] #5 It contains working relative links with and without anchor, reference-style links, and dead links: to a missing page, to a missing anchor, and leaving the source path
-- [ ] #6 A README in the repository lists for each path what it demonstrates and what grimoire is expected to produce from it (pages, notable snippet IDs, dead links), so a deviation is visible at a glance
-- [ ] #7 Synced into grimoire, every site indexes without errors other than the documented dead links
+- [x] #1 The repository is reachable over `https` without credentials, so a source can sync it with no token
+- [x] #2 It holds several documentation sites in separate paths, so one repository serves several sources, at least one configured with `zensical.toml` and one with `mkdocs.yml`
+- [x] #3 Every element in the tables of `docs/handbook/writing.md` appears at least once: front matter, admonitions, content tabs, `nav` (with a page missing from it), `toc` `slugify` and `separator`, whole and partial includes (lines and named sections, one from outside the source path), Mermaid, images and HTML comments
+- [x] #4 It contains the cases of page splitting: a page with only an overview, a section short enough to be merged, and one long enough to be cut into parts
+- [x] #5 It contains working relative links with and without anchor, reference-style links, and dead links: to a missing page, to a missing anchor, and leaving the source path
+- [x] #6 A README in the repository lists for each path what it demonstrates and what grimoire is expected to produce from it (pages, notable snippet IDs, dead links), so a deviation is visible at a glance
+- [x] #7 Synced into grimoire, every site indexes without errors other than the documented dead links
 <!-- AC:END -->
 
 ## Implementation Plan
@@ -58,4 +58,16 @@ Fixture content committed locally in ../grimoire-fixture-docs (cdc6230, 97eb816,
 Checked before the push: a scratch server (built with make build, own DATABASE_PATH, port 4317) synced both source paths from a file:// URL to the local clone. Result for zensical/docs and mkdocs/docs: error NULL, warnings [], pages, snippet anchors, merged alias who_decides, split parts (1/2)/(2/2) of rolling_back_step_by_step and three dead links per site exactly as listed in the fixture README. Snippet contents checked: includes (whole, lines 3:5, named section main, from inside the source path), tabs, admonitions, Mermaid, image alt text, dropped HTML comments, copied reference definition.
 
 Open: AC #1 and the https part of AC #7 need the push; then sync both paths over https without a token.
+
+After the push (7c9a748): an anonymous clone of https://github.com/elnebuloso/grimoire-fixture-docs works without credentials. A fresh scratch server synced both source paths over https without a token: error NULL, warnings [] for both, and the same pages, split, merged alias and three dead links per site as listed in the README.
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Filled grimoire-fixture-docs with two documentation sites, each one source: zensical/docs (zensical.toml, toc separator _) and mkdocs/docs (mkdocs.yml, pymdownx slugify with case lower). Partial and whole includes come from shared/, which is outside both source paths. Together they cover every element in the tables of docs/handbook/writing.md, the page-splitting cases (overview only, merged section, split section) and working, reference-style and dead links (missing page, missing anchor, leaving the source path). The README lists for each path what it demonstrates and what grimoire produces: pages in index order, snippet anchors, notable contents and the dead links.
+
+Verified by syncing both paths into a scratch grimoire server, first from file:// and then over https without a token. Both runs ended with no error and no warnings, and the pages, anchors and dead links matched the README.
+
+Follow-up: TASK-55 can use the two source paths; the failing source it needs is not part of this repository.
+<!-- SECTION:FINAL_SUMMARY:END -->
