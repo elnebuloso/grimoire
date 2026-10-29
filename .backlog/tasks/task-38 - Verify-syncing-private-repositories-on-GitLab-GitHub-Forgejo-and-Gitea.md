@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@claude'
 created_date: '2026-10-29T00:47:00Z'
-updated_date: '2026-10-29 22:42'
+updated_date: '2026-10-29 22:45'
 labels:
   - sync
 milestone: m-0
@@ -36,4 +36,11 @@ GitLab verified 2026-10-29 against a private repository on a self-hosted GitLab 
 - Wrong token at Test connection, and a revoked token simulated by storing a rejected token encrypted and running Sync now: both answer 'git ls-remote failed: fatal: could not read Username for https://<host>: terminal prompts disabled'. Shown at the source and on the dashboard; neither token nor username appears on the page or in the server log.
 - Documented in docs/handbook/admin.md under 'Tokens per Git host'.
 Open: GitHub (fine-grained token) and Forgejo or Gitea (access token) need a private repository and a token each; AC 1 stays unchecked until they are verified. AC 2 holds for GitLab and is to be repeated per provider.
+
+Forgejo verified 2026-10-29 against a private repository on a self-hosted Forgejo with an access token (credentials given by the user for the check only; not recorded, the test source removed with make agent-reset, the check script deleted):
+- Test connection with the token: reachable, branch main at its commit. Creating the source synced it: 1 page, 1 snippet, no warnings.
+- A rejected token at Test connection and as stored token with Sync now: the same message as GitLab, 'could not read Username for https://<host>: terminal prompts disabled'; neither token appears on the page or in the server log.
+- Measured with git ls-remote and the Basic-auth header grimoire sends: Forgejo accepts the token with any username.
+- Documented in docs/handbook/admin.md under 'Tokens per Git host'.
+Open: GitHub with a fine-grained token. Gitea is covered by the 'Forgejo or Gitea' criterion through Forgejo; AC 1 stays unchecked until GitHub is verified.
 <!-- SECTION:NOTES:END -->
