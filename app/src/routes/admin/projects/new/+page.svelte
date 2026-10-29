@@ -5,6 +5,7 @@
 	import FormError from '#lib/components/FormError.svelte';
 	import TextAreaField from '#lib/components/TextAreaField.svelte';
 	import TextField from '#lib/components/TextField.svelte';
+	import { m } from '#lib/paraglide/messages.js';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
@@ -26,13 +27,21 @@
 		}
 	);
 	const step = $derived(form?.step ?? 'project');
-	const STEPS = { project: 'Project', source: 'First source', summary: 'Summary' };
+	const STEPS = {
+		project: m.project(),
+		source: m.wizard_step_source(),
+		summary: m.wizard_step_summary()
+	};
 </script>
 
 {#snippet projectFields(visible: boolean)}
 	{#if visible}
-		<TextField label="Slug" name="projectSlug" required value={values.project.slug} />
-		<TextField label="Short description" name="description" value={values.project.description} />
+		<TextField label={m.field_slug()} name="projectSlug" required value={values.project.slug} />
+		<TextField
+			label={m.field_description()}
+			name="description"
+			value={values.project.description}
+		/>
 	{:else}
 		<input type="hidden" name="projectSlug" value={values.project.slug} />
 		<input type="hidden" name="description" value={values.project.description} />
@@ -41,46 +50,36 @@
 
 {#snippet sourceFields(visible: boolean)}
 	{#if visible}
-		<TextField label="Slug" name="sourceSlug" required value={values.source.slug} />
+		<TextField label={m.field_slug()} name="sourceSlug" required value={values.source.slug} />
 		<TextField
-			label="Git URL (HTTPS)"
+			label={m.field_git_url()}
 			name="gitUrl"
 			type="url"
 			required
 			value={values.source.gitUrl}
 		/>
-		<TextField label="Branch" name="branch" required value={values.source.branch} />
-		<TextField
-			label="Path in the repository (empty for the whole repository)"
-			name="path"
-			value={values.source.path}
-		/>
+		<TextField label={m.field_branch()} name="branch" required value={values.source.branch} />
+		<TextField label={m.field_path()} name="path" value={values.source.path} />
 		<TextAreaField
-			label="Exclusions: glob patterns relative to the repository root, one per line"
+			label={m.field_exclusions()}
 			name="exclusions"
 			value={values.source.exclusions}
 		/>
 		<TextField
-			label="Schedule: cron expression with five fields, empty for the global one ({data.globalSchedule})"
+			label={m.field_schedule({ schedule: data.globalSchedule })}
 			name="schedule"
 			value={values.source.schedule}
 		/>
-		<ChoiceField
-			name="paused"
-			checked={values.source.paused}
-			label="Paused: polling skips this source, only &quot;Sync now&quot; syncs it"
-		/>
-		<TextField label="Username" name="username" value={values.source.username} />
+		<ChoiceField name="paused" checked={values.source.paused} label={m.field_paused()} />
+		<TextField label={m.field_username()} name="username" value={values.source.username} />
 		<TextField
-			label="Access token ({values.encryptedToken
-				? 'entered; leave empty to keep it'
-				: 'none entered'})"
+			label={values.encryptedToken ? m.field_token_entered() : m.field_token_none_entered()}
 			name="token"
 			type="password"
 			autocomplete="off"
 		/>
 		{#if values.encryptedToken}
-			<ChoiceField name="removeToken" label="Remove the entered token" />
+			<ChoiceField name="removeToken" label={m.field_remove_entered_token()} />
 		{/if}
 	{:else}
 		<input type="hidden" name="sourceSlug" value={values.source.slug} />
@@ -95,8 +94,8 @@
 	<input type="hidden" name="encryptedToken" value={values.encryptedToken} />
 {/snippet}
 
-<p><a href={resolve('/admin')}>All projects</a></p>
-<h1>New project</h1>
+<p><a href={resolve('/admin')}>{m.all_projects_link()}</a></p>
+<h1>{m.admin_new_project()}</h1>
 <ol>
 	{#each Object.entries(STEPS) as [key, label] (key)}
 		<li aria-current={key === step ? 'step' : undefined}>{label}</li>
@@ -110,30 +109,33 @@
 	{@render sourceFields(step === 'source')}
 
 	{#if step === 'project'}
-		<button formaction="?/source">Next</button>
+		<button formaction="?/source">{m.next()}</button>
 	{:else if step === 'source'}
-		<button formaction="?/project" formnovalidate>Back</button>
-		<button formaction="?/summary">Next</button>
+		<button formaction="?/project" formnovalidate>{m.back()}</button>
+		<button formaction="?/summary">{m.next()}</button>
 	{:else}
 		<DescriptionList
 			items={[
 				[
-					'Project',
+					m.project(),
 					values.project.slug + (values.project.description && ` – ${values.project.description}`)
 				],
-				['Source', values.source.slug],
-				['Git URL', values.source.gitUrl],
-				['Branch', values.source.branch],
-				['Path', values.source.path || '(whole repository)'],
-				['Exclusions', values.source.exclusions.trim() || 'none'],
-				['Schedule', values.source.schedule || `global (${data.globalSchedule})`],
-				['Polling', values.source.paused ? 'paused' : 'active'],
-				['Username', values.source.username || 'none'],
-				['Access token', values.encryptedToken ? 'entered' : 'none']
+				[m.source(), values.source.slug],
+				[m.wizard_git_url(), values.source.gitUrl],
+				[m.field_branch(), values.source.branch],
+				[m.wizard_path(), values.source.path || m.whole_repository()],
+				[m.wizard_exclusions(), values.source.exclusions.trim() || m.none()],
+				[
+					m.wizard_schedule(),
+					values.source.schedule || m.schedule_global({ schedule: data.globalSchedule })
+				],
+				[m.source_polling(), values.source.paused ? m.paused() : m.active()],
+				[m.field_username(), values.source.username || m.none()],
+				[m.wizard_access_token(), values.encryptedToken ? m.entered() : m.none()]
 			]}
 		/>
-		<p>Nothing is saved until you create the project.</p>
-		<button formaction="?/source">Back</button>
-		<button formaction="?/create">Create project</button>
+		<p>{m.wizard_nothing_saved()}</p>
+		<button formaction="?/source">{m.back()}</button>
+		<button formaction="?/create">{m.wizard_create()}</button>
 	{/if}
 </form>

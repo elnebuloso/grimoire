@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { m } from '#lib/paraglide/messages.js';
 	import type { Snippet } from 'svelte';
 	import type { ProjectStats } from '#lib/server/stats.js';
 
@@ -8,14 +9,14 @@
 <table>
 	<thead>
 		<tr>
-			<th scope="col">Project</th>
-			<th scope="col">Sources</th>
-			<th scope="col">Pages</th>
-			<th scope="col">Snippets</th>
-			<th scope="col">Tokens</th>
-			<th scope="col">Oldest sync</th>
-			<th scope="col">Sync errors</th>
-			<th scope="col">Dead links</th>
+			<th scope="col">{m.project()}</th>
+			<th scope="col">{m.sources()}</th>
+			<th scope="col">{m.pages()}</th>
+			<th scope="col">{m.snippets()}</th>
+			<th scope="col">{m.tokens()}</th>
+			<th scope="col">{m.oldest_sync()}</th>
+			<th scope="col">{m.sync_errors()}</th>
+			<th scope="col">{m.dead_links()}</th>
 		</tr>
 	</thead>
 	<tbody>
@@ -33,9 +34,9 @@
 					{#if project.oldestSync}
 						<time datetime={project.oldestSync}>{project.oldestSync}</time>
 					{:else if project.sources === 0}
-						no sources
+						{m.no_sources()}
 					{:else}
-						not synced
+						{m.not_synced()}
 					{/if}
 				</td>
 				<td>{project.sourcesWithError}</td>

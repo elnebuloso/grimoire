@@ -4,6 +4,7 @@
 	import ConfirmForm from '#lib/components/ConfirmForm.svelte';
 	import FormError from '#lib/components/FormError.svelte';
 	import TextField from '#lib/components/TextField.svelte';
+	import { m } from '#lib/paraglide/messages.js';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
@@ -13,30 +14,32 @@
 	);
 </script>
 
-<p><a href={resolve('/admin')}>All projects</a></p>
-<h1>API keys</h1>
+<p><a href={resolve('/admin')}>{m.all_projects_link()}</a></p>
+<h1>{m.api_keys()}</h1>
 
 {#if form?.created}
 	<p role="status">
-		Key for {form.created.name} created. Copy it now: it is not shown again.
+		{m.apikeys_created({ name: form.created.name })}
 		<output>{form.created.key}</output>
 	</p>
 {/if}
 
 {#if data.keys.length === 0}
-	<p>No API keys yet.</p>
+	<p>{m.apikeys_none()}</p>
 {:else}
 	<ul>
 		{#each data.keys as key (key.id)}
 			<li>
 				{key.name} – {key.projects === 'all'
-					? 'all projects'
-					: key.projects.join(', ') || 'no projects'}, created {key.createdAt}
+					? m.apikeys_all_projects()
+					: key.projects.join(', ') || m.apikeys_no_projects()}, {m.apikeys_created_at({
+					date: key.createdAt
+				})}
 				<ConfirmForm
 					action="?/revoke"
-					question="Revoke the key {key.name}? Agents using it lose access at once."
-					label="Revoke"
-					buttonLabel="Revoke {key.name}"
+					question={m.apikeys_revoke_question({ name: key.name })}
+					label={m.apikeys_revoke()}
+					buttonLabel={m.apikeys_revoke_named({ name: key.name })}
 				>
 					<input type="hidden" name="id" value={key.id} />
 				</ConfirmForm>
@@ -45,25 +48,25 @@
 	</ul>
 {/if}
 
-<h2>New key</h2>
+<h2>{m.apikeys_new()}</h2>
 <form method="post" action="?/create">
 	<FormError message={form?.error} />
-	<TextField label="Name" name="name" required value={values.name} />
+	<TextField label={m.field_name()} name="name" required value={values.name} />
 	<fieldset>
-		<legend>Projects the key may read</legend>
+		<legend>{m.apikeys_scope()}</legend>
 		<ChoiceField
 			type="radio"
 			name="scope"
 			value="all"
 			checked={values.allProjects}
-			label="All projects, including future ones"
+			label={m.apikeys_scope_all()}
 		/>
 		<ChoiceField
 			type="radio"
 			name="scope"
 			value="selected"
 			checked={!values.allProjects}
-			label="Only these:"
+			label={m.apikeys_scope_selected()}
 		/>
 		{#each data.projects as project (project)}
 			<ChoiceField
@@ -74,5 +77,5 @@
 			/>
 		{/each}
 	</fieldset>
-	<button>Create key</button>
+	<button>{m.apikeys_submit()}</button>
 </form>

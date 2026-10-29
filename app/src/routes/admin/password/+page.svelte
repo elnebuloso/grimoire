@@ -2,42 +2,43 @@
 	import { resolve } from '$app/paths';
 	import FormError from '#lib/components/FormError.svelte';
 	import TextField from '#lib/components/TextField.svelte';
+	import { m } from '#lib/paraglide/messages.js';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
 </script>
 
-<p><a href={resolve('/admin')}>All projects</a></p>
-<h1>Change the password</h1>
+<p><a href={resolve('/admin')}>{m.all_projects_link()}</a></p>
+<h1>{m.password_title()}</h1>
 
 {#if form?.changed}
-	<p role="status">Password changed. Every other session was logged out.</p>
+	<p role="status">{m.password_changed()}</p>
 {/if}
 
 <form method="post">
 	<FormError message={form?.error} />
 	<!-- Tells a password manager which saved login the new password belongs to. -->
 	<TextField
-		label="Username"
+		label={m.field_username()}
 		name="username"
 		readonly
 		autocomplete="username"
 		value={data.username}
 	/>
 	<TextField
-		label="Current password"
+		label={m.password_current()}
 		name="current"
 		type="password"
 		required
 		autocomplete="current-password"
 	/>
 	<TextField
-		label="New password (at least 12 characters)"
+		label={m.password_new()}
 		name="password"
 		type="password"
 		required
 		minlength={12}
 		autocomplete="new-password"
 	/>
-	<button>Change password</button>
+	<button>{m.password_submit()}</button>
 </form>

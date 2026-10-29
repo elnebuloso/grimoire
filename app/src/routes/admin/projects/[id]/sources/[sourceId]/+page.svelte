@@ -6,6 +6,7 @@
 	import FormError from '#lib/components/FormError.svelte';
 	import TextAreaField from '#lib/components/TextAreaField.svelte';
 	import TextField from '#lib/components/TextField.svelte';
+	import { m } from '#lib/paraglide/messages.js';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
@@ -27,49 +28,49 @@
 
 <p>
 	<a href={resolve('/admin/projects/[id]', { id: String(data.project.id) })}
-		>Project {data.project.slug}</a
+		>{m.project_title({ slug: data.project.slug })}</a
 	>
 </p>
-<h1>{data.source ? `Source ${data.source.slug}` : 'New source'}</h1>
+<h1>{data.source ? m.source_title({ slug: data.source.slug }) : m.project_new_source()}</h1>
 
 {#if data.source && data.status}
 	{@const sourcePage = resolve('/admin/projects/[id]/sources/[sourceId]', {
 		id: String(data.project.id),
 		sourceId: String(data.source.id)
 	})}
-	<h2>Status</h2>
+	<h2>{m.source_status()}</h2>
 	<form method="post" action="?/sync">
-		<button>Sync now</button>
+		<button>{m.source_sync_now()}</button>
 	</form>
 	{#if form?.sync}
 		<p role="status">
 			{#if form.sync.status === 'failed'}
-				Sync failed: {form.sync.error}
+				{m.source_sync_failed({ error: form.sync.error })}
 			{:else if form.sync.status === 'synced'}
-				Synced commit {form.sync.commit}: {form.sync.pages} pages.
+				{m.source_synced({ commit: form.sync.commit, pages: form.sync.pages })}
 			{:else}
-				Unchanged at commit {form.sync.commit}.
+				{m.source_unchanged({ commit: form.sync.commit })}
 			{/if}
 		</p>
 	{/if}
 	<DescriptionList
 		items={[
-			['Polling', data.source.paused ? 'paused; only "Sync now" syncs this source' : 'active'],
-			['Last check', data.status.lastCheckedAt ?? 'never'],
-			['Last sync', data.status.lastSyncedAt ?? 'never'],
-			['Commit', data.status.lastCommit ?? 'none'],
+			[m.source_polling(), data.source.paused ? m.source_polling_paused() : m.active()],
+			[m.source_last_check(), data.status.lastCheckedAt ?? m.never()],
+			[m.source_last_sync(), data.status.lastSyncedAt ?? m.never()],
+			[m.source_commit(), data.status.lastCommit ?? m.none()],
 			[
-				'Pages, snippets, tokens',
+				m.source_totals(),
 				`${data.status.totals.pages}, ${data.status.totals.snippets}, ${data.status.totals.tokens}`
 			]
 		]}
 	/>
 	{#if data.status.error}
-		<h3>Error</h3>
+		<h3>{m.source_error()}</h3>
 		<p role="alert">{data.status.error}</p>
 	{/if}
 	{#if data.status.warnings.length > 0}
-		<h3>Warnings</h3>
+		<h3>{m.source_warnings()}</h3>
 		<ul>
 			{#each data.status.warnings as warning, index (index)}
 				<li>{warning}</li>
@@ -77,7 +78,7 @@
 		</ul>
 	{/if}
 	{#if data.status.deadLinks.length > 0}
-		<h3>Dead links</h3>
+		<h3>{m.dead_links()}</h3>
 		<ul>
 			{#each data.status.deadLinks as link, index (index)}
 				<li>{link.file}{link.anchor ? `#${link.anchor}` : ''} → {link.target}</li>
@@ -85,77 +86,71 @@
 		</ul>
 	{/if}
 	{#if data.status.pages.length > 0}
-		<h3>Pages</h3>
+		<h3>{m.pages()}</h3>
 		<ul>
 			{#each data.status.pages as page (page.file)}
 				<li>
 					<a href="{sourcePage}?preview={encodeURIComponent(page.file)}">{page.file}</a>
-					– {page.title}: {page.snippets} snippets, {page.tokens} tokens
+					– {m.source_page_line({
+						title: page.title,
+						snippets: page.snippets,
+						tokens: page.tokens
+					})}
 				</li>
 			{/each}
 		</ul>
 	{/if}
 	{#if data.preview}
-		<h3>Preview of {data.preview.file}</h3>
+		<h3>{m.source_preview_title({ file: data.preview.file })}</h3>
 		{#if data.preview.markdown}
-			<p>As the agent operation <code>read</code> returns it:</p>
+			<p>{m.source_preview_intro_before()} <code>read</code> {m.source_preview_intro_after()}</p>
 			<pre>{data.preview.markdown}</pre>
 		{:else}
-			<p>This source has no page {data.preview.file}.</p>
+			<p>{m.source_preview_missing({ file: data.preview.file })}</p>
 		{/if}
 	{/if}
 
-	<h2>Settings</h2>
+	<h2>{m.source_settings()}</h2>
 {/if}
 
 <form method="post" action="?/save">
 	<FormError message={form?.error} />
-	<TextField label="Slug" name="slug" required value={values.slug} />
-	<TextField label="Git URL (HTTPS)" name="gitUrl" type="url" required value={values.gitUrl} />
-	<TextField label="Branch" name="branch" required value={values.branch} />
+	<TextField label={m.field_slug()} name="slug" required value={values.slug} />
+	<TextField label={m.field_git_url()} name="gitUrl" type="url" required value={values.gitUrl} />
+	<TextField label={m.field_branch()} name="branch" required value={values.branch} />
+	<TextField label={m.field_path()} name="path" value={values.path} />
+	<TextAreaField label={m.field_exclusions()} name="exclusions" value={values.exclusions} />
 	<TextField
-		label="Path in the repository (empty for the whole repository)"
-		name="path"
-		value={values.path}
-	/>
-	<TextAreaField
-		label="Exclusions: glob patterns relative to the repository root, one per line"
-		name="exclusions"
-		value={values.exclusions}
-	/>
-	<TextField
-		label="Schedule: cron expression with five fields, empty for the global one ({data.globalSchedule})"
+		label={m.field_schedule({ schedule: data.globalSchedule })}
 		name="schedule"
 		value={values.schedule}
 	/>
 	{#if data.nextCheck}
-		<p>Next check: <time>{data.nextCheck}</time></p>
+		<p>{m.source_next_check()} <time>{data.nextCheck}</time></p>
 	{/if}
-	<ChoiceField
-		name="paused"
-		checked={values.paused}
-		label="Paused: polling skips this source, only &quot;Sync now&quot; syncs it"
-	/>
-	<TextField label="Username" name="username" value={values.username} />
+	<ChoiceField name="paused" checked={values.paused} label={m.field_paused()} />
+	<TextField label={m.field_username()} name="username" value={values.username} />
 	<TextField
-		label="Access token ({data.source?.hasToken
-			? 'stored; leave empty to keep it'
-			: 'none stored'})"
+		label={data.source?.hasToken ? m.field_token_stored() : m.field_token_none_stored()}
 		name="token"
 		type="password"
 		autocomplete="off"
 	/>
 	{#if data.source?.hasToken}
-		<ChoiceField name="removeToken" checked={values.removeToken} label="Remove the stored token" />
+		<ChoiceField
+			name="removeToken"
+			checked={values.removeToken}
+			label={m.field_remove_stored_token()}
+		/>
 	{/if}
-	<button>{data.source ? 'Save' : 'Create source'}</button>
+	<button>{data.source ? m.save() : m.source_create()}</button>
 </form>
 
 {#if data.source}
-	<h2>Delete</h2>
+	<h2>{m.delete()}</h2>
 	<ConfirmForm
 		action="?/delete"
-		question="Delete source {data.source.slug} and its index?"
-		label="Delete source"
+		question={m.source_delete_question({ slug: data.source.slug })}
+		label={m.source_delete()}
 	/>
 {/if}

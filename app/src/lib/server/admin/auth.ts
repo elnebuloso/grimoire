@@ -6,11 +6,24 @@ export const SESSION_COOKIE = 'grimoire_session';
 // other site may send it along.
 export const sessionCookieOptions = { path: '/', httpOnly: true, sameSite: 'strict' } as const;
 
-const MIN_PASSWORD_LENGTH = 12;
+export const MIN_PASSWORD_LENGTH = 12;
 const SESSION_HOURS = 12;
 const MAX_FAILED_LOGINS = 10;
 const BLOCK_MINUTES = 15;
-const BLOCKED = 'Too many failed logins. Try again later.';
+
+/**
+ * Why a setup, login or password change was refused. A code rather than a text: `scripts/` load
+ * this file with plain Node, where the translated messages are not available.
+ */
+export type AuthProblem =
+	| 'admin-exists'
+	| 'wrong-setup-token'
+	| 'username-missing'
+	| 'password-too-short'
+	| 'blocked'
+	| 'wrong-credentials'
+	| 'wrong-current-password'
+	| 'new-password-too-short';
 
 // Kept in memory only: it exists solely to prove access to the server log, so it is never stored.
 let setupTokenValue: string | undefined;
@@ -73,19 +86,15 @@ export function checkAdminAccount(db: DatabaseSync): boolean {
 	return false;
 }
 
-/** Creates the admin account; returns a message for the form when it cannot. */
+/** Creates the admin account; returns why when it cannot. */
 export function setupAdmin(
 	db: DatabaseSync,
 	form: { token: string; username: string; password: string }
-): string | undefined {
-	if (checkAdminAccount(db)) return 'The admin account already exists.';
-	if (!setupTokenValue || !sameText(form.token, setupTokenValue)) {
-		return 'Wrong setup token. It is in the server log.';
-	}
-	if (!form.username.trim()) return 'Enter a username.';
-	if (form.password.length < MIN_PASSWORD_LENGTH) {
-		return `The password needs at least ${MIN_PASSWORD_LENGTH} characters.`;
-	}
+): AuthProblem | undefined {
+	if (checkAdminAccount(db)) return 'admin-exists';
+	if (!setupTokenValue || !sameText(form.token, setupTokenValue)) return 'wrong-setup-token';
+	if (!form.username.trim()) return 'username-missing';
+	if (form.password.length < MIN_PASSWORD_LENGTH) return 'password-too-short';
 	db.prepare('INSERT INTO admin (id, username, password_hash) VALUES (1, ?, ?)').run(
 		form.username.trim(),
 		hashPassword(form.password)
@@ -95,16 +104,16 @@ export function setupAdmin(
 }
 
 /**
- * Checks the credentials of one client. Returns a new session token, or a message for the form;
- * a client is blocked for a while after too many failures.
+ * Checks the credentials of one client. Returns a new session token, or why not; a client is
+ * blocked for a while after too many failures.
  */
 export function login(
 	db: DatabaseSync,
 	client: string,
 	form: { username: string; password: string },
 	now = new Date()
-): { session: string } | { error: string } {
-	if (isBlocked(client, now)) return { error: BLOCKED };
+): { session: string } | { error: AuthProblem } {
+	if (isBlocked(client, now)) return { error: 'blocked' };
 	const admin = findAdmin(db);
 	// The password is checked even for a wrong username, so the answer time does not tell which.
 	const valid =
@@ -113,7 +122,7 @@ export function login(
 		sameText(form.username, admin.username);
 	if (!valid) {
 		recordFailedLogin(client, now);
-		return { error: 'Wrong username or password.' };
+		return { error: 'wrong-credentials' };
 	}
 	failedLogins.delete(client);
 	return { session: createSession(db, now) };
@@ -133,8 +142,8 @@ function recordFailedLogin(client: string, now: Date) {
 
 /**
  * Replaces the admin password and ends every session but `session`, the one making the change.
- * A wrong current password counts as a failed login of `client`. Returns a message for the form
- * when nothing was changed.
+ * A wrong current password counts as a failed login of `client`. Returns why when nothing was
+ * changed.
  */
 export function changePassword(
 	db: DatabaseSync,
@@ -142,17 +151,15 @@ export function changePassword(
 	session: string,
 	form: { current: string; password: string },
 	now = new Date()
-): string | undefined {
-	if (isBlocked(client, now)) return BLOCKED;
+): AuthProblem | undefined {
+	if (isBlocked(client, now)) return 'blocked';
 	const admin = findAdmin(db);
 	if (!admin || !passwordMatches(form.current, admin.password_hash)) {
 		recordFailedLogin(client, now);
-		return 'Wrong current password.';
+		return 'wrong-current-password';
 	}
 	failedLogins.delete(client);
-	if (form.password.length < MIN_PASSWORD_LENGTH) {
-		return `The new password needs at least ${MIN_PASSWORD_LENGTH} characters.`;
-	}
+	if (form.password.length < MIN_PASSWORD_LENGTH) return 'new-password-too-short';
 	db.exec('BEGIN IMMEDIATE');
 	try {
 		db.prepare('UPDATE admin SET password_hash = ? WHERE id = 1').run(hashPassword(form.password));

@@ -20,6 +20,19 @@ The stories run as tests in a headless Chromium in `make test` and in the CI pip
 story that breaks fails the build. Storybook is a development dependency only: neither the
 production build nor the Docker image contains it.
 
+## Texts and languages
+
+No text is written into a component or page: each one is a message in `app/messages/en.json`
+and `app/messages/de.json`, used as `m.<key>()` from `#lib/paraglide/messages.js`. A new text
+gets a key in every message file. English is the base language and the fallback.
+
+To add a language, add `app/messages/<locale>.json` with every key and the locale to `locales` in
+`app/project.inlang/settings.json`. The switch in the header lists it on its own, named in the
+language itself; no page or component changes.
+
+Messages from code that plain Node loads, such as `app/src/lib/server/admin/auth.ts` (used by
+`scripts/`), are returned as codes and translated in the route.
+
 ## Inventory
 
 The building blocks of the pages in `app/src/routes`. A building block is a group of elements

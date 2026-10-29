@@ -60,7 +60,7 @@ async function load() {
 		login: (await import('./login/+page.server')).actions.default,
 		logout: (await import('./logout/+server')).POST,
 		password: (await import('./password/+page.server')).actions.default,
-		handle: (await import('../../hooks.server')).handle
+		handleAdminAccess: (await import('../../hooks.server')).handleAdminAccess
 	};
 }
 
@@ -225,7 +225,7 @@ describe('password action', () => {
 	});
 });
 
-describe('handle guard', () => {
+describe('admin access guard', () => {
 	const served = new Response('served');
 
 	function request(path: string, session?: string) {
@@ -234,7 +234,7 @@ describe('handle guard', () => {
 			url: new URL(`https://grimoire.example${path}`),
 			cookies: fakeCookies(session ? { grimoire_session: session } : {})
 		};
-		return { resolve, run: () => admin.handle({ event, resolve } as never) };
+		return { resolve, run: () => admin.handleAdminAccess({ event, resolve } as never) };
 	}
 
 	it('sends every admin page to the setup while there is no admin', async () => {

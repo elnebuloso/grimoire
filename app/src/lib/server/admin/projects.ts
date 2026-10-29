@@ -2,10 +2,10 @@ import type { DatabaseSync } from 'node:sqlite';
 import { redactUrl } from '../sync/git';
 import { parseSchedule } from '../sync/schedule';
 import { encryptToken } from '../token-encryption';
+import { m } from '#lib/paraglide/messages.js';
 
 // Slugs are part of agent IDs and URLs (`<project>/<source>/<page>`), so nothing that needs escaping.
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-const SLUG_RULE = 'lowercase letters, digits and single hyphens, e.g. auth-service';
 
 export interface Project {
 	id: number;
@@ -67,11 +67,11 @@ export function projectProblem(
 	form: ProjectForm
 ): string | undefined {
 	const slug = form.slug.trim();
-	if (!SLUG.test(slug)) return `The slug may contain ${SLUG_RULE}.`;
+	if (!SLUG.test(slug)) return m.error_slug_rule();
 	const taken = db
 		.prepare('SELECT 1 FROM projects WHERE slug = ? AND id IS NOT ?')
 		.get(slug, id ?? null);
-	if (taken) return `A project with the slug "${slug}" already exists.`;
+	if (taken) return m.error_project_slug_taken({ slug });
 	return undefined;
 }
 
@@ -165,21 +165,21 @@ export function sourceProblem(
 	form: SourceForm
 ): string | undefined {
 	const slug = form.slug.trim();
-	if (!SLUG.test(slug)) return `The slug may contain ${SLUG_RULE}.`;
+	if (!SLUG.test(slug)) return m.error_slug_rule();
 	const taken = db
 		.prepare('SELECT 1 FROM sources WHERE project_id = ? AND slug = ? AND id IS NOT ?')
 		.get(projectId ?? null, slug, sourceId ?? null);
-	if (taken) return `This project already has a source with the slug "${slug}".`;
+	if (taken) return m.error_source_slug_taken({ slug });
 
 	const gitUrl = form.gitUrl.trim();
 	const urlProblem = checkGitUrl(gitUrl);
 	if (urlProblem) return urlProblem;
 
-	if (!form.branch.trim()) return 'Enter the branch.';
+	if (!form.branch.trim()) return m.error_branch();
 
 	const path = form.path.trim();
 	if (path.startsWith('/') || path.split('/').includes('..')) {
-		return 'The path is relative to the repository root and may not contain "..".';
+		return m.error_path();
 	}
 
 	const schedule = form.schedule.trim();
@@ -187,7 +187,8 @@ export function sourceProblem(
 		try {
 			parseSchedule(schedule);
 		} catch (error) {
-			return `Schedule: ${(error as Error).message}`;
+			// The detail comes from the cron parser and stays English.
+			return m.error_schedule({ detail: (error as Error).message });
 		}
 	}
 
@@ -205,7 +206,7 @@ export function sourceProblem(
 		!form.removeToken &&
 		new URL(previous.git_url).origin !== new URL(gitUrl).origin
 	) {
-		return 'The Git URL points to another server: enter the token again or remove it.';
+		return m.error_token_other_server();
 	}
 	return undefined;
 }
@@ -302,11 +303,11 @@ function checkGitUrl(gitUrl: string): string | undefined {
 	try {
 		url = new URL(gitUrl);
 	} catch {
-		return 'Enter the Git URL, e.g. https://gitlab.example.com/platform/docs.git.';
+		return m.error_git_url();
 	}
-	if (url.protocol !== 'https:') return 'The Git URL must start with https://.';
+	if (url.protocol !== 'https:') return m.error_git_url_https();
 	if (url.username || url.password) {
-		return 'Enter the username and token in their own fields, not in the Git URL.';
+		return m.error_git_url_credentials();
 	}
 	return undefined;
 }

@@ -73,7 +73,7 @@ describe('create', () => {
 				['scope', 'selected'],
 				['projects', 'gone']
 			],
-			'project "gone" does not exist'
+			'A selected project no longer exists.'
 		]
 	] as [[string, string][], string][])(
 		'rejects %j with "%s" and stores nothing',

@@ -20,7 +20,10 @@ exists `/admin/setup` is gone.
 ## Logging in
 
 Every page offers **Log in** while nobody is logged in; once logged in, the same place shows
-which admin it is, linked to the admin area, and **Log out**. A login lasts 12 hours. The
+which admin it is, linked to the admin area, and **Log out**. Next to it, a button per language
+switches the interface between English and German. Without a choice, grimoire uses the language
+the browser asks for, and English when it asks for neither; a choice is kept in a cookie and wins
+over the browser. Sync errors and warnings stay in English, as Git and the parser report them. A login lasts 12 hours. The
 password is stored only as a scrypt hash. After 10 failed logins from
 one address, that address is blocked for 15 minutes.
 

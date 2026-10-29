@@ -31,3 +31,5 @@ test-results
 # Storybook
 *storybook.log
 storybook-static
+# Paraglide: compiled messages; project.inlang/ ignores its own generated files
+src/lib/paraglide

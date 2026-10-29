@@ -54,7 +54,7 @@ describe('setup', () => {
 		loggedToken();
 
 		expect(auth.setupAdmin(db, { token: 'guess', username: 'admin', password: PASSWORD })).toBe(
-			'Wrong setup token. It is in the server log.'
+			'wrong-setup-token'
 		);
 		expect(auth.checkAdminAccount(db)).toBe(false);
 	});
@@ -62,9 +62,11 @@ describe('setup', () => {
 	it('rejects a short password and an empty username', () => {
 		const token = loggedToken();
 
-		expect(auth.setupAdmin(db, { token, username: 'admin', password: 'short' })).toContain('12');
+		expect(auth.setupAdmin(db, { token, username: 'admin', password: 'short' })).toBe(
+			'password-too-short'
+		);
 		expect(auth.setupAdmin(db, { token, username: ' ', password: PASSWORD })).toBe(
-			'Enter a username.'
+			'username-missing'
 		);
 	});
 
@@ -75,7 +77,7 @@ describe('setup', () => {
 		const stored = db.prepare('SELECT password_hash FROM admin').get() as { password_hash: string };
 		expect(stored.password_hash).not.toContain(PASSWORD);
 		expect(auth.setupAdmin(db, { token, username: 'other', password: PASSWORD })).toBe(
-			'The admin account already exists.'
+			'admin-exists'
 		);
 	});
 });
@@ -95,7 +97,7 @@ describe('login', () => {
 		const wrongPassword = auth.login(db, 'client', { username: 'admin', password: 'nope' }, NOW);
 		const wrongUser = auth.login(db, 'client', { username: 'root', password: PASSWORD }, NOW);
 
-		expect(wrongPassword).toEqual({ error: 'Wrong username or password.' });
+		expect(wrongPassword).toEqual({ error: 'wrong-credentials' });
 		expect(wrongUser).toEqual(wrongPassword);
 	});
 
@@ -107,7 +109,7 @@ describe('login', () => {
 		const afterBlock = new Date(NOW.getTime() + 15 * 60_000 + 1);
 
 		expect(auth.login(db, 'attacker', { username: 'admin', password: PASSWORD }, later)).toEqual({
-			error: 'Too many failed logins. Try again later.'
+			error: 'blocked'
 		});
 		expect(
 			'session' in auth.login(db, 'admin-pc', { username: 'admin', password: PASSWORD }, later)
@@ -153,7 +155,7 @@ describe('changePassword', () => {
 		).toBeUndefined();
 
 		expect('session' in login(NEW_PASSWORD)).toBe(true);
-		expect(login(PASSWORD)).toEqual({ error: 'Wrong username or password.' });
+		expect(login(PASSWORD)).toEqual({ error: 'wrong-credentials' });
 		expect(auth.sessionValid(db, current, NOW)).toBe(true);
 		expect(auth.sessionValid(db, other, NOW)).toBe(false);
 		const stored = db.prepare('SELECT password_hash FROM admin').get() as { password_hash: string };
@@ -164,16 +166,16 @@ describe('changePassword', () => {
 		for (let attempt = 0; attempt < 9; attempt++) {
 			expect(
 				auth.changePassword(db, 'laptop', current, { current: 'nope', password: NEW_PASSWORD }, NOW)
-			).toBe('Wrong current password.');
+			).toBe('wrong-current-password');
 		}
 		auth.login(db, 'laptop', { username: 'admin', password: 'nope' }, NOW);
 
 		expect(auth.login(db, 'laptop', { username: 'admin', password: PASSWORD }, NOW)).toEqual({
-			error: 'Too many failed logins. Try again later.'
+			error: 'blocked'
 		});
 		expect(
 			auth.changePassword(db, 'laptop', current, { current: PASSWORD, password: NEW_PASSWORD }, NOW)
-		).toBe('Too many failed logins. Try again later.');
+		).toBe('blocked');
 		expect('session' in login(PASSWORD)).toBe(true);
 		expect(auth.sessionValid(db, other, NOW)).toBe(true);
 	});
@@ -181,7 +183,7 @@ describe('changePassword', () => {
 	it('rejects a new password shorter than 12 characters', () => {
 		expect(
 			auth.changePassword(db, 'laptop', current, { current: PASSWORD, password: 'short pass' }, NOW)
-		).toBe('The new password needs at least 12 characters.');
+		).toBe('new-password-too-short');
 		expect('session' in login(PASSWORD)).toBe(true);
 		expect(auth.sessionValid(db, other, NOW)).toBe(true);
 	});

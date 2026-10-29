@@ -1,28 +1,29 @@
 <script lang="ts">
 	import FormError from '#lib/components/FormError.svelte';
 	import TextField from '#lib/components/TextField.svelte';
+	import { m } from '#lib/paraglide/messages.js';
 	import type { PageProps } from './$types';
 
 	let { form }: PageProps = $props();
 </script>
 
-<h1>Log in to grimoire</h1>
+<h1>{m.login_title()}</h1>
 
 <form method="post">
 	<FormError message={form?.error} />
 	<TextField
-		label="Username"
+		label={m.field_username()}
 		name="username"
 		required
 		autocomplete="username"
 		value={form?.username ?? ''}
 	/>
 	<TextField
-		label="Password"
+		label={m.field_password()}
 		name="password"
 		type="password"
 		required
 		autocomplete="current-password"
 	/>
-	<button>Log in</button>
+	<button>{m.header_log_in()}</button>
 </form>

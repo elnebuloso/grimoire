@@ -2,6 +2,7 @@ import { fail, redirect } from '@sveltejs/kit';
 import type { Actions } from './$types';
 import { database } from '#lib/server/db/index.js';
 import { login, SESSION_COOKIE, sessionCookieOptions } from '#lib/server/admin/auth.js';
+import { authMessage } from '#lib/server/admin/auth-messages.js';
 
 // A plain form needs no JavaScript; hydrating it would reset what was typed before it finished.
 export const csr = false;
@@ -14,7 +15,8 @@ export const actions = {
 			password: String(data.get('password') ?? '')
 		};
 		const result = login(database(), getClientAddress(), form);
-		if ('error' in result) return fail(400, { error: result.error, username: form.username });
+		if ('error' in result)
+			return fail(400, { error: authMessage(result.error), username: form.username });
 		cookies.set(SESSION_COOKIE, result.session, sessionCookieOptions);
 		redirect(303, '/admin');
 	}

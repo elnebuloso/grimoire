@@ -1,4 +1,5 @@
 import { join } from 'node:path';
+import { paraglideVitePlugin } from '@inlang/paraglide-js';
 import { defineConfig } from 'vitest/config';
 import adapter from '@sveltejs/adapter-node';
 import { sveltekit } from '@sveltejs/kit/vite';
@@ -23,6 +24,14 @@ export default defineConfig({
 			adapter: adapter(),
 			env: { dir: agentDir ?? '' },
 			outDir: agentDir ? `${agentDir}/svelte-kit` : '.svelte-kit'
+		}),
+		paraglideVitePlugin({
+			project: './project.inlang',
+			outdir: './src/lib/paraglide',
+			emitTsDeclarations: true,
+			// The language is never part of the URL: a choice made with the switch (cookie), then
+			// the browser's `Accept-Language`, then English.
+			strategy: ['cookie', 'preferredLanguage', 'baseLocale']
 		})
 	],
 	test: {

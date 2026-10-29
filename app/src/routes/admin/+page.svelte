@@ -2,34 +2,35 @@
 	import { resolve } from '$app/paths';
 	import DescriptionList from '#lib/components/DescriptionList.svelte';
 	import ProjectStatsTable from '#lib/components/ProjectStatsTable.svelte';
+	import { m } from '#lib/paraglide/messages.js';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
 </script>
 
-<h1>grimoire admin</h1>
+<h1>{m.admin_title()}</h1>
 
 <p>
-	<a href={resolve('/admin/api-keys')}>API keys</a>
-	<a href={resolve('/admin/password')}>Change the password</a>
+	<a href={resolve('/admin/api-keys')}>{m.api_keys()}</a>
+	<a href={resolve('/admin/password')}>{m.password_title()}</a>
 </p>
 
-<h2>Overview</h2>
+<h2>{m.admin_overview()}</h2>
 <DescriptionList
 	items={[
-		['Projects', data.totals.projects],
-		['Sources', data.totals.sources],
-		['Pages', data.totals.pages],
-		['Snippets', data.totals.snippets],
-		['Tokens', data.totals.tokens],
-		['Dead links', data.totals.deadLinks],
-		['API keys', data.totals.apiKeys]
+		[m.projects(), data.totals.projects],
+		[m.sources(), data.totals.sources],
+		[m.pages(), data.totals.pages],
+		[m.snippets(), data.totals.snippets],
+		[m.tokens(), data.totals.tokens],
+		[m.dead_links(), data.totals.deadLinks],
+		[m.api_keys(), data.totals.apiKeys]
 	]}
 />
 
-<h2>Needs attention</h2>
+<h2>{m.admin_attention()}</h2>
 {#if data.attention.length === 0}
-	<p>Every source is synced without errors or warnings.</p>
+	<p>{m.admin_all_fine()}</p>
 {:else}
 	<ul>
 		{#each data.attention as item (item.sourceId)}
@@ -40,10 +41,12 @@
 						sourceId: String(item.sourceId)
 					})}>{item.project}/{item.source}</a
 				>
-				{#if item.neverSynced}– never synced{/if}
-				{#if item.error}– sync error: {item.error}{/if}
+				{#if item.neverSynced}– {m.admin_never_synced()}{/if}
+				{#if item.error}– {m.admin_sync_error({ error: item.error })}{/if}
 				{#if item.warnings.length > 0}
-					– {item.warnings.length} sync warning{item.warnings.length === 1 ? '' : 's'}:
+					– {item.warnings.length === 1
+						? m.admin_sync_warning()
+						: m.admin_sync_warnings({ count: item.warnings.length })}
 					<ul>
 						{#each item.warnings as warning, index (index)}<li>{warning}</li>{/each}
 					</ul>
@@ -53,9 +56,9 @@
 	</ul>
 {/if}
 
-<h2>Projects</h2>
+<h2>{m.projects()}</h2>
 {#if data.projects.length === 0}
-	<p>No projects yet.</p>
+	<p>{m.start_no_projects()}</p>
 {:else}
 	<ProjectStatsTable projects={data.projects}>
 		{#snippet name(project)}
@@ -63,4 +66,4 @@
 		{/snippet}
 	</ProjectStatsTable>
 {/if}
-<p><a href={resolve('/admin/projects/[id]', { id: 'new' })}>New project</a></p>
+<p><a href={resolve('/admin/projects/[id]', { id: 'new' })}>{m.admin_new_project()}</a></p>
