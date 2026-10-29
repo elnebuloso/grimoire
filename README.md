@@ -106,8 +106,9 @@ the admin area against the production build (it downloads Chromium on first use)
 checks formatting, lint rules and types.
 
 Commits follow [Conventional Commits](https://www.conventionalcommits.org). Releases are cut from
-them by the `Release` workflow on every push to `main`: `feat` raises the minor
-version, `fix` the patch version, other types release nothing.
+them by the `CI` workflow on every push to `main`, once lint, unit and browser tests passed:
+`feat` raises the minor version, `fix` the patch version, other types release nothing. Pull
+requests run the same checks without releasing.
 
 ## License
 
