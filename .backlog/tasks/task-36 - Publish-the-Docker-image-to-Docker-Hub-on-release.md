@@ -1,11 +1,11 @@
 ---
 id: TASK-36
 title: Publish the Docker image to Docker Hub on release
-status: In Progress
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-28T23:50:00Z'
-updated_date: '2026-10-29T00:18:00Z'
+updated_date: '2026-10-29T00:27:00Z'
 labels:
   - ops
 milestone: m-0
@@ -24,12 +24,12 @@ The image (`Dockerfile`, `make image`) is only built locally, so operators have 
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 After the release step on `main` created a release, the image is built and pushed to Docker Hub with the semver of that release tag (release `v0.2.0` → image version 0.2.0)
+- [x] #1 After the release step on `main` created a release, the image is built and pushed to Docker Hub with the semver of that release tag (release `v0.2.0` → image version 0.2.0)
 - [x] #2 A push to `main` that creates no release pushes no image
-- [ ] #3 Docker Hub login uses `DOCKERHUB_USERNAME` and `DOCKERHUB_PASSWORD`; neither appears in the repository or the logs
+- [x] #3 Docker Hub login uses `DOCKERHUB_USERNAME` and `DOCKERHUB_PASSWORD`; neither appears in the repository or the logs
 - [x] #4 The image is pushed to the repository named by `DOCKERHUB_REPOSITORY`; no repository name is hard-coded
-- [ ] #5 No `latest` tag is pushed
-- [ ] #6 The handbook page for Docker (`docs/handbook/docker.md`) explains pulling the published image
+- [x] #5 No `latest` tag is pushed
+- [x] #6 The handbook page for Docker (`docs/handbook/docker.md`) explains pulling the published image
 <!-- AC:END -->
 
 ## Implementation Plan
@@ -50,4 +50,12 @@ Verified locally: the version step yields the version for a `v*` tag at `HEAD` a
 Not verified: the push to Docker Hub itself. The commits of this task are `ci`/`docs`/`test` and release nothing, so the first image appears with the next `feat` or `fix` on `main`.
 
 Run 40792875159: semantic-release released nothing, the version step yielded nothing and the Docker step was skipped. `docs/handbook/docker.md` explains pulling the image; `make handbook` builds strictly. Pending: the first release, which proves the push, the tag and that no secret shows in the log.
+
+Release run 40793837044 (empty `feat` commit on request): semantic-release published `v0.4.0`, the job logged in, built and pushed `0.4.0` (digest sha256:233e321b…). Docker Hub lists only the tag `0.4.0`, no `latest`. The log shows the repository and username as `***`; no secret value appears. `docker pull elnebuloso/grimoire:0.4.0` and a run of it served `/admin` (303 to setup) and printed the setup token.
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Every release now publishes its image to Docker Hub: job `release` in `.github/workflows/ci.yml` reads the version from the `v*` tag semantic-release put on `HEAD`, logs in with `DOCKERHUB_USERNAME`/`DOCKERHUB_PASSWORD` (repository secrets), runs `make image` and pushes only `$DOCKERHUB_REPOSITORY:<version>`, without `v` and without `latest`. `docs/handbook/docker.md` and `README.md` run `elnebuloso/grimoire:<version>`. Verified: a push without release skipped the step; release `v0.4.0` pushed `elnebuloso/grimoire:0.4.0`, which pulls and starts. A rerun on a released commit pushes the same tag again, which doubles as retry.
+<!-- SECTION:FINAL_SUMMARY:END -->
