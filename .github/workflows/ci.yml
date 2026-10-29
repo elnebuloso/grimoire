@@ -48,22 +48,13 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version-file: app/package.json
-      # ponytail: npx without a lockfile, so the plugins float within their ^ ranges; pin them in a root package.json with a lockfile if a release ever breaks from it.
-      - run: npx semantic-release@25.0.9
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      # semantic-release tags the released commit in this checkout too; no tag means no release.
-      # A rerun on a released commit finds its tag and pushes the same image again.
-      - id: release
-        run: echo "version=$(git tag --points-at HEAD --list 'v*' | sed 's/^v//')" >> "$GITHUB_OUTPUT"
-      - if: steps.release.outputs.version != ''
+      # Before semantic-release, which pushes the image while preparing the release.
+      - run: echo "$DOCKERHUB_PASSWORD" | docker login --username "$DOCKERHUB_USERNAME" --password-stdin
         env:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
+      # ponytail: npx without a lockfile, so the plugins float within their ^ ranges; pin them in a root package.json with a lockfile if a release ever breaks from it.
+      - run: npx --package semantic-release@25.0.9 --package @semantic-release/exec@7.1.0 semantic-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DOCKERHUB_REPOSITORY: ${{ secrets.DOCKERHUB_REPOSITORY }}
-          VERSION: ${{ steps.release.outputs.version }}
-        run: |
-          echo "$DOCKERHUB_PASSWORD" | docker login --username "$DOCKERHUB_USERNAME" --password-stdin
-          make image
-          docker tag grimoire:latest "$DOCKERHUB_REPOSITORY:$VERSION"
-          docker push "$DOCKERHUB_REPOSITORY:$VERSION"
