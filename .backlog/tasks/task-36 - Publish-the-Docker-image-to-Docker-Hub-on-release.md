@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@claude'
 created_date: '2026-10-28T23:50:00Z'
-updated_date: '2026-10-29T00:14:00Z'
+updated_date: '2026-10-29T00:18:00Z'
 labels:
   - ops
 milestone: m-0
@@ -25,9 +25,9 @@ The image (`Dockerfile`, `make image`) is only built locally, so operators have 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
 - [ ] #1 After the release step on `main` created a release, the image is built and pushed to Docker Hub with the semver of that release tag (release `v0.2.0` → image version 0.2.0)
-- [ ] #2 A push to `main` that creates no release pushes no image
+- [x] #2 A push to `main` that creates no release pushes no image
 - [ ] #3 Docker Hub login uses `DOCKERHUB_USERNAME` and `DOCKERHUB_PASSWORD`; neither appears in the repository or the logs
-- [ ] #4 The image is pushed to the repository named by `DOCKERHUB_REPOSITORY`; no repository name is hard-coded
+- [x] #4 The image is pushed to the repository named by `DOCKERHUB_REPOSITORY`; no repository name is hard-coded
 - [ ] #5 No `latest` tag is pushed
 - [ ] #6 The handbook page for Docker (`docs/handbook/docker.md`) explains pulling the published image
 <!-- AC:END -->
@@ -48,4 +48,6 @@ The image (`Dockerfile`, `make image`) is only built locally, so operators have 
 Image push added to job `release` in `.github/workflows/ci.yml`; `docs/handbook/docker.md` and `README.md` run `elnebuloso/grimoire:<version>`, building stays as `make image`.
 Verified locally: the version step yields the version for a `v*` tag at `HEAD` and nothing for an untagged commit (semantic-release 25.0.9 runs `git tag <name> <ref>` in the checkout before pushing). `make handbook` builds strictly.
 Not verified: the push to Docker Hub itself. The commits of this task are `ci`/`docs`/`test` and release nothing, so the first image appears with the next `feat` or `fix` on `main`.
+
+Run 40792875159: semantic-release released nothing, the version step yielded nothing and the Docker step was skipped. `docs/handbook/docker.md` explains pulling the image; `make handbook` builds strictly. Pending: the first release, which proves the push, the tag and that no secret shows in the log.
 <!-- SECTION:NOTES:END -->
