@@ -94,6 +94,17 @@ URL, or the branch does not exist. Whether the path exists only shows on the fir
 runs the same check whenever the Git URL, branch, username or token changed, and a new source or
 project is not saved until it passes; changing anything else saves without asking the server.
 
+#### Tokens per Git host
+
+| Git host | Username | Token |
+|---|---|---|
+| GitLab | The username of the deploy token, as GitLab shows it when the token is created | A deploy token with the scope `read_repository` (Settings → Repository → Deploy tokens), starting with `gldt-` |
+
+A token the Git server refuses, because it is wrong, expired or revoked, shows at **Test
+connection** and as sync error of the source as `could not read Username for 'https://…':
+terminal prompts disabled`: Git was refused and would have asked for other credentials, which
+grimoire never does. The error contains neither the token nor the username.
+
 Saving a source starts a sync right away, so a changed path or exclusion applies without waiting
 for a new commit; a paused source is saved without one. Deleting a project deletes its sources and their index.
 
