@@ -19,6 +19,7 @@ import {
 	type GitRemote
 } from './git';
 import { indexCheckout } from './index-source';
+import { fetchInclude } from './url-include';
 import type { SyncLanes } from './queue';
 
 const IMMEDIATELY: SyncLanes = { check: (work) => work(), sync: (work) => work() };
@@ -32,6 +33,8 @@ export interface SyncOptions {
 	workDirectory?: string;
 	/** Where the check and the sync stage run; by default both start right away. */
 	lanes?: SyncLanes;
+	/** Value of `INCLUDE_URL_ALLOW`: the origins URL includes may be fetched from. */
+	allowedIncludeOrigins?: string[];
 }
 
 export type SyncResult =
@@ -74,8 +77,11 @@ export async function syncSource(
 			try {
 				await sparseClone(remote, source.branch, source.path, checkout);
 				const commit = await headCommit(checkout);
-				const index = await indexCheckout(checkout, source, (directories) =>
-					addSparseDirectories(remote, checkout, directories)
+				const index = await indexCheckout(
+					checkout,
+					source,
+					(directories) => addSparseDirectories(remote, checkout, directories),
+					(url) => fetchInclude(url, options.allowedIncludeOrigins ?? [])
 				);
 				replaceSourceIndex(db, sourceId, { commit, ...index });
 				return {

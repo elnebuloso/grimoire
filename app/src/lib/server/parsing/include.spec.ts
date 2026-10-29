@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { resolveIncludes } from './include';
+import { resolveIncludes, type UrlContent } from './include';
 
 const page = { path: 'docs/deploy.md', sourcePath: 'docs/' };
 
@@ -183,5 +183,82 @@ describe('resolveIncludes', () => {
 				'docs/deploy.md: include "app.py" has no section "missing"'
 			]);
 		});
+	});
+});
+
+describe('URL includes', () => {
+	const URL = 'https://docs.example.com/shared/note.md';
+
+	function resolveWithUrls(source: string, urls: Record<string, UrlContent>, files = {}) {
+		return resolveIncludes(
+			source,
+			page,
+			(path) => (files as Record<string, string>)[path],
+			(url) => urls[url]
+		);
+	}
+
+	it('asks for a URL it has nothing for yet and inserts it once fetched', () => {
+		const first = resolveWithUrls(`Before\n--8<-- "${URL}"\nAfter`, {});
+		expect(first.pendingUrls).toEqual([URL]);
+
+		const second = resolveWithUrls(`Before\n--8<-- "${URL}"\nAfter`, {
+			[URL]: { content: 'Shared note.\n' }
+		});
+		expect(second.markdown).toBe('Before\nShared note.\nAfter');
+		expect(second.pendingUrls).toEqual([]);
+		expect(second.warnings).toEqual([]);
+	});
+
+	it('selects lines and sections of a URL include like those of a file', () => {
+		const result = resolveWithUrls(`--8<-- "${URL}:2:2"\n--8<-- "${URL}:part"`, {
+			[URL]: { content: 'one\ntwo\n--8<-- [start:part]\nthree\n--8<-- [end:part]\n' }
+		});
+		expect(result.markdown).toBe('two\nthree');
+	});
+
+	it('reports a URL include as disabled when the site does not allow them', () => {
+		const result = resolveIncludes(`--8<-- "${URL}"`, page, () => undefined);
+		expect(result.markdown).toBe('');
+		expect(result.pendingUrls).toEqual([]);
+		expect(result.warnings).toEqual([
+			`docs/deploy.md: include "${URL}" not inserted, URL includes are disabled (url_download in the site config)`
+		]);
+	});
+
+	it('reports a failed fetch and leaves the include out', () => {
+		const result = resolveWithUrls(`A\n--8<-- "${URL}"\nB`, {
+			[URL]: { problem: 'answered with status 404' }
+		});
+		expect(result.markdown).toBe('A\nB');
+		expect(result.warnings).toEqual([
+			`docs/deploy.md: include "${URL}" not fetched, answered with status 404`
+		]);
+	});
+
+	it('lets a URL include include further URLs, but no files of the repository', () => {
+		const nested = 'https://docs.example.com/shared/nested.md';
+		const result = resolveWithUrls(
+			`--8<-- "${URL}"`,
+			{
+				[URL]: { content: `Note\n--8<-- "${nested}"\n--8<-- "docs/secret.md"\n` },
+				[nested]: { content: 'Nested\n' }
+			},
+			{ 'docs/secret.md': 'Secret\n' }
+		);
+		expect(result.markdown).toBe('Note\nNested');
+		expect(result.warnings).toEqual([
+			`docs/deploy.md: include "docs/secret.md" in the URL include "${URL}" is not a URL, not inserted`
+		]);
+	});
+
+	it('does not insert a URL already in the include chain', () => {
+		const result = resolveWithUrls(`--8<-- "${URL}"`, {
+			[URL]: { content: `Note\n--8<-- "${URL}"\n` }
+		});
+		expect(result.markdown).toBe('Note');
+		expect(result.warnings).toEqual([
+			`docs/deploy.md: include cycle docs/deploy.md → ${URL} → ${URL}, "${URL}" not inserted again`
+		]);
 	});
 });

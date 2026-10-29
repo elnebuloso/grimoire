@@ -2,6 +2,7 @@ import { defineEnvVars } from '@sveltejs/kit/env';
 import { building } from '$app/env';
 import { parseEncryptionKey } from '#lib/server/token-encryption.js';
 import { parseSchedule } from '#lib/server/sync/schedule.js';
+import { parseAllowedOrigins } from '#lib/server/sync/url-include.js';
 import { parseLogFormat, parseLogLevel } from '#lib/server/log.js';
 import { parseTimeZone } from '#lib/time-zone.js';
 
@@ -33,6 +34,11 @@ export const variables = defineEnvVars({
 		description:
 			'Time zone of the instance, an IANA name such as `Europe/Berlin`: schedules run and the UI shows times in it; default UTC',
 		schema: parseTimeZone
+	},
+	INCLUDE_URL_ALLOW: {
+		description:
+			'Origins pages may include files from by URL (`url_download` of pymdownx.snippets), `https://` only, separated by commas; empty: none',
+		schema: parseAllowedOrigins
 	},
 	LOG_FORMAT: {
 		description:

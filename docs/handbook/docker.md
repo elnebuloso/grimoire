@@ -109,6 +109,7 @@ version serves requests, run the same image with `MIGRATE_ONLY=true` as an init 
 | `DATABASE_PATH` | `/data/grimoire.db` | Path of the SQLite file, on the volume. |
 | `SYNC_SCHEDULE` | `*/5 * * * *` | When sources without their own schedule are checked. |
 | `TZ` | not set (UTC) | Time zone of the schedules and of the times the UI shows. |
+| `INCLUDE_URL_ALLOW` | not set (none) | Origins pages may include files from by URL. |
 | `LOG_FORMAT` | not set (`ecs`) | `ecs` for one JSON object per line, `pretty` for readable text. |
 | `LOG_LEVEL` | not set (`info`) | Lowest level that is written: `error`, `warn`, `info` or `debug`. |
 | `MIGRATE_ONLY` | `false` | With `true`, update the schema and exit, e.g. in an init container. |

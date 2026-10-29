@@ -12,10 +12,20 @@ export interface IncludeResult {
 	warnings: string[];
 	/** Include targets outside the source path, found or not, relative to the repository root. */
 	outsideSourcePath: string[];
+	/** URL includes `readUrl` had nothing for yet; fetch them and resolve again. */
+	pendingUrls: string[];
 }
 
 /** Returns the content of a file relative to the repository root, or undefined if it does not exist. */
 export type ReadFile = (path: string) => string | undefined;
+
+/** A fetched URL include: its content, or why there is none. */
+export type UrlContent = { content: string } | { problem: string };
+
+/** Returns what was fetched for a URL include; undefined while it has not been fetched yet. */
+export type ReadUrl = (url: string) => UrlContent | undefined;
+
+const URL_TARGET = /^https?:\/\//i;
 
 // Same notation as pymdownx.snippets: dashes of any length, nothing after the marker.
 const SINGLE_LINE = /^([ \t]*)(;*)-+8<-+[ \t]+("(?:\\"|[^"\r\n])+?"|'(?:\\'|[^'\r\n])+?')\r?$/;
@@ -34,10 +44,19 @@ const SECTION_MARKER =
  * file; section markers are removed everywhere else. Runs on raw text, so it also resolves inside
  * code fences, as MkDocs does. Missing targets, missing sections and include cycles are reported
  * as warnings and left out.
+ *
+ * URL includes come from `readUrl`, which is passed only when the site allows them
+ * (`url_download`); a file included by URL may include further URLs only, as in pymdownx.
  */
-export function resolveIncludes(source: string, page: IncludePage, read: ReadFile): IncludeResult {
+export function resolveIncludes(
+	source: string,
+	page: IncludePage,
+	read: ReadFile,
+	readUrl?: ReadUrl
+): IncludeResult {
 	const warnings: string[] = [];
 	const outside = new Set<string>();
+	const pending = new Set<string>();
 	const sourcePath = posix.normalize(page.sourcePath).replace(/\/$/, '');
 
 	function expand(text: string, chain: string[], isSection = false): string[] {
@@ -78,8 +97,16 @@ export function resolveIncludes(source: string, page: IncludePage, read: ReadFil
 
 	function include(name: string, indent: string, chain: string[]): string[] {
 		const [, file, ranges, section] = SELECTION.exec(name)!;
-		const target = posix.normalize(file.trim());
-		if (posix.isAbsolute(target) || target === '..' || target.startsWith('../')) {
+		const isUrl = URL_TARGET.test(file.trim());
+		const parent = chain.at(-1)!;
+		if (!isUrl && URL_TARGET.test(parent)) {
+			warnings.push(
+				`${page.path}: include "${name}" in the URL include "${parent}" is not a URL, not inserted`
+			);
+			return [];
+		}
+		const target = isUrl ? file.trim() : posix.normalize(file.trim());
+		if (!isUrl && (posix.isAbsolute(target) || target === '..' || target.startsWith('../'))) {
 			warnings.push(`${page.path}: include "${name}" points outside the repository`);
 			return [];
 		}
@@ -89,13 +116,9 @@ export function resolveIncludes(source: string, page: IncludePage, read: ReadFil
 			);
 			return [];
 		}
-		if (sourcePath !== '.' && !target.startsWith(`${sourcePath}/`)) outside.add(target);
 
-		const content = read(target);
-		if (content === undefined) {
-			warnings.push(`${page.path}: include "${target}" not found`);
-			return [];
-		}
+		const content = isUrl ? fetched(target) : readLocal(target);
+		if (content === undefined) return [];
 		let lines = content.replace(/\r?\n$/, '').split('\n');
 		// Counted like pymdownx.snippets, where a final newline makes a last, empty line.
 		if (ranges) lines = selectLines(content.split('\n'), ranges);
@@ -112,8 +135,34 @@ export function resolveIncludes(source: string, page: IncludePage, read: ReadFil
 		);
 	}
 
+	function readLocal(target: string): string | undefined {
+		if (sourcePath !== '.' && !target.startsWith(`${sourcePath}/`)) outside.add(target);
+		const content = read(target);
+		if (content === undefined) warnings.push(`${page.path}: include "${target}" not found`);
+		return content;
+	}
+
+	function fetched(url: string): string | undefined {
+		if (!readUrl) {
+			warnings.push(
+				`${page.path}: include "${url}" not inserted, URL includes are disabled (url_download in the site config)`
+			);
+			return undefined;
+		}
+		const result = readUrl(url);
+		if (!result) {
+			pending.add(url);
+			return undefined;
+		}
+		if ('problem' in result) {
+			warnings.push(`${page.path}: include "${url}" not fetched, ${result.problem}`);
+			return undefined;
+		}
+		return result.content;
+	}
+
 	const markdown = expand(source, [posix.normalize(page.path)]).join('\n');
-	return { markdown, warnings, outsideSourcePath: [...outside] };
+	return { markdown, warnings, outsideSourcePath: [...outside], pendingUrls: [...pending] };
 }
 
 function findBlockEnd(lines: string[], start: number): number {

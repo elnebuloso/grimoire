@@ -60,6 +60,27 @@ function parseSettings(name: string, content: string): Record<string, unknown> {
 }
 
 /**
+ * Options of a Markdown extension, from the list in `mkdocs.yml` or the table in `zensical.toml`,
+ * where TOML nests a dotted name such as `pymdownx.snippets`. Empty when the site sets none.
+ */
+export function extensionSettings(
+	settings: Record<string, unknown>,
+	name: string
+): Record<string, unknown> {
+	const extensions = settings.markdown_extensions;
+	for (const entry of Array.isArray(extensions) ? extensions : [extensions]) {
+		if (!isRecord(entry)) continue;
+		const options =
+			entry[name] ??
+			name
+				.split('.')
+				.reduce<unknown>((value, key) => (isRecord(value) ? value[key] : undefined), entry);
+		if (isRecord(options)) return options;
+	}
+	return {};
+}
+
+/**
  * The pages listed in `nav`, in order, as paths relative to `sourcePath`. Entries outside the
  * source path, links and duplicates are left out. Undefined when the config has no `nav`.
  */

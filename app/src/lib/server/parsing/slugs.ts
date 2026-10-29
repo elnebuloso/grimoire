@@ -1,3 +1,4 @@
+import { extensionSettings } from './site-config';
 export type Slugify = (text: string) => string;
 
 /** Python-Markdown's `toc.slugify`, the default of MkDocs and Zensical. */
@@ -41,7 +42,7 @@ export function configuredSlugify(settings: Record<string, unknown>): {
 	slugify: Slugify;
 	warning?: string;
 } {
-	const toc = tocSettings(settings.markdown_extensions);
+	const toc = extensionSettings(settings, 'toc');
 	const separator = typeof toc.separator === 'string' ? toc.separator : '-';
 	const fallback = { slugify: (text: string) => pythonMarkdownSlugify(text, separator) };
 	const slugify = toc.slugify;
@@ -67,15 +68,6 @@ export function configuredSlugify(settings: Record<string, unknown>): {
 
 function unknownSlugify(name: string): string {
 	return `toc slugify "${name}" is not supported, heading IDs use the default`;
-}
-
-/** `toc` settings from a list (`mkdocs.yml`) or a table (`zensical.toml`) of extensions. */
-function tocSettings(extensions: unknown): Record<string, unknown> {
-	const entries = Array.isArray(extensions) ? extensions : [extensions];
-	for (const entry of entries) {
-		if (isRecord(entry) && isRecord(entry.toc)) return entry.toc;
-	}
-	return {};
 }
 
 function escapeClass(text: string): string {

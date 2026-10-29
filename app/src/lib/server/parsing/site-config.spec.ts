@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { findSiteConfig, navOrder } from './site-config';
+import { extensionSettings, findSiteConfig, navOrder } from './site-config';
 
 function reader(files: Record<string, string>) {
 	return (path: string) => files[path];
@@ -69,5 +69,27 @@ describe('navOrder', () => {
 
 	it('returns undefined when the config has no nav', () => {
 		expect(navOrder({ file: 'mkdocs.yml', settings: {} }, 'docs')).toBeUndefined();
+	});
+});
+
+describe('extensionSettings', () => {
+	it('finds the options of an extension in the list of mkdocs.yml', () => {
+		const yaml =
+			'markdown_extensions:\n  - admonition\n  - pymdownx.snippets:\n      url_download: true\n';
+		const config = findSiteConfig('.', (path) => (path === 'mkdocs.yml' ? yaml : undefined))!;
+		expect(extensionSettings(config.settings, 'pymdownx.snippets')).toEqual({ url_download: true });
+	});
+
+	it('finds them in zensical.toml, where TOML nests the dotted name', () => {
+		const toml = '[project.markdown_extensions.pymdownx.snippets]\nurl_download = true\n';
+		const config = findSiteConfig('.', (path) => (path === 'zensical.toml' ? toml : undefined))!;
+		expect(extensionSettings(config.settings, 'pymdownx.snippets')).toEqual({ url_download: true });
+	});
+
+	it('is empty for an extension the site does not configure', () => {
+		expect(extensionSettings({ markdown_extensions: ['admonition'] }, 'pymdownx.snippets')).toEqual(
+			{}
+		);
+		expect(extensionSettings({}, 'toc')).toEqual({});
 	});
 });

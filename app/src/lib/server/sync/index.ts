@@ -1,4 +1,4 @@
-import { SYNC_SCHEDULE, TOKEN_ENCRYPTION_KEY, TZ } from '$app/env/private';
+import { INCLUDE_URL_ALLOW, SYNC_SCHEDULE, TOKEN_ENCRYPTION_KEY, TZ } from '$app/env/private';
 import { database } from '../db';
 import { listSchedules, recordSyncError } from '../db/sources';
 import { createSyncQueue, startPolling } from './queue';
@@ -9,7 +9,12 @@ import { syncSource } from './sync';
 const TICK_MS = 15_000;
 
 const queue = createSyncQueue((sourceId, force, lanes) =>
-	syncSource(database(), sourceId, { key: TOKEN_ENCRYPTION_KEY, force, lanes })
+	syncSource(database(), sourceId, {
+		key: TOKEN_ENCRYPTION_KEY,
+		force,
+		lanes,
+		allowedIncludeOrigins: INCLUDE_URL_ALLOW
+	})
 );
 
 /** Syncs one source as soon as the syncs before it are done, e.g. for "sync now". */
