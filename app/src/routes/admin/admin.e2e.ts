@@ -21,6 +21,11 @@ async function logIn(page: Page, password = PASSWORD) {
 	await page.getByRole('button', { name: 'Log in' }).click();
 }
 
+test('shows the public start page before any project exists', async ({ page }) => {
+	await page.goto('/');
+	await expect(page.getByText('No projects yet.')).toBeVisible();
+});
+
 test('sets up the admin account with the token from the server log', async ({ page }) => {
 	await page.goto('/admin');
 	await expect(page).toHaveURL('/admin/setup');
@@ -95,6 +100,19 @@ test('syncs a source now and shows why it failed', async ({ page }) => {
 	await expect(page.getByRole('status')).toContainText('Sync failed: git ls-remote failed');
 	await expect(page.getByRole('alert')).toContainText('git ls-remote failed');
 	expect(await page.content()).not.toContain(TOKEN);
+});
+
+test('lists the projects on the public start page without any source detail', async ({ page }) => {
+	await page.goto('/');
+	const row = page.getByRole('row', { name: /platform/ });
+	await expect(row).toContainText('Login and billing');
+	// One source, synced once without success: counted as an error, its message stays hidden.
+	await expect(row.getByRole('cell').nth(0)).toHaveText('1');
+	await expect(row.getByRole('cell').nth(5)).toHaveText('1');
+	const html = await page.content();
+	for (const detail of ['git.invalid', 'auth-service', 'deploy', 'ls-remote', TOKEN]) {
+		expect(html).not.toContain(detail);
+	}
 });
 
 test('creates an API key that works for its project until it is revoked', async ({

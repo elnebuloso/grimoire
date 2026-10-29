@@ -43,6 +43,10 @@ A project groups sources; agents search a project as a whole. A source is one Gi
 one branch and one path in it. To serve two paths of the same repository, add it twice as two
 sources with different slugs.
 
+Slug and short description of every project are public: the start page `/` lists them without
+login, with counts of sources, pages, snippets, tokens, sync errors and dead links and the oldest
+last sync. It shows nothing about the sources themselves, neither Git URLs nor error messages.
+
 | Field | Meaning |
 |---|---|
 | Slug | Part of every ID agents see (`<project>/<source>/<page>`): lowercase letters, digits and single hyphens. A source slug is unique within its project. |
