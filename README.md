@@ -83,9 +83,8 @@ environment variables and notes for Kubernetes.
 Without Docker, grimoire needs Node 24.22.1 or newer and `git`:
 
 ```bash
-cp app/.env.example app/.env   # then set TOKEN_ENCRYPTION_KEY=$(openssl rand -base64 32)
-npm --prefix app ci
-make dev                       # or: make build, then in app/: node --env-file=.env build
+make setup   # creates app/.env with a new TOKEN_ENCRYPTION_KEY, installs the dependencies
+make dev     # or: make build, then in app/: node --env-file=.env build
 ```
 
 Open `/admin`, set up the admin account with the setup token from the log, add a project with a

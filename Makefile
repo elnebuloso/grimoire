@@ -1,7 +1,10 @@
-.PHONY: help dev build test e2e lint format image admin-reset handbook agent-start agent-stop agent-reset
+.PHONY: help setup dev build test e2e lint format image admin-reset handbook agent-start agent-stop agent-reset
 
 help: ## List all targets
 	@grep -E '^[a-z0-9-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "} {printf "  %-12s %s\n", $$1, $$2}'
+
+setup: ## Prepare a fresh clone: check Node, create app/.env with a new key, install dependencies
+	scripts/setup.sh
 
 dev: ## Start the dev server
 	npm --prefix app run dev
