@@ -4,15 +4,15 @@ title: Separate agent environment with fixture data
 status: To Do
 assignee: []
 created_date: '2026-10-29T07:07:00Z'
-updated_date: '2026-10-29T07:09:00Z'
+updated_date: '2026-10-29T07:11:00Z'
 labels:
   - ops
-dependencies: []
+dependencies:
+  - TASK-56
 references:
   - Makefile
   - app/.env.example
   - app/playwright.config.ts
-  - fixture documents repository (URL not known yet)
 priority: medium
 type: chore
 ordinal: 117000
