@@ -4,11 +4,13 @@ title: Fixture documents repository for syncing real documentation
 status: To Do
 assignee: []
 created_date: '2026-10-29T07:11:00Z'
+updated_date: '2026-10-29T07:12:00Z'
 labels:
   - ops
 dependencies: []
 references:
   - docs/handbook/writing.md
+  - https://github.com/elnebuloso/grimoire-fixtures-documentations
 priority: medium
 type: chore
 ordinal: 118000
@@ -19,7 +21,7 @@ ordinal: 118000
 <!-- SECTION:DESCRIPTION:BEGIN -->
 Developers and agents need documentation to sync that exercises what grimoire processes, and states the UI can show, without depending on someone else's repository changing under them. Test projects today point at made-up URLs, so their sources never sync, and every look at a page, a snippet or a dead link starts with typing one in. A repository with documentation built for this purpose gives the agent environment (TASK-55), manual checks and future tests known content with known results.
 
-Its content follows what `docs/handbook/writing.md` says grimoire understands; when that page gains a feature, the repository gains an example of it.
+The repository is `grimoire-fixtures-documentations` on GitHub: https://github.com/elnebuloso/grimoire-fixtures-documentations. Its content follows what `docs/handbook/writing.md` says grimoire understands; when that page gains a feature, the repository gains an example of it.
 <!-- SECTION:DESCRIPTION:END -->
 
 ## Acceptance Criteria
