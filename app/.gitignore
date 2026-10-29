@@ -24,5 +24,7 @@ vite.config.ts.timestamp-*
 
 # Local database of make dev
 /data/
+# Settings, database and generated files of the agent environment
+/.agent/
 # Playwright
 test-results

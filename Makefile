@@ -1,4 +1,4 @@
-.PHONY: help dev build test e2e lint format image admin-reset handbook
+.PHONY: help dev build test e2e lint format image admin-reset handbook agent-start agent-stop agent-reset
 
 help: ## List all targets
 	@grep -E '^[a-z0-9-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "} {printf "  %-12s %s\n", $$1, $$2}'
@@ -31,3 +31,12 @@ admin-reset: ## Delete the admin account after a lost password; asks for its use
 # Without --python, uv picked an interpreter for which it built zensical from source.
 handbook: ## Build the handbook site into site/
 	uvx --python 3.12 zensical==0.0.70 build --strict
+
+agent-start: ## Start the agent environment on port 5174 in the background
+	scripts/agent-env.sh start
+
+agent-stop: ## Stop the agent environment
+	scripts/agent-env.sh stop
+
+agent-reset: ## Reset the agent environment's database to the fixture data
+	scripts/agent-env.sh reset
