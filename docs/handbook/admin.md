@@ -22,12 +22,14 @@ exists `/admin/setup` is gone.
 A login lasts 12 hours. The password is stored only as a scrypt hash. After 10 failed logins from
 one address, that address is blocked for 15 minutes.
 
-The admin forms check that a request comes from grimoire's own origin. grimoire assumes `https`;
-behind a reverse proxy that terminates TLS this works as is. Served over plain `http`, or behind
-a proxy that sends the original protocol in a header, set `PROTOCOL_HEADER` to that header (for
-example `x-forwarded-proto`), otherwise every admin form is rejected with
-`Cross-site POST form submissions are forbidden`. Behind a proxy, also set `ADDRESS_HEADER` (for
-example `x-forwarded-for`), so failed logins are counted per client and not for the proxy.
+The admin forms check that a request comes from grimoire's own origin. grimoire assumes `https`
+unless `PROTOCOL_HEADER` names a header that tells it otherwise. Behind a reverse proxy, set it to
+the header the proxy sends with the original protocol (for example `x-forwarded-proto`), and
+`ADDRESS_HEADER` to the one with the client address (for example `x-forwarded-for`), so failed
+logins are counted per client and not for the proxy. Served directly over plain `http`, without
+a proxy, every admin form is rejected with `Cross-site POST form submissions are forbidden`: the
+browser sends no such header. To try grimoire locally, put a proxy in front, as in the
+[Docker Compose](docker.md#docker-compose) example.
 
 ## Changing the password
 
