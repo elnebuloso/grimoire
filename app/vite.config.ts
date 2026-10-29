@@ -1,6 +1,9 @@
+import { join } from 'node:path';
 import { defineConfig } from 'vitest/config';
 import adapter from '@sveltejs/adapter-node';
 import { sveltekit } from '@sveltejs/kit/vite';
+import { storybookTest } from '@storybook/addon-vitest/vitest-plugin';
+import { playwright } from '@vitest/browser-playwright';
 
 // Set by the agent environment (`make agent-start`): its dev server reads its own `.env` instead
 // of the developer's `app/.env`, and keeps generated files and the dependency cache apart, because
@@ -32,6 +35,20 @@ export default defineConfig({
 					environment: 'node',
 					include: ['src/**/*.{test,spec}.{js,ts}'],
 					exclude: ['src/**/*.svelte.{test,spec}.{js,ts}']
+				}
+			},
+			{
+				// Every story renders in a browser as a test, and its `play` function runs.
+				extends: true,
+				plugins: [storybookTest({ configDir: join(import.meta.dirname, '.storybook') })],
+				test: {
+					name: 'storybook',
+					browser: {
+						enabled: true,
+						headless: true,
+						provider: playwright(),
+						instances: [{ browser: 'chromium' }]
+					}
 				}
 			}
 		]

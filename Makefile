@@ -1,4 +1,4 @@
-.PHONY: help setup dev build test e2e lint format image admin-reset handbook agent-start agent-stop agent-reset
+.PHONY: help setup dev build test e2e storybook lint format image admin-reset handbook agent-start agent-stop agent-reset
 
 help: ## List all targets
 	@grep -E '^[a-z0-9-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "} {printf "  %-12s %s\n", $$1, $$2}'
@@ -12,11 +12,14 @@ dev: ## Start the dev server
 build: ## Build the production server into app/build
 	npm --prefix app run build
 
-test: ## Run the unit tests once
-	npm --prefix app test
+test: ## Run the unit tests and the component stories once
+	cd app && npx playwright install chromium && npm test
 
 e2e: ## Run the browser tests against the production build with a fresh database
 	cd app && npx playwright install chromium && npm run test:e2e
+
+storybook: ## Show the component catalog at http://localhost:6006
+	npm --prefix app run storybook
 
 lint: ## Check formatting, lint rules and types
 	npm --prefix app run lint

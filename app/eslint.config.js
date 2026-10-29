@@ -1,6 +1,7 @@
 import prettier from 'eslint-config-prettier';
 import path from 'node:path';
 import js from '@eslint/js';
+import storybook from 'eslint-plugin-storybook';
 import svelte from 'eslint-plugin-svelte';
 import { defineConfig, includeIgnoreFile } from 'eslint/config';
 import globals from 'globals';
@@ -33,6 +34,7 @@ export default defineConfig(
 			}
 		}
 	},
+	...storybook.configs['flat/recommended'],
 	{
 		// Override or add rule settings here, such as:
 		// 'svelte/button-has-type': 'error'
