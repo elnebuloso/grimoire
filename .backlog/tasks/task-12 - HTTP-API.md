@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-28T19:32:00Z'
-updated_date: '2026-10-28T21:58:00Z'
+updated_date: '2026-10-29T00:34:00Z'
 labels:
   - agent-api
 milestone: m-0
@@ -13,7 +13,7 @@ dependencies:
   - TASK-10
   - TASK-11
 documentation:
-  - docs/konzept.md
+  - docs/concept.md
 priority: high
 type: feature
 ordinal: 12000

@@ -4,13 +4,13 @@ title: Handbook for operators and agents
 status: To Do
 assignee: []
 created_date: '2026-10-28T19:32:00Z'
-updated_date: '2026-10-28T21:23:00Z'
+updated_date: '2026-10-29T00:34:00Z'
 labels: []
 milestone: m-0
 dependencies:
   - TASK-18
 documentation:
-  - docs/konzept.md
+  - docs/concept.md
 priority: medium
 type: docs
 ordinal: 19000

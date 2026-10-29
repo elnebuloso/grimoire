@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-28T19:32:00Z'
-updated_date: '2026-10-28T23:39:00Z'
+updated_date: '2026-10-29T00:34:00Z'
 labels:
   - admin
 milestone: m-0
@@ -13,7 +13,7 @@ dependencies:
   - TASK-11
   - TASK-14
 documentation:
-  - docs/konzept.md
+  - docs/concept.md
 priority: medium
 type: feature
 ordinal: 17000

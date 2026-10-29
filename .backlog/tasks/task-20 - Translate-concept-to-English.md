@@ -1,14 +1,16 @@
 ---
 id: TASK-20
 title: Translate concept to English
-status: To Do
-assignee: []
+status: In Progress
+assignee:
+  - '@claude'
 created_date: '2026-10-28T19:32:00Z'
+updated_date: '2026-10-29T00:34:00Z'
 labels: []
 milestone: m-0
 dependencies: []
 documentation:
-  - docs/konzept.md
+  - docs/concept.md
 priority: medium
 type: docs
 ordinal: 20000

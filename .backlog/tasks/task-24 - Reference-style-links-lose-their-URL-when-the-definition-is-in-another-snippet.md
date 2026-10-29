@@ -5,14 +5,14 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-28T20:10:00Z'
-updated_date: '2026-10-28T20:15:00Z'
+updated_date: '2026-10-29T00:34:00Z'
 labels:
   - parsing
 milestone: m-0
 dependencies:
   - TASK-5
 documentation:
-  - docs/konzept.md
+  - docs/concept.md
 priority: medium
 type: bug
 ordinal: 24000

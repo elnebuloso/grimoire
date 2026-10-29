@@ -5,13 +5,13 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-28T19:30:00Z'
-updated_date: '2026-10-28T19:38:00Z'
+updated_date: '2026-10-29T00:34:00Z'
 labels:
   - ops
 milestone: m-0
 dependencies: []
 documentation:
-  - docs/konzept.md
+  - docs/concept.md
 priority: high
 type: chore
 ordinal: 1000

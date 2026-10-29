@@ -4,6 +4,7 @@ title: Include line selections and named sections
 status: To Do
 assignee: []
 created_date: '2026-10-28T20:05:00Z'
+updated_date: '2026-10-29T00:34:00Z'
 labels:
   - parsing
 milestone: m-1
@@ -12,7 +13,7 @@ dependencies:
 references:
   - https://facelessuser.github.io/pymdown-extensions/extensions/snippets/
 documentation:
-  - docs/konzept.md
+  - docs/concept.md
 priority: medium
 type: enhancement
 ordinal: 22000

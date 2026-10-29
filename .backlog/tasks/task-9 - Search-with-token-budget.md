@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-28T19:31:00Z'
-updated_date: '2026-10-28T21:32:00Z'
+updated_date: '2026-10-29T00:34:00Z'
 labels:
   - search
 milestone: m-0
@@ -13,7 +13,7 @@ dependencies:
   - TASK-2
   - TASK-5
 documentation:
-  - docs/konzept.md
+  - docs/concept.md
 priority: high
 type: feature
 ordinal: 9000

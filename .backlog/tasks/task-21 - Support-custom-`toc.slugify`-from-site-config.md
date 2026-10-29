@@ -4,6 +4,7 @@ title: Support custom `toc.slugify` from site config
 status: To Do
 assignee: []
 created_date: '2026-10-28T19:57:00Z'
+updated_date: '2026-10-29T00:34:00Z'
 labels:
   - parsing
 milestone: m-1
@@ -11,7 +12,7 @@ dependencies:
   - TASK-5
   - TASK-7
 documentation:
-  - docs/konzept.md
+  - docs/concept.md
 priority: low
 type: enhancement
 ordinal: 21000
