@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
-import { createServer, type Socket } from 'node:net';
+import { createServer as createHttpServer, type Server as HttpServer } from 'node:http';
+import { createServer, type AddressInfo, type Socket } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { checkRemote, credentialEnvironment, redact, remoteCommit } from './git';
@@ -102,5 +103,37 @@ describe('remoteCommit', () => {
 				'git ls-remote failed: no answer within 0.5 s'
 			);
 		});
+	});
+});
+
+describe('a Git server that refuses the credentials', () => {
+	let server: HttpServer;
+	let url: string;
+
+	beforeAll(async () => {
+		// Answers like GitLab, GitHub and Forgejo do to a wrong token or a private repository.
+		server = createHttpServer((_request, response) => {
+			response.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Git"' }).end();
+		});
+		await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+		url = `http://127.0.0.1:${(server.address() as AddressInfo).port}/platform/auth.git`;
+	});
+
+	afterAll(() => server.close());
+
+	it('says the username and token were refused, without the token', async () => {
+		const check = await checkRemote({ url, username: 'deploy', token: 'glpat-secret' }, 'main');
+
+		expect(check).toEqual({
+			status: 'refused',
+			detail:
+				'git ls-remote failed: the Git server refused the username and token: wrong, expired or revoked, or without access to this repository'
+		});
+	});
+
+	it('says the repository needs a username and token when the source has none', async () => {
+		await expect(remoteCommit({ url }, 'main')).rejects.toThrow(
+			'git ls-remote failed: the Git server asks for a username and token: the repository is private, or there is none at this URL'
+		);
 	});
 });

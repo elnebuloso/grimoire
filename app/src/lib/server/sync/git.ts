@@ -21,7 +21,10 @@ export type RemoteCheck =
 
 // Git hosts answer a missing repository and missing access alike, so both count as refused.
 const REFUSED =
-	/authentication failed|could not read username|terminal prompts disabled|\b40[134]\b|not found|does not appear to be a git repository/i;
+	/authentication failed|refused the username|asks for a username|\b40[134]\b|not found|does not appear to be a git repository/i;
+// Git wanted to ask for other credentials, which grimoire never lets it do: the server refused
+// the ones it got, or wants some.
+const CREDENTIALS_ASKED = /could not read (username|password) for/i;
 
 /** Whether the remote answers and has `branch`; nothing is downloaded. */
 export async function checkRemote(
@@ -107,11 +110,22 @@ async function git(
 			message: string;
 			killed?: boolean;
 		};
-		const reason = killed ? `no answer within ${timeoutMs / 1000} s` : stderr?.trim() || message;
+		const output = stderr?.trim() || message;
+		const reason = killed
+			? `no answer within ${timeoutMs / 1000} s`
+			: CREDENTIALS_ASKED.test(output)
+				? credentialsProblem(remote)
+				: output;
 		// No `cause`: the original error carries the unredacted command line and output.
 		// eslint-disable-next-line preserve-caught-error
 		throw new Error(redact(`git ${command} failed: ${reason}`, remote));
 	}
+}
+
+function credentialsProblem(remote?: GitRemote): string {
+	return remote?.token
+		? 'the Git server refused the username and token: wrong, expired or revoked, or without access to this repository'
+		: 'the Git server asks for a username and token: the repository is private, or there is none at this URL';
 }
 
 /**
