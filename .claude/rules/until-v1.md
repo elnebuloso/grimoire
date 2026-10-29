@@ -22,8 +22,11 @@ and function, not looks; anything styled before it is thrown away.
 - **Native elements keep the browser default.** No reset, no normalize — at most
   `box-sizing: border-box` and `margin: 0` on `body` where the layout needs it.
 - **Third-party components use their shipped stylesheet, unmodified.**
-- **Design skills stay off.** Don't load a design, styling or animation skill for frontend work
-  in this phase, even when its description matches.
+- **Design skills stay off for `app/`.** Don't load a design, styling or animation skill for work
+  on the product's frontend in this phase, even when its description matches.
+- **Mockups are exempt.** Design mockups live outside `app/` and are where the visual design is
+  worked out: they may be styled freely and built with design, styling and animation skills. They
+  never change `app/`; the agreed design reaches the product only when the phase ends.
 
 ## ADR status
 
