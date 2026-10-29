@@ -14,6 +14,8 @@ export interface OperationResult {
 /** Slugs of the projects an API key may see; undefined means all of them. */
 export type ProjectScope = string[] | undefined;
 
+// Pages in the site's `nav` first, in its order, then the rest by file path.
+const PAGE_ORDER = 'pages.nav_position IS NULL, pages.nav_position, pages.file';
 const IN_SCOPE = '(:scope IS NULL OR projects.slug IN (SELECT value FROM json_each(:scope)))';
 
 function scopeParameter(scope: ProjectScope): string | null {
@@ -56,7 +58,7 @@ export function indexProject(
 			LEFT JOIN pages ON pages.source_id = sources.id
 			LEFT JOIN snippets ON snippets.page_id = pages.id
 			WHERE sources.project_id = ?
-			ORDER BY sources.slug, pages.file, snippets.position`
+			ORDER BY sources.slug, ${PAGE_ORDER}, snippets.position`
 		)
 		.all(projectRow.id) as unknown as IndexRow[];
 
@@ -109,7 +111,7 @@ export function llmsTxt(
 			FROM sources
 			LEFT JOIN pages ON pages.source_id = sources.id
 			WHERE sources.project_id = ?
-			ORDER BY sources.slug, pages.file`
+			ORDER BY sources.slug, ${PAGE_ORDER}`
 		)
 		.all(projectRow.id) as { source: string; file: string | null; title: string | null }[];
 

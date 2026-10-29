@@ -53,7 +53,8 @@ function addSource(
 	projectId: number,
 	project: string,
 	slug: string,
-	pages: Record<string, string>
+	pages: Record<string, string>,
+	nav: string[] = []
 ) {
 	const sourceId = Number(
 		db
@@ -69,7 +70,9 @@ function addSource(
 		warnings: [],
 		pages: Object.entries(pages).map(([file, markdown]) => {
 			const metadata = preprocessPage(markdown);
-			return { file, metadata, chunked: chunkPage(metadata, { project, source: slug, file }) };
+			const navPosition = nav.includes(file) ? nav.indexOf(file) : undefined;
+			const chunked = chunkPage(metadata, { project, source: slug, file });
+			return { file, navPosition, metadata, chunked };
 		})
 	});
 }
@@ -122,6 +125,28 @@ describe('indexProject', () => {
 				'- platform/auth/guide/start: Start'
 			].join('\n')
 		});
+	});
+
+	it('lists pages in nav order first, the others after them by file', () => {
+		addSource(
+			addProject('ordered'),
+			'ordered',
+			'docs',
+			{ 'a.md': '# A', 'b.md': '# B', 'c.md': '# C', 'd.md': '# D' },
+			['c.md', 'a.md']
+		);
+		expect(indexProject(db, 'ordered', undefined).markdown).toBe(
+			[
+				'# ordered',
+				'',
+				'## docs',
+				'',
+				'- ordered/docs/c: C',
+				'- ordered/docs/a: A',
+				'- ordered/docs/b: B',
+				'- ordered/docs/d: D'
+			].join('\n')
+		);
 	});
 
 	it('treats an unknown project and one out of scope alike', () => {

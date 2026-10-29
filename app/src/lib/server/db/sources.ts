@@ -22,6 +22,8 @@ export interface SyncSource {
 export interface IndexedPage {
 	/** Path relative to the source path, e.g. `deploy.md`. */
 	file: string;
+	/** Index of the page in the site's `nav`; undefined when it is not listed there. */
+	navPosition?: number;
 	metadata: PreprocessedPage;
 	chunked: ChunkedPage;
 }
@@ -99,7 +101,8 @@ export function sourceForSync(db: DatabaseSync, sourceId: number): SyncSource {
  */
 export function replaceSourceIndex(db: DatabaseSync, sourceId: number, index: SourceIndex) {
 	const insertPage = db.prepare(
-		`INSERT INTO pages (source_id, file, title, description, tags, content) VALUES (?, ?, ?, ?, ?, ?)`
+		`INSERT INTO pages (source_id, file, nav_position, title, description, tags, content)
+		VALUES (?, ?, ?, ?, ?, ?, ?)`
 	);
 	const insertSnippet = db.prepare(
 		`INSERT INTO snippets (page_id, position, anchor, aliases, title_path, content, tokens)
@@ -117,11 +120,12 @@ export function replaceSourceIndex(db: DatabaseSync, sourceId: number, index: So
 		db.prepare('DELETE FROM pages WHERE source_id = ?').run(sourceId);
 		const pageIds = new Map<string, number>();
 
-		for (const { file, metadata, chunked } of index.pages) {
+		for (const { file, navPosition, metadata, chunked } of index.pages) {
 			const pageId = Number(
 				insertPage.run(
 					sourceId,
 					file,
+					navPosition ?? null,
 					chunked.title,
 					chunked.description ?? null,
 					JSON.stringify(metadata.tags),

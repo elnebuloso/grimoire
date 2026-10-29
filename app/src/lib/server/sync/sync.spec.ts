@@ -142,6 +142,18 @@ describe('syncSource', () => {
 		expect(readdirSync(work)).toEqual([]);
 	});
 
+	it('stores the position of each page in the nav of the site config at the repository root', async () => {
+		commitFiles({
+			'mkdocs.yml': 'docs_dir: docs\nnav:\n  - Deploy: deploy.md\n  - Home: index.md\n'
+		});
+		await syncSource(db, source, { key, workDirectory: work });
+
+		expect(rows('SELECT file, nav_position FROM pages ORDER BY file')).toEqual([
+			{ file: 'deploy.md', nav_position: 0 },
+			{ file: 'index.md', nav_position: 1 }
+		]);
+	});
+
 	it('skips an unchanged branch and replaces the index after a new commit', async () => {
 		await syncSource(db, source, { key, workDirectory: work });
 		expect(await syncSource(db, source, { key, workDirectory: work })).toMatchObject({

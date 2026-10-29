@@ -5,6 +5,7 @@ import { chunkPage } from '../parsing/chunk';
 import { resolveIncludes, type IncludeResult } from '../parsing/include';
 import { resolveLinks } from '../parsing/links';
 import { preprocessPage } from '../parsing/preprocess';
+import { findSiteConfig, navOrder } from '../parsing/site-config';
 
 export interface IndexedSource {
 	project: string;
@@ -54,6 +55,15 @@ export async function indexCheckout(
 	}
 
 	const warnings: string[] = [];
+	const navPositions = new Map<string, number>();
+	try {
+		const config = findSiteConfig(sourcePath, read);
+		const nav = config && navOrder(config, sourcePath);
+		nav?.forEach((file, position) => navPositions.set(file, position));
+	} catch (error) {
+		warnings.push(`site config ignored, ${(error as Error).message}`);
+	}
+
 	const indexed: IndexedPage[] = [];
 	for (const file of files) {
 		const { markdown, warnings: includeWarnings } = included.get(file)!;
@@ -61,7 +71,7 @@ export async function indexCheckout(
 		try {
 			const metadata = preprocessPage(markdown);
 			const chunked = chunkPage(metadata, { project: source.project, source: source.slug, file });
-			indexed.push({ file, metadata, chunked });
+			indexed.push({ file, navPosition: navPositions.get(file), metadata, chunked });
 		} catch (error) {
 			warnings.push(`${posix.join(sourcePath, file)}: skipped, ${(error as Error).message}`);
 		}
