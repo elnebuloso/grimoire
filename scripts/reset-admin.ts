@@ -3,6 +3,8 @@
 import { existsSync } from 'node:fs';
 import { createInterface } from 'node:readline/promises';
 import { DatabaseSync } from 'node:sqlite';
+// Plain node runs this, without Vite: no `import.meta.glob`, so no migrations, and an imported
+// `.ts` file needs its extension and may itself import only `node:` modules.
 import { resetAdmin } from '../app/src/lib/server/admin/auth.ts';
 
 const path = process.env.DATABASE_PATH;

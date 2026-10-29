@@ -43,6 +43,9 @@ export function searchSnippets(db: DatabaseSync, options: SearchOptions): string
 	const match = toMatchExpression(options.query);
 	if (!match || options.allowedProjects?.length === 0) return '';
 
+	// bm25 weighs the columns title_path, text and code. Internal docs are full of names a title
+	// carries and commands code repeats, hence 10 / 1 / 0.25: a starting point, not yet tuned on
+	// a real documentation set.
 	const rows = db
 		.prepare(
 			`SELECT projects.slug AS project, sources.slug AS source, sources.git_url AS gitUrl,
