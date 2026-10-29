@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-28T23:50:00Z'
-updated_date: '2026-10-29T00:30:00Z'
+updated_date: '2026-10-29T00:32:00Z'
 labels:
   - ops
 milestone: m-0
@@ -54,6 +54,8 @@ Run 40792875159: semantic-release released nothing, the version step yielded not
 Release run 40793837044 (empty `feat` commit on request): semantic-release published `v0.4.0`, the job logged in, built and pushed `0.4.0` (digest sha256:233e321b…). Docker Hub lists only the tag `0.4.0`, no `latest`. The log shows the repository and username as `***`; no secret value appears. `docker pull elnebuloso/grimoire:0.4.0` and a run of it served `/admin` (303 to setup) and printed the setup token.
 
 Reordered on request: the image is pushed before the GitHub release, so a release only exists with its image. `@semantic-release/exec` 7.1.0 runs `make image`, `docker tag` and `docker push` as `prepareCmd`; semantic-release 25.0.9 runs prepare before it creates and pushes the tag and before `@semantic-release/github` publishes (`lib/index.js`). Docker login moved to a step before semantic-release. A failing push now stops the release before the tag. Remaining gap: if the tag is pushed but publishing the GitHub release fails, a rerun finds the tag and releases nothing; the release then has to be created by hand. Dry run verified the plugin loads via `npx --package`; the real prepare step is verified by the next release.
+
+Verified with release `v0.5.0` (run 40794525958, empty `feat` commit on request): the log shows prepare (exec pushed `0.5.0`, digest sha256:88a49a23…) completing before "Created tag v0.5.0" and before `@semantic-release/github` published the release. Docker Hub lists `0.5.0` and `0.4.0`, no `latest`; `docker pull elnebuloso/grimoire:0.5.0` works.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
