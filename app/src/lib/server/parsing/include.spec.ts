@@ -111,4 +111,77 @@ describe('resolveIncludes', () => {
 		const source = '--8<-- "docs/a.md" trailing';
 		expect(resolve(source, { 'docs/a.md': 'A' }).markdown).toBe(source);
 	});
+	// Expected values are what pymdownx.snippets 12.3 renders for the same files.
+	describe('line selections', () => {
+		const files = { 'lines.md': '1\n2\n3\n4\n5\n6\n' };
+
+		it.each([
+			['lines.md:3', '3\n4\n5\n6\n'],
+			['lines.md::3', '1\n2\n3'],
+			['lines.md:4:6', '4\n5\n6'],
+			['lines.md:1:2,5:5', '1\n2\n5'],
+			['lines.md:-2:', '6\n'],
+			['lines.md:2:-3', '2\n3\n4\n5'],
+			['lines.md:0:1', '1']
+		])('inserts "%s" like pymdownx.snippets', (name, expected) => {
+			const result = resolve(`--8<-- "${name}"`, files);
+			expect(result.markdown).toBe(expected);
+			expect(result.warnings).toEqual([]);
+		});
+
+		it('reports the file without its selection as outside the source path', () => {
+			expect(resolve('--8<-- "lines.md:2:3"', files).outsideSourcePath).toEqual(['lines.md']);
+		});
+	});
+
+	describe('named sections', () => {
+		const files = {
+			'app.py': [
+				'import os',
+				'# --8<-- [start:main]',
+				'def main():',
+				'    # ;--8<-- [start:kept]',
+				'    print("hi")',
+				'# --8<-- [end:main]',
+				'# --8<-- [start:other]',
+				'x = 1',
+				'# --8<-- [end:other]',
+				''
+			].join('\n')
+		};
+
+		it('inserts only the lines between the markers, also when they sit in a comment', () => {
+			const result = resolve('```python\n--8<-- "app.py:main"\n```', files);
+			expect(result.markdown).toBe(
+				'```python\ndef main():\n    # --8<-- [start:kept]\n    print("hi")\n```'
+			);
+			expect(result.warnings).toEqual([]);
+		});
+
+		it('removes the markers when the whole file is included', () => {
+			expect(resolve('--8<-- "app.py"', files).markdown).toBe(
+				'import os\ndef main():\n    # --8<-- [start:kept]\n    print("hi")\nx = 1'
+			);
+		});
+
+		it('removes markers from the page itself', () => {
+			expect(resolve('Page\n<!-- --8<-- [start:x] -->\nEnd', {}).markdown).toBe('Page\nEnd');
+		});
+
+		it('works in the block format', () => {
+			const result = resolve('--8<--\napp.py:other\nlines.md:6\n--8<--', {
+				...files,
+				'lines.md': '1\n2\n3\n4\n5\n6\n'
+			});
+			expect(result.markdown).toBe('x = 1\n6\n');
+		});
+
+		it('warns about a section the file does not have', () => {
+			const result = resolve('Before\n--8<-- "app.py:missing"\nAfter', files);
+			expect(result.markdown).toBe('Before\nAfter');
+			expect(result.warnings).toEqual([
+				'docs/deploy.md: include "app.py" has no section "missing"'
+			]);
+		});
+	});
 });

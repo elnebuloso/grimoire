@@ -20,19 +20,27 @@ export type ReadFile = (path: string) => string | undefined;
 // Same notation as pymdownx.snippets: dashes of any length, nothing after the marker.
 const SINGLE_LINE = /^([ \t]*)(;*)-+8<-+[ \t]+("(?:\\"|[^"\r\n])+?"|'(?:\\'|[^'\r\n])+?')\r?$/;
 const BLOCK_MARKER = /^([ \t]*)(;*)-+8<-+\r?$/;
+// After the file name: line ranges such as `:4:6,-2:`, or `:name` for a section.
+const SELECTION =
+	/^(.*?)(?:((?::-?[0-9]*){1,2}(?:(?:,(?=[-0-9:])-?[0-9]*)(?::-?[0-9]*)?)*)|:([a-z][-_0-9a-z]*))?$/i;
+// `--8<-- [start:name]` anywhere on a line, so it may sit inside a code comment.
+const SECTION_MARKER =
+	/^(.*?)(;*)(-+8<-+[ \t]+)(\[[ \t]*(start|end)[ \t]*:[ \t]*([a-z][-_0-9a-z]*)[ \t]*\])(.*)$/i;
 
 /**
  * Replaces pymdownx.snippets includes (`--8<-- "file.md"` and the block format) with the content
  * of the included files, resolved from the repository root like MkDocs with the default
- * `base_path`. Runs on raw text, so it also resolves inside code fences, as MkDocs does.
- * Missing targets and include cycles are reported as warnings and left out.
+ * `base_path`. Line ranges (`file.md:4:6`) and named sections (`file.md:name`) select part of a
+ * file; section markers are removed everywhere else. Runs on raw text, so it also resolves inside
+ * code fences, as MkDocs does. Missing targets, missing sections and include cycles are reported
+ * as warnings and left out.
  */
 export function resolveIncludes(source: string, page: IncludePage, read: ReadFile): IncludeResult {
 	const warnings: string[] = [];
 	const outside = new Set<string>();
 	const sourcePath = posix.normalize(page.sourcePath).replace(/\/$/, '');
 
-	function expand(text: string, chain: string[]): string[] {
+	function expand(text: string, chain: string[], isSection = false): string[] {
 		const lines = text.split('\n');
 		const output: string[] = [];
 
@@ -53,7 +61,9 @@ export function resolveIncludes(source: string, page: IncludePage, read: ReadFil
 			}
 			const end = block ? findBlockEnd(lines, i + 1) : -1;
 			if (!block || end === -1) {
-				output.push(line);
+				const marker = isSection ? null : SECTION_MARKER.exec(line);
+				if (!marker) output.push(line);
+				else if (marker[2]) output.push(unescapeMarker(marker));
 				continue;
 			}
 			for (const entry of lines.slice(i + 1, end)) {
@@ -67,7 +77,8 @@ export function resolveIncludes(source: string, page: IncludePage, read: ReadFil
 	}
 
 	function include(name: string, indent: string, chain: string[]): string[] {
-		const target = posix.normalize(name);
+		const [, file, ranges, section] = SELECTION.exec(name)!;
+		const target = posix.normalize(file.trim());
 		if (posix.isAbsolute(target) || target === '..' || target.startsWith('../')) {
 			warnings.push(`${page.path}: include "${name}" points outside the repository`);
 			return [];
@@ -85,7 +96,18 @@ export function resolveIncludes(source: string, page: IncludePage, read: ReadFil
 			warnings.push(`${page.path}: include "${target}" not found`);
 			return [];
 		}
-		return expand(content.replace(/\r?\n$/, ''), [...chain, target]).map((line) =>
+		let lines = content.replace(/\r?\n$/, '').split('\n');
+		// Counted like pymdownx.snippets, where a final newline makes a last, empty line.
+		if (ranges) lines = selectLines(content.split('\n'), ranges);
+		if (section) {
+			const selected = extractSection(content.split('\n'), section);
+			if (!selected) {
+				warnings.push(`${page.path}: include "${target}" has no section "${section}"`);
+				return [];
+			}
+			lines = selected;
+		}
+		return expand(lines.join('\n'), [...chain, target], section !== undefined).map((line) =>
 			line === '' ? line : indent + line
 		);
 	}
@@ -100,4 +122,53 @@ function findBlockEnd(lines: string[], start: number): number {
 		if (marker && !marker[2]) return i;
 	}
 	return -1;
+}
+
+/** Ranges like `:4:6,-2:` – 1-based and inclusive, negative counts from the end, `0` means 1. */
+function selectLines(lines: string[], ranges: string): string[] {
+	const total = lines.length;
+	return ranges
+		.slice(1)
+		.split(',')
+		.flatMap((range) => {
+			const [first, last] = range.split(':').map((n) => (n ? Number(n) : undefined));
+			const start =
+				first === undefined ? 0 : first < 0 ? clamp(total + first, total) : Math.max(0, first - 1);
+			const end = last === undefined ? total : last < 0 ? clamp(total + 1 + last, total) : last;
+			return lines.slice(start, end);
+		});
+}
+
+function clamp(value: number, max: number): number {
+	return Math.min(Math.max(value, 0), max);
+}
+
+/** The lines between `[start:name]` and `[end:name]`, or undefined if there is no such start. */
+function extractSection(lines: string[], name: string): string[] | undefined {
+	const result: string[] = [];
+	let inside = false;
+	let found = false;
+	for (const line of lines) {
+		const marker = SECTION_MARKER.exec(line);
+		if (marker && inside && marker[2]) {
+			result.push(unescapeMarker(marker));
+			continue;
+		}
+		if (marker && marker[6] === name) {
+			if (marker[5] === 'start' && !inside) {
+				inside = found = true;
+				continue;
+			}
+			if (marker[5] === 'start') continue;
+			break;
+		}
+		if (marker) continue;
+		if (inside) result.push(line);
+	}
+	return found ? result : undefined;
+}
+
+function unescapeMarker(marker: RegExpExecArray): string {
+	const [, before, escape, dashes, section, , , after] = marker;
+	return before + escape.replace(';', '') + dashes + section + after;
 }

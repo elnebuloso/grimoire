@@ -58,6 +58,7 @@ extensions and turns them into plain Markdown for agents:
 | Admonitions `!!! warning "Caution"` | `> **Caution:** …`, with the content. |
 | Content tabs `=== "Linux"` | `**Linux:**`, with the content. |
 | Includes `--8<-- "file.md"` | The included file, also from outside the path of the source. |
+| Partial includes `--8<-- "file.md:4:6"`, `--8<-- "app.py:main"` | Only the selected lines, or the lines between `--8<-- [start:main]` and `--8<-- [end:main]`; the markers themselves are dropped everywhere. |
 | Mermaid diagrams | Kept as a code block. |
 | Images | Only the alt text; write one that says what the image shows. |
 | HTML comments | Dropped. |
