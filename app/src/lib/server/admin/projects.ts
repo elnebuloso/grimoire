@@ -58,19 +58,31 @@ export function findProject(db: DatabaseSync, id: number): Project | undefined {
 		Project | undefined;
 }
 
+/** Why the project cannot be saved like this; undefined when it can. */
+export function projectProblem(
+	db: DatabaseSync,
+	id: number | undefined,
+	form: ProjectForm
+): string | undefined {
+	const slug = form.slug.trim();
+	if (!SLUG.test(slug)) return `The slug may contain ${SLUG_RULE}.`;
+	const taken = db
+		.prepare('SELECT 1 FROM projects WHERE slug = ? AND id IS NOT ?')
+		.get(slug, id ?? null);
+	if (taken) return `A project with the slug "${slug}" already exists.`;
+	return undefined;
+}
+
 /** Creates the project when `id` is undefined, otherwise updates it. */
 export function saveProject(
 	db: DatabaseSync,
 	id: number | undefined,
 	form: ProjectForm
 ): SaveResult {
-	const slug = form.slug.trim();
-	if (!SLUG.test(slug)) return { error: `The slug may contain ${SLUG_RULE}.` };
-	const taken = db
-		.prepare('SELECT 1 FROM projects WHERE slug = ? AND id IS NOT ?')
-		.get(slug, id ?? null);
-	if (taken) return { error: `A project with the slug "${slug}" already exists.` };
+	const problem = projectProblem(db, id, form);
+	if (problem) return { error: problem };
 
+	const slug = form.slug.trim();
 	const description = form.description.trim();
 	if (id === undefined) {
 		const result = db
@@ -139,41 +151,39 @@ export function findSource(
 }
 
 /**
- * Creates a source of the project when `sourceId` is undefined, otherwise updates it. A new token
- * is stored encrypted with `key`; an empty one keeps the stored token unless `removeToken` is set.
+ * Why the source cannot be saved like this; undefined when it can. `projectId` is undefined for
+ * a project that does not exist yet.
  */
-export function saveSource(
+export function sourceProblem(
 	db: DatabaseSync,
-	key: Buffer,
-	projectId: number,
+	projectId: number | undefined,
 	sourceId: number | undefined,
 	form: SourceForm
-): SaveResult {
+): string | undefined {
 	const slug = form.slug.trim();
-	if (!SLUG.test(slug)) return { error: `The slug may contain ${SLUG_RULE}.` };
+	if (!SLUG.test(slug)) return `The slug may contain ${SLUG_RULE}.`;
 	const taken = db
 		.prepare('SELECT 1 FROM sources WHERE project_id = ? AND slug = ? AND id IS NOT ?')
-		.get(projectId, slug, sourceId ?? null);
-	if (taken) return { error: `This project already has a source with the slug "${slug}".` };
+		.get(projectId ?? null, slug, sourceId ?? null);
+	if (taken) return `This project already has a source with the slug "${slug}".`;
 
 	const gitUrl = form.gitUrl.trim();
 	const urlProblem = checkGitUrl(gitUrl);
-	if (urlProblem) return { error: urlProblem };
+	if (urlProblem) return urlProblem;
 
-	const branch = form.branch.trim();
-	if (!branch) return { error: 'Enter the branch.' };
+	if (!form.branch.trim()) return 'Enter the branch.';
 
 	const path = form.path.trim();
 	if (path.startsWith('/') || path.split('/').includes('..')) {
-		return { error: 'The path is relative to the repository root and may not contain "..".' };
+		return 'The path is relative to the repository root and may not contain "..".';
 	}
 
-	const schedule = form.schedule.trim() || null;
+	const schedule = form.schedule.trim();
 	if (schedule) {
 		try {
 			parseSchedule(schedule);
 		} catch (error) {
-			return { error: `Schedule: ${(error as Error).message}` };
+			return `Schedule: ${(error as Error).message}`;
 		}
 	}
 
@@ -191,9 +201,31 @@ export function saveSource(
 		!form.removeToken &&
 		new URL(previous.git_url).origin !== new URL(gitUrl).origin
 	) {
-		return { error: 'The Git URL points to another server: enter the token again or remove it.' };
+		return 'The Git URL points to another server: enter the token again or remove it.';
 	}
+	return undefined;
+}
 
+/**
+ * Creates a source of the project when `sourceId` is undefined, otherwise updates it. A new token
+ * is stored encrypted with `key`; an empty one keeps the stored token unless `removeToken` is set.
+ */
+export function saveSource(
+	db: DatabaseSync,
+	key: Buffer,
+	projectId: number,
+	sourceId: number | undefined,
+	form: SourceForm
+): SaveResult {
+	const problem = sourceProblem(db, projectId, sourceId, form);
+	if (problem) return { error: problem };
+
+	const slug = form.slug.trim();
+	const gitUrl = form.gitUrl.trim();
+	const branch = form.branch.trim();
+	const path = form.path.trim();
+	const schedule = form.schedule.trim() || null;
+	const token = form.token.trim();
 	const values = {
 		slug,
 		git_url: gitUrl,
@@ -230,6 +262,33 @@ export function saveSource(
 		db.prepare('UPDATE sources SET encrypted_token = ? WHERE id = ?').run(encryptedToken, sourceId);
 	}
 	return { id: sourceId };
+}
+
+/** Creates a project with its first source: both, or neither when one of them is invalid. */
+export function createProjectWithSource(
+	db: DatabaseSync,
+	key: Buffer,
+	project: ProjectForm,
+	source: SourceForm
+): { projectId: number; sourceId: number } | { error: string } {
+	db.exec('BEGIN IMMEDIATE');
+	try {
+		const created = saveProject(db, undefined, project);
+		if ('error' in created) {
+			db.exec('ROLLBACK');
+			return created;
+		}
+		const saved = saveSource(db, key, created.id, undefined, source);
+		if ('error' in saved) {
+			db.exec('ROLLBACK');
+			return saved;
+		}
+		db.exec('COMMIT');
+		return { projectId: created.id, sourceId: saved.id };
+	} catch (error) {
+		if (db.isTransaction) db.exec('ROLLBACK');
+		throw error;
+	}
 }
 
 function checkGitUrl(gitUrl: string): string | undefined {

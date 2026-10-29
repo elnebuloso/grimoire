@@ -10,17 +10,17 @@ import {
 	type Project
 } from '#lib/server/admin/projects.js';
 
-function projectFor(param: string): Project | undefined {
+// `/admin/projects/new` is the wizard's own route.
+function projectFor(param: string): Project {
 	const id = parseIdParam(param);
-	if (id === 'new') return undefined;
-	const project = id && findProject(database(), id);
+	const project = typeof id === 'number' ? findProject(database(), id) : undefined;
 	if (!project) error(404);
 	return project;
 }
 
 export const load: PageServerLoad = ({ params }) => {
 	const project = projectFor(params.id);
-	return { project, sources: project ? listSources(database(), project.id) : [] };
+	return { project, sources: listSources(database(), project.id) };
 };
 
 export const actions = {
@@ -30,13 +30,12 @@ export const actions = {
 			slug: String(data.get('slug') ?? ''),
 			description: String(data.get('description') ?? '')
 		};
-		const result = saveProject(database(), projectFor(params.id)?.id, form);
+		const result = saveProject(database(), projectFor(params.id).id, form);
 		if ('error' in result) return fail(400, { error: result.error, values: form });
 		redirect(303, `/admin/projects/${result.id}`);
 	},
 	delete: ({ params }) => {
-		const project = projectFor(params.id);
-		if (project) deleteProject(database(), project.id);
+		deleteProject(database(), projectFor(params.id).id);
 		redirect(303, '/admin');
 	}
 } satisfies Actions;

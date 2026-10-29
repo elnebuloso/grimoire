@@ -35,6 +35,10 @@ async function thrown(run: () => unknown): Promise<unknown> {
 	throw new Error('expected the handler to throw');
 }
 
+function addProject(slug: string) {
+	db.prepare('INSERT INTO projects (slug) VALUES (?)').run(slug);
+}
+
 async function saveProject(id: string, fields: Record<string, string>) {
 	return projectPage.actions.save({ request: formRequest(fields), params: { id } } as never);
 }
@@ -70,8 +74,9 @@ beforeEach(() => {
 });
 
 describe('project page', () => {
-	it('creates a project and redirects to its page', async () => {
-		const result = await thrown(() => saveProject('new', { slug: 'platform', description: 'P' }));
+	it('saves a project and redirects to its page', async () => {
+		addProject('platform');
+		const result = await thrown(() => saveProject('1', { slug: 'platform', description: 'P' }));
 
 		expect(isRedirect(result) && [result.status, result.location]).toEqual([
 			303,
@@ -84,8 +89,9 @@ describe('project page', () => {
 	});
 
 	it('answers a duplicate slug with 400, the message and the entered values', async () => {
-		await thrown(() => saveProject('new', { slug: 'platform', description: '' }));
-		const result = await saveProject('new', { slug: 'platform', description: 'again' });
+		addProject('platform');
+		addProject('billing');
+		const result = await saveProject('2', { slug: 'platform', description: 'again' });
 
 		expect(result).toMatchObject({
 			status: 400,
@@ -97,7 +103,8 @@ describe('project page', () => {
 	});
 
 	it('answers an unknown or malformed id with 404', async () => {
-		for (const id of ['7', 'abc']) {
+		// `new` is the wizard's route, not this page.
+		for (const id of ['7', 'abc', 'new']) {
 			const result = await thrown(() => projectPage.load({ params: { id } } as never));
 
 			expect(isHttpError(result) && result.status).toBe(404);
@@ -105,7 +112,7 @@ describe('project page', () => {
 	});
 
 	it('deletes the project with its sources', async () => {
-		await thrown(() => saveProject('new', { slug: 'platform', description: '' }));
+		addProject('platform');
 		await thrown(() => saveSource('1', 'new', SOURCE));
 		const result = await thrown(() => projectPage.actions.delete({ params: { id: '1' } } as never));
 
@@ -115,8 +122,8 @@ describe('project page', () => {
 });
 
 describe('source page', () => {
-	beforeEach(async () => {
-		await thrown(() => saveProject('new', { slug: 'platform', description: '' }));
+	beforeEach(() => {
+		addProject('platform');
 	});
 
 	it('creates a source, requests a forced sync and redirects to its page', async () => {
@@ -163,7 +170,7 @@ describe('source page', () => {
 
 	it('answers a source of another project with 404', async () => {
 		await thrown(() => saveSource('1', 'new', SOURCE));
-		await thrown(() => saveProject('new', { slug: 'other', description: '' }));
+		addProject('other');
 
 		const result = await thrown(() => loadSource('2', '1'));
 

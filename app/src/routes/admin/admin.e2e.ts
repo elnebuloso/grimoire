@@ -62,25 +62,42 @@ test('logs out and back in, and rejects a wrong password', async ({ page }) => {
 	await expect(page).toHaveURL('/admin');
 });
 
-test('creates a project with a source and never shows its token', async ({ page }) => {
+test('creates a project with a source in the wizard and never shows its token', async ({
+	page
+}) => {
 	await logIn(page);
 	await page.getByRole('link', { name: 'New project' }).click();
 	await page.getByLabel('Slug').fill('platform');
 	await page.getByLabel('Short description').fill('Login and billing');
-	await page.getByRole('button', { name: 'Create project' }).click();
-	await expect(page.getByRole('heading', { name: 'Project platform' })).toBeVisible();
+	await page.getByRole('button', { name: 'Next' }).click();
 
-	await page.getByRole('link', { name: 'New source' }).click();
-	// The project page has a Slug field too; a client-side navigation would leave it filled instead.
-	await expect(page.getByRole('heading', { name: 'New source' })).toBeVisible();
+	await expect(page.getByRole('heading', { name: 'First source' })).toBeVisible();
 	await page.getByLabel('Slug').fill('auth-service');
-	// `.invalid` never resolves; the sync that saving starts fails without the test waiting for it.
+	// `.invalid` never resolves; the sync that creating starts fails without the test waiting for it.
 	await page.getByLabel('Git URL').fill('https://git.invalid/platform/auth.git');
 	await page.getByLabel('Username').fill('deploy');
 	await page.getByLabel('Access token').fill(TOKEN);
-	await page.getByRole('button', { name: 'Create source' }).click();
+	await page.getByRole('button', { name: 'Next' }).click();
 
-	await expect(page.getByRole('heading', { name: 'Source auth-service' })).toBeVisible();
+	await expect(page.getByRole('heading', { name: 'Summary' })).toBeVisible();
+	await expect(page.getByText('Nothing is saved until you create the project.')).toBeVisible();
+	expect(await page.content()).not.toContain(TOKEN);
+
+	await page.getByRole('button', { name: 'Back' }).click();
+	await expect(page.getByLabel('Slug')).toHaveValue('auth-service');
+	await expect(page.getByLabel('Access token')).toHaveValue('');
+	await expect(page.getByText('entered; leave empty to keep it')).toBeVisible();
+	await page.getByRole('button', { name: 'Back' }).click();
+	await expect(page.getByLabel('Slug')).toHaveValue('platform');
+
+	await page.getByRole('button', { name: 'Next' }).click();
+	await expect(page.getByRole('heading', { name: 'First source' })).toBeVisible();
+	await page.getByRole('button', { name: 'Next' }).click();
+	await expect(page.getByRole('heading', { name: 'Summary' })).toBeVisible();
+	await page.getByRole('button', { name: 'Create project' }).click();
+
+	await expect(page.getByRole('heading', { name: 'Project platform' })).toBeVisible();
+	await page.getByRole('link', { name: 'auth-service' }).click();
 	await expect(page.getByLabel('Git URL')).toHaveValue('https://git.invalid/platform/auth.git');
 	await expect(page.getByLabel('Access token')).toHaveValue('');
 	await expect(page.getByText('stored; leave empty to keep it')).toBeVisible();

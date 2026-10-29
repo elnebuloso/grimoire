@@ -43,6 +43,10 @@ A project groups sources; agents search a project as a whole. A source is one Gi
 one branch and one path in it. To serve two paths of the same repository, add it twice as two
 sources with different slugs.
 
+**New project** leads through three steps: the project, its first source, and a summary.
+Nothing is saved before **Create project** on the summary; leaving the wizard earlier leaves no
+project behind. Further sources are added on the project's page.
+
 Slug and short description of every project are public: the start page `/` lists them without
 login, with counts of sources, pages, snippets, tokens, sync errors and dead links and the oldest
 last sync. It shows nothing about the sources themselves, neither Git URLs nor error messages.
