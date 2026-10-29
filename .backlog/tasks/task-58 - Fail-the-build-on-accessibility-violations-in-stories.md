@@ -4,10 +4,12 @@ title: Fail the build on accessibility violations in stories
 status: To Do
 assignee: []
 created_date: '2026-10-29 18:52'
+updated_date: '2026-10-29 19:01'
 labels:
   - admin
 milestone: m-0
-dependencies: []
+dependencies:
+  - TASK-37
 references:
   - app/.storybook/preview.ts
   - docs/components.md
@@ -31,3 +33,9 @@ When this task was created, the five `ProjectStatsTable` stories passed with `te
 - [ ] #3 A rule switched off for a single story names its reason next to it
 - [ ] #4 `docs/components.md` says that stories must pass the accessibility check
 <!-- AC:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Decided with the user: this task starts only after TASK-37 (Finalize the frontend design). Only the agreed design brings colours, contrast and focus styles, which the strict check then judges as well.
+<!-- SECTION:NOTES:END -->
