@@ -99,8 +99,9 @@ project is not saved until it passes; changing anything else saves without askin
 | Git host | Username | Token |
 |---|---|---|
 | GitLab | The username of the deploy token, as GitLab shows it when the token is created | A deploy token with the scope `read_repository` (Settings → Repository → Deploy tokens), starting with `gldt-` |
+| Forgejo | The name of the account the token belongs to; Forgejo identifies the account by the token and accepts any username with it | An access token of that account with read access to repositories (Settings → Applications → Access tokens) |
 
-A token the Git server refuses, because it is wrong, expired or revoked, shows at **Test
+On both, a token the Git server refuses, because it is wrong, expired or revoked, shows at **Test
 connection** and as sync error of the source as `could not read Username for 'https://…':
 terminal prompts disabled`: Git was refused and would have asked for other credentials, which
 grimoire never does. The error contains neither the token nor the username.
