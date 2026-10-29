@@ -4,9 +4,10 @@ title: Component catalog and component tests with Storybook
 status: To Do
 assignee: []
 created_date: '2026-10-29T06:50:00Z'
-updated_date: '2026-10-29T06:55:00Z'
+updated_date: '2026-10-29T06:58:00Z'
 labels:
   - admin
+milestone: m-0
 dependencies: []
 references:
   - .claude/rules/svelte-kit.md

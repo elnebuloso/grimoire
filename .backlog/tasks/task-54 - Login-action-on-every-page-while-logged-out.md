@@ -4,8 +4,10 @@ title: Login action on every page while logged out
 status: To Do
 assignee: []
 created_date: '2026-10-29T06:57:00Z'
+updated_date: '2026-10-29T06:58:00Z'
 labels:
   - admin
+milestone: m-0
 dependencies: []
 references:
   - app/src/routes/+layout.svelte
