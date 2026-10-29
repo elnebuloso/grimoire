@@ -4,6 +4,7 @@ title: Component catalog and component tests with Storybook
 status: To Do
 assignee: []
 created_date: '2026-10-29T06:50:00Z'
+updated_date: '2026-10-29T06:55:00Z'
 labels:
   - admin
 dependencies: []
@@ -29,7 +30,6 @@ Decided with the user: the catalog and component tests use Storybook, set up wit
 - [ ] #2 Every component has stories for its states, including empty and error states where it has them
 - [ ] #3 Components with behaviour (input, toggles, form state) have interaction tests in their stories
 - [ ] #4 The stories run as tests in `make test` and in the CI pipeline, and a broken story fails the build
-- [ ] #5 Markup that repeats across routes is a shared component in `app/src/lib/components` with stories, and the routes use it
-- [ ] #6 A short guide for developers says where components live, that a new component comes with stories, and to look in the catalog before writing one
-- [ ] #7 Neither the production build nor the Docker image contains Storybook
+- [ ] #5 A short guide for developers says where components live, that a new component comes with stories, and to look in the catalog before writing one
+- [ ] #6 Neither the production build nor the Docker image contains Storybook
 <!-- AC:END -->
