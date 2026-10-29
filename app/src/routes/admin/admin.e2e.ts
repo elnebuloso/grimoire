@@ -60,6 +60,8 @@ test('creates a project with a source and never shows its token', async ({ page 
 	await expect(page.getByRole('heading', { name: 'Project platform' })).toBeVisible();
 
 	await page.getByRole('link', { name: 'New source' }).click();
+	// The project page has a Slug field too; a client-side navigation would leave it filled instead.
+	await expect(page.getByRole('heading', { name: 'New source' })).toBeVisible();
 	await page.getByLabel('Slug').fill('auth-service');
 	// `.invalid` never resolves; the sync that saving starts fails without the test waiting for it.
 	await page.getByLabel('Git URL').fill('https://git.invalid/platform/auth.git');
