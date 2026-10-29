@@ -87,12 +87,12 @@ test('creates a project with a source and never shows its token', async ({ page 
 	expect(await page.content()).not.toContain(TOKEN);
 
 	await page.goto('/admin');
-	await expect(page.getByRole('link', { name: 'platform' })).toBeVisible();
+	await expect(page.getByRole('link', { name: 'platform', exact: true })).toBeVisible();
 });
 
 test('syncs a source now and shows why it failed', async ({ page }) => {
 	await logIn(page);
-	await page.getByRole('link', { name: 'platform' }).click();
+	await page.getByRole('link', { name: 'platform', exact: true }).click();
 	await page.getByRole('link', { name: 'auth-service' }).click();
 
 	await page.getByRole('button', { name: 'Sync now' }).click();
@@ -100,6 +100,12 @@ test('syncs a source now and shows why it failed', async ({ page }) => {
 	await expect(page.getByRole('status')).toContainText('Sync failed: git ls-remote failed');
 	await expect(page.getByRole('alert')).toContainText('git ls-remote failed');
 	expect(await page.content()).not.toContain(TOKEN);
+
+	await page.goto('/admin');
+	const attention = page.getByRole('listitem').filter({ hasText: 'platform/auth-service' });
+	await expect(attention).toContainText('sync error: git ls-remote failed');
+	await attention.getByRole('link').click();
+	await expect(page.getByRole('heading', { name: 'Source auth-service' })).toBeVisible();
 });
 
 test('lists the projects on the public start page without any source detail', async ({ page }) => {

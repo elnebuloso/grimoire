@@ -66,6 +66,11 @@ for a new commit. Deleting a project deletes its sources and their index.
 
 ## Status and sync
 
+The start page of the admin area adds up projects, sources, pages, snippets, tokens, dead links
+and API keys, and lists under "Needs attention" every source with a sync error, sync warnings or
+no sync yet, linked to its page. Below that, each project shows the same figures as the public
+start page.
+
 The page of a source shows when it was last checked and synced, the commit, and how many pages,
 snippets and tokens it holds. A sync that failed shows its error; the index of the last
 successful sync stays in use until the next one succeeds. Pages that could not be processed are

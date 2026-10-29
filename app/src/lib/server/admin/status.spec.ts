@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import type { DatabaseSync } from 'node:sqlite';
 import { openDatabase } from '../db/schema';
 import { readById } from '../agent/operations';
-import { previewPage, sourceStatus } from './status';
+import { dashboard, previewPage, sourceStatus } from './status';
 
 let db: DatabaseSync;
 
@@ -107,5 +107,89 @@ describe('previewPage', () => {
 
 		expect(previewPage(db, 'platform', 'auth', 'other.md')).toBeUndefined();
 		expect(previewPage(db, 'platform', 'auth', 'other')).toBeUndefined();
+	});
+});
+
+describe('dashboard', () => {
+	beforeEach(() => {
+		db.exec(`
+			INSERT INTO projects (id, slug) VALUES (2, 'docs');
+			INSERT INTO sources (id, project_id, slug, git_url, branch, path, last_synced_at, error, warnings)
+			VALUES
+				(3, 2, 'broken', 'https://git.example.com/b.git', 'main', '', '2026-10-28T10:00:00Z',
+					'git ls-remote failed', '[]'),
+				(4, 2, 'noisy', 'https://git.example.com/n.git', 'main', '', '2026-10-28T10:00:00Z',
+					NULL, '["docs/a.md: skipped, bad front matter"]'),
+				(5, 2, 'fine', 'https://git.example.com/f.git', 'main', '', '2026-10-28T10:00:00Z',
+					NULL, '[]');
+			INSERT INTO api_keys (name, key_hash, all_projects) VALUES ('ci', 'hash-1', 1), ('bot', 'hash-2', 0);
+		`);
+		const deploy = insertPage(5, 'deploy.md', [
+			{ anchor: null, tokens: 30 },
+			{ anchor: 'rollback', tokens: 70 }
+		]);
+		insertPage(1, 'index.md', [{ anchor: null, tokens: 5 }]);
+		insertLink(deploy, null, 'docs/fine/gone', true);
+		insertLink(deploy, null, 'docs/fine/index', false);
+	});
+
+	it('adds up the figures of all projects and counts the API keys', () => {
+		expect(dashboard(db).totals).toEqual({
+			projects: 2,
+			sources: 5,
+			pages: 2,
+			snippets: 3,
+			tokens: 105,
+			deadLinks: 1,
+			apiKeys: 2
+		});
+	});
+
+	it('lists the sources with an error, with warnings or never synced, but not one in sync', () => {
+		expect(dashboard(db).attention).toEqual([
+			{
+				projectId: 2,
+				project: 'docs',
+				sourceId: 3,
+				source: 'broken',
+				neverSynced: false,
+				error: 'git ls-remote failed',
+				warnings: []
+			},
+			{
+				projectId: 2,
+				project: 'docs',
+				sourceId: 4,
+				source: 'noisy',
+				neverSynced: false,
+				error: null,
+				warnings: ['docs/a.md: skipped, bad front matter']
+			},
+			{
+				projectId: 1,
+				project: 'platform',
+				sourceId: 1,
+				source: 'auth',
+				neverSynced: true,
+				error: null,
+				warnings: []
+			},
+			{
+				projectId: 1,
+				project: 'platform',
+				sourceId: 2,
+				source: 'billing',
+				neverSynced: true,
+				error: null,
+				warnings: []
+			}
+		]);
+	});
+
+	it('lists the projects with the figures of the public start page', () => {
+		expect(dashboard(db).projects.map((project) => [project.slug, project.pages])).toEqual([
+			['docs', 1],
+			['platform', 1]
+		]);
 	});
 });

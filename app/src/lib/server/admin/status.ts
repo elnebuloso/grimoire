@@ -1,5 +1,6 @@
 import type { DatabaseSync } from 'node:sqlite';
 import { readById } from '../agent/operations';
+import { projectStats, type ProjectStats } from '../stats';
 
 export interface PageSummary {
 	/** Path relative to the source path, e.g. `deploy.md`. */
@@ -84,4 +85,72 @@ export function previewPage(
 	if (!file.endsWith('.md')) return undefined;
 	const result = readById(db, `${project}/${source}/${file.slice(0, -'.md'.length)}`, undefined);
 	return result.found ? result.markdown : undefined;
+}
+
+export interface Totals {
+	projects: number;
+	sources: number;
+	pages: number;
+	snippets: number;
+	tokens: number;
+	deadLinks: number;
+	apiKeys: number;
+}
+
+export interface SourceNeedingAttention {
+	projectId: number;
+	project: string;
+	sourceId: number;
+	source: string;
+	neverSynced: boolean;
+	error: string | null;
+	warnings: string[];
+}
+
+export interface Dashboard {
+	totals: Totals;
+	projects: ProjectStats[];
+	/** Sources with a sync error, sync warnings, or no sync yet. */
+	attention: SourceNeedingAttention[];
+}
+
+export function dashboard(db: DatabaseSync): Dashboard {
+	const projects = projectStats(db);
+	const sum = (figure: 'sources' | 'pages' | 'snippets' | 'tokens' | 'deadLinks') =>
+		projects.reduce((total, project) => total + project[figure], 0);
+	const { apiKeys } = db.prepare('SELECT count(*) AS apiKeys FROM api_keys').get() as {
+		apiKeys: number;
+	};
+	const rows = db
+		.prepare(
+			`SELECT projects.id AS projectId, projects.slug AS project, sources.id AS sourceId,
+				sources.slug AS source, sources.last_synced_at IS NULL AS neverSynced, sources.error,
+				sources.warnings
+			FROM sources JOIN projects ON projects.id = sources.project_id
+			WHERE sources.error IS NOT NULL OR sources.warnings != '[]'
+				OR sources.last_synced_at IS NULL
+			ORDER BY projects.slug, sources.slug`
+		)
+		.all() as unknown as (Omit<SourceNeedingAttention, 'neverSynced' | 'warnings'> & {
+		neverSynced: number;
+		warnings: string;
+	})[];
+
+	return {
+		totals: {
+			projects: projects.length,
+			sources: sum('sources'),
+			pages: sum('pages'),
+			snippets: sum('snippets'),
+			tokens: sum('tokens'),
+			deadLinks: sum('deadLinks'),
+			apiKeys
+		},
+		projects,
+		attention: rows.map((row) => ({
+			...row,
+			neverSynced: row.neverSynced === 1,
+			warnings: JSON.parse(row.warnings) as string[]
+		}))
+	};
 }

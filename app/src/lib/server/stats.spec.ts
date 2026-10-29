@@ -60,6 +60,7 @@ describe('projectStats', () => {
 
 		expect(projectStats(db)).toEqual([
 			{
+				id: project,
 				slug: 'platform',
 				description: 'Login',
 				sources: 2,
@@ -74,9 +75,10 @@ describe('projectStats', () => {
 	});
 
 	it('shows a project without sources with zeros and no sync', () => {
-		insert(`INSERT INTO projects (slug) VALUES ('empty')`);
+		const project = insert(`INSERT INTO projects (slug) VALUES ('empty')`);
 		expect(projectStats(db)).toEqual([
 			{
+				id: project,
 				slug: 'empty',
 				description: '',
 				sources: 0,

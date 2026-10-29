@@ -1,5 +1,5 @@
 import type { PageServerLoad } from './$types';
 import { database } from '#lib/server/db/index.js';
-import { listProjects } from '#lib/server/admin/projects.js';
+import { dashboard } from '#lib/server/admin/status.js';
 
-export const load: PageServerLoad = () => ({ projects: listProjects(database()) });
+export const load: PageServerLoad = () => dashboard(database());

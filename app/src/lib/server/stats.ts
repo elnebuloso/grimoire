@@ -2,6 +2,7 @@ import type { DatabaseSync } from 'node:sqlite';
 
 /** Figures about a project that are safe to show without login: counts and times only. */
 export interface ProjectStats {
+	id: number;
 	slug: string;
 	description: string;
 	sources: number;
@@ -17,7 +18,7 @@ export interface ProjectStats {
 export function projectStats(db: DatabaseSync): ProjectStats[] {
 	return db
 		.prepare(
-			`SELECT projects.slug, projects.description,
+			`SELECT projects.id, projects.slug, projects.description,
 				(SELECT count(*) FROM sources WHERE project_id = projects.id) AS sources,
 				(SELECT count(*) FROM pages JOIN sources ON sources.id = pages.source_id
 					WHERE sources.project_id = projects.id) AS pages,
