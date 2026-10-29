@@ -9,6 +9,17 @@ export const SESSION_COOKIE = 'grimoire_session';
 export const sessionCookieOptions = { path: '/', httpOnly: true, sameSite: 'strict' } as const;
 
 export const MIN_PASSWORD_LENGTH = 12;
+
+/** What a user may do; `admin` manages everything in the admin area. */
+export const ROLES = ['admin'] as const;
+export type Role = (typeof ROLES)[number];
+
+/** The user a session belongs to. */
+export interface SessionUser {
+	id: number;
+	username: string;
+	roles: Role[];
+}
 const SESSION_HOURS = 12;
 const MAX_FAILED_LOGINS = 10;
 const BLOCK_MINUTES = 15;
@@ -56,21 +67,46 @@ function passwordMatches(password: string, stored: string): boolean {
 	);
 }
 
-function findAdmin(db: DatabaseSync) {
-	return db.prepare('SELECT username, password_hash FROM admin WHERE id = 1').get() as
-		{ username: string; password_hash: string } | undefined;
+// Compared against when a username is unknown, so a login takes as long as with a known one.
+let unknownUserHash: string | undefined;
+
+function findUser(db: DatabaseSync, username: string) {
+	return db
+		.prepare('SELECT id, username, password_hash FROM users WHERE username = ?')
+		.get(username) as { id: number; username: string; password_hash: string } | undefined;
 }
 
-export function adminUsername(db: DatabaseSync): string | undefined {
-	return findAdmin(db)?.username;
+function adminExists(db: DatabaseSync): boolean {
+	return db.prepare("SELECT 1 FROM user_roles WHERE role = 'admin'").get() !== undefined;
+}
+
+/** Creates a user with the given roles; the username must be free. Returns the new id. */
+export function createUser(
+	db: DatabaseSync,
+	form: { username: string; password: string; roles: Role[] }
+): number {
+	db.exec('BEGIN IMMEDIATE');
+	try {
+		const { lastInsertRowid } = db
+			.prepare('INSERT INTO users (username, password_hash) VALUES (?, ?)')
+			.run(form.username, hashPassword(form.password));
+		for (const role of form.roles) {
+			db.prepare('INSERT INTO user_roles (user_id, role) VALUES (?, ?)').run(lastInsertRowid, role);
+		}
+		db.exec('COMMIT');
+		return Number(lastInsertRowid);
+	} catch (error) {
+		if (db.isTransaction) db.exec('ROLLBACK');
+		throw error;
+	}
 }
 
 /**
- * Whether the admin account exists. While it does not, a setup token is created and written to
- * the log once; an account that disappears while the server runs is reported as a reset.
+ * Whether a user with the role `admin` exists. While none does, a setup token is created and
+ * written to the log once; the last admin disappearing while the server runs is reported as a reset.
  */
 export function checkAdminAccount(db: DatabaseSync): boolean {
-	if (findAdmin(db)) {
+	if (adminExists(db)) {
 		adminSeen = true;
 		setupTokenValue = undefined;
 		return true;
@@ -88,7 +124,7 @@ export function checkAdminAccount(db: DatabaseSync): boolean {
 	return false;
 }
 
-/** Creates the admin account; returns why when it cannot. */
+/** Creates the first user, with the role `admin`; returns why when it cannot. */
 export function setupAdmin(
 	db: DatabaseSync,
 	form: { token: string; username: string; password: string }
@@ -97,10 +133,7 @@ export function setupAdmin(
 	if (!setupTokenValue || !sameText(form.token, setupTokenValue)) return 'wrong-setup-token';
 	if (!form.username.trim()) return 'username-missing';
 	if (form.password.length < MIN_PASSWORD_LENGTH) return 'password-too-short';
-	db.prepare('INSERT INTO admin (id, username, password_hash) VALUES (1, ?, ?)').run(
-		form.username.trim(),
-		hashPassword(form.password)
-	);
+	createUser(db, { username: form.username.trim(), password: form.password, roles: ['admin'] });
 	checkAdminAccount(db);
 	return undefined;
 }
@@ -116,18 +149,16 @@ export function login(
 	now = new Date()
 ): { session: string } | { error: AuthProblem } {
 	if (isBlocked(client, now)) return { error: 'blocked' };
-	const admin = findAdmin(db);
-	// The password is checked even for a wrong username, so the answer time does not tell which.
-	const valid =
-		admin !== undefined &&
-		passwordMatches(form.password, admin.password_hash) &&
-		sameText(form.username, admin.username);
-	if (!valid) {
+	const user = findUser(db, form.username);
+	// A password is checked even for an unknown username, so the answer time does not tell which.
+	unknownUserHash ??= hashPassword(randomBytes(16).toString('hex'));
+	const matches = passwordMatches(form.password, user?.password_hash ?? unknownUserHash);
+	if (!user || !matches) {
 		recordFailedLogin(client, now);
 		return { error: 'wrong-credentials' };
 	}
 	failedLogins.delete(client);
-	return { session: createSession(db, now) };
+	return { session: createSession(db, user.id, now) };
 }
 
 function isBlocked(client: string, now: Date): boolean {
@@ -143,7 +174,7 @@ function recordFailedLogin(client: string, now: Date) {
 }
 
 /**
- * Replaces the admin password and ends every session but `session`, the one making the change.
+ * Replaces the password of the user of `session` and ends every other session of that user.
  * A wrong current password counts as a failed login of `client`. Returns why when nothing was
  * changed.
  */
@@ -155,8 +186,9 @@ export function changePassword(
 	now = new Date()
 ): AuthProblem | undefined {
 	if (isBlocked(client, now)) return 'blocked';
-	const admin = findAdmin(db);
-	if (!admin || !passwordMatches(form.current, admin.password_hash)) {
+	const user = sessionUser(db, session, now);
+	const stored = user && findUser(db, user.username);
+	if (!stored || !passwordMatches(form.current, stored.password_hash)) {
 		recordFailedLogin(client, now);
 		return 'wrong-current-password';
 	}
@@ -164,8 +196,14 @@ export function changePassword(
 	if (form.password.length < MIN_PASSWORD_LENGTH) return 'new-password-too-short';
 	db.exec('BEGIN IMMEDIATE');
 	try {
-		db.prepare('UPDATE admin SET password_hash = ? WHERE id = 1').run(hashPassword(form.password));
-		db.prepare('DELETE FROM admin_sessions WHERE token_hash != ?').run(sha256(session));
+		db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(
+			hashPassword(form.password),
+			stored.id
+		);
+		db.prepare('DELETE FROM sessions WHERE user_id = ? AND token_hash != ?').run(
+			stored.id,
+			sha256(session)
+		);
 		db.exec('COMMIT');
 	} catch (error) {
 		if (db.isTransaction) db.exec('ROLLBACK');
@@ -174,44 +212,60 @@ export function changePassword(
 	return undefined;
 }
 
-function createSession(db: DatabaseSync, now: Date): string {
+function createSession(db: DatabaseSync, userId: number, now: Date): string {
 	const token = randomBytes(32).toString('base64url');
 	const expiresAt = new Date(now.getTime() + SESSION_HOURS * 3_600_000).toISOString();
-	db.prepare('INSERT INTO admin_sessions (token_hash, expires_at) VALUES (?, ?)').run(
+	db.prepare('INSERT INTO sessions (token_hash, user_id, expires_at) VALUES (?, ?, ?)').run(
 		sha256(token),
+		userId,
 		expiresAt
 	);
 	return token;
 }
 
-/** Whether the token belongs to a session that has not expired. */
-export function sessionValid(
+/** The user of a session that has not expired; undefined for none. */
+export function sessionUser(
 	db: DatabaseSync,
 	token: string | undefined,
 	now = new Date()
-): boolean {
-	if (!token) return false;
-	return (
-		db
-			.prepare('SELECT 1 FROM admin_sessions WHERE token_hash = ? AND expires_at > ?')
-			.get(sha256(token), now.toISOString()) !== undefined
-	);
+): SessionUser | undefined {
+	if (!token) return undefined;
+	const row = db
+		.prepare(
+			`SELECT users.id, users.username,
+				(SELECT json_group_array(role) FROM user_roles WHERE user_id = users.id) AS roles
+			FROM sessions JOIN users ON users.id = sessions.user_id
+			WHERE sessions.token_hash = ? AND sessions.expires_at > ?`
+		)
+		.get(sha256(token), now.toISOString()) as
+		{ id: number; username: string; roles: string } | undefined;
+	return row && { id: row.id, username: row.username, roles: JSON.parse(row.roles) as Role[] };
 }
 
 export function deleteSession(db: DatabaseSync, token: string) {
-	db.prepare('DELETE FROM admin_sessions WHERE token_hash = ?').run(sha256(token));
+	db.prepare('DELETE FROM sessions WHERE token_hash = ?').run(sha256(token));
 }
 
 /**
- * Deletes the admin account and all sessions, but only when `username` names the current admin,
- * so a reset needs to know whose account it removes. Returns whether it did.
+ * Deletes a user with the role `admin` and their sessions, but only when `username` names one, so
+ * a reset needs to know whose account it removes. Returns whether it did. Without another admin,
+ * the admin area offers the setup again.
  */
 export function resetAdmin(db: DatabaseSync, username: string): boolean {
-	const admin = findAdmin(db);
-	if (!admin || admin.username !== username.trim()) return false;
+	const admin = db
+		.prepare(
+			`SELECT users.id FROM users JOIN user_roles ON user_roles.user_id = users.id
+			WHERE users.username = ? AND user_roles.role = 'admin'`
+		)
+		.get(username.trim()) as { id: number } | undefined;
+	if (!admin) return false;
 	db.exec('BEGIN IMMEDIATE');
 	try {
-		db.exec('DELETE FROM admin_sessions; DELETE FROM admin;');
+		// Deleted one by one: the reset script opens the file without enforcing foreign keys.
+		for (const table of ['sessions', 'user_roles']) {
+			db.prepare(`DELETE FROM ${table} WHERE user_id = ?`).run(admin.id);
+		}
+		db.prepare('DELETE FROM users WHERE id = ?').run(admin.id);
 		db.exec('COMMIT');
 	} catch (error) {
 		if (db.isTransaction) db.exec('ROLLBACK');
@@ -222,16 +276,21 @@ export function resetAdmin(db: DatabaseSync, username: string): boolean {
 
 /**
  * Where a request for an admin path must go instead: the setup while there is no admin, the
- * login without a valid session, `'not-found'` for the setup once it is done; undefined to serve it.
+ * login without a valid session, `'not-found'` for the setup once it is done, `'forbidden'` for a
+ * user without the role `admin`; undefined to serve it. Login and logout stay open to every user,
+ * so one without the role can leave and log in as someone else.
  */
 export function adminAccessRedirect(
 	db: DatabaseSync,
 	pathname: string,
 	session: string | undefined
-): string | 'not-found' | undefined {
+): string | 'not-found' | 'forbidden' | undefined {
 	if (!checkAdminAccount(db)) return pathname === '/admin/setup' ? undefined : '/admin/setup';
 	if (pathname === '/admin/setup') return 'not-found';
-	const loggedIn = sessionValid(db, session);
-	if (pathname === '/admin/login') return loggedIn ? '/admin' : undefined;
-	return loggedIn ? undefined : '/admin/login';
+	const user = sessionUser(db, session);
+	const isAdmin = user?.roles.includes('admin') ?? false;
+	if (pathname === '/admin/login') return isAdmin ? '/admin' : undefined;
+	if (!user) return '/admin/login';
+	if (pathname === '/admin/logout') return undefined;
+	return isAdmin ? undefined : 'forbidden';
 }

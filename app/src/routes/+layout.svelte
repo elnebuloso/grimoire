@@ -18,8 +18,8 @@
 </svelte:head>
 
 <header>
-	{#if data.admin}
-		<p>{m.header_logged_in_as()} <a href={resolve('/admin')}>{data.admin}</a></p>
+	{#if data.user}
+		<p>{m.header_logged_in_as()} <a href={resolve('/admin')}>{data.user}</a></p>
 		<form method="post" action="/admin/logout">
 			<button>{m.header_log_out()}</button>
 		</form>

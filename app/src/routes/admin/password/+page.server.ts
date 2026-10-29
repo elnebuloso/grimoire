@@ -1,10 +1,12 @@
 import { fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { database } from '#lib/server/db/index.js';
-import { adminUsername, changePassword, SESSION_COOKIE } from '#lib/server/admin/auth.js';
+import { changePassword, SESSION_COOKIE, sessionUser } from '#lib/server/admin/auth.js';
 import { authMessage } from '#lib/server/admin/auth-messages.js';
 
-export const load: PageServerLoad = () => ({ username: adminUsername(database()) });
+export const load: PageServerLoad = ({ cookies }) => ({
+	username: sessionUser(database(), cookies.get(SESSION_COOKIE))?.username
+});
 
 export const actions = {
 	default: async ({ request, cookies, getClientAddress }) => {

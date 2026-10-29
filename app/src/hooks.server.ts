@@ -39,6 +39,7 @@ export const handleAdminAccess: Handle = ({ event, resolve }) => {
 	if (pathname !== '/admin' && !pathname.startsWith('/admin/')) return resolve(event);
 	const target = adminAccessRedirect(database(), pathname, event.cookies.get(SESSION_COOKIE));
 	if (target === 'not-found') error(404);
+	if (target === 'forbidden') error(403);
 	if (target) redirect(303, target);
 	return resolve(event);
 };

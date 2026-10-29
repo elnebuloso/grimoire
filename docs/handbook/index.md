@@ -12,7 +12,7 @@ documentation it serves.
   volume.
 - [Database](database.md): configuration, the volume for the SQLite file, the sync schedule,
   access tokens and backups.
-- [Admin area](admin.md): the admin account, projects and sources, their status, API keys and a
+- [Admin area](admin.md): users and roles, projects and sources, their status, API keys and a
   lost password.
 - [Connecting agents](agents.md): MCP, HTTP and the `CLAUDE.md` snippet.
 - [Writing documentation](writing.md): pages that split into useful snippets.

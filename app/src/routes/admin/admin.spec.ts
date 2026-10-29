@@ -119,7 +119,7 @@ describe('setup action', () => {
 		expect(cookies.calls).toEqual([
 			{ name: 'grimoire_session', value: expect.any(String), options: SESSION_OPTIONS }
 		]);
-		expect(admin.auth.sessionValid(db, cookies.get('grimoire_session'))).toBe(true);
+		expect(admin.auth.sessionUser(db, cookies.get('grimoire_session'))).toBeDefined();
 	});
 
 	it('answers a wrong token with 400, the message and the username, without a cookie', async () => {
@@ -162,6 +162,19 @@ describe('login action', () => {
 		]);
 	});
 
+	it('sends a user without the role admin to the start page instead of a 403', async () => {
+		admin.auth.createUser(db, { username: 'editor', password: PASSWORD, roles: [] });
+		const result = await thrown(() =>
+			admin.login({
+				request: formRequest('/admin/login', { username: 'editor', password: PASSWORD }),
+				cookies: fakeCookies(),
+				getClientAddress: () => 'client'
+			} as never)
+		);
+
+		expect(isRedirect(result) && result.location).toBe('/');
+	});
+
 	it('answers wrong credentials with 400 and the username, without a cookie', async () => {
 		const cookies = fakeCookies();
 		const result = await admin.login({
@@ -187,7 +200,7 @@ describe('logout', () => {
 		);
 
 		expect(isRedirect(result) && [result.status, result.location]).toEqual([303, '/admin/login']);
-		expect(admin.auth.sessionValid(db, session)).toBe(false);
+		expect(admin.auth.sessionUser(db, session)).toBeUndefined();
 		expect(cookies.calls).toEqual([
 			{ name: 'grimoire_session', options: SESSION_OPTIONS, deleted: true }
 		]);
@@ -207,7 +220,7 @@ describe('password action', () => {
 		} as never);
 
 		expect(result).toEqual({ changed: true });
-		expect(admin.auth.sessionValid(db, session)).toBe(true);
+		expect(admin.auth.sessionUser(db, session)).toBeDefined();
 		expect(
 			'session' in
 				admin.auth.login(db, 'other', { username: 'admin', password: 'staple battery horse' })
@@ -243,6 +256,17 @@ describe('admin access guard', () => {
 
 		expect(isRedirect(result) && [result.status, result.location]).toEqual([303, '/admin/setup']);
 		expect(await request('/admin/setup').run()).toBe(served);
+	});
+
+	it('answers 403 to a user without the role admin', async () => {
+		await setUpAdmin();
+		admin.auth.createUser(db, { username: 'editor', password: PASSWORD, roles: [] });
+		const login = admin.auth.login(db, 'editor-pc', { username: 'editor', password: PASSWORD });
+		if (!('session' in login)) throw new Error(login.error);
+
+		const result = await thrown(request('/admin', login.session).run);
+
+		expect(isHttpError(result) && result.status).toBe(403);
 	});
 
 	it('hides the setup once done and requires a session for the admin area', async () => {

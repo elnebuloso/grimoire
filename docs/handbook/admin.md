@@ -1,11 +1,18 @@
 # Admin area
 
-The admin area at `/admin` manages projects, sources, API keys and the settings of the instance. It has one local admin
-account, set up in the browser on first start.
+The admin area at `/admin` manages projects, sources, API keys and the settings of the instance.
+
+## Users and roles
+
+Everyone who logs in is a user with a username and a password of their own. What a user may do
+follows from their roles; a user can hold several. Today there is one role, `admin`, which may use
+the whole admin area. A logged-in user without it gets `403` there, but can still log out and log
+in as someone else. The first user, with the role `admin`, is created in the browser on first
+start; adding further users comes in a later version.
 
 ## First start
 
-While there is no admin account, every page of the admin area leads to `/admin/setup` instead of
+While no user has the role `admin`, every page of the admin area leads to `/admin/setup` instead of
 the login. Setting up needs a one-time setup token, which grimoire writes to its log on start:
 
 ```text
@@ -47,7 +54,8 @@ browser sends no such header. To try grimoire locally, put a proxy in front, as 
 
 **Change the password** in the admin area asks for the current password and a new one of at least
 12 characters. A wrong current password counts as a failed login. After the change, every other
-session is logged out; the browser that made the change stays logged in.
+session of that user is logged out; the browser that made the change stays logged in. Other
+users stay logged in.
 
 ## Projects and sources
 
@@ -154,9 +162,10 @@ account with the script in the container:
 docker exec -it grimoire node scripts/reset-admin.ts
 ```
 
-It asks for the username of the admin account and deletes it, together with all sessions, only
-when the name matches; without a terminal (no `-it`) it refuses to run. grimoire keeps running,
-logs `Admin account was reset.` and a new setup token, and the admin area offers the setup again.
+It asks for the username of a user with the role `admin` and deletes that user, together with
+their sessions, only when the name matches; without a terminal (no `-it`) it refuses to run.
+grimoire keeps running. When no other user has the role `admin`, it logs `Admin account was reset.`
+and a new setup token, and the admin area offers the setup again.
 
 The script cannot be protected by a password of its own: whoever can run commands in the
 container can read the database anyway. What protects the admin account is who may use

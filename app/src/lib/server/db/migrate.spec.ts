@@ -128,6 +128,25 @@ describe('migrate', () => {
 			{ slug: 'auth', encrypted_token: null }
 		]);
 	});
+
+	it('turns the one admin into the first user with the role admin and keeps their sessions', () => {
+		const db = new DatabaseSync(':memory:');
+		const usersMigration = shippedMigrations.findIndex(({ name }) => name === '0010-users.sql');
+		migrate(db, shippedMigrations.slice(0, usersMigration));
+		db.exec(`INSERT INTO admin (id, username, password_hash) VALUES (1, 'admin', 'salt$hash');
+			INSERT INTO admin_sessions (token_hash, expires_at) VALUES ('abc', '2026-10-30T00:00:00Z');`);
+
+		migrate(db, shippedMigrations.slice(0, usersMigration + 1));
+		expect(rows(db, 'SELECT id, username, password_hash FROM users')).toEqual([
+			{ id: 1, username: 'admin', password_hash: 'salt$hash' }
+		]);
+		expect(rows(db, 'SELECT user_id, role FROM user_roles')).toEqual([
+			{ user_id: 1, role: 'admin' }
+		]);
+		expect(rows(db, 'SELECT token_hash, user_id FROM sessions')).toEqual([
+			{ token_hash: 'abc', user_id: 1 }
+		]);
+	});
 });
 
 describe('openMigratedDatabase', () => {

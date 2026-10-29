@@ -32,8 +32,9 @@ try {
 	for (const table of [
 		'api_key_projects',
 		'api_keys',
-		'admin_sessions',
-		'admin',
+		'sessions',
+		'user_roles',
+		'users',
 		'links',
 		'snippets',
 		'snippets_fts',
@@ -46,9 +47,11 @@ try {
 	// Back to the defaults of every setting, including ones added later.
 	db.exec('DELETE FROM settings; INSERT INTO settings (id) VALUES (1)');
 
-	db.prepare('INSERT INTO admin (id, username, password_hash) VALUES (1, ?, ?)').run(
-		'agent',
-		hashPassword('agent-password')
+	const agent = db
+		.prepare('INSERT INTO users (username, password_hash) VALUES (?, ?)')
+		.run('agent', hashPassword('agent-password'));
+	db.prepare("INSERT INTO user_roles (user_id, role) VALUES (?, 'admin')").run(
+		agent.lastInsertRowid
 	);
 	db.prepare('INSERT INTO api_keys (name, key_hash, all_projects) VALUES (?, ?, 1)').run(
 		'agent',

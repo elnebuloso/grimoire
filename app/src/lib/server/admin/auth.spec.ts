@@ -75,7 +75,7 @@ describe('setup', () => {
 		const token = loggedToken();
 		setUp();
 
-		const stored = db.prepare('SELECT password_hash FROM admin').get() as { password_hash: string };
+		const stored = db.prepare('SELECT password_hash FROM users').get() as { password_hash: string };
 		expect(stored.password_hash).not.toContain(PASSWORD);
 		expect(auth.setupAdmin(db, { token, username: 'other', password: PASSWORD })).toBe(
 			'admin-exists'
@@ -91,7 +91,11 @@ describe('login', () => {
 			auth.login(db, 'client', { username: 'admin', password: PASSWORD }, NOW)
 		);
 
-		expect(auth.sessionValid(db, session, NOW)).toBe(true);
+		expect(auth.sessionUser(db, session, NOW)).toEqual({
+			id: 1,
+			username: 'admin',
+			roles: ['admin']
+		});
 	});
 
 	it('rejects a wrong password or username alike', () => {
@@ -128,10 +132,86 @@ describe('login', () => {
 			auth.login(db, 'client', { username: 'admin', password: PASSWORD }, NOW)
 		);
 
-		expect(auth.sessionValid(db, first, new Date(NOW.getTime() + 12 * 3_600_000))).toBe(false);
+		expect(auth.sessionUser(db, first, new Date(NOW.getTime() + 12 * 3_600_000))).toBeUndefined();
 		auth.deleteSession(db, second);
-		expect(auth.sessionValid(db, second, NOW)).toBe(false);
-		expect(auth.sessionValid(db, undefined, NOW)).toBe(false);
+		expect(auth.sessionUser(db, second, NOW)).toBeUndefined();
+		expect(auth.sessionUser(db, undefined, NOW)).toBeUndefined();
+	});
+});
+
+describe('several users', () => {
+	const EDITOR_PASSWORD = 'editor horse battery';
+
+	beforeEach(() => {
+		setUp();
+		auth.createUser(db, { username: 'editor', password: EDITOR_PASSWORD, roles: [] });
+	});
+
+	it('logs each user in with their own password and roles', () => {
+		const admin = sessionOf(auth.login(db, 'a', { username: 'admin', password: PASSWORD }, NOW));
+		const editor = sessionOf(
+			auth.login(db, 'b', { username: 'editor', password: EDITOR_PASSWORD }, NOW)
+		);
+
+		expect(auth.sessionUser(db, admin, NOW)).toMatchObject({ username: 'admin', roles: ['admin'] });
+		expect(auth.sessionUser(db, editor, NOW)).toMatchObject({ username: 'editor', roles: [] });
+		expect(auth.login(db, 'b', { username: 'editor', password: PASSWORD }, NOW)).toEqual({
+			error: 'wrong-credentials'
+		});
+	});
+
+	it('refuses a second user with the same username', () => {
+		expect(() =>
+			auth.createUser(db, { username: 'editor', password: PASSWORD, roles: ['admin'] })
+		).toThrow(/UNIQUE/);
+	});
+
+	it('changes the password and ends the other sessions of the one user only', () => {
+		const admin = sessionOf(auth.login(db, 'a', { username: 'admin', password: PASSWORD }, NOW));
+		const editor = sessionOf(
+			auth.login(db, 'b', { username: 'editor', password: EDITOR_PASSWORD }, NOW)
+		);
+		const editorElsewhere = sessionOf(
+			auth.login(db, 'c', { username: 'editor', password: EDITOR_PASSWORD }, NOW)
+		);
+
+		expect(
+			auth.changePassword(
+				db,
+				'b',
+				editor,
+				{ current: EDITOR_PASSWORD, password: 'a new editor pass' },
+				NOW
+			)
+		).toBeUndefined();
+
+		expect(auth.sessionUser(db, editor, NOW)).toBeDefined();
+		expect(auth.sessionUser(db, editorElsewhere, NOW)).toBeUndefined();
+		expect(auth.sessionUser(db, admin, NOW)).toBeDefined();
+		expect('session' in auth.login(db, 'a', { username: 'admin', password: PASSWORD }, NOW)).toBe(
+			true
+		);
+	});
+
+	it('keeps a user without the role admin out of the admin area, but lets them log out or in', () => {
+		const editor = sessionOf(
+			auth.login(db, 'b', { username: 'editor', password: EDITOR_PASSWORD })
+		);
+
+		expect(auth.adminAccessRedirect(db, '/admin', editor)).toBe('forbidden');
+		expect(auth.adminAccessRedirect(db, '/admin/projects/1', editor)).toBe('forbidden');
+		expect(auth.adminAccessRedirect(db, '/admin/logout', editor)).toBeUndefined();
+		expect(auth.adminAccessRedirect(db, '/admin/login', editor)).toBeUndefined();
+	});
+
+	it('offers the setup again while no user has the role admin, even with other users', () => {
+		expect(auth.resetAdmin(db, 'editor')).toBe(false);
+		expect(auth.resetAdmin(db, 'admin')).toBe(true);
+
+		expect(auth.checkAdminAccount(db)).toBe(false);
+		expect(auth.adminAccessRedirect(db, '/admin', undefined)).toBe('/admin/setup');
+		setUp('new-admin');
+		expect(auth.checkAdminAccount(db)).toBe(true);
 	});
 });
 
@@ -157,9 +237,9 @@ describe('changePassword', () => {
 
 		expect('session' in login(NEW_PASSWORD)).toBe(true);
 		expect(login(PASSWORD)).toEqual({ error: 'wrong-credentials' });
-		expect(auth.sessionValid(db, current, NOW)).toBe(true);
-		expect(auth.sessionValid(db, other, NOW)).toBe(false);
-		const stored = db.prepare('SELECT password_hash FROM admin').get() as { password_hash: string };
+		expect(auth.sessionUser(db, current, NOW)).toBeDefined();
+		expect(auth.sessionUser(db, other, NOW)).toBeUndefined();
+		const stored = db.prepare('SELECT password_hash FROM users').get() as { password_hash: string };
 		expect(stored.password_hash).not.toContain(NEW_PASSWORD);
 	});
 
@@ -178,7 +258,7 @@ describe('changePassword', () => {
 			auth.changePassword(db, 'laptop', current, { current: PASSWORD, password: NEW_PASSWORD }, NOW)
 		).toBe('blocked');
 		expect('session' in login(PASSWORD)).toBe(true);
-		expect(auth.sessionValid(db, other, NOW)).toBe(true);
+		expect(auth.sessionUser(db, other, NOW)).toBeDefined();
 	});
 
 	it('rejects a new password shorter than 12 characters', () => {
@@ -186,7 +266,7 @@ describe('changePassword', () => {
 			auth.changePassword(db, 'laptop', current, { current: PASSWORD, password: 'short pass' }, NOW)
 		).toBe('new-password-too-short');
 		expect('session' in login(PASSWORD)).toBe(true);
-		expect(auth.sessionValid(db, other, NOW)).toBe(true);
+		expect(auth.sessionUser(db, other, NOW)).toBeDefined();
 	});
 });
 
@@ -224,7 +304,7 @@ describe('resetAdmin', () => {
 		auth.checkAdminAccount(db);
 
 		expect(auth.resetAdmin(db, ' admin ')).toBe(true);
-		expect(auth.sessionValid(db, session)).toBe(false);
+		expect(auth.sessionUser(db, session)).toBeUndefined();
 		expect(auth.adminAccessRedirect(db, '/admin', session)).toBe('/admin/setup');
 		expect(logged()).toContain('Admin account was reset.');
 		expect(loggedToken()).not.toBe(firstToken?.split(' ').at(-1));
@@ -237,7 +317,8 @@ describe('scripts/reset-admin.ts', () => {
 		setUp();
 		const path = join(mkdtempSync(join(tmpdir(), 'grimoire-reset-')), 'grimoire.db');
 		const fileDb = openDatabase(path);
-		fileDb.exec("INSERT INTO admin (id, username, password_hash) VALUES (1, 'admin', 'x')");
+		fileDb.exec("INSERT INTO users (id, username, password_hash) VALUES (1, 'admin', 'x')");
+		fileDb.exec("INSERT INTO user_roles (user_id, role) VALUES (1, 'admin')");
 		fileDb.close();
 
 		const script = join(import.meta.dirname, '../../../../../scripts/reset-admin.ts');
@@ -250,7 +331,7 @@ describe('scripts/reset-admin.ts', () => {
 
 		expect(result.status).toBe(1);
 		expect(result.stderr).toContain('Run this in a terminal');
-		expect(check.prepare('SELECT username FROM admin').get()).toEqual({ username: 'admin' });
+		expect(check.prepare('SELECT username FROM users').get()).toEqual({ username: 'admin' });
 		check.close();
 	});
 });

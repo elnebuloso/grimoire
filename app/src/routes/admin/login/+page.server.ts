@@ -1,7 +1,12 @@
 import { fail, redirect } from '@sveltejs/kit';
 import type { Actions } from './$types';
 import { database } from '#lib/server/db/index.js';
-import { login, SESSION_COOKIE, sessionCookieOptions } from '#lib/server/admin/auth.js';
+import {
+	login,
+	SESSION_COOKIE,
+	sessionCookieOptions,
+	sessionUser
+} from '#lib/server/admin/auth.js';
 import { authMessage } from '#lib/server/admin/auth-messages.js';
 
 // A plain form needs no JavaScript; hydrating it would reset what was typed before it finished.
@@ -14,10 +19,13 @@ export const actions = {
 			username: String(data.get('username') ?? ''),
 			password: String(data.get('password') ?? '')
 		};
-		const result = login(database(), getClientAddress(), form);
+		const db = database();
+		const result = login(db, getClientAddress(), form);
 		if ('error' in result)
 			return fail(400, { error: authMessage(result.error), username: form.username });
 		cookies.set(SESSION_COOKIE, result.session, sessionCookieOptions);
-		redirect(303, '/admin');
+		// The admin area would answer 403 to a user without the role; the start page shows them
+		// logged in, with the logout.
+		redirect(303, sessionUser(db, result.session)?.roles.includes('admin') ? '/admin' : '/');
 	}
 } satisfies Actions;
