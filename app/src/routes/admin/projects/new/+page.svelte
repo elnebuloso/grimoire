@@ -3,18 +3,20 @@
 	import ChoiceField from '#lib/components/ChoiceField.svelte';
 	import DescriptionList from '#lib/components/DescriptionList.svelte';
 	import FormError from '#lib/components/FormError.svelte';
+	import NameField from '#lib/components/NameField.svelte';
 	import TextAreaField from '#lib/components/TextAreaField.svelte';
 	import TextField from '#lib/components/TextField.svelte';
 	import { m } from '#lib/paraglide/messages.js';
+	import { slugify } from '#lib/slug.js';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
 
 	const values = $derived(
 		form?.values ?? {
-			project: { slug: '', description: '' },
+			project: { name: '', description: '' },
 			source: {
-				slug: '',
+				name: '',
 				gitUrl: '',
 				branch: 'main',
 				path: 'docs/',
@@ -36,21 +38,21 @@
 
 {#snippet projectFields(visible: boolean)}
 	{#if visible}
-		<TextField label={m.field_slug()} name="projectSlug" required value={values.project.slug} />
+		<NameField label={m.field_name()} name="projectName" value={values.project.name} />
 		<TextField
 			label={m.field_description()}
 			name="description"
 			value={values.project.description}
 		/>
 	{:else}
-		<input type="hidden" name="projectSlug" value={values.project.slug} />
+		<input type="hidden" name="projectName" value={values.project.name} />
 		<input type="hidden" name="description" value={values.project.description} />
 	{/if}
 {/snippet}
 
 {#snippet sourceFields(visible: boolean)}
 	{#if visible}
-		<TextField label={m.field_slug()} name="sourceSlug" required value={values.source.slug} />
+		<NameField label={m.field_name()} name="sourceName" value={values.source.name} />
 		<TextField
 			label={m.field_git_url()}
 			name="gitUrl"
@@ -82,7 +84,7 @@
 			<ChoiceField name="removeToken" label={m.field_remove_entered_token()} />
 		{/if}
 	{:else}
-		<input type="hidden" name="sourceSlug" value={values.source.slug} />
+		<input type="hidden" name="sourceName" value={values.source.name} />
 		<input type="hidden" name="gitUrl" value={values.source.gitUrl} />
 		<input type="hidden" name="branch" value={values.source.branch} />
 		<input type="hidden" name="path" value={values.source.path} />
@@ -118,9 +120,11 @@
 			items={[
 				[
 					m.project(),
-					values.project.slug + (values.project.description && ` – ${values.project.description}`)
+					values.project.name + (values.project.description && ` – ${values.project.description}`)
 				],
-				[m.source(), values.source.slug],
+				[m.project_slug(), slugify(values.project.name)],
+				[m.source(), values.source.name],
+				[m.source_slug(), slugify(values.source.name)],
 				[m.wizard_git_url(), values.source.gitUrl],
 				[m.field_branch(), values.source.branch],
 				[m.wizard_path(), values.source.path || m.whole_repository()],

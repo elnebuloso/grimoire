@@ -36,7 +36,7 @@ async function thrown(run: () => unknown): Promise<unknown> {
 }
 
 function addProject(slug: string) {
-	db.prepare('INSERT INTO projects (slug) VALUES (?)').run(slug);
+	db.prepare('INSERT INTO projects (slug, name) VALUES (?, ?)').run(slug, slug);
 }
 
 async function saveProject(id: string, fields: Record<string, string>) {
@@ -58,7 +58,7 @@ function loadSource(id: string, sourceId: string, search = '') {
 }
 
 const SOURCE = {
-	slug: 'auth-service',
+	name: 'Auth Service',
 	gitUrl: 'https://gitlab.example.com/platform/auth.git',
 	branch: 'main',
 	path: 'docs/',
@@ -76,30 +76,55 @@ beforeEach(() => {
 describe('project page', () => {
 	it('saves a project and redirects to its page', async () => {
 		addProject('platform');
-		const result = await thrown(() => saveProject('1', { slug: 'platform', description: 'P' }));
+		const result = await thrown(() => saveProject('1', { name: 'Platform', description: 'P' }));
 
 		expect(isRedirect(result) && [result.status, result.location]).toEqual([
 			303,
 			'/admin/projects/1'
 		]);
 		expect(projectPage.load({ params: { id: '1' } } as never)).toMatchObject({
-			project: { id: 1, slug: 'platform', description: 'P' },
+			project: { id: 1, slug: 'platform', name: 'Platform', description: 'P' },
 			sources: []
 		});
 	});
 
-	it('answers a duplicate slug with 400, the message and the entered values', async () => {
+	it('answers a missing name with 400, the message and the entered values', async () => {
 		addProject('platform');
-		addProject('billing');
-		const result = await saveProject('2', { slug: 'platform', description: 'again' });
+		const result = await saveProject('1', { name: ' ', description: 'again' });
 
 		expect(result).toMatchObject({
 			status: 400,
+			data: { error: 'Enter a name.', values: { name: ' ', description: 'again' } }
+		});
+	});
+
+	it('changes the slug with the current one typed and syncs every source again', async () => {
+		addProject('platform');
+		await thrown(() => saveSource('1', 'new', SOURCE));
+		await thrown(() => saveSource('1', 'new', { ...SOURCE, name: 'Billing' }));
+		requestSync.mockClear();
+		const changeSlug = (fields: Record<string, string>) =>
+			projectPage.actions.slug({ request: formRequest(fields), params: { id: '1' } } as never);
+
+		expect(await changeSlug({ slug: 'team', confirmation: 'wrong' })).toMatchObject({
+			status: 400,
 			data: {
-				error: 'A project with the slug "platform" already exists.',
-				values: { slug: 'platform', description: 'again' }
+				slugError: 'Type the current slug platform to confirm.',
+				slugValues: { slug: 'team' }
 			}
 		});
+		expect(requestSync).not.toHaveBeenCalled();
+
+		expect(await changeSlug({ slug: 'team', confirmation: 'platform' })).toEqual({
+			slugChanged: true
+		});
+		expect(projectPage.load({ params: { id: '1' } } as never)).toMatchObject({
+			project: { slug: 'team' }
+		});
+		expect(requestSync.mock.calls).toEqual([
+			[1, { force: true }],
+			[2, { force: true }]
+		]);
 	});
 
 	it('answers an unknown or malformed id with 404', async () => {
@@ -194,6 +219,18 @@ describe('source page', () => {
 		await thrown(() => saveSource('1', '1', SOURCE));
 
 		expect(loadSource('1', '1')).toMatchObject({ source: { paused: false } });
+		expect(requestSync).toHaveBeenCalledExactlyOnceWith(1, { force: true });
+	});
+
+	it('changes the slug of a source, even a paused one, and syncs it again', async () => {
+		await thrown(() => saveSource('1', 'new', { ...SOURCE, paused: 'on' }));
+		const result = await sourcePage.actions.slug({
+			request: formRequest({ slug: 'login', confirmation: 'auth-service' }),
+			params: { id: '1', sourceId: '1' }
+		} as never);
+
+		expect(result).toEqual({ slugChanged: true });
+		expect(loadSource('1', '1')).toMatchObject({ source: { slug: 'login', paused: true } });
 		expect(requestSync).toHaveBeenCalledExactlyOnceWith(1, { force: true });
 	});
 

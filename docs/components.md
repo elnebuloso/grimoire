@@ -47,6 +47,8 @@ or a sentence like "No projects yet.", is not one, and a component around it wou
 | Checkbox or radio button with its label after it | `ChoiceField` | API keys, source, project wizard |
 | Form with one button that asks before it posts | `ConfirmForm` | API keys (revoke), project (delete), source (delete) |
 | List of terms and values | `DescriptionList` | admin start page, source status, project wizard summary |
+| Name field with the slug it turns into, shown while typing | `NameField` | project wizard, new source |
+| Form that changes a slug after the admin types the current one | `SlugChangeForm` | project, source |
 | Table of projects with their figures | `ProjectStatsTable` | public start page, admin start page |
 | Header with the login action or the logged-in admin | stays in its route, used once | root layout |
 | Instructions to connect Claude Code | stays in its route, used once | public start page |

@@ -3,25 +3,31 @@ import { redactUrl } from '../sync/git';
 import { parseSchedule } from '../sync/schedule';
 import { encryptToken } from '../token-encryption';
 import { m } from '#lib/paraglide/messages.js';
-
-// Slugs are part of agent IDs and URLs (`<project>/<source>/<page>`), so nothing that needs escaping.
-const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+import { isSlug, MAX_NAME_LENGTH, MAX_SLUG_LENGTH, slugify } from '../../slug';
 
 export interface Project {
 	id: number;
 	slug: string;
+	name: string;
 	description: string;
 }
 
 export interface ProjectForm {
-	slug: string;
+	name: string;
 	description: string;
+}
+
+/** A new slug, and the current one typed again to show the admin knows what changes. */
+export interface SlugChangeForm {
+	slug: string;
+	confirmation: string;
 }
 
 /** A source as the admin area may show it: the access token is reduced to whether there is one. */
 export interface SourceSettings {
 	id: number;
 	slug: string;
+	name: string;
 	gitUrl: string;
 	branch: string;
 	path: string;
@@ -33,7 +39,7 @@ export interface SourceSettings {
 }
 
 export interface SourceForm {
-	slug: string;
+	name: string;
 	gitUrl: string;
 	branch: string;
 	path: string;
@@ -51,31 +57,46 @@ export type SaveResult = { id: number } | { error: string };
 
 export function listProjects(db: DatabaseSync): Project[] {
 	return db
-		.prepare('SELECT id, slug, description FROM projects ORDER BY slug')
+		.prepare('SELECT id, slug, name, description FROM projects ORDER BY slug')
 		.all() as unknown as Project[];
 }
 
 export function findProject(db: DatabaseSync, id: number): Project | undefined {
-	return db.prepare('SELECT id, slug, description FROM projects WHERE id = ?').get(id) as
+	return db.prepare('SELECT id, slug, name, description FROM projects WHERE id = ?').get(id) as
 		Project | undefined;
 }
 
-/** Why the project cannot be saved like this; undefined when it can. */
+function nameProblem(name: string): string | undefined {
+	if (!name.trim()) return m.error_name_missing();
+	if (name.trim().length > MAX_NAME_LENGTH) return m.error_name_too_long({ max: MAX_NAME_LENGTH });
+	return undefined;
+}
+
+function projectSlugTaken(db: DatabaseSync, slug: string, id: number | undefined): boolean {
+	return (
+		db.prepare('SELECT 1 FROM projects WHERE slug = ? AND id IS NOT ?').get(slug, id ?? null) !==
+		undefined
+	);
+}
+
+/**
+ * Why the project cannot be saved like this; undefined when it can. A new project takes its slug
+ * from the name; an existing one keeps its slug whatever the name becomes.
+ */
 export function projectProblem(
 	db: DatabaseSync,
 	id: number | undefined,
 	form: ProjectForm
 ): string | undefined {
-	const slug = form.slug.trim();
-	if (!SLUG.test(slug)) return m.error_slug_rule();
-	const taken = db
-		.prepare('SELECT 1 FROM projects WHERE slug = ? AND id IS NOT ?')
-		.get(slug, id ?? null);
-	if (taken) return m.error_project_slug_taken({ slug });
+	const problem = nameProblem(form.name);
+	if (problem || id !== undefined) return problem;
+	const slug = slugify(form.name);
+	if (!slug) return m.error_slug_empty();
+	if (projectSlugTaken(db, slug, undefined)) return m.error_project_slug_taken({ slug });
 	return undefined;
 }
 
-/** Creates the project when `id` is undefined, otherwise updates it. */
+/** Creates the project when `id` is undefined, otherwise updates its name and description. */
 export function saveProject(
 	db: DatabaseSync,
 	id: number | undefined,
@@ -84,20 +105,48 @@ export function saveProject(
 	const problem = projectProblem(db, id, form);
 	if (problem) return { error: problem };
 
-	const slug = form.slug.trim();
+	const name = form.name.trim();
 	const description = form.description.trim();
 	if (id === undefined) {
 		const result = db
-			.prepare('INSERT INTO projects (slug, description) VALUES (?, ?)')
-			.run(slug, description);
+			.prepare('INSERT INTO projects (slug, name, description) VALUES (?, ?, ?)')
+			.run(slugify(name), name, description);
 		return { id: Number(result.lastInsertRowid) };
 	}
-	db.prepare('UPDATE projects SET slug = ?, description = ? WHERE id = ?').run(
-		slug,
+	db.prepare('UPDATE projects SET name = ?, description = ? WHERE id = ?').run(
+		name,
 		description,
 		id
 	);
 	return { id };
+}
+
+/** Why the slug cannot become `form.slug`; undefined when it can. */
+function slugChangeProblem(
+	current: string,
+	form: SlugChangeForm,
+	taken: (slug: string) => boolean
+): string | undefined {
+	if (form.confirmation.trim() !== current) return m.error_slug_confirmation({ slug: current });
+	const slug = form.slug.trim();
+	if (!isSlug(slug)) return m.error_slug_rule({ max: MAX_SLUG_LENGTH });
+	if (slug === current) return m.error_slug_unchanged();
+	if (taken(slug)) return m.error_slug_taken({ slug });
+	return undefined;
+}
+
+/** Changes the slug of a project, and with it every ID of its sources; returns why when it cannot. */
+export function changeProjectSlug(
+	db: DatabaseSync,
+	id: number,
+	form: SlugChangeForm
+): string | undefined {
+	const project = findProject(db, id);
+	if (!project) return undefined;
+	const problem = slugChangeProblem(project.slug, form, (slug) => projectSlugTaken(db, slug, id));
+	if (problem) return problem;
+	db.prepare('UPDATE projects SET slug = ? WHERE id = ?').run(form.slug.trim(), id);
+	return undefined;
 }
 
 /** Deletes the project with its sources and their index. */
@@ -108,6 +157,7 @@ export function deleteProject(db: DatabaseSync, id: number) {
 interface SourceRow {
 	id: number;
 	slug: string;
+	name: string;
 	git_url: string;
 	branch: string;
 	path: string;
@@ -118,13 +168,14 @@ interface SourceRow {
 	has_token: number;
 }
 
-const SOURCE_COLUMNS = `id, slug, git_url, branch, path, exclusions, sync_schedule, paused,
+const SOURCE_COLUMNS = `id, slug, name, git_url, branch, path, exclusions, sync_schedule, paused,
 	username, encrypted_token IS NOT NULL AS has_token`;
 
 function toSettings(row: SourceRow): SourceSettings {
 	return {
 		id: row.id,
 		slug: row.slug,
+		name: row.name,
 		gitUrl: redactUrl(row.git_url),
 		branch: row.branch,
 		path: row.path,
@@ -154,9 +205,23 @@ export function findSource(
 	return row && toSettings(row);
 }
 
+function sourceSlugTaken(
+	db: DatabaseSync,
+	projectId: number | undefined,
+	slug: string,
+	sourceId: number | undefined
+): boolean {
+	return (
+		db
+			.prepare('SELECT 1 FROM sources WHERE project_id = ? AND slug = ? AND id IS NOT ?')
+			.get(projectId ?? null, slug, sourceId ?? null) !== undefined
+	);
+}
+
 /**
  * Why the source cannot be saved like this; undefined when it can. `projectId` is undefined for
- * a project that does not exist yet.
+ * a project that does not exist yet. A new source takes its slug from the name; an existing one
+ * keeps its slug.
  */
 export function sourceProblem(
 	db: DatabaseSync,
@@ -164,12 +229,15 @@ export function sourceProblem(
 	sourceId: number | undefined,
 	form: SourceForm
 ): string | undefined {
-	const slug = form.slug.trim();
-	if (!SLUG.test(slug)) return m.error_slug_rule();
-	const taken = db
-		.prepare('SELECT 1 FROM sources WHERE project_id = ? AND slug = ? AND id IS NOT ?')
-		.get(projectId ?? null, slug, sourceId ?? null);
-	if (taken) return m.error_source_slug_taken({ slug });
+	const nameIssue = nameProblem(form.name);
+	if (nameIssue) return nameIssue;
+	if (sourceId === undefined) {
+		const slug = slugify(form.name);
+		if (!slug) return m.error_slug_empty();
+		if (sourceSlugTaken(db, projectId, slug, undefined)) {
+			return m.error_source_slug_taken({ slug });
+		}
+	}
 
 	const gitUrl = form.gitUrl.trim();
 	const urlProblem = checkGitUrl(gitUrl);
@@ -225,14 +293,14 @@ export function saveSource(
 	const problem = sourceProblem(db, projectId, sourceId, form);
 	if (problem) return { error: problem };
 
-	const slug = form.slug.trim();
+	const name = form.name.trim();
 	const gitUrl = form.gitUrl.trim();
 	const branch = form.branch.trim();
 	const path = form.path.trim();
 	const schedule = form.schedule.trim() || null;
 	const token = form.token.trim();
 	const values = {
-		slug,
+		name,
 		git_url: gitUrl,
 		branch,
 		path,
@@ -251,16 +319,21 @@ export function saveSource(
 	if (sourceId === undefined) {
 		const result = db
 			.prepare(
-				`INSERT INTO sources (project_id, slug, git_url, branch, path, exclusions, sync_schedule,
-					paused, username, encrypted_token)
-				VALUES (:project_id, :slug, :git_url, :branch, :path, :exclusions, :sync_schedule,
-					:paused, :username, :encrypted_token)`
+				`INSERT INTO sources (project_id, slug, name, git_url, branch, path, exclusions,
+					sync_schedule, paused, username, encrypted_token)
+				VALUES (:project_id, :slug, :name, :git_url, :branch, :path, :exclusions,
+					:sync_schedule, :paused, :username, :encrypted_token)`
 			)
-			.run({ ...values, project_id: projectId, encrypted_token: encryptedToken });
+			.run({
+				...values,
+				project_id: projectId,
+				slug: slugify(name),
+				encrypted_token: encryptedToken
+			});
 		return { id: Number(result.lastInsertRowid) };
 	}
 	db.prepare(
-		`UPDATE sources SET slug = :slug, git_url = :git_url, branch = :branch, path = :path,
+		`UPDATE sources SET name = :name, git_url = :git_url, branch = :branch, path = :path,
 			exclusions = :exclusions, sync_schedule = :sync_schedule, paused = :paused,
 			username = :username
 		WHERE id = :id`
@@ -269,6 +342,23 @@ export function saveSource(
 		db.prepare('UPDATE sources SET encrypted_token = ? WHERE id = ?').run(encryptedToken, sourceId);
 	}
 	return { id: sourceId };
+}
+
+/** Changes the slug of a source, and with it every ID of its pages; returns why when it cannot. */
+export function changeSourceSlug(
+	db: DatabaseSync,
+	projectId: number,
+	sourceId: number,
+	form: SlugChangeForm
+): string | undefined {
+	const source = findSource(db, projectId, sourceId);
+	if (!source) return undefined;
+	const problem = slugChangeProblem(source.slug, form, (slug) =>
+		sourceSlugTaken(db, projectId, slug, sourceId)
+	);
+	if (problem) return problem;
+	db.prepare('UPDATE sources SET slug = ? WHERE id = ?').run(form.slug.trim(), sourceId);
+	return undefined;
 }
 
 /** Creates a project with its first source: both, or neither when one of them is invalid. */

@@ -4,16 +4,19 @@
 	import ConfirmForm from '#lib/components/ConfirmForm.svelte';
 	import DescriptionList from '#lib/components/DescriptionList.svelte';
 	import FormError from '#lib/components/FormError.svelte';
+	import NameField from '#lib/components/NameField.svelte';
+	import SlugChangeForm from '#lib/components/SlugChangeForm.svelte';
 	import TextAreaField from '#lib/components/TextAreaField.svelte';
 	import TextField from '#lib/components/TextField.svelte';
 	import { m } from '#lib/paraglide/messages.js';
+	import { MAX_NAME_LENGTH } from '#lib/slug.js';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
 
 	const values = $derived(
 		form?.values ?? {
-			slug: data.source?.slug ?? '',
+			name: data.source?.name ?? '',
 			gitUrl: data.source?.gitUrl ?? '',
 			branch: data.source?.branch ?? 'main',
 			path: data.source?.path ?? 'docs/',
@@ -28,10 +31,10 @@
 
 <p>
 	<a href={resolve('/admin/projects/[id]', { id: String(data.project.id) })}
-		>{m.project_title({ slug: data.project.slug })}</a
+		>{m.project_title({ name: data.project.name })}</a
 	>
 </p>
-<h1>{data.source ? m.source_title({ slug: data.source.slug }) : m.project_new_source()}</h1>
+<h1>{data.source ? m.source_title({ name: data.source.name }) : m.project_new_source()}</h1>
 
 {#if data.source && data.status}
 	{@const sourcePage = resolve('/admin/projects/[id]/sources/[sourceId]', {
@@ -115,7 +118,17 @@
 
 <form method="post" action="?/save">
 	<FormError message={form?.error} />
-	<TextField label={m.field_slug()} name="slug" required value={values.slug} />
+	{#if data.source}
+		<TextField
+			label={m.field_name()}
+			name="name"
+			required
+			maxlength={MAX_NAME_LENGTH}
+			value={values.name}
+		/>
+	{:else}
+		<NameField label={m.field_name()} name="name" value={values.name} />
+	{/if}
 	<TextField label={m.field_git_url()} name="gitUrl" type="url" required value={values.gitUrl} />
 	<TextField label={m.field_branch()} name="branch" required value={values.branch} />
 	<TextField label={m.field_path()} name="path" value={values.path} />
@@ -147,10 +160,19 @@
 </form>
 
 {#if data.source}
+	<h2>{m.slug_change_heading()}</h2>
+	<SlugChangeForm
+		current={data.source.slug}
+		effects={m.slug_change_source_effects({ slug: data.source.slug })}
+		value={form?.slugValues?.slug}
+		error={form?.slugError}
+		changed={form?.slugChanged}
+	/>
+
 	<h2>{m.delete()}</h2>
 	<ConfirmForm
 		action="?/delete"
-		question={m.source_delete_question({ slug: data.source.slug })}
+		question={m.source_delete_question({ name: data.source.name })}
 		label={m.source_delete()}
 	/>
 {/if}

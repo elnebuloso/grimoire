@@ -51,7 +51,9 @@ beforeEach(() => {
 
 describe('projectStats', () => {
 	it('sums sources, pages, snippets, tokens and dead links of a project', () => {
-		const project = insert(`INSERT INTO projects (slug, description) VALUES ('platform', 'Login')`);
+		const project = insert(
+			`INSERT INTO projects (slug, name, description) VALUES ('platform', 'Platform', 'Login')`
+		);
 		const auth = addSource(project, 'auth', '2026-10-28T10:00:00.000Z');
 		const gateway = addSource(project, 'gateway', '2026-10-27T08:00:00.000Z');
 		addPage(auth, 'deploy.md', [100, 200], 2);
@@ -62,6 +64,7 @@ describe('projectStats', () => {
 			{
 				id: project,
 				slug: 'platform',
+				name: 'Platform',
 				description: 'Login',
 				sources: 2,
 				pages: 3,
@@ -75,11 +78,12 @@ describe('projectStats', () => {
 	});
 
 	it('shows a project without sources with zeros and no sync', () => {
-		const project = insert(`INSERT INTO projects (slug) VALUES ('empty')`);
+		const project = insert(`INSERT INTO projects (slug, name) VALUES ('empty', 'Empty')`);
 		expect(projectStats(db)).toEqual([
 			{
 				id: project,
 				slug: 'empty',
+				name: 'Empty',
 				description: '',
 				sources: 0,
 				pages: 0,

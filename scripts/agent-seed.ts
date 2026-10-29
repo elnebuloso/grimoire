@@ -53,20 +53,24 @@ try {
 		hashKey('grimoire_agent-fixture-key')
 	);
 
-	const insertProject = db.prepare('INSERT INTO projects (slug, description) VALUES (?, ?)');
-	const platform = insertProject.run('platform', 'Platform team handbook').lastInsertRowid;
-	const billing = insertProject.run('billing', 'Billing team documentation').lastInsertRowid;
+	const insertProject = db.prepare(
+		'INSERT INTO projects (slug, name, description) VALUES (?, ?, ?)'
+	);
+	const platform = insertProject.run('platform', 'Platform', 'Platform team handbook')
+		.lastInsertRowid;
+	const billing = insertProject.run('billing', 'Billing', 'Billing team documentation')
+		.lastInsertRowid;
 
 	const insertSource = db.prepare(
-		`INSERT INTO sources (project_id, slug, git_url, branch, path, paused)
-		 VALUES (?, ?, ?, 'main', ?, ?)`
+		`INSERT INTO sources (project_id, slug, name, git_url, branch, path, paused)
+		 VALUES (?, ?, ?, ?, 'main', ?, ?)`
 	);
-	insertSource.run(platform, 'docs', FIXTURE_REPOSITORY, 'zensical/docs', 0);
-	insertSource.run(billing, 'docs', FIXTURE_REPOSITORY, 'mkdocs/docs', 0);
+	insertSource.run(platform, 'docs', 'Docs', FIXTURE_REPOSITORY, 'zensical/docs', 0);
+	insertSource.run(billing, 'docs', 'Docs', FIXTURE_REPOSITORY, 'mkdocs/docs', 0);
 	// The path does not exist in the repository, so every sync fails.
-	insertSource.run(billing, 'archive', FIXTURE_REPOSITORY, 'archive/docs', 0);
+	insertSource.run(billing, 'archive', 'Archive', FIXTURE_REPOSITORY, 'archive/docs', 0);
 	// Paused before its first check: polling never syncs it, only "sync now" does.
-	insertSource.run(platform, 'next', FIXTURE_REPOSITORY, 'zensical/docs', 1);
+	insertSource.run(platform, 'next', 'Next', FIXTURE_REPOSITORY, 'zensical/docs', 1);
 	db.exec('COMMIT');
 } catch (error) {
 	if (db.isTransaction) db.exec('ROLLBACK');

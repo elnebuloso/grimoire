@@ -1,7 +1,9 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { database } from '#lib/server/db/index.js';
+import { requestSync } from '#lib/server/sync/index.js';
 import {
+	changeProjectSlug,
 	deleteProject,
 	findProject,
 	listSources,
@@ -27,12 +29,30 @@ export const actions = {
 	save: async ({ request, params }) => {
 		const data = await request.formData();
 		const form = {
-			slug: String(data.get('slug') ?? ''),
+			name: String(data.get('name') ?? ''),
 			description: String(data.get('description') ?? '')
 		};
 		const result = saveProject(database(), projectFor(params.id).id, form);
 		if ('error' in result) return fail(400, { error: result.error, values: form });
 		redirect(303, `/admin/projects/${result.id}`);
+	},
+	slug: async ({ request, params }) => {
+		const project = projectFor(params.id);
+		const data = await request.formData();
+		const form = {
+			slug: String(data.get('slug') ?? ''),
+			confirmation: String(data.get('confirmation') ?? '')
+		};
+		const problem = changeProjectSlug(database(), project.id, form);
+		if (problem) return fail(400, { slugError: problem, slugValues: { slug: form.slug } });
+
+		// Stored links carry IDs with the old slug until each source is indexed again.
+		for (const source of listSources(database(), project.id)) {
+			requestSync(source.id, { force: true }).catch((error: Error) => {
+				console.error(`sync of source ${source.id} failed: ${error.message}`);
+			});
+		}
+		return { slugChanged: true };
 	},
 	delete: ({ params }) => {
 		deleteProject(database(), projectFor(params.id).id);

@@ -4,6 +4,7 @@ import type { DatabaseSync } from 'node:sqlite';
 export interface ProjectStats {
 	id: number;
 	slug: string;
+	name: string;
 	description: string;
 	sources: number;
 	pages: number;
@@ -18,7 +19,7 @@ export interface ProjectStats {
 export function projectStats(db: DatabaseSync): ProjectStats[] {
 	return db
 		.prepare(
-			`SELECT projects.id, projects.slug, projects.description,
+			`SELECT projects.id, projects.slug, projects.name, projects.description,
 				(SELECT count(*) FROM sources WHERE project_id = projects.id) AS sources,
 				(SELECT count(*) FROM pages JOIN sources ON sources.id = pages.source_id
 					WHERE sources.project_id = projects.id) AS pages,

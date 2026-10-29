@@ -2,8 +2,10 @@
 	import { resolve } from '$app/paths';
 	import ConfirmForm from '#lib/components/ConfirmForm.svelte';
 	import FormError from '#lib/components/FormError.svelte';
+	import SlugChangeForm from '#lib/components/SlugChangeForm.svelte';
 	import TextField from '#lib/components/TextField.svelte';
 	import { m } from '#lib/paraglide/messages.js';
+	import { MAX_NAME_LENGTH } from '#lib/slug.js';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
@@ -12,11 +14,17 @@
 </script>
 
 <p><a href={resolve('/admin')}>{m.all_projects_link()}</a></p>
-<h1>{m.project_title({ slug: data.project.slug })}</h1>
+<h1>{m.project_title({ name: data.project.name })}</h1>
 
 <form method="post" action="?/save">
 	<FormError message={form?.error} />
-	<TextField label={m.field_slug()} name="slug" required value={values.slug} />
+	<TextField
+		label={m.field_name()}
+		name="name"
+		required
+		maxlength={MAX_NAME_LENGTH}
+		value={values.name}
+	/>
 	<TextField label={m.field_description()} name="description" value={values.description} />
 	<button>{m.save()}</button>
 </form>
@@ -32,8 +40,9 @@
 					href={resolve('/admin/projects/[id]/sources/[sourceId]', {
 						id: String(data.project.id),
 						sourceId: String(source.id)
-					})}>{source.slug}</a
+					})}>{source.name}</a
 				>
+				<code>{source.slug}</code>
 				– {m.project_source_summary({
 					gitUrl: source.gitUrl,
 					branch: source.branch,
@@ -52,9 +61,18 @@
 	>
 </p>
 
+<h2>{m.slug_change_heading()}</h2>
+<SlugChangeForm
+	current={data.project.slug}
+	effects={m.slug_change_project_effects({ slug: data.project.slug })}
+	value={form?.slugValues?.slug}
+	error={form?.slugError}
+	changed={form?.slugChanged}
+/>
+
 <h2>{m.delete()}</h2>
 <ConfirmForm
 	action="?/delete"
-	question={m.project_delete_question({ slug: data.project.slug })}
+	question={m.project_delete_question({ name: data.project.name })}
 	label={m.project_delete()}
 />

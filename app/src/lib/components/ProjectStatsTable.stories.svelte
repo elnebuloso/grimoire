@@ -10,6 +10,7 @@
 	const synced: ProjectStats = {
 		id: 1,
 		slug: 'platform',
+		name: 'Platform',
 		description: 'Platform team handbook',
 		sources: 2,
 		pages: 7,
@@ -46,8 +47,16 @@
 	name="Not synced and without sources"
 	args={{
 		projects: [
-			{ ...synced, id: 2, slug: 'billing', description: '', oldestSync: null, pages: 0 },
-			{ ...synced, id: 3, slug: 'drafts', sources: 0, oldestSync: null, pages: 0 }
+			{
+				...synced,
+				id: 2,
+				slug: 'billing',
+				name: 'Billing',
+				description: '',
+				oldestSync: null,
+				pages: 0
+			},
+			{ ...synced, id: 3, slug: 'drafts', name: 'Drafts', sources: 0, oldestSync: null, pages: 0 }
 		]
 	}}
 	play={async ({ canvas }) => {

@@ -3,7 +3,16 @@ import type { DatabaseSync } from 'node:sqlite';
 import { openDatabase } from '../db/schema';
 import { listSchedules, recordCheck } from '../db/sources';
 import { decryptToken } from '../token-encryption';
-import { findSource, parseIdParam, saveProject, saveSource, type SourceForm } from './projects';
+import {
+	changeProjectSlug,
+	changeSourceSlug,
+	findProject,
+	findSource,
+	parseIdParam,
+	saveProject,
+	saveSource,
+	type SourceForm
+} from './projects';
 
 const KEY = Buffer.alloc(32, 7);
 
@@ -12,7 +21,7 @@ let projectId: number;
 
 function sourceForm(changes: Partial<SourceForm> = {}): SourceForm {
 	return {
-		slug: 'auth-service',
+		name: 'Auth Service',
 		gitUrl: 'https://gitlab.example.com/platform/auth.git',
 		branch: 'main',
 		path: 'docs/',
@@ -40,33 +49,62 @@ function created(result: { id: number } | { error: string }): number {
 
 beforeEach(() => {
 	db = openDatabase(':memory:');
-	projectId = created(saveProject(db, undefined, { slug: 'platform', description: '' }));
+	projectId = created(saveProject(db, undefined, { name: 'Platform', description: '' }));
 });
 
 describe('saveProject', () => {
-	it('stores trimmed values and updates them by id', () => {
-		const id = created(saveProject(db, undefined, { slug: ' billing ', description: ' Bills ' }));
-		saveProject(db, id, { slug: 'payments', description: 'Payments' });
+	it('derives the slug from the name on creation and keeps it when the name changes', () => {
+		const id = created(
+			saveProject(db, undefined, { name: ' Prüfung & Abnahme ', description: ' QA ' })
+		);
+		saveProject(db, id, { name: 'Quality', description: 'Checks' });
 
-		expect(db.prepare('SELECT slug, description FROM projects WHERE id = ?').get(id)).toEqual({
-			slug: 'payments',
-			description: 'Payments'
+		expect(findProject(db, id)).toEqual({
+			id,
+			slug: 'pruefung-abnahme',
+			name: 'Quality',
+			description: 'Checks'
 		});
 	});
 
-	it.each(['', 'Platform', 'a_b', 'a--b', '-a', 'a/b', 'a.b'])('rejects the slug "%s"', (slug) => {
-		expect(saveProject(db, undefined, { slug, description: '' })).toEqual({
-			error: expect.stringContaining('The slug may contain')
+	it.each([
+		['', 'Enter a name.'],
+		['   ', 'Enter a name.'],
+		['!!!', 'The name needs a letter or digit'],
+		['a'.repeat(81), 'at most 80 characters']
+	])('rejects the name "%s"', (name, message) => {
+		expect(saveProject(db, undefined, { name, description: '' })).toEqual({
+			error: expect.stringContaining(message)
 		});
 	});
 
-	it('rejects a slug another project has, but keeps its own', () => {
-		expect(saveProject(db, undefined, { slug: 'platform', description: '' })).toEqual({
+	it('rejects a name whose slug another project has, and names that slug', () => {
+		expect(saveProject(db, undefined, { name: 'PLATFORM!', description: '' })).toEqual({
 			error: 'A project with the slug "platform" already exists.'
 		});
-		expect(saveProject(db, projectId, { slug: 'platform', description: 'x' })).toEqual({
-			id: projectId
-		});
+	});
+});
+
+describe('changeProjectSlug', () => {
+	const change = (slug: string, confirmation = 'platform') =>
+		changeProjectSlug(db, projectId, { slug, confirmation });
+
+	it('changes the slug once the current slug is typed', () => {
+		expect(change('platform-team')).toBeUndefined();
+		expect(findProject(db, projectId)).toMatchObject({ slug: 'platform-team', name: 'Platform' });
+	});
+
+	it.each([
+		['platform-team', 'platfrom', 'Type the current slug platform to confirm.'],
+		['Platform Team', 'platform', 'The slug may contain'],
+		['a'.repeat(41), 'platform', 'at most 40 characters'],
+		['platform', 'platform', 'That is the current slug.'],
+		['other', 'platform', 'The slug "other" is taken.']
+	])('rejects "%s" confirmed with "%s"', (slug, confirmation, message) => {
+		created(saveProject(db, undefined, { name: 'Other', description: '' }));
+
+		expect(change(slug, confirmation)).toContain(message);
+		expect(findProject(db, projectId)?.slug).toBe('platform');
 	});
 });
 
@@ -79,6 +117,7 @@ describe('saveSource', () => {
 		expect(findSource(db, projectId, id)).toEqual({
 			id,
 			slug: 'auth-service',
+			name: 'Auth Service',
 			gitUrl: 'https://gitlab.example.com/platform/auth.git',
 			branch: 'main',
 			path: 'docs/',
@@ -105,9 +144,29 @@ describe('saveSource', () => {
 		expect(listSchedules(db)).toEqual([{ id, schedule: '0 2 * * *', lastCheckedAt: checkedAt }]);
 	});
 
+	it('keeps the slug when the name changes', () => {
+		const id = created(saveSource(db, KEY, projectId, undefined, sourceForm()));
+
+		saveSource(db, KEY, projectId, id, sourceForm({ name: 'Login' }));
+
+		expect(findSource(db, projectId, id)).toMatchObject({ slug: 'auth-service', name: 'Login' });
+	});
+
+	it('changes the slug only with the current slug typed and while no other source has it', () => {
+		const id = created(saveSource(db, KEY, projectId, undefined, sourceForm()));
+		created(saveSource(db, KEY, projectId, undefined, sourceForm({ name: 'Billing' })));
+		const change = (slug: string, confirmation: string) =>
+			changeSourceSlug(db, projectId, id, { slug, confirmation });
+
+		expect(change('login', 'auth')).toContain('Type the current slug auth-service');
+		expect(change('billing', 'auth-service')).toBe('The slug "billing" is taken.');
+		expect(change('login', 'auth-service')).toBeUndefined();
+		expect(findSource(db, projectId, id)?.slug).toBe('login');
+	});
+
 	it('rejects a slug the project already has, but not one of another project', () => {
 		created(saveSource(db, KEY, projectId, undefined, sourceForm()));
-		const other = created(saveProject(db, undefined, { slug: 'other', description: '' }));
+		const other = created(saveProject(db, undefined, { name: 'Other', description: '' }));
 
 		expect(saveSource(db, KEY, projectId, undefined, sourceForm())).toEqual({
 			error: 'This project already has a source with the slug "auth-service".'
@@ -185,7 +244,7 @@ describe('findSource', () => {
 			'https://user:secret@gitlab.example.com/a.git',
 			id
 		);
-		const other = created(saveProject(db, undefined, { slug: 'other', description: '' }));
+		const other = created(saveProject(db, undefined, { name: 'Other', description: '' }));
 
 		expect(findSource(db, projectId, id)?.gitUrl).toBe('https://gitlab.example.com/a.git');
 		expect(findSource(db, other, id)).toBeUndefined();

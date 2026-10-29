@@ -46,19 +46,19 @@ session is logged out; the browser that made the change stays logged in.
 
 A project groups sources; agents search a project as a whole. A source is one Git repository,
 one branch and one path in it. To serve two paths of the same repository, add it twice as two
-sources with different slugs.
+sources with different names.
 
 **New project** leads through three steps: the project, its first source, and a summary.
 Nothing is saved before **Create project** on the summary; leaving the wizard earlier leaves no
 project behind. Further sources are added on the project's page.
 
-Slug and short description of every project are public: the start page `/` lists them without
+Name, slug and short description of every project are public: the start page `/` lists them without
 login, with counts of sources, pages, snippets, tokens, sync errors and dead links and the oldest
 last sync. It shows nothing about the sources themselves, neither Git URLs nor error messages.
 
 | Field | Meaning |
 |---|---|
-| Slug | Part of every ID agents see (`<project>/<source>/<page>`): lowercase letters, digits and single hyphens. A source slug is unique within its project. |
+| Name | What people read, at most 80 characters. On creation, grimoire derives the slug from it and shows it next to the field while you type: lowercase letters, digits and single hyphens, umlauts spelled out (`Prüfung & Abnahme` → `pruefung-abnahme`), at most 40 characters. The slug is part of every ID agents see (`<project>/<source>/<page>`); a project slug is unique, a source slug unique within its project. Renaming keeps the slug. |
 | Git URL | `https://` only, without `user:token@`; username and token have their own fields. |
 | Path | Relative to the repository root, e.g. `docs/`; empty for the whole repository. |
 | Exclusions | Glob patterns relative to the repository root, one per line, e.g. `docs/drafts/**`. |
@@ -73,6 +73,15 @@ server it was not entered for.
 
 Saving a source starts a sync right away, so a changed path or exclusion applies without waiting
 for a new commit; a paused source is saved without one. Deleting a project deletes its sources and their index.
+
+### Changing a slug
+
+A slug can be changed under **Change the slug** at the bottom of the project or source page. It
+works like renaming a namespace: every snippet ID changes, so IDs an agent has kept and URLs such
+as `/p/<slug>/query` in an agent's configuration stop working, for a project in all its sources.
+The page says so, and the change only goes through once you type the current slug as
+confirmation and the new one is free. grimoire then syncs the affected sources again, paused or
+not, so links between pages carry the new IDs.
 
 ## Status and sync
 

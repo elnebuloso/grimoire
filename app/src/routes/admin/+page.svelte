@@ -62,7 +62,7 @@
 {:else}
 	<ProjectStatsTable projects={data.projects}>
 		{#snippet name(project)}
-			<a href={resolve('/admin/projects/[id]', { id: String(project.id) })}>{project.slug}</a>
+			<a href={resolve('/admin/projects/[id]', { id: String(project.id) })}>{project.name}</a>
 		{/snippet}
 	</ProjectStatsTable>
 {/if}

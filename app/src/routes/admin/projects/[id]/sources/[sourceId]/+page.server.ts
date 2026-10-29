@@ -6,6 +6,7 @@ import { database } from '#lib/server/db/index.js';
 import { requestSync } from '#lib/server/sync/index.js';
 import { redactUrl } from '#lib/server/sync/git.js';
 import {
+	changeSourceSlug,
 	deleteSource,
 	findProject,
 	findSource,
@@ -57,7 +58,7 @@ export const actions = {
 		const { project, source } = pageFor(params);
 		const data = await request.formData();
 		const form = {
-			slug: String(data.get('slug') ?? ''),
+			name: String(data.get('name') ?? ''),
 			gitUrl: String(data.get('gitUrl') ?? ''),
 			branch: String(data.get('branch') ?? ''),
 			path: String(data.get('path') ?? ''),
@@ -92,6 +93,23 @@ export const actions = {
 		const { source } = pageFor(params);
 		if (!source) error(404);
 		return { sync: await requestSync(source.id, { force: true }) };
+	},
+	slug: async ({ request, params }) => {
+		const { project, source } = pageFor(params);
+		if (!source) error(404);
+		const data = await request.formData();
+		const form = {
+			slug: String(data.get('slug') ?? ''),
+			confirmation: String(data.get('confirmation') ?? '')
+		};
+		const problem = changeSourceSlug(database(), project.id, source.id, form);
+		if (problem) return fail(400, { slugError: problem, slugValues: { slug: form.slug } });
+
+		// Stored links carry IDs with the old slug until the source is indexed again, paused or not.
+		requestSync(source.id, { force: true }).catch((error: Error) => {
+			console.error(`sync of source ${source.id} failed: ${error.message}`);
+		});
+		return { slugChanged: true };
 	},
 	delete: ({ params }) => {
 		const { project, source } = pageFor(params);

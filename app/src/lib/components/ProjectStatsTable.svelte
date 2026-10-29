@@ -23,7 +23,8 @@
 		{#each projects as project (project.slug)}
 			<tr>
 				<th scope="row">
-					{#if name}{@render name(project)}{:else}{project.slug}{/if}
+					{#if name}{@render name(project)}{:else}{project.name}{/if}
+					<code>{project.slug}</code>
 					{#if project.description}<br />{project.description}{/if}
 				</th>
 				<td>{project.sources}</td>

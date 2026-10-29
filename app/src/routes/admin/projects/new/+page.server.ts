@@ -27,9 +27,9 @@ export const load: PageServerLoad = () => ({ globalSchedule: SYNC_SCHEDULE });
 function readValues(data: FormData): WizardValues {
 	const field = (name: string) => String(data.get(name) ?? '');
 	return {
-		project: { slug: field('projectSlug'), description: field('description') },
+		project: { name: field('projectName'), description: field('description') },
 		source: {
-			slug: field('sourceSlug'),
+			name: field('sourceName'),
 			gitUrl: field('gitUrl'),
 			branch: field('branch'),
 			path: field('path'),

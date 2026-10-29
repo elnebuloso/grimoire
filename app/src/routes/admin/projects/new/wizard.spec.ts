@@ -15,9 +15,9 @@ vi.mock('#lib/server/sync/index.js', () => ({ requestSync }));
 vi.mock('$app/env/private', () => ({ TOKEN_ENCRYPTION_KEY: KEY, SYNC_SCHEDULE: '*/5 * * * *' }));
 
 const FIELDS = {
-	projectSlug: 'platform',
+	projectName: 'Platform',
 	description: 'Login and billing',
-	sourceSlug: 'auth-service',
+	sourceName: 'Auth Service',
 	gitUrl: 'https://gitlab.example.com/platform/auth.git',
 	branch: 'main',
 	path: 'docs/',
@@ -62,17 +62,17 @@ beforeEach(() => {
 
 describe('project wizard', () => {
 	it('stays on the project step with the error until the project data is valid', async () => {
-		db.prepare("INSERT INTO projects (slug) VALUES ('platform')").run();
+		db.prepare("INSERT INTO projects (slug, name) VALUES ('platform', 'Platform')").run();
 
 		expect(await submit('source', FIELDS)).toMatchObject({
 			status: 400,
 			data: {
 				step: 'project',
 				error: 'A project with the slug "platform" already exists.',
-				values: { project: { slug: 'platform', description: 'Login and billing' } }
+				values: { project: { name: 'Platform', description: 'Login and billing' } }
 			}
 		});
-		expect(await submit('source', { ...FIELDS, projectSlug: 'billing' })).toMatchObject({
+		expect(await submit('source', { ...FIELDS, projectName: 'Billing' })).toMatchObject({
 			step: 'source'
 		});
 	});
@@ -82,7 +82,7 @@ describe('project wizard', () => {
 			status: 400,
 			data: { step: 'source', error: 'Enter the branch.' }
 		});
-		expect(await submit('summary', { ...FIELDS, projectSlug: 'Not A Slug' })).toMatchObject({
+		expect(await submit('summary', { ...FIELDS, projectName: '!!!' })).toMatchObject({
 			status: 400,
 			data: { step: 'project' }
 		});
@@ -92,8 +92,8 @@ describe('project wizard', () => {
 		expect(await submit('project', { ...FIELDS, branch: '' })).toEqual({
 			step: 'project',
 			values: {
-				project: { slug: 'platform', description: 'Login and billing' },
-				source: expect.objectContaining({ slug: 'auth-service', branch: '' }),
+				project: { name: 'Platform', description: 'Login and billing' },
+				source: expect.objectContaining({ name: 'Auth Service', branch: '' }),
 				encryptedToken: ''
 			}
 		});
@@ -160,7 +160,7 @@ describe('project wizard', () => {
 
 	it('creates nothing and returns to the project step when the slug was taken meanwhile', async () => {
 		const summary = await throughSummary();
-		db.prepare("INSERT INTO projects (slug) VALUES ('platform')").run();
+		db.prepare("INSERT INTO projects (slug, name) VALUES ('platform', 'Platform')").run();
 
 		expect(await submit('create', summary)).toMatchObject({
 			status: 400,
