@@ -10,3 +10,6 @@ bun.lockb
 
 # inlang writes generated files next to settings.json
 /project.inlang/
+
+# Prettier formats source code only; Markdown is prose and documentation
+*.md

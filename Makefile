@@ -25,7 +25,7 @@ lint: ## Check formatting, lint rules and types
 	npm --prefix app run lint
 	npm --prefix app run check
 
-format: ## Format all files with Prettier
+format: ## Format the source code with Prettier
 	npm --prefix app run format
 
 image: ## Build the Docker image grimoire:latest
