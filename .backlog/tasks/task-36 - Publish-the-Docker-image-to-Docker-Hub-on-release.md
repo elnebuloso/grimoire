@@ -4,7 +4,7 @@ title: Publish the Docker image to Docker Hub on release
 status: To Do
 assignee: []
 created_date: '2026-10-28T23:50:00Z'
-updated_date: '2026-10-29T00:00:00Z'
+updated_date: '2026-10-29T00:01:00Z'
 labels:
   - ops
 milestone: m-0
@@ -30,3 +30,9 @@ The image (`Dockerfile`, `make image`) is only built locally, so operators have 
 - [ ] #5 No `latest` tag is pushed
 - [ ] #6 The handbook page for Docker (`docs/handbook/docker.md`) explains pulling the published image
 <!-- AC:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+`DOCKERHUB_USERNAME`, `DOCKERHUB_PASSWORD` and `DOCKERHUB_REPOSITORY` are repository secrets (read as `secrets.NAME`); `DOCKERHUB_REPOSITORY` is `elnebuloso/grimoire`. As a secret the repository name shows as `***` in the logs.
+<!-- SECTION:NOTES:END -->
