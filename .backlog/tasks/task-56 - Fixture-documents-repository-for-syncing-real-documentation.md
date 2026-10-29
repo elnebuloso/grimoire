@@ -4,13 +4,13 @@ title: Fixture documents repository for syncing real documentation
 status: To Do
 assignee: []
 created_date: '2026-10-29T07:11:00Z'
-updated_date: '2026-10-29T07:12:00Z'
+updated_date: '2026-10-29T07:15:00Z'
 labels:
   - ops
 dependencies: []
 references:
   - docs/handbook/writing.md
-  - https://github.com/elnebuloso/grimoire-fixtures-documentations
+  - https://github.com/elnebuloso/grimoire-fixture-docs
 priority: medium
 type: chore
 ordinal: 118000
@@ -21,7 +21,7 @@ ordinal: 118000
 <!-- SECTION:DESCRIPTION:BEGIN -->
 Developers and agents need documentation to sync that exercises what grimoire processes, and states the UI can show, without depending on someone else's repository changing under them. Test projects today point at made-up URLs, so their sources never sync, and every look at a page, a snippet or a dead link starts with typing one in. A repository with documentation built for this purpose gives the agent environment (TASK-55), manual checks and future tests known content with known results.
 
-The repository is `grimoire-fixtures-documentations` on GitHub: https://github.com/elnebuloso/grimoire-fixtures-documentations. Its content follows what `docs/handbook/writing.md` says grimoire understands; when that page gains a feature, the repository gains an example of it.
+The repository is `grimoire-fixture-docs` on GitHub: https://github.com/elnebuloso/grimoire-fixture-docs. Its content follows what `docs/handbook/writing.md` says grimoire understands; when that page gains a feature, the repository gains an example of it.
 <!-- SECTION:DESCRIPTION:END -->
 
 ## Acceptance Criteria
@@ -34,3 +34,9 @@ The repository is `grimoire-fixtures-documentations` on GitHub: https://github.c
 - [ ] #6 A README in the repository lists for each path what it demonstrates and what grimoire is expected to produce from it (pages, notable snippet IDs, dead links), so a deviation is visible at a glance
 - [ ] #7 Synced into grimoire, every site indexes without errors other than the documented dead links
 <!-- AC:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+The repository exists with an initial commit (`LICENSE`, `README.md`); the local clone sits next to this project at `../grimoire-fixture-docs`, and work on the fixtures is committed there, not here.
+<!-- SECTION:NOTES:END -->
