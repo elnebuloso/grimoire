@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-29T07:07:00Z'
-updated_date: '2026-10-29 18:11'
+updated_date: '2026-10-29 18:13'
 labels:
   - ops
 milestone: m-0
@@ -62,6 +62,8 @@ Verification:
 - Login with agent/agent-password through the form returns a redirect to /admin. GET /projects with grimoire_agent-fixture-key lists billing and platform; a wrong key gets 401.
 - make dev on 5173 and the agent environment ran at the same time with their own data (start pages differ). make e2e passed (9/9) while both ran. app/data/grimoire.db checksum and WAL unchanged.
 - make agent-stop frees 5174. make test (296) and make lint green.
+
+Changed after finishing: platform/next uses the schedule '0 0 30 2 *' instead of '0 0 1 1 *'. croner's nextRun returns null for 30 February, so isDue stays false once the source was checked (checked for 2027-01-01, 2028-02-29 and 2036-03-01). The source no longer syncs on 1 January; only "sync now" syncs it.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
