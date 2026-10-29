@@ -101,6 +101,25 @@ Nothing in the image is specific to Docker; a Deployment needs the same pieces:
 The setup token is in the log of the pod (`kubectl logs`). To update the schema before the new
 version serves requests, run the same image with `MIGRATE_ONLY=true` as an init container.
 
+### Resources
+
+Memory and CPU are spent mostly while a source syncs: the clone, and turning the pages into
+snippets in a second thread. Sources sync one after another, so a large one sets the need, not
+the number of sources. Measured with the Kubernetes documentation as one source (1722 pages,
+13,160 snippets), from the first sync to its end, while agents searched every 25 ms:
+
+| Limits | Sync | Searches, 99 % / slowest | Memory, peak |
+|---|---|---|---|
+| none | 77 s | 11 ms / 326 ms | 933 MiB |
+| 1 CPU, 512 MiB | 160 s | 46 ms / 411 ms | 392 MiB |
+| 0.5 CPU, 256 MiB | 383 s | 77 ms / 1.3 s | 256 MiB, at the limit |
+
+Node sizes its memory to the limit of the container, so a lower limit means more garbage
+collection, not a crash, down to where the data of one sync no longer fits. For documentation of
+that size, `limits: { cpu: "1", memory: 512Mi }` with `requests: { cpu: 250m, memory: 512Mi }` is
+enough; smaller documentation needs less. Below one CPU, searches during a sync wait on the CPU
+quota, and syncs take correspondingly longer.
+
 ## Environment
 
 | Variable | In the image | Meaning |
