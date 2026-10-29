@@ -2,7 +2,8 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
-import { indexCheckout } from './index-source';
+import { indexPages } from './index-pages';
+import { prepareCheckout, type FetchUrl } from './index-source';
 
 const URL = 'https://docs.example.com/shared/note.md';
 const source = { project: 'platform', slug: 'docs', path: 'docs/', exclusions: [] };
@@ -13,6 +14,11 @@ function write(files: Record<string, string>) {
 		mkdirSync(dirname(join(checkout, path)), { recursive: true });
 		writeFileSync(join(checkout, path), content);
 	}
+}
+
+async function indexCheckout(fetchUrl: FetchUrl) {
+	const prepared = await prepareCheckout(checkout, source, async () => {}, fetchUrl);
+	return indexPages({ ...prepared, project: source.project, source: source.slug });
 }
 
 function pageText(index: Awaited<ReturnType<typeof indexCheckout>>) {
@@ -36,7 +42,7 @@ describe('indexCheckout with URL includes', () => {
 			url === URL ? { content: `Shared note.\n\n--8<-- "${nested}"\n` } : { content: 'Nested.\n' }
 		);
 
-		const index = await indexCheckout(checkout, source, async () => {}, fetchUrl);
+		const index = await indexCheckout(fetchUrl);
 
 		expect(fetchUrl.mock.calls.map(([url]) => url)).toEqual([URL, nested]);
 		expect(pageText(index)).toContain('Shared note.');
@@ -48,7 +54,7 @@ describe('indexCheckout with URL includes', () => {
 		write({ 'mkdocs.yml': 'site_name: Docs\n', 'docs/index.md': `# Start\n\n--8<-- "${URL}"\n` });
 		const fetchUrl = vi.fn();
 
-		const index = await indexCheckout(checkout, source, async () => {}, fetchUrl);
+		const index = await indexCheckout(fetchUrl);
 
 		expect(fetchUrl).not.toHaveBeenCalled();
 		expect(index.warnings).toEqual([
@@ -62,14 +68,9 @@ describe('indexCheckout with URL includes', () => {
 			'docs/index.md': `# Start\n\nText.\n\n--8<-- "${URL}"\n`
 		});
 
-		const index = await indexCheckout(
-			checkout,
-			source,
-			async () => {},
-			async () => ({
-				problem: `https://docs.example.com is not listed in INCLUDE_URL_ALLOW`
-			})
-		);
+		const index = await indexCheckout(async () => ({
+			problem: `https://docs.example.com is not listed in INCLUDE_URL_ALLOW`
+		}));
 
 		expect(pageText(index)).toContain('Text.');
 		expect(index.warnings).toEqual([

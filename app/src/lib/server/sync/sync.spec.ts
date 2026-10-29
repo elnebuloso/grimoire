@@ -105,7 +105,8 @@ beforeEach(() => {
 		'shared/warning.md': '!!! warning "Careful"\n    Migrations are not rolled back.\n',
 		'src/app.ts': 'export {};\n'
 	});
-	db = openDatabase(':memory:');
+	// A file, not memory: the index is written by a worker thread with its own connection.
+	db = openDatabase(join(root, 'grimoire.db'));
 	source = addSource(`file://${bare}`, { exclusions: ['docs/drafts/**'] });
 });
 
@@ -194,6 +195,24 @@ describe('syncSource', () => {
 		const [state] = rows('SELECT error FROM sources WHERE id = ?', source);
 		expect(state.error).toMatch(/git ls-remote failed/);
 		expect(readdirSync(work)).toEqual([]);
+	});
+
+	it('keeps the last good index when writing the new one fails in the worker', async () => {
+		await syncSource(db, source, { key, workDirectory: work });
+		commitFiles({ 'docs/index.md': '# Home again\n' });
+		db.exec(`CREATE TRIGGER refuse_pages BEFORE INSERT ON pages
+			BEGIN SELECT RAISE(ABORT, 'disk is full'); END`);
+
+		const result = await syncSource(db, source, { key, workDirectory: work });
+
+		expect(result).toMatchObject({ status: 'failed', error: 'disk is full' });
+		expect(rows('SELECT title FROM pages ORDER BY file')).toEqual([
+			{ title: 'Deploy' },
+			{ title: 'Home' }
+		]);
+		expect(rows('SELECT error FROM sources WHERE id = ?', source)).toEqual([
+			{ error: 'disk is full' }
+		]);
 	});
 
 	it('records when every check started, whether it synced, found nothing new or failed', async () => {

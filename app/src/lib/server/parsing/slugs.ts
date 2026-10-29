@@ -1,4 +1,4 @@
-import { extensionSettings } from './site-config';
+import { extensionSettings } from './site-config.ts';
 export type Slugify = (text: string) => string;
 
 /** Python-Markdown's `toc.slugify`, the default of MkDocs and Zensical. */

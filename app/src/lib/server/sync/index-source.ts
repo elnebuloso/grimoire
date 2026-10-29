@@ -1,17 +1,13 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { join, matchesGlob, posix } from 'node:path';
-import type { IndexedPage, SourceIndex } from '../db/sources';
-import { chunkPage } from '../parsing/chunk';
 import { resolveIncludes, type IncludeResult, type UrlContent } from '../parsing/include';
-import { resolveLinks } from '../parsing/links';
-import { preprocessPage } from '../parsing/preprocess';
 import {
 	extensionSettings,
 	findSiteConfig,
 	navOrder,
 	type SiteConfig
 } from '../parsing/site-config';
-import { configuredSlugify, pythonMarkdownSlugify, type Slugify } from '../parsing/slugs';
+import type { PreparedSource } from './index-pages';
 
 export interface IndexedSource {
 	project: string;
@@ -29,17 +25,17 @@ export type FetchDirectories = (directories: string[]) => Promise<void>;
 export type FetchUrl = (url: string) => Promise<UrlContent>;
 
 /**
- * Reads every Markdown page of a source from a checkout and turns it into snippets and links.
- * Include targets outside the source path are fetched with `fetchDirectories`, and URL includes,
- * when the site config allows them, with `fetchUrl`; round by round, until nothing new turns up.
- * A page that cannot be processed is skipped with a warning.
+ * Reads every Markdown page of a source from a checkout and resolves its includes, ready for
+ * `indexPages`. Include targets outside the source path are fetched with `fetchDirectories`, and
+ * URL includes, when the site config allows them, with `fetchUrl`; round by round, until nothing
+ * new turns up.
  */
-export async function indexCheckout(
+export async function prepareCheckout(
 	checkout: string,
 	source: IndexedSource,
 	fetchDirectories: FetchDirectories,
 	fetchUrl: FetchUrl
-): Promise<Omit<SourceIndex, 'commit'>> {
+): Promise<PreparedSource & { sourcePath: string }> {
 	const sourcePath = posix.normalize(source.path || '.').replace(/\/$/, '');
 	const files = listPages(checkout, sourcePath, source.exclusions);
 	const read = (path: string) => readFile(join(checkout, path));
@@ -88,33 +84,13 @@ export async function indexCheckout(
 
 	const navPositions = new Map<string, number>();
 	if (config) navOrder(config, sourcePath)?.forEach((file, index) => navPositions.set(file, index));
-	let slugify: Slugify = pythonMarkdownSlugify;
-	if (config) {
-		const configured = configuredSlugify(config.settings);
-		slugify = configured.slugify;
-		if (configured.warning) warnings.push(`${config.file}: ${configured.warning}`);
-	}
-
-	const indexed: IndexedPage[] = [];
-	for (const file of files) {
-		const { markdown, warnings: includeWarnings } = included.get(file)!;
-		warnings.push(...includeWarnings);
-		try {
-			const metadata = preprocessPage(markdown);
-			const location = { project: source.project, source: source.slug, file };
-			const chunked = chunkPage(metadata, location, slugify);
-			indexed.push({ file, navPosition: navPositions.get(file), metadata, chunked });
-		} catch (error) {
-			warnings.push(`${posix.join(sourcePath, file)}: skipped, ${(error as Error).message}`);
-		}
-	}
-
-	const linked = resolveLinks(new Map(indexed.map((page) => [page.file, page.chunked])), {
-		project: source.project,
-		source: source.slug
-	});
-	const pages = indexed.map((page) => ({ ...page, chunked: linked.pages.get(page.file)! }));
-	return { pages, links: linked.links, warnings };
+	const pages = files.map((file) => ({
+		file,
+		markdown: included.get(file)!.markdown,
+		navPosition: navPositions.get(file),
+		includeWarnings: included.get(file)!.warnings
+	}));
+	return { pages, siteConfig: config, warnings, sourcePath };
 }
 
 /** Markdown files below the source path, relative to it, without excluded ones. */

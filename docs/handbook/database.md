@@ -27,7 +27,9 @@ head; a source is cloned only when the branch moved.
 Both read their times in the time zone `TZ`: with `TZ=Europe/Berlin`, `0 6 * * 1-5` means 6:00 in
 Berlin, in summer and in winter time.
 
-A check starts at most 15 seconds after its scheduled time. Up to four sources are checked at once
+A sync turns the pages into snippets in a separate thread and writes them in one transaction, so
+grimoire keeps answering agents while a large source syncs; until the transaction commits, they
+search the previous index. A check starts at most 15 seconds after its scheduled time. Up to four sources are checked at once
 and one is cloned at a time; a server that does not answer within 30 seconds is skipped until the
 next scheduled run and shows as error of the source. A run missed while grimoire was stopped is made
 up once when it starts again. An invalid source schedule is shown as error of that source.

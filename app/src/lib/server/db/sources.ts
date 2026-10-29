@@ -3,7 +3,7 @@ import { toString } from 'mdast-util-to-string';
 import type { RootContent } from 'mdast';
 import type { ChunkedPage } from '../parsing/chunk';
 import type { Link } from '../parsing/links';
-import { parseMarkdown } from '../parsing/markdown';
+import { parseMarkdown } from '../parsing/markdown.ts';
 import type { PreprocessedPage } from '../parsing/preprocess';
 
 export interface SyncSource {
@@ -119,13 +119,17 @@ export function replaceSourceIndex(db: DatabaseSync, sourceId: number, index: So
 	const insertLink = db.prepare(
 		'INSERT INTO links (page_id, anchor, target, dead) VALUES (?, ?, ?, ?)'
 	);
+	// Parsed before the write lock is taken, so other connections wait as briefly as possible.
+	const searchTexts = index.pages.map(({ chunked }) =>
+		chunked.snippets.map((snippet) => splitCode(snippet.content))
+	);
 
 	db.exec('BEGIN IMMEDIATE');
 	try {
 		db.prepare('DELETE FROM pages WHERE source_id = ?').run(sourceId);
 		const pageIds = new Map<string, number>();
 
-		for (const { file, navPosition, metadata, chunked } of index.pages) {
+		for (const [pageIndex, { file, navPosition, metadata, chunked }] of index.pages.entries()) {
 			const pageId = Number(
 				insertPage.run(
 					sourceId,
@@ -149,7 +153,7 @@ export function replaceSourceIndex(db: DatabaseSync, sourceId: number, index: So
 					snippet.content,
 					snippet.tokens
 				).lastInsertRowid;
-				const { text, code } = splitCode(snippet.content);
+				const { text, code } = searchTexts[pageIndex][position];
 				insertSearchEntry.run(snippetId, snippet.titlePath.join(' › '), text, code);
 			});
 		}

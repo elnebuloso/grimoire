@@ -16,11 +16,10 @@ WORKDIR /grimoire
 COPY --from=build /grimoire/app/package.json app/
 COPY --from=build /grimoire/app/node_modules app/node_modules
 COPY --from=build /grimoire/app/build app/build
-# The reset script runs with plain node and imports these modules, which use only `node:` modules
-# and the packages in node_modules.
+# Plain node runs these from source: the reset script, and the worker thread that indexes a source
+# (found through `#lib` in package.json). They use only `node:` modules and node_modules.
 COPY scripts/reset-admin.ts scripts/
-COPY app/src/lib/server/admin/auth.ts app/src/lib/server/admin/
-COPY app/src/lib/server/log.ts app/src/lib/server/
+COPY app/src/lib/server app/src/lib/server
 USER node
 ENV DATABASE_PATH=/data/grimoire.db
 EXPOSE 3000

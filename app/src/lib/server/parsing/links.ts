@@ -1,7 +1,7 @@
 import { posix } from 'node:path';
 import { visit } from 'unist-util-visit';
-import { estimateTokens, type ChunkedPage } from './chunk';
-import { parseMarkdown, stringifyMarkdown } from './markdown';
+import { estimateTokens, type ChunkedPage } from './chunk.ts';
+import { parseMarkdown, stringifyMarkdown } from './markdown.ts';
 
 export interface SourceLocation {
 	project: string;

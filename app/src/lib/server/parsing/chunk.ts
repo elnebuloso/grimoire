@@ -1,9 +1,9 @@
 import type { Definition, Heading, Root, RootContent } from 'mdast';
 import { toString } from 'mdast-util-to-string';
 import { visit, SKIP } from 'unist-util-visit';
-import { parseMarkdown, stringifyMarkdown } from './markdown';
+import { parseMarkdown, stringifyMarkdown } from './markdown.ts';
 import type { PreprocessedPage } from './preprocess';
-import { pythonMarkdownSlugify, type Slugify } from './slugs';
+import { pythonMarkdownSlugify, type Slugify } from './slugs.ts';
 
 export interface PageLocation {
 	project: string;

@@ -1,7 +1,7 @@
 import { parse as parseYaml } from 'yaml';
 import { visit, SKIP } from 'unist-util-visit';
 import type { Root, RootContent } from 'mdast';
-import { parseMarkdown, stringifyMarkdown } from './markdown';
+import { parseMarkdown, stringifyMarkdown } from './markdown.ts';
 
 export interface PreprocessedPage {
 	title?: string;

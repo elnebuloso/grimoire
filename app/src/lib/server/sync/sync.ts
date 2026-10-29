@@ -2,13 +2,8 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { DatabaseSync } from 'node:sqlite';
-import {
-	clearSyncError,
-	recordCheck,
-	recordSyncError,
-	replaceSourceIndex,
-	sourceForSync
-} from '../db/sources';
+import { Worker } from 'node:worker_threads';
+import { clearSyncError, recordCheck, recordSyncError, sourceForSync } from '../db/sources';
 import { decryptToken } from '../token-encryption';
 import {
 	addSparseDirectories,
@@ -18,7 +13,8 @@ import {
 	sparseClone,
 	type GitRemote
 } from './git';
-import { indexCheckout } from './index-source';
+import { prepareCheckout } from './index-source';
+import type { IndexJob } from './index-worker';
 import { fetchInclude } from './url-include';
 import type { SyncLanes } from './queue';
 
@@ -77,19 +73,21 @@ export async function syncSource(
 			try {
 				await sparseClone(remote, source.branch, source.path, checkout);
 				const commit = await headCommit(checkout);
-				const index = await indexCheckout(
+				const prepared = await prepareCheckout(
 					checkout,
 					source,
 					(directories) => addSparseDirectories(remote, checkout, directories),
 					(url) => fetchInclude(url, options.allowedIncludeOrigins ?? [])
 				);
-				replaceSourceIndex(db, sourceId, { commit, ...index });
-				return {
-					status: 'synced' as const,
-					commit,
-					pages: index.pages.length,
-					warnings: index.warnings
-				};
+				const indexed = await indexInWorker({
+					...prepared,
+					project: source.project,
+					source: source.slug,
+					databasePath: databasePath(db),
+					sourceId,
+					commit
+				});
+				return { status: 'synced' as const, commit, ...indexed };
 			} finally {
 				await rm(checkout, { recursive: true, force: true });
 			}
@@ -101,4 +99,28 @@ export async function syncSource(
 	} finally {
 		recordCheck(db, sourceId, checkedAt);
 	}
+}
+
+/**
+ * Turns the pages into snippets and writes them, in a worker thread: on a large source that is
+ * a minute of Markdown processing, which on the server's thread would hold up every request.
+ */
+function indexInWorker(job: IndexJob): Promise<{ pages: number; warnings: string[] }> {
+	// The worker runs from source; `#lib` points at it from the dev server, tests and the build.
+	const worker = new Worker(new URL(import.meta.resolve('#lib/server/sync/index-worker.ts')), {
+		workerData: job
+	});
+	return new Promise((resolve, reject) => {
+		worker.once('message', resolve);
+		worker.once('error', reject);
+		worker.once('exit', (code) => {
+			if (code !== 0) reject(new Error(`indexing stopped with exit code ${code}`));
+		});
+	});
+}
+
+function databasePath(db: DatabaseSync): string {
+	const path = db.location();
+	if (!path) throw new Error('a source can only be indexed into a database file');
+	return path;
 }
