@@ -4,7 +4,7 @@ title: Fail the build on accessibility violations in stories
 status: To Do
 assignee: []
 created_date: '2026-10-29 18:52'
-updated_date: '2026-10-29 19:01'
+updated_date: '2026-10-29 23:44'
 labels:
   - admin
 milestone: m-0
@@ -12,7 +12,7 @@ dependencies:
   - TASK-37
 references:
   - app/.storybook/preview.ts
-  - docs/components.md
+  - .claude/rules/ui-components.md
 priority: medium
 type: chore
 ordinal: 120000
@@ -31,7 +31,7 @@ When this task was created, the five `ProjectStatsTable` stories passed with `te
 - [ ] #1 An accessibility violation in any story fails `make test` and the CI pipeline
 - [ ] #2 All stories pass the check, without rules switched off globally
 - [ ] #3 A rule switched off for a single story names its reason next to it
-- [ ] #4 `docs/components.md` says that stories must pass the accessibility check
+- [ ] #4 `.claude/rules/ui-components.md` says that stories must pass the accessibility check
 <!-- AC:END -->
 
 ## Implementation Notes
