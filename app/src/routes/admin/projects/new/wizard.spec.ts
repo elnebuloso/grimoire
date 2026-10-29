@@ -178,6 +178,18 @@ describe('project wizard', () => {
 		expect(requestSync).not.toHaveBeenCalled();
 	});
 
+	it('carries the documentation URL through the steps and creates the source with it', async () => {
+		const docsUrl = 'https://docs.example.com/platform/';
+		const summary = (await submit('summary', { ...FIELDS, token: TOKEN, docsUrl })) as {
+			values: { source: { docsUrl: string } };
+		};
+		expect(summary.values.source.docsUrl).toBe(docsUrl);
+
+		await submit('create', await throughSummary({ docsUrl }));
+
+		expect(db.prepare('SELECT docs_url FROM sources').get()).toEqual({ docs_url: docsUrl });
+	});
+
 	it('tests the connection on the source step', async () => {
 		const result = await submit('test', { ...FIELDS, token: TOKEN });
 

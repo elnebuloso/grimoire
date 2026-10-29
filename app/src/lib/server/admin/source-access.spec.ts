@@ -23,6 +23,7 @@ function form(changes: Partial<SourceForm> = {}): SourceForm {
 	return {
 		name: 'Docs',
 		gitUrl: url,
+		docsUrl: '',
 		branch: 'main',
 		path: 'docs/',
 		exclusions: '',

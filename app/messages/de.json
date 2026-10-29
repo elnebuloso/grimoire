@@ -172,5 +172,10 @@
 	"settings_submit": "Einstellungen speichern",
 	"settings_saved": "Einstellungen gespeichert.",
 	"syncs_paused_notice": "Alle Syncs sind pausiert; das Polling prüft keine Quelle.",
-	"source_polling_all_paused": "für alle Quellen in den Einstellungen pausiert; nur „Jetzt syncen“ synct diese Quelle"
+	"source_polling_all_paused": "für alle Quellen in den Einstellungen pausiert; nur „Jetzt syncen“ synct diese Quelle",
+	"field_docs_url": "Dokumentations-URL (optional), unter der die Dokumentation als Website veröffentlicht ist",
+	"source_docs_link": "Dokumentation",
+	"wizard_docs_url": "Dokumentations-URL",
+	"error_docs_url": "Gib die Dokumentations-URL als Webadresse mit https:// oder http:// ein, z. B. https://docs.example.com/platform/.",
+	"error_docs_url_credentials": "Die Dokumentations-URL darf keinen Benutzernamen und kein Passwort enthalten."
 }

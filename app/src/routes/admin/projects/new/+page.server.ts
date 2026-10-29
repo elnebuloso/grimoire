@@ -34,6 +34,7 @@ function readValues(data: FormData): WizardValues {
 		source: {
 			name: field('sourceName'),
 			gitUrl: field('gitUrl'),
+			docsUrl: field('docsUrl'),
 			branch: field('branch'),
 			path: field('path'),
 			exclusions: field('exclusions'),

@@ -172,5 +172,10 @@
 	"settings_submit": "Save settings",
 	"settings_saved": "Settings saved.",
 	"syncs_paused_notice": "All syncs are paused; polling checks no source.",
-	"source_polling_all_paused": "paused for all sources in the settings; only \"Sync now\" syncs this source"
+	"source_polling_all_paused": "paused for all sources in the settings; only \"Sync now\" syncs this source",
+	"field_docs_url": "Documentation URL (optional), where the documentation is published as a site",
+	"source_docs_link": "Documentation",
+	"wizard_docs_url": "Documentation URL",
+	"error_docs_url": "Enter the documentation URL as a web address starting with https:// or http://, e.g. https://docs.example.com/platform/.",
+	"error_docs_url_credentials": "The documentation URL must not contain a username or password."
 }

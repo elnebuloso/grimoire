@@ -19,6 +19,7 @@
 		form?.values ?? {
 			name: data.source?.name ?? '',
 			gitUrl: data.source?.gitUrl ?? '',
+			docsUrl: data.source?.docsUrl ?? '',
 			branch: data.source?.branch ?? 'main',
 			path: data.source?.path ?? 'docs/',
 			exclusions: data.source?.exclusions.join('\n') ?? '',
@@ -37,6 +38,9 @@
 	>
 </p>
 <h1>{data.source ? m.source_title({ name: data.source.name }) : m.project_new_source()}</h1>
+{#if data.source?.docsUrl}
+	<p><a href={data.source.docsUrl} rel="external">{m.source_docs_link()}</a></p>
+{/if}
 
 {#if data.source && data.status}
 	{@const sourcePage = resolve('/admin/projects/[id]/sources/[sourceId]', {
@@ -153,6 +157,7 @@
 		<NameField label={m.field_name()} name="name" value={values.name} />
 	{/if}
 	<TextField label={m.field_git_url()} name="gitUrl" type="url" required value={values.gitUrl} />
+	<TextField label={m.field_docs_url()} name="docsUrl" type="url" value={values.docsUrl} />
 	<TextField label={m.field_branch()} name="branch" required value={values.branch} />
 	<TextField label={m.field_path()} name="path" value={values.path} />
 	<TextAreaField label={m.field_exclusions()} name="exclusions" value={values.exclusions} />

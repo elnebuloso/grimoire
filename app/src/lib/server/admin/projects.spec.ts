@@ -24,6 +24,7 @@ function sourceForm(changes: Partial<SourceForm> = {}): SourceForm {
 	return {
 		name: 'Auth Service',
 		gitUrl: 'https://gitlab.example.com/platform/auth.git',
+		docsUrl: '',
 		branch: 'main',
 		path: 'docs/',
 		exclusions: '',
@@ -120,6 +121,7 @@ describe('saveSource', () => {
 			slug: 'auth-service',
 			name: 'Auth Service',
 			gitUrl: 'https://gitlab.example.com/platform/auth.git',
+			docsUrl: null,
 			branch: 'main',
 			path: 'docs/',
 			exclusions: ['a/**', 'b.md'],
@@ -204,6 +206,29 @@ describe('saveSource', () => {
 		['https://user@gitlab.example.com/a.git', 'in their own fields']
 	])('rejects the Git URL %s', (gitUrl, message) => {
 		expect(saveSource(db, KEY, projectId, undefined, sourceForm({ gitUrl }))).toEqual({
+			error: expect.stringContaining(message)
+		});
+	});
+
+	it('stores, changes and clears the documentation URL', () => {
+		const docsUrl = 'https://docs.example.com/platform/';
+		const id = created(saveSource(db, KEY, projectId, undefined, sourceForm({ docsUrl })));
+		expect(findSource(db, projectId, id)?.docsUrl).toBe(docsUrl);
+
+		saveSource(db, KEY, projectId, id, sourceForm({ docsUrl: ' http://intranet/docs/ ' }));
+		expect(findSource(db, projectId, id)?.docsUrl).toBe('http://intranet/docs/');
+
+		saveSource(db, KEY, projectId, id, sourceForm({ docsUrl: ' ' }));
+		expect(findSource(db, projectId, id)?.docsUrl).toBeNull();
+	});
+
+	it.each([
+		['docs.example.com/platform', 'web address'],
+		['ftp://docs.example.com/', 'web address'],
+		['javascript:alert(1)', 'web address'],
+		['https://user:secret@docs.example.com/', 'username or password']
+	])('rejects the documentation URL %s', (docsUrl, message) => {
+		expect(saveSource(db, KEY, projectId, undefined, sourceForm({ docsUrl }))).toEqual({
 			error: expect.stringContaining(message)
 		});
 	});

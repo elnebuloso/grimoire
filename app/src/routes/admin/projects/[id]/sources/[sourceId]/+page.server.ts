@@ -75,6 +75,7 @@ function readSourceForm(data: FormData) {
 	const form: SourceForm = {
 		name: field('name'),
 		gitUrl: field('gitUrl'),
+		docsUrl: field('docsUrl'),
 		branch: field('branch'),
 		path: field('path'),
 		exclusions: field('exclusions'),
@@ -87,6 +88,7 @@ function readSourceForm(data: FormData) {
 	const values = {
 		name: form.name,
 		gitUrl: redactUrl(form.gitUrl),
+		docsUrl: form.docsUrl,
 		branch: form.branch,
 		path: form.path,
 		exclusions: form.exclusions,

@@ -67,6 +67,7 @@ last sync. It shows nothing about the sources themselves, neither Git URLs nor e
 |---|---|
 | Name | What people read, at most 80 characters. On creation, grimoire derives the slug from it and shows it next to the field while you type: lowercase letters, digits and single hyphens, umlauts spelled out (`Prüfung & Abnahme` → `pruefung-abnahme`), at most 40 characters. The slug is part of every ID agents see (`<project>/<source>/<page>`); a project slug is unique, a source slug unique within its project. Renaming keeps the slug. |
 | Git URL | `https://` only, without `user:token@`; username and token have their own fields. |
+| Documentation URL | Optional: where the documentation of the source is published as a site, for example built with MkDocs or Zensical. `https://` or `http://`, without `user:password@`. The page of the source and the source list of the project link to it; the public start page and agents do not see it. |
 | Path | Relative to the repository root, e.g. `docs/`; empty for the whole repository. |
 | Exclusions | Glob patterns relative to the repository root, one per line, e.g. `docs/drafts/**`. |
 | Schedule | Cron expression with five fields, in the time zone `TZ`; empty uses `SYNC_SCHEDULE`. An expression that never runs, such as `0 0 30 2 *` (30 February), is rejected. |

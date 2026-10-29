@@ -29,6 +29,8 @@ export interface SourceSettings {
 	slug: string;
 	name: string;
 	gitUrl: string;
+	/** Where the documentation is published as a site; null when not given. */
+	docsUrl: string | null;
 	branch: string;
 	path: string;
 	exclusions: string[];
@@ -41,6 +43,8 @@ export interface SourceSettings {
 export interface SourceForm {
 	name: string;
 	gitUrl: string;
+	/** Empty for none. */
+	docsUrl: string;
 	branch: string;
 	path: string;
 	/** One glob pattern per line. */
@@ -159,6 +163,7 @@ interface SourceRow {
 	slug: string;
 	name: string;
 	git_url: string;
+	docs_url: string | null;
 	branch: string;
 	path: string;
 	exclusions: string;
@@ -168,7 +173,7 @@ interface SourceRow {
 	has_token: number;
 }
 
-const SOURCE_COLUMNS = `id, slug, name, git_url, branch, path, exclusions, sync_schedule, paused,
+const SOURCE_COLUMNS = `id, slug, name, git_url, docs_url, branch, path, exclusions, sync_schedule, paused,
 	username, encrypted_token IS NOT NULL AS has_token`;
 
 function toSettings(row: SourceRow): SourceSettings {
@@ -177,6 +182,7 @@ function toSettings(row: SourceRow): SourceSettings {
 		slug: row.slug,
 		name: row.name,
 		gitUrl: redactUrl(row.git_url),
+		docsUrl: row.docs_url,
 		branch: row.branch,
 		path: row.path,
 		exclusions: JSON.parse(row.exclusions) as string[],
@@ -243,6 +249,9 @@ export function sourceProblem(
 	const urlProblem = checkGitUrl(gitUrl);
 	if (urlProblem) return urlProblem;
 
+	const docsUrlProblem = checkDocsUrl(form.docsUrl.trim());
+	if (docsUrlProblem) return docsUrlProblem;
+
 	if (!form.branch.trim()) return m.error_branch();
 
 	const path = form.path.trim();
@@ -302,6 +311,7 @@ export function saveSource(
 	const values = {
 		name,
 		git_url: gitUrl,
+		docs_url: form.docsUrl.trim() || null,
 		branch,
 		path,
 		exclusions: JSON.stringify(
@@ -319,10 +329,10 @@ export function saveSource(
 	if (sourceId === undefined) {
 		const result = db
 			.prepare(
-				`INSERT INTO sources (project_id, slug, name, git_url, branch, path, exclusions,
-					sync_schedule, paused, username, encrypted_token)
-				VALUES (:project_id, :slug, :name, :git_url, :branch, :path, :exclusions,
-					:sync_schedule, :paused, :username, :encrypted_token)`
+				`INSERT INTO sources (project_id, slug, name, git_url, docs_url, branch, path,
+					exclusions, sync_schedule, paused, username, encrypted_token)
+				VALUES (:project_id, :slug, :name, :git_url, :docs_url, :branch, :path,
+					:exclusions, :sync_schedule, :paused, :username, :encrypted_token)`
 			)
 			.run({
 				...values,
@@ -333,7 +343,8 @@ export function saveSource(
 		return { id: Number(result.lastInsertRowid) };
 	}
 	db.prepare(
-		`UPDATE sources SET name = :name, git_url = :git_url, branch = :branch, path = :path,
+		`UPDATE sources SET name = :name, git_url = :git_url, docs_url = :docs_url,
+			branch = :branch, path = :path,
 			exclusions = :exclusions, sync_schedule = :sync_schedule, paused = :paused,
 			username = :username
 		WHERE id = :id`
@@ -399,6 +410,21 @@ function checkGitUrl(gitUrl: string): string | undefined {
 	if (url.username || url.password) {
 		return m.error_git_url_credentials();
 	}
+	return undefined;
+}
+
+// The URL ends up in `href`: only web addresses pass, never `javascript:` or a relative path, and
+// no credentials, which the link would show to everyone in the admin area.
+function checkDocsUrl(docsUrl: string): string | undefined {
+	if (!docsUrl) return undefined;
+	let url: URL;
+	try {
+		url = new URL(docsUrl);
+	} catch {
+		return m.error_docs_url();
+	}
+	if (url.protocol !== 'https:' && url.protocol !== 'http:') return m.error_docs_url();
+	if (url.username || url.password) return m.error_docs_url_credentials();
 	return undefined;
 }
 

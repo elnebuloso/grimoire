@@ -260,6 +260,28 @@ describe('source page', () => {
 		expect(requestSync).toHaveBeenCalledExactlyOnceWith(1, { force: true });
 	});
 
+	it('saves the documentation URL and keeps the entered values when it is invalid', async () => {
+		await thrown(() =>
+			saveSource('1', 'new', { ...SOURCE, docsUrl: 'https://docs.example.com/auth/' })
+		);
+		expect(loadSource('1', '1')).toMatchObject({
+			source: { docsUrl: 'https://docs.example.com/auth/' }
+		});
+
+		const result = await saveSource('1', '1', { ...SOURCE, docsUrl: 'javascript:alert(1)' });
+
+		expect(result).toMatchObject({
+			status: 400,
+			data: {
+				error: expect.stringContaining('web address'),
+				values: { docsUrl: 'javascript:alert(1)' }
+			}
+		});
+		expect(loadSource('1', '1')).toMatchObject({
+			source: { docsUrl: 'https://docs.example.com/auth/' }
+		});
+	});
+
 	it('saves nothing when the repository cannot be reached, and shows why', async () => {
 		checkSourceAccess.mockResolvedValueOnce({ ok: false, message: 'Access refused.' });
 

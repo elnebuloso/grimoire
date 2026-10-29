@@ -18,6 +18,7 @@
 			source: {
 				name: '',
 				gitUrl: '',
+				docsUrl: '',
 				branch: 'main',
 				path: 'docs/',
 				exclusions: '',
@@ -60,6 +61,7 @@
 			required
 			value={values.source.gitUrl}
 		/>
+		<TextField label={m.field_docs_url()} name="docsUrl" type="url" value={values.source.docsUrl} />
 		<TextField label={m.field_branch()} name="branch" required value={values.source.branch} />
 		<TextField label={m.field_path()} name="path" value={values.source.path} />
 		<TextAreaField
@@ -86,6 +88,7 @@
 	{:else}
 		<input type="hidden" name="sourceName" value={values.source.name} />
 		<input type="hidden" name="gitUrl" value={values.source.gitUrl} />
+		<input type="hidden" name="docsUrl" value={values.source.docsUrl} />
 		<input type="hidden" name="branch" value={values.source.branch} />
 		<input type="hidden" name="path" value={values.source.path} />
 		<input type="hidden" name="exclusions" value={values.source.exclusions} />
@@ -131,6 +134,7 @@
 				[m.source(), values.source.name],
 				[m.source_slug(), slugify(values.source.name)],
 				[m.wizard_git_url(), values.source.gitUrl],
+				[m.wizard_docs_url(), values.source.docsUrl || m.none()],
 				[m.field_branch(), values.source.branch],
 				[m.wizard_path(), values.source.path || m.whole_repository()],
 				[m.wizard_exclusions(), values.source.exclusions.trim() || m.none()],

@@ -187,6 +187,25 @@ test('lists the projects on the public start page without any source detail', as
 	}
 });
 
+test('links the documentation of a source only once its URL is set', async ({ page }) => {
+	const docsUrl = 'https://docs.e2e.example/auth/';
+	await logIn(page);
+	await page.getByRole('link', { name: 'Platform', exact: true }).click();
+	await expect(page.getByRole('link', { name: 'Documentation' })).toHaveCount(0);
+	await page.getByRole('link', { name: 'Auth Service' }).click();
+	await expect(page.getByRole('link', { name: 'Documentation' })).toHaveCount(0);
+
+	await page.getByLabel('Documentation URL').fill(docsUrl);
+	await page.getByRole('button', { name: 'Save' }).click();
+
+	await expect(page.getByRole('link', { name: 'Documentation' })).toHaveAttribute('href', docsUrl);
+	await page.getByRole('link', { name: 'Project Platform' }).click();
+	await expect(page.getByRole('link', { name: 'Documentation' })).toHaveAttribute('href', docsUrl);
+
+	await page.goto('/');
+	expect(await page.content()).not.toContain('docs.e2e.example');
+});
+
 test('shows how to connect Claude Code to this instance', async ({ page }) => {
 	await page.goto('/');
 	// The server derives the origin from `x-forwarded-proto`, as it would behind a proxy.

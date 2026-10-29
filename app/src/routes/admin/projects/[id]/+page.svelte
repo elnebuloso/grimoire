@@ -48,6 +48,9 @@
 					branch: source.branch,
 					path: source.path || m.whole_repository()
 				})}{source.paused ? `, ${m.paused()}` : ''}
+				{#if source.docsUrl}
+					– <a href={source.docsUrl} rel="external">{m.source_docs_link()}</a>
+				{/if}
 			</li>
 		{/each}
 	</ul>
