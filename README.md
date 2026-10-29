@@ -99,8 +99,8 @@ variables, the volume for the SQLite file, the sync schedule and backups in
 `make help` lists all targets; `make test` runs the unit tests and the component stories,
 `make e2e` the browser tests of the admin area against the production build (both download
 Chromium on first use), `make lint` checks formatting, lint rules and types. `make storybook`
-opens the component catalog; [docs/components.md](docs/components.md) says how components and
-their stories are written.
+opens the component catalog; [.claude/rules/ui-components.md](.claude/rules/ui-components.md) says
+how components and their stories are written.
 
 Commits follow [Conventional Commits](https://www.conventionalcommits.org). Releases are cut from
 them by the `CI` workflow on every push to `main`, once lint, unit and browser tests passed:
