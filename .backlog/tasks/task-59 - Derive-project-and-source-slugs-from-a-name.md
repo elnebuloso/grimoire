@@ -4,6 +4,7 @@ title: Derive project and source slugs from a name
 status: To Do
 assignee: []
 created_date: '2026-10-29 19:32'
+updated_date: '2026-10-29 19:35'
 labels:
   - admin
 milestone: m-0
@@ -33,3 +34,11 @@ Open when picking this up, to confirm with the user: the name is kept as the dis
 - [ ] #6 Unit tests cover slugify (umlauts, accents, punctuation, repeated and edge hyphens, length) and the rejected cases; an e2e test checks the slug shown while typing
 - [ ] #7 `docs/handbook/admin.md` describes the name and the slug derived from it
 <!-- AC:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Confirmed by the user: the name is kept as the display name of the project or source, and the slug stays fixed once created, even when the name changes.
+
+Discussed and rejected: UUIDs instead of slugs. Projects and sources already have integer ids as database keys. The slug is the public address agents use in every snippet ID, in the index and in /p/<project>/ URLs. A UUID there would cost tokens in every answer and is easy for a model to miscopy; both are estimates, not measured. A name alone cannot serve either, because it needs escaping in IDs and URLs and may change.
+<!-- SECTION:NOTES:END -->
