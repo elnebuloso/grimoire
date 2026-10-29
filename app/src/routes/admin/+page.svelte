@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
+	import DescriptionList from '#lib/components/DescriptionList.svelte';
 	import ProjectStatsTable from '#lib/components/ProjectStatsTable.svelte';
 	import type { PageProps } from './$types';
 
@@ -14,22 +15,17 @@
 </p>
 
 <h2>Overview</h2>
-<dl>
-	<dt>Projects</dt>
-	<dd>{data.totals.projects}</dd>
-	<dt>Sources</dt>
-	<dd>{data.totals.sources}</dd>
-	<dt>Pages</dt>
-	<dd>{data.totals.pages}</dd>
-	<dt>Snippets</dt>
-	<dd>{data.totals.snippets}</dd>
-	<dt>Tokens</dt>
-	<dd>{data.totals.tokens}</dd>
-	<dt>Dead links</dt>
-	<dd>{data.totals.deadLinks}</dd>
-	<dt>API keys</dt>
-	<dd>{data.totals.apiKeys}</dd>
-</dl>
+<DescriptionList
+	items={[
+		['Projects', data.totals.projects],
+		['Sources', data.totals.sources],
+		['Pages', data.totals.pages],
+		['Snippets', data.totals.snippets],
+		['Tokens', data.totals.tokens],
+		['Dead links', data.totals.deadLinks],
+		['API keys', data.totals.apiKeys]
+	]}
+/>
 
 <h2>Needs attention</h2>
 {#if data.attention.length === 0}

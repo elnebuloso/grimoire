@@ -1,5 +1,9 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
+	import ChoiceField from '#lib/components/ChoiceField.svelte';
+	import ConfirmForm from '#lib/components/ConfirmForm.svelte';
+	import FormError from '#lib/components/FormError.svelte';
+	import TextField from '#lib/components/TextField.svelte';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
@@ -28,18 +32,14 @@
 				{key.name} – {key.projects === 'all'
 					? 'all projects'
 					: key.projects.join(', ') || 'no projects'}, created {key.createdAt}
-				<form
-					method="post"
+				<ConfirmForm
 					action="?/revoke"
-					onsubmit={(event) => {
-						if (!confirm(`Revoke the key ${key.name}? Agents using it lose access at once.`)) {
-							event.preventDefault();
-						}
-					}}
+					question="Revoke the key {key.name}? Agents using it lose access at once."
+					label="Revoke"
+					buttonLabel="Revoke {key.name}"
 				>
 					<input type="hidden" name="id" value={key.id} />
-					<button aria-label="Revoke {key.name}">Revoke</button>
-				</form>
+				</ConfirmForm>
 			</li>
 		{/each}
 	</ul>
@@ -47,34 +47,31 @@
 
 <h2>New key</h2>
 <form method="post" action="?/create">
-	{#if form?.error}<p role="alert">{form.error}</p>{/if}
-	<p><label>Name <input name="name" required value={values.name} /></label></p>
+	<FormError message={form?.error} />
+	<TextField label="Name" name="name" required value={values.name} />
 	<fieldset>
 		<legend>Projects the key may read</legend>
-		<p>
-			<label>
-				<input type="radio" name="scope" value="all" checked={values.allProjects} />
-				All projects, including future ones
-			</label>
-		</p>
-		<p>
-			<label>
-				<input type="radio" name="scope" value="selected" checked={!values.allProjects} />
-				Only these:
-			</label>
-		</p>
+		<ChoiceField
+			type="radio"
+			name="scope"
+			value="all"
+			checked={values.allProjects}
+			label="All projects, including future ones"
+		/>
+		<ChoiceField
+			type="radio"
+			name="scope"
+			value="selected"
+			checked={!values.allProjects}
+			label="Only these:"
+		/>
 		{#each data.projects as project (project)}
-			<p>
-				<label>
-					<input
-						type="checkbox"
-						name="projects"
-						value={project}
-						checked={values.projects.includes(project)}
-					/>
-					{project}
-				</label>
-			</p>
+			<ChoiceField
+				name="projects"
+				value={project}
+				checked={values.projects.includes(project)}
+				label={project}
+			/>
 		{/each}
 	</fieldset>
 	<button>Create key</button>

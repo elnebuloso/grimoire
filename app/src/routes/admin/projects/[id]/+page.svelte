@@ -1,5 +1,8 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
+	import ConfirmForm from '#lib/components/ConfirmForm.svelte';
+	import FormError from '#lib/components/FormError.svelte';
+	import TextField from '#lib/components/TextField.svelte';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
@@ -11,11 +14,9 @@
 <h1>Project {data.project.slug}</h1>
 
 <form method="post" action="?/save">
-	{#if form?.error}<p role="alert">{form.error}</p>{/if}
-	<p><label>Slug <input name="slug" required value={values.slug} /></label></p>
-	<p>
-		<label>Short description <input name="description" value={values.description} /></label>
-	</p>
+	<FormError message={form?.error} />
+	<TextField label="Slug" name="slug" required value={values.slug} />
+	<TextField label="Short description" name="description" value={values.description} />
 	<button>Save</button>
 </form>
 
@@ -48,14 +49,8 @@
 </p>
 
 <h2>Delete</h2>
-<form
-	method="post"
+<ConfirmForm
 	action="?/delete"
-	onsubmit={(event) => {
-		if (!confirm(`Delete project ${data.project.slug} with all its sources?`)) {
-			event.preventDefault();
-		}
-	}}
->
-	<button>Delete project and its sources</button>
-</form>
+	question="Delete project {data.project.slug} with all its sources?"
+	label="Delete project and its sources"
+/>

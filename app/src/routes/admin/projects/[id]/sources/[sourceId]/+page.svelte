@@ -1,5 +1,11 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
+	import ChoiceField from '#lib/components/ChoiceField.svelte';
+	import ConfirmForm from '#lib/components/ConfirmForm.svelte';
+	import DescriptionList from '#lib/components/DescriptionList.svelte';
+	import FormError from '#lib/components/FormError.svelte';
+	import TextAreaField from '#lib/components/TextAreaField.svelte';
+	import TextField from '#lib/components/TextField.svelte';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
@@ -46,18 +52,18 @@
 			{/if}
 		</p>
 	{/if}
-	<dl>
-		<dt>Polling</dt>
-		<dd>{data.source.paused ? 'paused; only "Sync now" syncs this source' : 'active'}</dd>
-		<dt>Last check</dt>
-		<dd>{data.status.lastCheckedAt ?? 'never'}</dd>
-		<dt>Last sync</dt>
-		<dd>{data.status.lastSyncedAt ?? 'never'}</dd>
-		<dt>Commit</dt>
-		<dd>{data.status.lastCommit ?? 'none'}</dd>
-		<dt>Pages, snippets, tokens</dt>
-		<dd>{data.status.totals.pages}, {data.status.totals.snippets}, {data.status.totals.tokens}</dd>
-	</dl>
+	<DescriptionList
+		items={[
+			['Polling', data.source.paused ? 'paused; only "Sync now" syncs this source' : 'active'],
+			['Last check', data.status.lastCheckedAt ?? 'never'],
+			['Last sync', data.status.lastSyncedAt ?? 'never'],
+			['Commit', data.status.lastCommit ?? 'none'],
+			[
+				'Pages, snippets, tokens',
+				`${data.status.totals.pages}, ${data.status.totals.snippets}, ${data.status.totals.tokens}`
+			]
+		]}
+	/>
 	{#if data.status.error}
 		<h3>Error</h3>
 		<p role="alert">{data.status.error}</p>
@@ -103,68 +109,53 @@
 {/if}
 
 <form method="post" action="?/save">
-	{#if form?.error}<p role="alert">{form.error}</p>{/if}
-	<p><label>Slug <input name="slug" required value={values.slug} /></label></p>
-	<p>
-		<label>
-			Git URL (HTTPS)
-			<input name="gitUrl" type="url" required value={values.gitUrl} />
-		</label>
-	</p>
-	<p><label>Branch <input name="branch" required value={values.branch} /></label></p>
-	<p>
-		<label>
-			Path in the repository (empty for the whole repository)
-			<input name="path" value={values.path} />
-		</label>
-	</p>
-	<p>
-		<label>
-			Exclusions: glob patterns relative to the repository root, one per line
-			<textarea name="exclusions">{values.exclusions}</textarea>
-		</label>
-	</p>
-	<p>
-		<label>
-			Schedule: cron expression with five fields, empty for the global one ({data.globalSchedule})
-			<input name="schedule" value={values.schedule} />
-		</label>
-	</p>
+	<FormError message={form?.error} />
+	<TextField label="Slug" name="slug" required value={values.slug} />
+	<TextField label="Git URL (HTTPS)" name="gitUrl" type="url" required value={values.gitUrl} />
+	<TextField label="Branch" name="branch" required value={values.branch} />
+	<TextField
+		label="Path in the repository (empty for the whole repository)"
+		name="path"
+		value={values.path}
+	/>
+	<TextAreaField
+		label="Exclusions: glob patterns relative to the repository root, one per line"
+		name="exclusions"
+		value={values.exclusions}
+	/>
+	<TextField
+		label="Schedule: cron expression with five fields, empty for the global one ({data.globalSchedule})"
+		name="schedule"
+		value={values.schedule}
+	/>
 	{#if data.nextCheck}
 		<p>Next check: <time>{data.nextCheck}</time></p>
 	{/if}
-	<p>
-		<label>
-			<input name="paused" type="checkbox" checked={values.paused} /> Paused: polling skips this source,
-			only "Sync now" syncs it
-		</label>
-	</p>
-	<p><label>Username <input name="username" value={values.username} /></label></p>
-	<p>
-		<label>
-			Access token ({data.source?.hasToken ? 'stored; leave empty to keep it' : 'none stored'})
-			<input name="token" type="password" autocomplete="off" />
-		</label>
-	</p>
+	<ChoiceField
+		name="paused"
+		checked={values.paused}
+		label="Paused: polling skips this source, only &quot;Sync now&quot; syncs it"
+	/>
+	<TextField label="Username" name="username" value={values.username} />
+	<TextField
+		label="Access token ({data.source?.hasToken
+			? 'stored; leave empty to keep it'
+			: 'none stored'})"
+		name="token"
+		type="password"
+		autocomplete="off"
+	/>
 	{#if data.source?.hasToken}
-		<p>
-			<label>
-				<input name="removeToken" type="checkbox" checked={values.removeToken} /> Remove the stored token
-			</label>
-		</p>
+		<ChoiceField name="removeToken" checked={values.removeToken} label="Remove the stored token" />
 	{/if}
 	<button>{data.source ? 'Save' : 'Create source'}</button>
 </form>
 
 {#if data.source}
 	<h2>Delete</h2>
-	<form
-		method="post"
+	<ConfirmForm
 		action="?/delete"
-		onsubmit={(event) => {
-			if (!confirm(`Delete source ${data.source?.slug} and its index?`)) event.preventDefault();
-		}}
-	>
-		<button>Delete source</button>
-	</form>
+		question="Delete source {data.source.slug} and its index?"
+		label="Delete source"
+	/>
 {/if}

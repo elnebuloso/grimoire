@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
+	import FormError from '#lib/components/FormError.svelte';
+	import TextField from '#lib/components/TextField.svelte';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
@@ -13,25 +15,29 @@
 {/if}
 
 <form method="post">
-	{#if form?.error}<p role="alert">{form.error}</p>{/if}
+	<FormError message={form?.error} />
 	<!-- Tells a password manager which saved login the new password belongs to. -->
-	<p>
-		<label>
-			Username
-			<input name="username" readonly autocomplete="username" value={data.username} />
-		</label>
-	</p>
-	<p>
-		<label>
-			Current password
-			<input name="current" type="password" required autocomplete="current-password" />
-		</label>
-	</p>
-	<p>
-		<label>
-			New password (at least 12 characters)
-			<input name="password" type="password" required minlength="12" autocomplete="new-password" />
-		</label>
-	</p>
+	<TextField
+		label="Username"
+		name="username"
+		readonly
+		autocomplete="username"
+		value={data.username}
+	/>
+	<TextField
+		label="Current password"
+		name="current"
+		type="password"
+		required
+		autocomplete="current-password"
+	/>
+	<TextField
+		label="New password (at least 12 characters)"
+		name="password"
+		type="password"
+		required
+		minlength={12}
+		autocomplete="new-password"
+	/>
 	<button>Change password</button>
 </form>
