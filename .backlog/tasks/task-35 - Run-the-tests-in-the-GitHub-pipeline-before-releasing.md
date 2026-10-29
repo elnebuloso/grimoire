@@ -1,11 +1,11 @@
 ---
 id: TASK-35
 title: Run the tests in the GitHub pipeline before releasing
-status: In Progress
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-28T23:50:00Z'
-updated_date: '2026-10-29T00:18:00Z'
+updated_date: '2026-10-29T00:24:00Z'
 labels:
   - ops
 milestone: m-0
@@ -24,8 +24,8 @@ The `Release` workflow (`.github/workflows/release.yml`) cuts a release on every
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
 - [x] #1 A push to `main` runs the unit tests, lint and type checks, and the browser tests of the admin area, through the `make` targets
-- [ ] #2 The release step runs only when all of them passed; a failing check releases nothing
-- [ ] #3 Pull requests run the same checks without releasing
+- [x] #2 The release step runs only when all of them passed; a failing check releases nothing
+- [x] #3 Pull requests run the same checks without releasing
 - [x] #4 The checks use the Node version the app requires (`engines` in `app/package.json`)
 <!-- AC:END -->
 
@@ -48,4 +48,12 @@ The browser tests were flaky (2 of 10 runs): the click on "New source" navigated
 `setup-node` resolves `>=24.22.1` from `engines.node` to the newest matching release, which may be a newer major than the Docker image's 24.22.1. Not verified on GitHub yet; the first run of the workflow verifies the job setup and `playwright install-deps`.
 
 First GitHub run 40792875159 (push to main): `check` passed with Node 24.22.1 (resolved from `engines.node`, found in the tool cache), lint, 244 unit tests and 6 browser tests incl. `playwright install-deps`; `release` ran after it and released nothing (no `feat`/`fix`). Not yet observed: a failing check blocking the release, and a pull request run.
+
+Gate verified with the throwaway branch `ci/check-gate-test` (deliberately failing unit test, PR #1, closed and deleted): `workflow_dispatch` run 40793517968 failed in `make test` and skipped `release`; pull request runs 40793521456 (red) and 40793630411 (green) ran `check` and skipped `release`.
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+The `Release` workflow became `.github/workflows/ci.yml` (`CI`). Job `check` runs `make lint`, `make test` and `make e2e` (after `playwright install-deps chromium`) on Node from `engines.node`; job `release` needs it and is skipped on pull requests. README updated. A flaky browser test (filling the previous page Slug field after a client-side navigation) was fixed by waiting for the new form. Verified on GitHub: green push run with no release, a red check skipping the release, and pull request runs without release. Note: `>=24.22.1` resolves to the newest matching Node; today that is 24.22.1 from the runner cache.
+<!-- SECTION:FINAL_SUMMARY:END -->
