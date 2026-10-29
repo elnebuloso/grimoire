@@ -1,6 +1,6 @@
 # grimoire – Concept
 
-As of: 2026-10-28 · Status: concept agreed, implementation not yet started
+As of: 2026-10-29 · Status: agreed, version 1 functionally complete
 
 ## Idea
 
