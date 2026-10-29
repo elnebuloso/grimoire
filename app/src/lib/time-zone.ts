@@ -17,6 +17,11 @@ export function parseTimeZone(value: string | undefined): string {
 /**
  * A stored timestamp as the UI shows it: in the time zone of the instance, not the browser's, so
  * the server and the hydrated page render the same text.
+ *
+ * The format per language comes from CLDR through `Intl` and is deliberately not configurable: a
+ * format editor, let alone one per language, would cost more upkeep than it brings. Should a real
+ * need come up, it becomes a language-independent switch in the settings, such as `hourCycle`,
+ * passed on to `Intl.DateTimeFormat` here, never a format string.
  */
 export function formatDateTime(iso: string, locale: string, timeZone: string): string {
 	return new Intl.DateTimeFormat(locale, {
