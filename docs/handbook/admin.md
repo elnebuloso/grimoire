@@ -57,7 +57,7 @@ last sync. It shows nothing about the sources themselves, neither Git URLs nor e
 | Git URL | `https://` only, without `user:token@`; username and token have their own fields. |
 | Path | Relative to the repository root, e.g. `docs/`; empty for the whole repository. |
 | Exclusions | Glob patterns relative to the repository root, one per line, e.g. `docs/drafts/**`. |
-| Schedule | Cron expression with five fields, in the server time zone; empty uses `SYNC_SCHEDULE`. |
+| Schedule | Cron expression with five fields, in the server time zone; empty uses `SYNC_SCHEDULE`. An expression that never runs, such as `0 0 30 2 *` (30 February), is rejected. |
 | Username, token | A read-only token of the Git host, e.g. a GitLab deploy token or a GitHub fine-grained token. |
 
 The token is stored encrypted with `TOKEN_ENCRYPTION_KEY` and never shown again. Leave the field

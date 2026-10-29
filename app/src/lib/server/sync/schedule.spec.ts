@@ -41,4 +41,12 @@ describe('parseSchedule', () => {
 	it.each(['* * * * * *', 'every day', '61 * * * *', ''])('rejects "%s"', (expression) => {
 		expect(() => parseSchedule(expression)).toThrow(/invalid cron expression/);
 	});
+
+	it.each(['0 0 30 2 *', '0 0 31 4 *'])('rejects "%s", a date that never comes', (expression) => {
+		expect(() => parseSchedule(expression)).toThrow(/never runs/);
+	});
+
+	it('accepts 29 February, which comes in leap years', () => {
+		expect(parseSchedule('0 0 29 2 *')).toBe('0 0 29 2 *');
+	});
 });

@@ -3,15 +3,20 @@ import { Cron } from 'croner';
 /**
  * Checks a cron expression with the five standard fields (minute, hour, day of month, month,
  * day of week) and returns it. Throws a readable error for anything else, including a seconds
- * field, which would let a source be polled every second.
+ * field, which would let a source be polled every second, and a schedule that never runs.
  */
 export function parseSchedule(expression: string): string {
+	let cron: Cron;
 	try {
-		new Cron(expression, { mode: '5-part' });
+		cron = new Cron(expression, { mode: '5-part' });
 	} catch (error) {
 		throw new Error(`invalid cron expression "${expression}": ${(error as Error).message}`, {
 			cause: error
 		});
+	}
+	// Valid syntax can still name a date that does not exist, such as 30 February.
+	if (cron.nextRun() === null) {
+		throw new Error(`invalid cron expression "${expression}": it never runs`);
 	}
 	return expression;
 }
