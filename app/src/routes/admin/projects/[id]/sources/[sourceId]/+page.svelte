@@ -74,7 +74,14 @@
 	{/snippet}
 	<DescriptionList
 		items={[
-			[m.source_polling(), data.source.paused ? m.source_polling_paused() : m.active()],
+			[
+				m.source_polling(),
+				data.source.paused
+					? m.source_polling_paused()
+					: data.syncsPaused
+						? m.source_polling_all_paused()
+						: m.active()
+			],
 			[m.source_last_check(), lastCheck],
 			[m.source_last_sync(), lastSync],
 			[m.source_commit(), data.status.lastCommit ?? m.none()],

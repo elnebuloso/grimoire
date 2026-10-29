@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import type { DatabaseSync } from 'node:sqlite';
 import { isRedirect } from '@sveltejs/kit';
 import { openDatabase } from '#lib/server/db/schema.js';
+import { saveSettings } from '#lib/server/settings.js';
 import { decryptToken } from '#lib/server/token-encryption.js';
 import * as wizard from './+page.server';
 
@@ -165,6 +166,15 @@ describe('project wizard', () => {
 		await submit('create', await throughSummary({ paused: 'on' }));
 
 		expect(db.prepare('SELECT paused FROM sources').get()).toEqual({ paused: 1 });
+		expect(requestSync).not.toHaveBeenCalled();
+	});
+
+	it('creates the source without syncing it while all syncs are paused', async () => {
+		saveSettings(db, { syncsPaused: true });
+
+		await submit('create', await throughSummary());
+
+		expect(db.prepare('SELECT paused FROM sources').get()).toEqual({ paused: 0 });
 		expect(requestSync).not.toHaveBeenCalled();
 	});
 

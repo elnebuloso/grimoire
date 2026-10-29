@@ -21,6 +21,7 @@ import {
 	type SourceSettings
 } from '#lib/server/admin/projects.js';
 import { previewPage, sourceStatus } from '#lib/server/admin/status.js';
+import { readSettings } from '#lib/server/settings.js';
 
 function pageFor(params: { id: string; sourceId: string }): {
 	project: Project;
@@ -40,6 +41,7 @@ export const load: PageServerLoad = ({ params, url }) => {
 	const { project, source } = pageFor(params);
 	const schedule = source?.schedule ?? SYNC_SCHEDULE;
 	const previewFile = url.searchParams.get('preview');
+	const { syncsPaused } = readSettings(database());
 	return {
 		project,
 		source,
@@ -52,7 +54,9 @@ export const load: PageServerLoad = ({ params, url }) => {
 					}
 				: undefined,
 		globalSchedule: SYNC_SCHEDULE,
-		nextCheck: source?.paused ? undefined : nextRun(schedule, new Date(), TZ)?.toISOString()
+		syncsPaused,
+		nextCheck:
+			source?.paused || syncsPaused ? undefined : nextRun(schedule, new Date(), TZ)?.toISOString()
 	};
 };
 
@@ -117,7 +121,7 @@ export const actions = {
 		if ('error' in result) return fail(400, { error: result.error, values });
 
 		// Forced, so a changed path or exclusions take effect without waiting for a new commit.
-		if (!form.paused) {
+		if (!form.paused && !readSettings(db).syncsPaused) {
 			requestSync(result.id, { force: true }).catch((error: Error) => {
 				console.error(`sync of source ${result.id} failed: ${error.message}`);
 			});

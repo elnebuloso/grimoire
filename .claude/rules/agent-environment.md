@@ -18,6 +18,7 @@ without a restart. It runs beside `make dev` (5173) and `make e2e` (4173).
 |---|---|
 | Admin login | `agent` / `agent-password` |
 | API key (all projects) | `grimoire_agent-fixture-key` |
+| Settings | defaults: syncs not paused |
 
 | Source | Path in the fixture repository | State after a reset |
 |---|---|---|

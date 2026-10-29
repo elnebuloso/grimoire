@@ -43,6 +43,8 @@ try {
 	]) {
 		db.exec(`DELETE FROM ${table}`);
 	}
+	// Back to the defaults of every setting, including ones added later.
+	db.exec('DELETE FROM settings; INSERT INTO settings (id) VALUES (1)');
 
 	db.prepare('INSERT INTO admin (id, username, password_hash) VALUES (1, ?, ?)').run(
 		'agent',

@@ -91,6 +91,7 @@ describe('openDatabase', () => {
 			'links',
 			'pages',
 			'projects',
+			'settings',
 			'snippets',
 			'snippets_fts',
 			'sources'

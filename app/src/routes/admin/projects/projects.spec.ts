@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import type { DatabaseSync } from 'node:sqlite';
 import { isHttpError, isRedirect } from '@sveltejs/kit';
 import { openDatabase } from '#lib/server/db/schema.js';
+import { saveSettings } from '#lib/server/settings.js';
 import * as projectPage from './[id]/+page.server';
 import * as sourcePage from './[id]/sources/[sourceId]/+page.server';
 
@@ -221,6 +222,21 @@ describe('source page', () => {
 
 		expect(requestSync).toHaveBeenCalledExactlyOnceWith(1, { force: true });
 		expect(loadSource('1', '1')).toMatchObject({ source: { paused: true } });
+	});
+
+	it('saves a source without syncing it while all syncs are paused, and syncs it now', async () => {
+		saveSettings(db, { syncsPaused: true });
+
+		await thrown(() => saveSource('1', 'new', SOURCE));
+		expect(requestSync).not.toHaveBeenCalled();
+		expect(loadSource('1', '1')).toMatchObject({
+			source: { paused: false },
+			syncsPaused: true,
+			nextCheck: undefined
+		});
+
+		await sourcePage.actions.sync({ params: { id: '1', sourceId: '1' } } as never);
+		expect(requestSync).toHaveBeenCalledExactlyOnceWith(1, { force: true });
 	});
 
 	it('resumes a paused source when saved without the checkbox and syncs it', async () => {

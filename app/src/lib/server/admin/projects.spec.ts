@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import type { DatabaseSync } from 'node:sqlite';
 import { openDatabase } from '../db/schema';
 import { listSchedules, recordCheck } from '../db/sources';
+import { saveSettings } from '../settings';
 import { decryptToken } from '../token-encryption';
 import {
 	changeProjectSlug,
@@ -142,6 +143,27 @@ describe('saveSource', () => {
 
 		saveSource(db, KEY, projectId, id, sourceForm({ schedule: '0 2 * * *', paused: false }));
 		expect(listSchedules(db)).toEqual([{ id, schedule: '0 2 * * *', lastCheckedAt: checkedAt }]);
+	});
+
+	it('leaves every source out of polling while all syncs are paused, without changing them', () => {
+		const scheduled = created(
+			saveSource(db, KEY, projectId, undefined, sourceForm({ schedule: '0 2 * * *' }))
+		);
+		const paused = created(
+			saveSource(db, KEY, projectId, undefined, sourceForm({ name: 'Billing', paused: true }))
+		);
+		const before = [findSource(db, projectId, scheduled), findSource(db, projectId, paused)];
+
+		saveSettings(db, { syncsPaused: true });
+		expect(listSchedules(db)).toEqual([]);
+
+		saveSettings(db, { syncsPaused: false });
+		expect(listSchedules(db)).toEqual([
+			{ id: scheduled, schedule: '0 2 * * *', lastCheckedAt: null }
+		]);
+		expect([findSource(db, projectId, scheduled), findSource(db, projectId, paused)]).toEqual(
+			before
+		);
 	});
 
 	it('keeps the slug when the name changes', () => {

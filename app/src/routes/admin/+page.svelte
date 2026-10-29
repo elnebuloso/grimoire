@@ -13,7 +13,14 @@
 <p>
 	<a href={resolve('/admin/api-keys')}>{m.api_keys()}</a>
 	<a href={resolve('/admin/password')}>{m.password_title()}</a>
+	<a href={resolve('/admin/settings')}>{m.settings_title()}</a>
 </p>
+
+{#if data.syncsPaused}
+	<p role="status">
+		{m.syncs_paused_notice()} <a href={resolve('/admin/settings')}>{m.settings_title()}</a>
+	</p>
+{/if}
 
 <h2>{m.admin_overview()}</h2>
 <DescriptionList

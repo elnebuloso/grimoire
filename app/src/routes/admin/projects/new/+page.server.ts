@@ -6,6 +6,7 @@ import { requestSync } from '#lib/server/sync/index.js';
 import { redactUrl } from '#lib/server/sync/git.js';
 import { decryptToken, encryptToken } from '#lib/server/token-encryption.js';
 import { checkSourceAccess } from '#lib/server/admin/source-access.js';
+import { readSettings } from '#lib/server/settings.js';
 import {
 	createProjectWithSource,
 	projectProblem,
@@ -135,7 +136,7 @@ export const actions = {
 		if ('error' in result)
 			return reject(firstProblem(values) ?? { step: 'summary', ...result }, values);
 
-		if (!values.source.paused) {
+		if (!values.source.paused && !readSettings(database()).syncsPaused) {
 			requestSync(result.sourceId, { force: true }).catch((error: Error) => {
 				console.error(`sync of source ${result.sourceId} failed: ${error.message}`);
 			});

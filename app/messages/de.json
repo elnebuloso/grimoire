@@ -166,5 +166,11 @@
 	"access_ok": "Erreichbar: Branch {branch} steht auf Commit {commit}.",
 	"access_no_branch": "Das Repository hat keinen Branch {branch}.",
 	"access_refused": "Zugriff verweigert, oder unter dieser URL gibt es kein Repository: {detail}",
-	"access_unreachable": "Der Git-Server ist nicht erreichbar: {detail}"
+	"access_unreachable": "Der Git-Server ist nicht erreichbar: {detail}",
+	"settings_title": "Einstellungen",
+	"settings_syncs_paused": "Alle Syncs pausieren: Das Polling prüft keine Quelle, nur „Jetzt syncen“ synct eine; die Einstellungen der Quellen bleiben, wie sie sind",
+	"settings_submit": "Einstellungen speichern",
+	"settings_saved": "Einstellungen gespeichert.",
+	"syncs_paused_notice": "Alle Syncs sind pausiert; das Polling prüft keine Quelle.",
+	"source_polling_all_paused": "für alle Quellen in den Einstellungen pausiert; nur „Jetzt syncen“ synct diese Quelle"
 }

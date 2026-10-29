@@ -166,5 +166,11 @@
 	"access_ok": "Reachable: branch {branch} is at commit {commit}.",
 	"access_no_branch": "The repository has no branch {branch}.",
 	"access_refused": "Access refused, or there is no repository at this URL: {detail}",
-	"access_unreachable": "The Git server cannot be reached: {detail}"
+	"access_unreachable": "The Git server cannot be reached: {detail}",
+	"settings_title": "Settings",
+	"settings_syncs_paused": "Pause all syncs: polling checks no source, only \"Sync now\" syncs one; the settings of the sources stay as they are",
+	"settings_submit": "Save settings",
+	"settings_saved": "Settings saved.",
+	"syncs_paused_notice": "All syncs are paused; polling checks no source.",
+	"source_polling_all_paused": "paused for all sources in the settings; only \"Sync now\" syncs this source"
 }

@@ -1,6 +1,6 @@
 # Admin area
 
-The admin area at `/admin` manages projects, sources and API keys. It has one local admin
+The admin area at `/admin` manages projects, sources, API keys and the settings of the instance. It has one local admin
 account, set up in the browser on first start.
 
 ## First start
@@ -113,6 +113,18 @@ down for maintenance: polling then leaves it alone instead of collecting the sam
 check. Its index, schedule and settings stay; **Sync now** still syncs it once without resuming
 it. Untick "Paused" to resume it, and polling syncs it again when its schedule next comes due.
 The page of the source and the source list of the project show that it is paused.
+
+## Settings
+
+**Settings** in the admin area hold what applies to the whole instance. They are stored in the
+database and survive a restart.
+
+**Pause all syncs** stops polling for every source at once, for example while a Git server is under
+maintenance or access tokens are being replaced. It takes precedence over the sources without
+changing them: a source keeps its own schedule and its own "Paused", and saving a source while all
+syncs are paused starts no sync. A sync already running when you pause finishes. **Sync now** still syncs a source once. Untick the setting to
+resume: every source is polled by its own settings again, and one paused on its own stays paused.
+The admin start page and the page of every source show that all syncs are paused.
 
 ## API keys
 
