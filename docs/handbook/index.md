@@ -5,11 +5,14 @@ repositories, splits every page into snippets along its headings and serves the 
 agents within a token budget, over MCP and HTTP. People and agents keep writing the documentation
 in Git; grimoire only reads it.
 
-This handbook is for the people who run grimoire.
+This handbook is for the people who run grimoire, connect agents to it and write the
+documentation it serves.
 
-- [Running with Docker](docker.md): building the image, starting the container, its environment
-  and volume.
+- [Running with Docker](docker.md): the image, Docker Compose, Kubernetes, the environment and the
+  volume.
 - [Database](database.md): configuration, the volume for the SQLite file, the sync schedule,
   access tokens and backups.
 - [Admin area](admin.md): the admin account, projects and sources, their status, API keys and a
   lost password.
+- [Connecting agents](agents.md): MCP, HTTP and the `CLAUDE.md` snippet.
+- [Writing documentation](writing.md): pages that split into useful snippets.

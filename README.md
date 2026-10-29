@@ -33,7 +33,7 @@ how to use them.
 ## Status
 
 Before `1.0.0`. Sync, search, the HTTP API, the MCP server, the admin area and the Docker image
-work. The image is built locally with `make image`; it is not published to a registry yet.
+work. Every release publishes its Docker image as `elnebuloso/grimoire:<version>`.
 
 ## Connecting agents
 
@@ -75,15 +75,12 @@ once per session and follow it.
 
 ## Running
 
-With Docker, using the image of a release (tagged with its version, no `latest`):
+With Docker: the image of every release is `elnebuloso/grimoire:<version>` (no `latest`). It
+expects a reverse proxy in front; the handbook has a ready
+[Docker Compose setup](https://elnebuloso.github.io/grimoire/docker/#docker-compose), the
+environment variables and notes for Kubernetes.
 
-```bash
-docker run --detach --name grimoire --publish 3000:3000 --volume grimoire-data:/data \
-  --env TOKEN_ENCRYPTION_KEY="$(openssl rand -base64 32)" elnebuloso/grimoire:<version>
-```
-
-Keep the key: every start needs the same one. Without Docker, grimoire needs Node 24.22.1 or
-newer and `git`:
+Without Docker, grimoire needs Node 24.22.1 or newer and `git`:
 
 ```bash
 cp app/.env.example app/.env   # then set TOKEN_ENCRYPTION_KEY=$(openssl rand -base64 32)

@@ -4,7 +4,7 @@ site_description = "Self-hosted knowledge base for AI agents."
 site_url = "https://elnebuloso.github.io/grimoire/"
 docs_dir = "docs/handbook"
 site_dir = "site"
-nav = [{ "Overview" = "index.md" }, { "Running with Docker" = "docker.md" }, { "Database" = "database.md" }, { "Admin area" = "admin.md" }]
+nav = [{ "Overview" = "index.md" }, { "Running with Docker" = "docker.md" }, { "Database" = "database.md" }, { "Admin area" = "admin.md" }, { "Connecting agents" = "agents.md" }, { "Writing documentation" = "writing.md" }]
 
 [project.theme]
 logo = "assets/logo.png"
