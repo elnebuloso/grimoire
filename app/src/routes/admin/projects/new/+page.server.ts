@@ -5,6 +5,7 @@ import { database } from '#lib/server/db/index.js';
 import { requestSync } from '#lib/server/sync/index.js';
 import { redactUrl } from '#lib/server/sync/git.js';
 import { decryptToken, encryptToken } from '#lib/server/token-encryption.js';
+import { checkSourceAccess } from '#lib/server/admin/source-access.js';
 import {
 	createProjectWithSource,
 	projectProblem,
@@ -77,6 +78,19 @@ function reject(problem: { step: Step; error: string }, values: WizardValues) {
 	return fail(400, { ...problem, values: { ...values, source } });
 }
 
+/** Whether grimoire can reach the repository of the source step; checked on the way to saving. */
+async function accessProblem(
+	values: WizardValues
+): Promise<{ step: Step; error: string } | undefined> {
+	const access = await checkSourceAccess(
+		database(),
+		TOKEN_ENCRYPTION_KEY,
+		undefined,
+		sourceForm(values)
+	);
+	return access.ok ? undefined : { step: 'source', error: access.message };
+}
+
 export const actions = {
 	project: async ({ request }) => {
 		const data = await request.formData();
@@ -89,15 +103,28 @@ export const actions = {
 		if (problem) return reject({ step: 'project', error: problem }, values);
 		return show('source', values);
 	},
+	test: async ({ request }) => {
+		const data = await request.formData();
+		const values = withToken(readValues(data), data);
+		const access = await checkSourceAccess(
+			database(),
+			TOKEN_ENCRYPTION_KEY,
+			undefined,
+			sourceForm(values)
+		);
+		return { ...show('source', values), access };
+	},
 	summary: async ({ request }) => {
 		const data = await request.formData();
 		const values = withToken(readValues(data), data);
-		const problem = firstProblem(values);
+		const problem = firstProblem(values) ?? (await accessProblem(values));
 		if (problem) return reject(problem, values);
 		return show('summary', values);
 	},
 	create: async ({ request }) => {
 		const values = readValues(await request.formData());
+		const problem = await accessProblem(values);
+		if (problem) return reject(problem, values);
 		const result = createProjectWithSource(
 			database(),
 			TOKEN_ENCRYPTION_KEY,

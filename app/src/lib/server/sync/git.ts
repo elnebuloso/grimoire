@@ -14,16 +14,44 @@ export interface GitRemote {
 	token?: string | null;
 }
 
+export type RemoteCheck =
+	| { status: 'ok'; commit: string }
+	| { status: 'no-branch' }
+	| { status: 'refused' | 'unreachable'; detail: string };
+
+// Git hosts answer a missing repository and missing access alike, so both count as refused.
+const REFUSED =
+	/authentication failed|could not read username|terminal prompts disabled|\b40[134]\b|not found|does not appear to be a git repository/i;
+
+/** Whether the remote answers and has `branch`; nothing is downloaded. */
+export async function checkRemote(
+	remote: GitRemote,
+	branch: string,
+	timeoutMs = CHECK_TIMEOUT_MS
+): Promise<RemoteCheck> {
+	let output: string;
+	try {
+		output = await git(['ls-remote', remote.url, `refs/heads/${branch}`], remote, timeoutMs);
+	} catch (error) {
+		const detail = (error as Error).message;
+		return { status: REFUSED.test(detail) ? 'refused' : 'unreachable', detail };
+	}
+	const commit = output.split('\t')[0].trim();
+	return commit ? { status: 'ok', commit } : { status: 'no-branch' };
+}
+
 /** Hash of the latest commit of `branch` on the remote; nothing is downloaded. */
 export async function remoteCommit(
 	remote: GitRemote,
 	branch: string,
 	timeoutMs = CHECK_TIMEOUT_MS
 ): Promise<string> {
-	const output = await git(['ls-remote', remote.url, `refs/heads/${branch}`], remote, timeoutMs);
-	const hash = output.split('\t')[0].trim();
-	if (!hash) throw new Error(`branch "${branch}" not found in ${redactUrl(remote.url)}`);
-	return hash;
+	const check = await checkRemote(remote, branch, timeoutMs);
+	if (check.status === 'ok') return check.commit;
+	if (check.status === 'no-branch') {
+		throw new Error(`branch "${branch}" not found in ${redactUrl(remote.url)}`);
+	}
+	throw new Error(check.detail);
 }
 
 /**

@@ -71,6 +71,13 @@ empty to keep the stored token, or tick "Remove the stored token" to drop it. Wh
 moves to another server, grimoire asks for the token again, so a stored token never goes to a
 server it was not entered for.
 
+**Test connection** asks the Git server whether grimoire can read the source: it answers, it
+accepts the username and token, and the branch exists. It shows the commit the branch is at, or
+why it failed: the server cannot be reached, access is refused or there is no repository at the
+URL, or the branch does not exist. Whether the path exists only shows on the first sync. Saving
+runs the same check whenever the Git URL, branch, username or token changed, and a new source or
+project is not saved until it passes; changing anything else saves without asking the server.
+
 Saving a source starts a sync right away, so a changed path or exclusion applies without waiting
 for a new commit; a paused source is saved without one. Deleting a project deletes its sources and their index.
 

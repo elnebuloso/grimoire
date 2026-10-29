@@ -24,7 +24,8 @@
 			schedule: data.source?.schedule ?? '',
 			paused: data.source?.paused ?? false,
 			username: data.source?.username ?? '',
-			removeToken: false
+			removeToken: false,
+			encryptedToken: ''
 		}
 	);
 </script>
@@ -144,11 +145,16 @@
 	<ChoiceField name="paused" checked={values.paused} label={m.field_paused()} />
 	<TextField label={m.field_username()} name="username" value={values.username} />
 	<TextField
-		label={data.source?.hasToken ? m.field_token_stored() : m.field_token_none_stored()}
+		label={values.encryptedToken
+			? m.field_token_entered()
+			: data.source?.hasToken
+				? m.field_token_stored()
+				: m.field_token_none_stored()}
 		name="token"
 		type="password"
 		autocomplete="off"
 	/>
+	<input type="hidden" name="encryptedToken" value={values.encryptedToken} />
 	{#if data.source?.hasToken}
 		<ChoiceField
 			name="removeToken"
@@ -156,7 +162,12 @@
 			label={m.field_remove_stored_token()}
 		/>
 	{/if}
+	{#if form?.access}
+		<p role={form.access.ok ? 'status' : 'alert'}>{form.access.message}</p>
+	{/if}
+	<!-- Saving comes first: Enter submits with the first button of a form. -->
 	<button>{data.source ? m.save() : m.source_create()}</button>
+	<button formaction="?/test">{m.access_test()}</button>
 </form>
 
 {#if data.source}

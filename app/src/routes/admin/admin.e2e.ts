@@ -5,6 +5,9 @@ import { expect, test, type Page } from '@playwright/test';
 const USERNAME = 'admin';
 const PASSWORD = 'correct horse battery';
 const TOKEN = 'glpat-e2e-secret';
+// `playwright.config.ts` has the server's git map these to local repositories.
+const GIT_URL = 'https://git.e2e.example/platform/auth.git';
+const MISSING_GIT_URL = 'https://git.e2e.example/platform/missing.git';
 
 // Each test builds on the account and data the one before it created.
 test.describe.configure({ mode: 'serial' });
@@ -104,10 +107,22 @@ test('creates a project with a source in the wizard and never shows its token', 
 	await expect(page.getByRole('heading', { name: 'First source' })).toBeVisible();
 	await page.getByLabel('Name', { exact: true }).pressSequentially('Auth Service');
 	await expect(page.getByRole('status')).toHaveText('Slug: auth-service');
-	// `.invalid` never resolves; the sync that creating starts fails without the test waiting for it.
-	await page.getByLabel('Git URL').fill('https://git.invalid/platform/auth.git');
+	await page.getByLabel('Git URL').fill(MISSING_GIT_URL);
 	await page.getByLabel('Username').fill('deploy');
 	await page.getByLabel('Access token').fill(TOKEN);
+	await page.getByRole('button', { name: 'Test connection' }).click();
+	await expect(page.getByRole('alert')).toContainText('Access refused, or there is no repository');
+	await page.getByRole('button', { name: 'Next' }).click();
+	await expect(page.getByRole('heading', { name: 'First source' })).toBeVisible();
+	await expect(page.getByRole('alert')).toContainText('Access refused, or there is no repository');
+
+	// The repository has no `docs/`: the sync that creating starts fails, for the next test.
+	await page.getByLabel('Git URL').fill(GIT_URL);
+	await page.getByRole('button', { name: 'Test connection' }).click();
+	await expect(
+		page.getByRole('status').filter({ hasText: 'Reachable: branch main is at commit' })
+	).toBeVisible();
+	await expect(page.getByText('entered; leave empty to keep it')).toBeVisible();
 	await page.getByRole('button', { name: 'Next' }).click();
 
 	await expect(page.getByRole('heading', { name: 'Summary' })).toBeVisible();
@@ -129,7 +144,7 @@ test('creates a project with a source in the wizard and never shows its token', 
 
 	await expect(page.getByRole('heading', { name: 'Project Platform' })).toBeVisible();
 	await page.getByRole('link', { name: 'Auth Service' }).click();
-	await expect(page.getByLabel('Git URL')).toHaveValue('https://git.invalid/platform/auth.git');
+	await expect(page.getByLabel('Git URL')).toHaveValue(GIT_URL);
 	await expect(page.getByLabel('Access token')).toHaveValue('');
 	await expect(page.getByText('stored; leave empty to keep it')).toBeVisible();
 	expect(await page.content()).not.toContain(TOKEN);
@@ -145,13 +160,15 @@ test('syncs a source now and shows why it failed', async ({ page }) => {
 
 	await page.getByRole('button', { name: 'Sync now' }).click();
 
-	await expect(page.getByRole('status')).toContainText('Sync failed: git ls-remote failed');
-	await expect(page.getByRole('alert')).toContainText('git ls-remote failed');
+	await expect(page.getByRole('status')).toContainText(
+		'Sync failed: source path "docs" does not exist'
+	);
+	await expect(page.getByRole('alert')).toContainText('source path "docs" does not exist');
 	expect(await page.content()).not.toContain(TOKEN);
 
 	await page.goto('/admin');
 	const attention = page.getByRole('listitem').filter({ hasText: 'platform/auth-service' });
-	await expect(attention).toContainText('sync error: git ls-remote failed');
+	await expect(attention).toContainText('sync error: source path "docs" does not exist');
 	await attention.getByRole('link').click();
 	await expect(page.getByRole('heading', { name: 'Source Auth Service' })).toBeVisible();
 });
@@ -164,7 +181,7 @@ test('lists the projects on the public start page without any source detail', as
 	await expect(row.getByRole('cell').nth(0)).toHaveText('1');
 	await expect(row.getByRole('cell').nth(5)).toHaveText('1');
 	const html = await page.content();
-	for (const detail of ['git.invalid', 'auth-service', 'deploy', 'ls-remote', TOKEN]) {
+	for (const detail of ['git.e2e.example', 'auth-service', 'deploy', 'does not exist', TOKEN]) {
 		expect(html).not.toContain(detail);
 	}
 });

@@ -11,6 +11,14 @@ const requestSync = vi.hoisted(() => vi.fn(async () => ({ status: 'unchanged', c
 
 vi.mock('#lib/server/db/index.js', () => ({ database: () => db }));
 vi.mock('#lib/server/sync/index.js', () => ({ requestSync }));
+// The Git server cannot be asked from a test; the check itself is tested against a local repository.
+const checkSourceAccess = vi.hoisted(() =>
+	vi.fn(async () => ({ ok: true, message: 'Reachable: branch main is at commit abc.' }))
+);
+vi.mock('#lib/server/admin/source-access.js', async (original) => ({
+	...(await original<object>()),
+	checkSourceAccess
+}));
 vi.mock('$app/env/private', () => ({
 	TOKEN_ENCRYPTION_KEY: Buffer.alloc(32, 7),
 	SYNC_SCHEDULE: '*/5 * * * *'
@@ -71,6 +79,7 @@ const SOURCE = {
 beforeEach(() => {
 	db = openDatabase(':memory:');
 	requestSync.mockClear();
+	checkSourceAccess.mockClear();
 });
 
 describe('project page', () => {
@@ -232,6 +241,63 @@ describe('source page', () => {
 		expect(result).toEqual({ slugChanged: true });
 		expect(loadSource('1', '1')).toMatchObject({ source: { slug: 'login', paused: true } });
 		expect(requestSync).toHaveBeenCalledExactlyOnceWith(1, { force: true });
+	});
+
+	it('saves nothing when the repository cannot be reached, and shows why', async () => {
+		checkSourceAccess.mockResolvedValueOnce({ ok: false, message: 'Access refused.' });
+
+		const result = await saveSource('1', 'new', SOURCE);
+
+		expect(result).toMatchObject({ status: 400, data: { error: 'Access refused.' } });
+		expect(db.prepare('SELECT count(*) AS n FROM sources').get()).toEqual({ n: 0 });
+		expect(requestSync).not.toHaveBeenCalled();
+	});
+
+	it('asks the Git server again only when the URL, branch, username or token change', async () => {
+		await thrown(() => saveSource('1', 'new', SOURCE));
+		checkSourceAccess.mockClear();
+
+		await thrown(() =>
+			saveSource('1', '1', {
+				...SOURCE,
+				token: '',
+				name: 'Login',
+				path: 'site/',
+				schedule: '0 2 * * *'
+			})
+		);
+		expect(checkSourceAccess).not.toHaveBeenCalled();
+
+		await thrown(() => saveSource('1', '1', { ...SOURCE, token: '', branch: 'develop' }));
+		expect(checkSourceAccess).toHaveBeenCalledOnce();
+	});
+
+	it('tests the connection and keeps an entered token, only encrypted', async () => {
+		const result = (await sourcePage.actions.test({
+			request: formRequest(SOURCE),
+			params: { id: '1', sourceId: 'new' }
+		} as never)) as { access: unknown; values: { encryptedToken: string } };
+
+		expect(result.access).toEqual({
+			ok: true,
+			message: 'Reachable: branch main is at commit abc.'
+		});
+		expect(checkSourceAccess).toHaveBeenCalledWith(
+			db,
+			expect.any(Buffer),
+			undefined,
+			expect.objectContaining({ token: TOKEN })
+		);
+		expect(JSON.stringify(result)).not.toContain(TOKEN);
+		expect(result.values.encryptedToken).not.toBe('');
+
+		await thrown(() =>
+			saveSource('1', 'new', { ...SOURCE, token: '', encryptedToken: result.values.encryptedToken })
+		);
+		const stored = db.prepare('SELECT encrypted_token FROM sources').get() as {
+			encrypted_token: string;
+		};
+		expect(stored.encrypted_token).not.toBeNull();
 	});
 
 	it('syncs now, forced, and returns the result', async () => {

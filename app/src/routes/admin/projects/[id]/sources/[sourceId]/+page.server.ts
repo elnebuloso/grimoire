@@ -1,3 +1,4 @@
+import type { DatabaseSync } from 'node:sqlite';
 import { error, fail, redirect } from '@sveltejs/kit';
 import { Cron } from 'croner';
 import type { Actions, PageServerLoad } from './$types';
@@ -5,6 +6,8 @@ import { SYNC_SCHEDULE, TOKEN_ENCRYPTION_KEY } from '$app/env/private';
 import { database } from '#lib/server/db/index.js';
 import { requestSync } from '#lib/server/sync/index.js';
 import { redactUrl } from '#lib/server/sync/git.js';
+import { decryptToken, encryptToken } from '#lib/server/token-encryption.js';
+import { accessChanged, checkSourceAccess } from '#lib/server/admin/source-access.js';
 import {
 	changeSourceSlug,
 	deleteSource,
@@ -12,6 +15,8 @@ import {
 	findSource,
 	parseIdParam,
 	saveSource,
+	sourceProblem,
+	type SourceForm,
 	type Project,
 	type SourceSettings
 } from '#lib/server/admin/projects.js';
@@ -53,33 +58,65 @@ export const load: PageServerLoad = ({ params, url }) => {
 	};
 };
 
+/**
+ * The form as sent, and the values to send back into it. Secrets are not sent back, not even into
+ * the form they came from: an entered token returns only encrypted, so a test or a rejected save
+ * keeps it without the page ever holding it in plain text.
+ */
+function readSourceForm(data: FormData) {
+	const field = (name: string) => String(data.get(name) ?? '');
+	const enteredToken = field('token').trim();
+	const encryptedToken = enteredToken
+		? encryptToken(enteredToken, TOKEN_ENCRYPTION_KEY)
+		: field('encryptedToken');
+	const form: SourceForm = {
+		name: field('name'),
+		gitUrl: field('gitUrl'),
+		branch: field('branch'),
+		path: field('path'),
+		exclusions: field('exclusions'),
+		schedule: field('schedule'),
+		paused: data.get('paused') === 'on',
+		username: field('username'),
+		token: encryptedToken ? decryptToken(encryptedToken, TOKEN_ENCRYPTION_KEY) : '',
+		removeToken: data.get('removeToken') === 'on'
+	};
+	const values = {
+		name: form.name,
+		gitUrl: redactUrl(form.gitUrl),
+		branch: form.branch,
+		path: form.path,
+		exclusions: form.exclusions,
+		schedule: form.schedule,
+		paused: form.paused,
+		username: form.username,
+		removeToken: form.removeToken,
+		encryptedToken
+	};
+	return { form, values };
+}
+
+async function accessProblem(
+	db: DatabaseSync,
+	sourceId: number | undefined,
+	form: SourceForm
+): Promise<string | undefined> {
+	const access = await checkSourceAccess(db, TOKEN_ENCRYPTION_KEY, sourceId, form);
+	return access.ok ? undefined : access.message;
+}
+
 export const actions = {
 	save: async ({ request, params }) => {
 		const { project, source } = pageFor(params);
-		const data = await request.formData();
-		const form = {
-			name: String(data.get('name') ?? ''),
-			gitUrl: String(data.get('gitUrl') ?? ''),
-			branch: String(data.get('branch') ?? ''),
-			path: String(data.get('path') ?? ''),
-			exclusions: String(data.get('exclusions') ?? ''),
-			schedule: String(data.get('schedule') ?? ''),
-			paused: data.get('paused') === 'on',
-			username: String(data.get('username') ?? ''),
-			removeToken: data.get('removeToken') === 'on'
-		};
-		const token = String(data.get('token') ?? '');
-		const result = saveSource(database(), TOKEN_ENCRYPTION_KEY, project.id, source?.id, {
-			...form,
-			token
-		});
-		// Secrets are not sent back, not even into the form they came from.
-		if ('error' in result) {
-			return fail(400, {
-				error: result.error,
-				values: { ...form, gitUrl: redactUrl(form.gitUrl) }
-			});
-		}
+		const { form, values } = readSourceForm(await request.formData());
+		const db = database();
+		const problem =
+			sourceProblem(db, project.id, source?.id, form) ??
+			(accessChanged(db, source?.id, form) ? await accessProblem(db, source?.id, form) : undefined);
+		if (problem) return fail(400, { error: problem, values });
+
+		const result = saveSource(db, TOKEN_ENCRYPTION_KEY, project.id, source?.id, form);
+		if ('error' in result) return fail(400, { error: result.error, values });
 
 		// Forced, so a changed path or exclusions take effect without waiting for a new commit.
 		if (!form.paused) {
@@ -88,6 +125,12 @@ export const actions = {
 			});
 		}
 		redirect(303, `/admin/projects/${project.id}/sources/${result.id}`);
+	},
+	test: async ({ request, params }) => {
+		const { source } = pageFor(params);
+		const { form, values } = readSourceForm(await request.formData());
+		const access = await checkSourceAccess(database(), TOKEN_ENCRYPTION_KEY, source?.id, form);
+		return { access, values };
 	},
 	sync: async ({ params }) => {
 		const { source } = pageFor(params);

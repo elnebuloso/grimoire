@@ -161,5 +161,10 @@
 	"slug_change_submit": "Slug ändern",
 	"slug_changed": "Slug geändert. Der Sync mit den neuen IDs läuft.",
 	"project_slug": "Projekt-Slug",
-	"source_slug": "Quellen-Slug"
+	"source_slug": "Quellen-Slug",
+	"access_test": "Verbindung testen",
+	"access_ok": "Erreichbar: Branch {branch} steht auf Commit {commit}.",
+	"access_no_branch": "Das Repository hat keinen Branch {branch}.",
+	"access_refused": "Zugriff verweigert, oder unter dieser URL gibt es kein Repository: {detail}",
+	"access_unreachable": "Der Git-Server ist nicht erreichbar: {detail}"
 }

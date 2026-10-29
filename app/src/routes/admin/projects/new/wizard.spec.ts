@@ -12,6 +12,11 @@ const requestSync = vi.hoisted(() => vi.fn(async () => ({ status: 'unchanged', c
 
 vi.mock('#lib/server/db/index.js', () => ({ database: () => db }));
 vi.mock('#lib/server/sync/index.js', () => ({ requestSync }));
+// The Git server cannot be asked from a test; the check itself is tested against a local repository.
+const checkSourceAccess = vi.hoisted(() =>
+	vi.fn(async () => ({ ok: true, message: 'Reachable: branch main is at commit abc.' }))
+);
+vi.mock('#lib/server/admin/source-access.js', () => ({ checkSourceAccess }));
 vi.mock('$app/env/private', () => ({ TOKEN_ENCRYPTION_KEY: KEY, SYNC_SCHEDULE: '*/5 * * * *' }));
 
 const FIELDS = {
@@ -58,6 +63,11 @@ function count(table: string): number {
 beforeEach(() => {
 	db = openDatabase(':memory:');
 	requestSync.mockClear();
+	checkSourceAccess.mockClear();
+	checkSourceAccess.mockResolvedValue({
+		ok: true,
+		message: 'Reachable: branch main is at commit abc.'
+	});
 });
 
 describe('project wizard', () => {
@@ -156,6 +166,31 @@ describe('project wizard', () => {
 
 		expect(db.prepare('SELECT paused FROM sources').get()).toEqual({ paused: 1 });
 		expect(requestSync).not.toHaveBeenCalled();
+	});
+
+	it('tests the connection on the source step', async () => {
+		const result = await submit('test', { ...FIELDS, token: TOKEN });
+
+		expect(result).toMatchObject({
+			step: 'source',
+			access: { ok: true, message: 'Reachable: branch main is at commit abc.' }
+		});
+		expect(JSON.stringify(result)).not.toContain(TOKEN);
+	});
+
+	it('stays on the source step and creates nothing while the repository cannot be reached', async () => {
+		const summary = await throughSummary();
+		checkSourceAccess.mockResolvedValue({ ok: false, message: 'Access refused.' });
+
+		expect(await submit('summary', summary)).toMatchObject({
+			status: 400,
+			data: { step: 'source', error: 'Access refused.' }
+		});
+		expect(await submit('create', summary)).toMatchObject({
+			status: 400,
+			data: { step: 'source', error: 'Access refused.' }
+		});
+		expect([count('projects'), count('sources')]).toEqual([0, 0]);
 	});
 
 	it('creates nothing and returns to the project step when the slug was taken meanwhile', async () => {

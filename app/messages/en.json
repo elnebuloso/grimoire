@@ -161,5 +161,10 @@
 	"slug_change_submit": "Change the slug",
 	"slug_changed": "Slug changed. The sync with the new IDs has started.",
 	"project_slug": "Project slug",
-	"source_slug": "Source slug"
+	"source_slug": "Source slug",
+	"access_test": "Test connection",
+	"access_ok": "Reachable: branch {branch} is at commit {commit}.",
+	"access_no_branch": "The repository has no branch {branch}.",
+	"access_refused": "Access refused, or there is no repository at this URL: {detail}",
+	"access_unreachable": "The Git server cannot be reached: {detail}"
 }
