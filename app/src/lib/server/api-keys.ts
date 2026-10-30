@@ -40,19 +40,24 @@ export function hashKey(key: string): string {
 	return createHash('sha256').update(key).digest('hex');
 }
 
+/** What a key action refuses instead of throwing: everything else is a broken database. */
+export type ApiKeyRefusal = { error: 'unknown-project' } | { error: 'unknown-key' };
+
 /**
  * Creates a key for all projects or a selection of project slugs, accepted through `validUntil`
- * when given. The returned key is the only copy: the database keeps just its hash. Throws for an
- * unknown project and stores nothing.
+ * when given. The returned key is the only copy: the database keeps just its hash. An unknown
+ * project stores nothing.
  */
 export function createApiKey(
 	db: DatabaseSync,
 	name: string,
 	projects: ProjectScope,
 	validUntil: string | null = null
-): { id: number; key: string } {
+): { id: number; key: string } | { error: 'unknown-project' } {
 	const key = KEY_PREFIX + randomBytes(KEY_BYTES).toString('base64url');
-	const id = inTransaction(db, () => {
+	return inTransaction(db, () => {
+		const projectIds = findProjectIds(db, projects);
+		if (!projectIds) return { error: 'unknown-project' };
 		const id = Number(
 			db
 				.prepare(
@@ -60,44 +65,52 @@ export function createApiKey(
 				)
 				.run(name, hashKey(key), projects === 'all' ? 1 : 0, validUntil).lastInsertRowid
 		);
-		insertScope(db, id, projects);
-		return id;
+		insertScope(db, id, projectIds);
+		return { id, key };
 	});
-	return { id, key };
 }
 
 /**
  * Changes the projects a key sees and how long it is accepted; the key itself stays the same.
- * Throws for an unknown project and changes nothing.
+ * An unknown project or key changes nothing.
  */
 export function updateApiKey(
 	db: DatabaseSync,
 	id: number,
 	projects: ProjectScope,
 	validUntil: string | null
-) {
-	inTransaction(db, () => {
-		db.prepare('UPDATE api_keys SET all_projects = ?, valid_until = ? WHERE id = ?').run(
-			projects === 'all' ? 1 : 0,
-			validUntil,
-			id
-		);
+): { id: number } | ApiKeyRefusal {
+	return inTransaction(db, () => {
+		const projectIds = findProjectIds(db, projects);
+		if (!projectIds) return { error: 'unknown-project' };
+		const { changes } = db
+			.prepare('UPDATE api_keys SET all_projects = ?, valid_until = ? WHERE id = ?')
+			.run(projects === 'all' ? 1 : 0, validUntil, id);
+		if (changes === 0) return { error: 'unknown-key' };
 		db.prepare('DELETE FROM api_key_projects WHERE api_key_id = ?').run(id);
-		insertScope(db, id, projects);
+		insertScope(db, id, projectIds);
+		return { id };
 	});
 }
 
-function insertScope(db: DatabaseSync, id: number, projects: ProjectScope) {
-	if (projects === 'all') return;
+/** The IDs of the selected projects, none for all projects, undefined if a slug is unknown. */
+function findProjectIds(db: DatabaseSync, projects: ProjectScope): number[] | undefined {
+	if (projects === 'all') return [];
 	const findProject = db.prepare('SELECT id FROM projects WHERE slug = ?');
+	const ids: number[] = [];
+	for (const slug of projects) {
+		const project = findProject.get(slug) as { id: number } | undefined;
+		if (!project) return undefined;
+		ids.push(project.id);
+	}
+	return ids;
+}
+
+function insertScope(db: DatabaseSync, id: number, projectIds: number[]) {
 	const insertProject = db.prepare(
 		'INSERT OR IGNORE INTO api_key_projects (api_key_id, project_id) VALUES (?, ?)'
 	);
-	for (const slug of projects) {
-		const project = findProject.get(slug) as { id: number } | undefined;
-		if (!project) throw new Error(`project "${slug}" does not exist`);
-		insertProject.run(id, project.id);
-	}
+	for (const projectId of projectIds) insertProject.run(id, projectId);
 }
 
 function inTransaction<T>(db: DatabaseSync, work: () => T): T {

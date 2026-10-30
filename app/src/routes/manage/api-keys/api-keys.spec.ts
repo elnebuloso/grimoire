@@ -1,7 +1,8 @@
 import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest';
 import type { DatabaseSync } from 'node:sqlite';
 import { openDatabase } from '#lib/server/db/schema.js';
-import { listApiKeys, scopeForKey } from '#lib/server/api-keys.js';
+import { isHttpError } from '@sveltejs/kit';
+import { listApiKeys, revokeApiKey, scopeForKey } from '#lib/server/api-keys.js';
 import * as page from './+page.server';
 
 let db: DatabaseSync;
@@ -204,5 +205,46 @@ describe('update', () => {
 			data: { update: { error: 'A selected project no longer exists.' } }
 		});
 		expect(listApiKeys(db)[0].projects).toBe('all');
+	});
+
+	it('answers 404 for a key that no longer exists, and changes nothing', async () => {
+		await create([
+			['name', 'ci'],
+			['scope', 'all']
+		]);
+		const [{ id }] = listApiKeys(db);
+		revokeApiKey(db, id);
+
+		// The revoked id, one that is not a number, and none at all.
+		for (const idFields of [[['id', String(id)]], [['id', 'x']], []] as [string, string][][]) {
+			const thrown = await update([
+				...idFields,
+				['scope', 'selected'],
+				['projects', 'billing']
+			]).catch((error: unknown) => error);
+			expect(isHttpError(thrown, 404)).toBe(true);
+		}
+		expect(db.prepare('SELECT count(*) AS n FROM api_key_projects').get()).toEqual({ n: 0 });
+	});
+});
+
+describe('a broken database', () => {
+	it('is not reported as a deleted project', async () => {
+		db.close();
+
+		await expect(
+			create([
+				['name', 'ci'],
+				['scope', 'all']
+			])
+		).rejects.toThrow();
+		await expect(
+			page.actions.update({
+				request: formRequest([
+					['id', '1'],
+					['scope', 'all']
+				])
+			} as never)
+		).rejects.toThrow();
 	});
 });

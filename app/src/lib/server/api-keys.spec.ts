@@ -31,9 +31,15 @@ beforeEach(() => {
 	}
 });
 
+function newKey(...args: Parameters<typeof createApiKey>) {
+	const created = createApiKey(...args);
+	if ('error' in created) throw new Error(created.error);
+	return created;
+}
+
 describe('createApiKey', () => {
 	it('returns the key once and stores only its SHA-256', () => {
-		const { key } = createApiKey(db, 'ci', 'all');
+		const { key } = newKey(db, 'ci', 'all');
 
 		expect(key).toMatch(/^grimoire_[\w-]{43}$/);
 		const stored = JSON.stringify(db.prepare('SELECT * FROM api_keys').all());
@@ -42,11 +48,11 @@ describe('createApiKey', () => {
 	});
 
 	it('creates a different key every time', () => {
-		expect(createApiKey(db, 'a', 'all').key).not.toBe(createApiKey(db, 'b', 'all').key);
+		expect(newKey(db, 'a', 'all').key).not.toBe(newKey(db, 'b', 'all').key);
 	});
 
 	it('stores nothing when a project does not exist', () => {
-		expect(() => createApiKey(db, 'ci', ['platform', 'nope'])).toThrow('project "nope"');
+		expect(createApiKey(db, 'ci', ['platform', 'nope'])).toEqual({ error: 'unknown-project' });
 		expect(listApiKeys(db)).toEqual([]);
 		expect(db.prepare('SELECT count(*) AS n FROM api_key_projects').get()).toEqual({ n: 0 });
 	});
@@ -54,13 +60,13 @@ describe('createApiKey', () => {
 
 describe('scopeForKey', () => {
 	it('gives an all-projects key every project', () => {
-		const { key } = createApiKey(db, 'ci', 'all');
+		const { key } = newKey(db, 'ci', 'all');
 
 		expect(scopeForKey(db, key, CLOCK)).toEqual({ scope: 'all' });
 	});
 
 	it('gives a key with a selection only those projects', () => {
-		const { key } = createApiKey(db, 'ci', ['search', 'billing']);
+		const { key } = newKey(db, 'ci', ['search', 'billing']);
 		const { scope } = scopeForKey(db, key, CLOCK)!;
 
 		expect(scope).toEqual(['billing', 'search']);
@@ -68,14 +74,14 @@ describe('scopeForKey', () => {
 	});
 
 	it('rejects unknown keys', () => {
-		createApiKey(db, 'ci', 'all');
+		newKey(db, 'ci', 'all');
 
 		expect(scopeForKey(db, 'grimoire_unknown', CLOCK)).toBeUndefined();
 		expect(scopeForKey(db, '', CLOCK)).toBeUndefined();
 	});
 
 	it('drops a deleted project from the selection', () => {
-		const { key } = createApiKey(db, 'ci', ['billing', 'platform']);
+		const { key } = newKey(db, 'ci', ['billing', 'platform']);
 		db.prepare("DELETE FROM projects WHERE slug = 'platform'").run();
 
 		expect(scopeForKey(db, key, CLOCK)).toEqual({ scope: ['billing'] });
@@ -84,9 +90,9 @@ describe('scopeForKey', () => {
 
 describe('listApiKeys', () => {
 	it('lists name and scope, never the key', () => {
-		createApiKey(db, 'ci', 'all');
-		createApiKey(db, 'agent', ['platform', 'billing']);
-		createApiKey(db, 'empty', []);
+		newKey(db, 'ci', 'all');
+		newKey(db, 'agent', ['platform', 'billing']);
+		newKey(db, 'empty', []);
 
 		const keys = listApiKeys(db);
 
@@ -106,7 +112,7 @@ describe('listApiKeys', () => {
 	});
 
 	it('gives the creation time as a UTC instant, which SQLite stores without a zone', () => {
-		const { id } = createApiKey(db, 'ci', 'all');
+		const { id } = newKey(db, 'ci', 'all');
 		db.prepare("UPDATE api_keys SET created_at = '2026-10-29 20:24:12' WHERE id = ?").run(id);
 
 		expect(listApiKeys(db)[0].createdAt).toBe('2026-10-29T20:24:12.000Z');
@@ -115,8 +121,8 @@ describe('listApiKeys', () => {
 
 describe('revokeApiKey', () => {
 	it('stops the key from working at once and leaves other keys alone', () => {
-		const revoked = createApiKey(db, 'old', ['platform']);
-		const kept = createApiKey(db, 'new', 'all');
+		const revoked = newKey(db, 'old', ['platform']);
+		const kept = newKey(db, 'new', 'all');
 
 		revokeApiKey(db, revoked.id);
 
@@ -128,7 +134,7 @@ describe('revokeApiKey', () => {
 
 describe('last use', () => {
 	it('is unset until the key authenticates a request', () => {
-		const { id } = createApiKey(db, 'ci', 'all');
+		const { id } = newKey(db, 'ci', 'all');
 
 		expect(lastUsed(id)).toBeNull();
 		scopeForKey(db, 'grimoire_unknown', CLOCK);
@@ -136,7 +142,7 @@ describe('last use', () => {
 	});
 
 	it('is written at most once a minute, however many requests come in between', () => {
-		const { id, key } = createApiKey(db, 'ci', 'all');
+		const { id, key } = newKey(db, 'ci', 'all');
 
 		scopeForKey(db, key, CLOCK);
 		expect(lastUsed(id)).toBe('2026-10-30T12:00:00.000Z');
@@ -149,7 +155,7 @@ describe('last use', () => {
 
 describe('expiry', () => {
 	it('accepts a key through its last valid day and rejects it the day after', () => {
-		const { id, key } = createApiKey(db, 'trial', 'all', '2026-10-30');
+		const { id, key } = newKey(db, 'trial', 'all', '2026-10-30');
 
 		expect(scopeForKey(db, key, CLOCK)).toEqual({ scope: 'all' });
 		expect(scopeForKey(db, key, later(86_400, '2026-10-31'))).toBeUndefined();
@@ -172,7 +178,7 @@ describe('expiry', () => {
 
 describe('updateApiKey', () => {
 	it('changes scope and expiry while the same key keeps working', () => {
-		const { id, key } = createApiKey(db, 'ci', ['billing'], '2026-10-31');
+		const { id, key } = newKey(db, 'ci', ['billing'], '2026-10-31');
 
 		updateApiKey(db, id, ['platform', 'search'], null);
 		expect(scopeForKey(db, key, CLOCK)).toEqual({ scope: ['platform', 'search'] });
@@ -185,10 +191,18 @@ describe('updateApiKey', () => {
 	});
 
 	it('changes nothing when a project does not exist', () => {
-		const { id, key } = createApiKey(db, 'ci', ['billing']);
+		const { id, key } = newKey(db, 'ci', ['billing']);
 
-		expect(() => updateApiKey(db, id, ['nope'], '2026-12-31')).toThrow('project "nope"');
+		expect(updateApiKey(db, id, ['nope'], '2026-12-31')).toEqual({ error: 'unknown-project' });
 		expect(scopeForKey(db, key, CLOCK)).toEqual({ scope: ['billing'] });
 		expect(listApiKeys(db)[0].validUntil).toBeNull();
+	});
+
+	it('changes nothing for a key that no longer exists', () => {
+		const { id } = newKey(db, 'ci', 'all');
+		revokeApiKey(db, id);
+
+		expect(updateApiKey(db, id, ['billing'], null)).toEqual({ error: 'unknown-key' });
+		expect(db.prepare('SELECT count(*) AS n FROM api_key_projects').get()).toEqual({ n: 0 });
 	});
 });

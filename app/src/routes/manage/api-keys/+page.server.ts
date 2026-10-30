@@ -1,4 +1,4 @@
-import { fail } from '@sveltejs/kit';
+import { error, fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { TZ } from '$app/env/private';
 import { database } from '#lib/server/db/index.js';
@@ -52,35 +52,34 @@ export const actions = {
 
 		if (!name) return fail(400, { error: m.apikeys_error_name(), values });
 		if (access.error) return fail(400, { error: access.error, values });
-		try {
-			const { key } = createApiKey(
-				database(),
-				name,
-				values.allProjects ? 'all' : values.projects,
-				values.validUntil || null
-			);
-			return { created: { name, key } };
-		} catch {
-			// A project deleted while the form was open.
-			return fail(400, { error: m.apikeys_error_project_gone(), values });
-		}
+		const created = createApiKey(
+			database(),
+			name,
+			values.allProjects ? 'all' : values.projects,
+			values.validUntil || null
+		);
+		// A project deleted while the form was open.
+		if ('error' in created) return fail(400, { error: m.apikeys_error_project_gone(), values });
+		return { created: { name, key: created.key } };
 	},
 	update: async ({ request }) => {
 		const data = await request.formData();
 		const id = Number(data.get('id'));
-		const { values, error } = readAccess(data);
-		if (error) return fail(400, { update: { id, error, values } });
-		try {
-			updateApiKey(
-				database(),
-				id,
-				values.allProjects ? 'all' : values.projects,
-				values.validUntil || null
-			);
-			return { updated: id };
-		} catch {
+		const { values, error: problem } = readAccess(data);
+		if (problem) return fail(400, { update: { id, error: problem, values } });
+		// Revoked in another window: the key is gone from the list, so there is no form to answer in.
+		if (!Number.isSafeInteger(id)) error(404);
+		const updated = updateApiKey(
+			database(),
+			id,
+			values.allProjects ? 'all' : values.projects,
+			values.validUntil || null
+		);
+		if ('error' in updated) {
+			if (updated.error === 'unknown-key') error(404);
 			return fail(400, { update: { id, error: m.apikeys_error_project_gone(), values } });
 		}
+		return { updated: id };
 	},
 	revoke: async ({ request }) => {
 		const id = Number((await request.formData()).get('id'));

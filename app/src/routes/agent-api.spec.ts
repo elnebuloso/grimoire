@@ -28,6 +28,12 @@ let billingKey: string;
 vi.mock('#lib/server/db/index.js', () => ({ database: () => db }));
 vi.mock('$app/env/private', () => ({ TZ: 'UTC' }));
 
+function newKey(name: string, projects: 'all' | string[]): string {
+	const created = createApiKey(db, name, projects);
+	if ('error' in created) throw new Error(created.error);
+	return created.key;
+}
+
 function addSource(
 	project: string,
 	description: string,
@@ -68,8 +74,8 @@ beforeEach(() => {
 		`# Deploy\n\nOverview.\n\n## Rollback\n\nRollback ${words}\n\n## Upgrade\n\nUpgrade ${words}\n`
 	);
 	addSource('billing', '', 'invoices', 'index.md', '# Invoices\n\nRollback of invoices.');
-	allKey = createApiKey(db, 'all', 'all').key;
-	billingKey = createApiKey(db, 'billing', ['billing']).key;
+	allKey = newKey('all', 'all');
+	billingKey = newKey('billing', ['billing']);
 });
 
 async function get(
