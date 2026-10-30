@@ -6,6 +6,7 @@ import { chunkPage } from '#lib/server/parsing/chunk.js';
 import { preprocessPage } from '#lib/server/parsing/preprocess.js';
 import { createApiKey } from '#lib/server/api-keys.js';
 import { agentInstructions } from '#lib/server/agent/operations.js';
+import { log } from '#lib/server/log.js';
 import { GET as projects } from './projects/+server';
 import { GET as query } from './query/+server';
 import { GET as instructions } from './instructions/+server';
@@ -106,6 +107,21 @@ describe('every route', () => {
 		expect(response.status).toBe(200);
 		expect(response.type).toBe('text/markdown; charset=utf-8');
 	});
+
+	it.each(routes)(
+		'answers a server error in Markdown and logs it: %#',
+		async (handler, path, params) => {
+			const logError = vi.spyOn(log, 'error').mockImplementation(() => {});
+			db.close();
+
+			const response = await get(handler, path, params);
+
+			expect(response.status).toBe(500);
+			expect(response.type).toBe('text/markdown; charset=utf-8');
+			expect(logError).toHaveBeenCalledOnce();
+			logError.mockRestore();
+		}
+	);
 
 	it.each(routes)('rejects a missing or unknown key: %#', async (handler, path, params) => {
 		for (const key of [null, 'grimoire_unknown']) {
