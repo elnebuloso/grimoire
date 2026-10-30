@@ -141,6 +141,45 @@ describe('saveSource', () => {
 		expect(findSource(db, id)?.slug).toBe('login');
 	});
 
+	it('derives the slug from the name, umlauts spelled out', () => {
+		const id = created(saveSource(db, KEY, undefined, sourceForm({ name: ' Prüfung & Abnahme ' })));
+
+		expect(findSource(db, id)).toMatchObject({
+			slug: 'pruefung-abnahme',
+			name: 'Prüfung & Abnahme'
+		});
+	});
+
+	it.each([
+		['', 'Enter a name.'],
+		['   ', 'Enter a name.'],
+		['!!!', 'The name needs a letter or digit'],
+		['a'.repeat(81), 'at most 80 characters']
+	])('rejects the name "%s"', (name, message) => {
+		expect(saveSource(db, KEY, undefined, sourceForm({ name }))).toEqual({
+			error: expect.stringContaining(message)
+		});
+	});
+
+	it.each([
+		['Auth Service', 'The slug may contain'],
+		['a'.repeat(41), 'at most 40 characters'],
+		['auth-service', 'That is the current slug.']
+	])('refuses to change the slug to "%s"', (slug, message) => {
+		const id = created(saveSource(db, KEY, undefined, sourceForm()));
+
+		expect(changeSourceSlug(db, id, { slug, confirmation: 'auth-service' })).toEqual({
+			error: expect.stringContaining(message)
+		});
+		expect(findSource(db, id)?.slug).toBe('auth-service');
+	});
+
+	it('tells a missing source apart from a refused slug change', () => {
+		expect(changeSourceSlug(db, 1, { slug: 'login', confirmation: 'auth-service' })).toBe(
+			'not-found'
+		);
+	});
+
 	it('rejects a slug another source already has', () => {
 		created(saveSource(db, KEY, undefined, sourceForm()));
 
