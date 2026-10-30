@@ -70,11 +70,7 @@ export function searchSnippets(db: DatabaseSync, options: SearchOptions): string
 			allowed: options.allowedProjects ? JSON.stringify(options.allowedProjects) : null
 		}) as unknown as SnippetRow[];
 
-	const hits = rows.map(({ title_path, ...row }) => ({
-		...row,
-		titlePath: JSON.parse(title_path)
-	}));
-	return packIntoBudget(hits, options.tokens ?? DEFAULT_TOKENS);
+	return packIntoBudget(rows.map(toSnippetHit), options.tokens ?? DEFAULT_TOKENS);
 }
 
 export function toSnippetHit({ title_path, ...row }: SnippetRow): SnippetHit {
