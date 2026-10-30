@@ -28,11 +28,13 @@ export interface SnippetHit {
 }
 
 /**
- * A database row with the columns of `SnippetHit` as stored: the title path as JSON and without
- * project and source, links in the content without them either.
+ * A database row with the columns of `SnippetHit` as stored: the title path as JSON, without
+ * project and source and without the part label, links in the content without them either.
  */
 export interface SnippetRow extends Omit<SnippetHit, 'titlePath'> {
 	title_path: string;
+	part: number;
+	parts: number;
 }
 
 const DEFAULT_TOKENS = 3000;
@@ -56,7 +58,7 @@ export function searchSnippets(db: DatabaseSync, options: SearchOptions): string
 		.prepare(
 			`SELECT projects.slug AS project, sources.slug AS source, sources.git_url AS gitUrl,
 				sources.branch, sources.path, pages.file, snippets.anchor, snippets.title_path,
-				snippets.content
+				snippets.part, snippets.parts, snippets.content
 			FROM snippets_fts
 			JOIN snippets ON snippets.id = snippets_fts.rowid
 			JOIN live_pages AS pages ON pages.id = snippets.page_id
@@ -77,10 +79,12 @@ export function searchSnippets(db: DatabaseSync, options: SearchOptions): string
 	return packIntoBudget(rows.map(toSnippetHit), options.tokens ?? DEFAULT_TOKENS);
 }
 
-export function toSnippetHit({ title_path, ...row }: SnippetRow): SnippetHit {
+export function toSnippetHit({ title_path, part, parts, ...row }: SnippetRow): SnippetHit {
+	const titlePath = JSON.parse(title_path) as string[];
+	if (parts > 1) titlePath.push(`${titlePath.pop()} (${part}/${parts})`);
 	return {
 		...row,
-		titlePath: [row.project, row.source, ...(JSON.parse(title_path) as string[])],
+		titlePath: [row.project, row.source, ...titlePath],
 		content: withSlugs(row.content, row.project, row.source)
 	};
 }

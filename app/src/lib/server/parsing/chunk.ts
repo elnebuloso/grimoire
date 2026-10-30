@@ -11,6 +11,9 @@ export interface Snippet {
 	/** Anchors of small subsections merged into this snippet. */
 	aliases: string[];
 	titlePath: string[];
+	/** Which part of its section this is, counted from 1, when the section was split. */
+	part: number;
+	parts: number;
 	file: string;
 	/** Markdown of the section without its own heading line. */
 	content: string;
@@ -186,12 +189,12 @@ function collectSnippets(
 			type: 'root',
 			children: [...part, ...definitionsUsedBy(part, definitions)]
 		});
-		const partTitle =
-			parts.length > 1 ? `${section.title} (${index + 1}/${parts.length})` : section.title;
 		out.push({
 			anchor: section.anchor,
 			aliases: section.aliases,
-			titlePath: [...titlePath, partTitle],
+			titlePath: path,
+			part: index + 1,
+			parts: parts.length,
 			file,
 			content,
 			tokens: estimateTokens(content)

@@ -204,6 +204,44 @@ describe('migrate', () => {
 		]);
 		expect(rows(db, 'SELECT page_id FROM snippets')).toEqual([{ page_id: 7 }]);
 	});
+
+	it('moves the part label of split sections out of the stored title', () => {
+		const db = new DatabaseSync(':memory:');
+		const index = shippedMigrations.findIndex(({ name }) => name === '0013-snippet-parts.sql');
+		migrate(db, shippedMigrations.slice(0, index));
+		db.exec(`INSERT INTO projects (id, slug) VALUES (1, 'platform');
+			INSERT INTO sources (id, project_id, slug, git_url, branch, path)
+			VALUES (1, 1, 'auth', 'https://git.example/auth.git', 'main', 'docs/');
+			INSERT INTO pages (id, source_id, file, title, content) VALUES (1, 1, 'index.md', 'Start', '');
+			INSERT INTO snippets (id, page_id, position, anchor, title_path, content, tokens) VALUES
+				(1, 1, 0, NULL, '["Start (1/2)"]', 'a', 1),
+				(2, 1, 1, NULL, '["Start (2/2)"]', 'b', 1),
+				(3, 1, 2, 'hotline', '["Start","Hotline (24/7)"]', 'c', 1),
+				(4, 1, 3, 'large', '["Start","Large (1/2)"]', 'd', 1),
+				(5, 1, 4, 'large', '["Start","Large (2/2)"]', 'e', 1);
+			INSERT INTO snippets_fts (rowid, title_path, text, code) VALUES
+				(1, 'Start (1/2)', 'a', ''),
+				(2, 'Start (2/2)', 'b', ''),
+				(3, 'Start › Hotline (24/7)', 'c', ''),
+				(4, 'Start › Large (1/2)', 'd', ''),
+				(5, 'Start › Large (2/2)', 'e', '');`);
+
+		migrate(db, shippedMigrations.slice(0, index + 1));
+		expect(rows(db, 'SELECT title_path, part, parts FROM snippets ORDER BY id')).toEqual([
+			{ title_path: '["Start"]', part: 1, parts: 2 },
+			{ title_path: '["Start"]', part: 2, parts: 2 },
+			{ title_path: '["Start","Hotline (24/7)"]', part: 1, parts: 1 },
+			{ title_path: '["Start","Large"]', part: 1, parts: 2 },
+			{ title_path: '["Start","Large"]', part: 2, parts: 2 }
+		]);
+		expect(rows(db, 'SELECT title_path FROM snippets_fts ORDER BY rowid')).toEqual([
+			{ title_path: 'Start' },
+			{ title_path: 'Start' },
+			{ title_path: 'Start › Hotline (24/7)' },
+			{ title_path: 'Start › Large' },
+			{ title_path: 'Start › Large' }
+		]);
+	});
 });
 
 describe('openMigratedDatabase', () => {

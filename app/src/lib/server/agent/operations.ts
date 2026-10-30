@@ -86,8 +86,7 @@ export function indexProject(
 		const titlePath: string[] = JSON.parse(row.title_path!);
 		// A stored title path holds the page title before the section's own headings.
 		const depth = titlePath.length - 1;
-		const title = titlePath.at(-1)!.replace(/ \(\d+\/\d+\)$/, '');
-		lines.push(`${'  '.repeat(depth)}- ${grimoireId(page, anchor)}: ${title}`);
+		lines.push(`${'  '.repeat(depth)}- ${grimoireId(page, anchor)}: ${titlePath.at(-1)}`);
 	}
 	return { found: true, markdown: lines.join('\n') };
 }
@@ -172,7 +171,7 @@ export function readById(
 		.prepare(
 			`SELECT projects.slug AS project, sources.slug AS source, sources.git_url AS gitUrl,
 				sources.branch, sources.path, pages.file, snippets.anchor, snippets.title_path,
-				snippets.content
+				snippets.part, snippets.parts, snippets.content
 			FROM snippets
 			JOIN live_pages AS pages ON pages.id = snippets.page_id
 			JOIN sources ON sources.id = pages.source_id

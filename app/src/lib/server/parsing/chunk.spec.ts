@@ -78,7 +78,10 @@ describe('chunkPage', () => {
 	describe('large sections', () => {
 		it('splits at paragraph boundaries and numbers the parts', () => {
 			const page = chunk(`# Guide\n\n## Long\n\n${text(500)}\n\n${text(500)}\n`);
-			expect(page.snippets.map((s) => s.titlePath.at(-1))).toEqual(['Long (1/2)', 'Long (2/2)']);
+			expect(page.snippets.map((s) => [s.titlePath.at(-1), s.part, s.parts])).toEqual([
+				['Long', 1, 2],
+				['Long', 2, 2]
+			]);
 			expect(page.snippets.every((s) => s.anchor === 'long')).toBe(true);
 			expect(page.snippets.every((s) => s.tokens <= 800)).toBe(true);
 		});

@@ -130,6 +130,16 @@ describe('indexProject', () => {
 		});
 	});
 
+	it('keeps a heading that ends like a part label', () => {
+		addSource(addProject('support'), 'support', 'docs', {
+			'index.md': `# Support\n\n## Hotline (24/7)\n\n${paragraph(60)}\n`
+		});
+
+		expect(indexProject(db, 'support', 'all').markdown).toContain(
+			'support/docs/index#hotline-247: Hotline (24/7)'
+		);
+	});
+
 	it('lists pages in nav order first, the others after them by file', () => {
 		addSource(
 			addProject('ordered'),

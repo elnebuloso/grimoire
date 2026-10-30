@@ -118,8 +118,9 @@ export function replaceSourceIndex(
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
 	);
 	const insertSnippet = db.prepare(
-		`INSERT INTO snippets (page_id, position, anchor, aliases, title_path, content, tokens)
-		VALUES (?, ?, ?, ?, ?, ?, ?)`
+		`INSERT INTO snippets (page_id, position, anchor, aliases, title_path, part, parts, content,
+			tokens)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
 	);
 	const insertSearchEntry = db.prepare(
 		'INSERT INTO snippets_fts (rowid, title_path, text, code) VALUES (?, ?, ?, ?)'
@@ -165,6 +166,8 @@ export function replaceSourceIndex(
 						snippet.anchor ?? null,
 						JSON.stringify(snippet.aliases),
 						JSON.stringify(snippet.titlePath),
+						snippet.part,
+						snippet.parts,
 						snippet.content,
 						snippet.tokens
 					).lastInsertRowid;
