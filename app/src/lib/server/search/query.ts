@@ -84,6 +84,11 @@ export function selectSnippets(
 }
 
 export const DEFAULT_TOKENS = 3000;
+
+/** A token budget as a query string sends it: a positive whole number, otherwise undefined. */
+export function parseTokenBudget(value: string): number | undefined {
+	return /^[1-9]\d*$/.test(value) ? Number(value) : undefined;
+}
 // Caps the list of hits that did not fit; beyond this the agent should rephrase, not read on.
 const MAX_HITS = 20;
 

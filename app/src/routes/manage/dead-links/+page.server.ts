@@ -13,7 +13,10 @@ export const load: PageServerLoad = () => {
 	for (const link of deadLinks(database())) {
 		const group = groups.at(-1);
 		if (group?.sourceId === link.sourceId) group.links.push(link);
-		else groups.push({ ...link, links: [link] });
+		else {
+			const { projectId, project, sourceId, source } = link;
+			groups.push({ projectId, project, sourceId, source, links: [link] });
+		}
 	}
 	return { groups };
 };

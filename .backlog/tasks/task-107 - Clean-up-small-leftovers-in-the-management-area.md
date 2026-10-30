@@ -1,10 +1,11 @@
 ---
 id: TASK-107
 title: Clean up small leftovers in the management area
-status: To Do
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-30 03:00'
+updated_date: '2026-10-30 03:37'
 labels:
   - admin
 milestone: m-0
@@ -33,8 +34,29 @@ Not part of this task: `projectFor` (`app/src/routes/manage/projects/[id]/+page.
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 The "New project" link resolves `/manage/projects/new` directly
-- [ ] #2 The admin query preview and the agent HTTP API parse the token budget with one shared function
-- [ ] #3 Dead-link groups carry only group fields, not those of their first link
-- [ ] #4 Existing tests pass
+- [x] #1 The "New project" link resolves `/manage/projects/new` directly
+- [x] #2 The admin query preview and the agent HTTP API parse the token budget with one shared function
+- [x] #3 Dead-link groups carry only group fields, not those of their first link
+- [x] #4 Existing tests pass
 <!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. Overview link: `resolve('/manage/projects/new')`.
+2. `parseTokenBudget` next to `DEFAULT_TOKENS` in `search/query.ts`, used by `agent/http.ts` and `/manage/query`.
+3. Dead-link groups take only project and source fields from their first link.
+4. Tests for the parser and the group fields.
+<!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+The `'new'` branch of `parseIdParam` stays: the source route still needs it. The MCP tool validates `tokens` with zod (`int().positive()`), which accepts the same numbers; it parses a JSON number, not a string, so it does not go through `parseTokenBudget`. Browser check: 'New project' on `/manage` goes to the wizard, `/manage/query?tokens=0` shows the budget error, the dead links page renders. make lint, make test (559), make e2e (17) pass.
+<!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Three small leftovers fixed: the 'New project' link resolves `/manage/projects/new` directly instead of relying on route ranking; the admin query preview and the agent HTTP API parse the token budget with one `parseTokenBudget`; dead-link groups carry only their own fields. Covered by new tests and a browser check.
+<!-- SECTION:FINAL_SUMMARY:END -->

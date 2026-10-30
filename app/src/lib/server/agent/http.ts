@@ -4,6 +4,7 @@ import { dateIn } from '#lib/time-zone.js';
 import { scopeForKey, type ProjectScope } from '../api-keys';
 import { database } from '../db';
 import { log } from '../log';
+import { parseTokenBudget } from '../search/query';
 import type { OperationResult, QueryOptions } from './operations';
 
 /** A Markdown response, the only format the agent HTTP API answers in. */
@@ -66,8 +67,9 @@ export function queryOptions(url: URL, project?: string): QueryOptions {
 	if (!query) throw new InvalidRequestError('Missing search terms. Send `?q=<terms>`.');
 	const tokens = url.searchParams.get('tokens');
 	if (tokens === null) return { query, project };
-	if (!/^[1-9]\d*$/.test(tokens)) {
+	const budget = parseTokenBudget(tokens);
+	if (budget === undefined) {
 		throw new InvalidRequestError('`tokens` must be a positive whole number.');
 	}
-	return { query, project, tokens: Number(tokens) };
+	return { query, project, tokens: budget };
 }

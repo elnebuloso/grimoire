@@ -71,4 +71,4 @@
 		{/snippet}
 	</ProjectStatsTable>
 {/if}
-<p><a href={resolve('/manage/projects/[id]', { id: 'new' })}>{m.admin_new_project()}</a></p>
+<p><a href={resolve('/manage/projects/new')}>{m.admin_new_project()}</a></p>

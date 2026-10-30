@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import type { DatabaseSync } from 'node:sqlite';
 import { openDatabase } from '../db/schema';
-import { searchSnippets } from './query';
+import { parseTokenBudget, searchSnippets } from './query';
 
 let db: DatabaseSync;
 
@@ -63,6 +63,15 @@ function sourceIds(result: string): string[] {
 
 beforeEach(() => {
 	db = openDatabase(':memory:');
+});
+
+describe('parseTokenBudget', () => {
+	it('accepts a positive whole number only', () => {
+		expect(parseTokenBudget('1500')).toBe(1500);
+		for (const value of ['0', '-5', '1.5', '1e3', ' 12', 'many', '']) {
+			expect(parseTokenBudget(value)).toBeUndefined();
+		}
+	});
 });
 
 describe('searchSnippets', () => {
