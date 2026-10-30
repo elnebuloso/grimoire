@@ -12,7 +12,7 @@ import {
 	agentInstructions,
 	agentQuery,
 	indexProject,
-	listProjects,
+	listVisibleProjects,
 	llmsTxt,
 	queryProjects,
 	readById
@@ -97,17 +97,17 @@ beforeEach(() => {
 	});
 });
 
-describe('listProjects', () => {
+describe('listVisibleProjects', () => {
 	it('lists the projects with their description', () => {
-		expect(listProjects(db, 'all')).toEqual({
+		expect(listVisibleProjects(db, 'all')).toEqual({
 			found: true,
 			markdown: '- billing\n- platform: Login and gateway'
 		});
 	});
 
 	it('lists only the projects in scope', () => {
-		expect(listProjects(db, ['billing']).markdown).toBe('- billing');
-		expect(listProjects(db, []).markdown).toBe('No projects.');
+		expect(listVisibleProjects(db, ['billing']).markdown).toBe('- billing');
+		expect(listVisibleProjects(db, []).markdown).toBe('No projects.');
 	});
 });
 

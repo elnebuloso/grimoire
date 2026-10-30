@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { createHash } from 'node:crypto';
 import type { DatabaseSync } from 'node:sqlite';
 import { openDatabase } from './db/schema';
-import { listProjects } from './agent/operations';
+import { listVisibleProjects } from './agent/operations';
 import {
 	createApiKey,
 	isExpired,
@@ -70,7 +70,7 @@ describe('scopeForKey', () => {
 		const { scope } = scopeForKey(db, key, CLOCK)!;
 
 		expect(scope).toEqual(['billing', 'search']);
-		expect(listProjects(db, scope).markdown).toBe('- billing\n- search');
+		expect(listVisibleProjects(db, scope).markdown).toBe('- billing\n- search');
 	});
 
 	it('rejects unknown keys', () => {

@@ -12,7 +12,7 @@ import {
 	agentQuery,
 	idNotFound,
 	indexProject,
-	listProjects,
+	listVisibleProjects,
 	readById,
 	type OperationResult
 } from './operations';
@@ -38,7 +38,7 @@ export function createMcpServer(db: DatabaseSync, scope: ProjectScope): McpServe
 	server.registerTool(
 		'projects',
 		{ description: 'Lists the projects with their short description.' },
-		() => toolResult('projects', () => listProjects(db, scope))
+		() => toolResult('projects', () => listVisibleProjects(db, scope))
 	);
 	server.registerTool(
 		'index',

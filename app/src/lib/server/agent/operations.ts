@@ -25,7 +25,7 @@ export interface OperationResult {
 const PAGE_ORDER = 'pages.nav_position IS NULL, pages.nav_position, pages.file';
 
 /** Lists the visible projects with their short description. */
-export function listProjects(db: DatabaseSync, scope: ProjectScope): OperationResult {
+export function listVisibleProjects(db: DatabaseSync, scope: ProjectScope): OperationResult {
 	const rows = db
 		.prepare(`SELECT slug, description FROM projects WHERE ${IN_SCOPE} ORDER BY slug`)
 		.all({ scope: scopeParameter(scope) }) as { slug: string; description: string }[];
