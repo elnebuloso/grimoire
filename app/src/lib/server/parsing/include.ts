@@ -27,6 +27,11 @@ export type ReadUrl = (url: string) => UrlContent | undefined;
 
 const URL_TARGET = /^https?:\/\//i;
 
+// Fan-out without a cycle (ten includes of a file that includes another ten times, six levels
+// deep) multiplies a page into gigabytes; anyone who can push to a docs branch could take the
+// server down with it. A real page with all its includes stays far below this.
+export const MAX_INCLUDED_CHARACTERS = 1_000_000;
+
 // Same notation as pymdownx.snippets: dashes of any length, nothing after the marker.
 const SINGLE_LINE = /^([ \t]*)(;*)-+8<-+[ \t]+("(?:\\"|[^"\r\n])+?"|'(?:\\'|[^'\r\n])+?')\r?$/;
 const BLOCK_MARKER = /^([ \t]*)(;*)-+8<-+\r?$/;
@@ -43,7 +48,8 @@ const SECTION_MARKER =
  * `base_path`. Line ranges (`file.md:4:6`) and named sections (`file.md:name`) select part of a
  * file; section markers are removed everywhere else. Runs on raw text, so it also resolves inside
  * code fences, as MkDocs does. Missing targets, missing sections and include cycles are reported
- * as warnings and left out.
+ * as warnings and left out, and so is every include once the included text of the page exceeds
+ * `MAX_INCLUDED_CHARACTERS`.
  *
  * URL includes come from `readUrl`, which is passed only when the site allows them
  * (`url_download`); a file included by URL may include further URLs only, as in pymdownx.
@@ -57,6 +63,7 @@ export function resolveIncludes(
 	const warnings: string[] = [];
 	const outside = new Set<string>();
 	const pending = new Set<string>();
+	let includedCharacters = 0;
 	const sourcePath = posix.normalize(page.sourcePath).replace(/\/$/, '');
 
 	function expand(text: string, chain: string[], isSection = false): string[] {
@@ -116,6 +123,7 @@ export function resolveIncludes(
 			);
 			return [];
 		}
+		if (includedCharacters > MAX_INCLUDED_CHARACTERS) return [];
 
 		const content = isUrl ? fetched(target) : readLocal(target);
 		if (content === undefined) return [];
@@ -129,6 +137,13 @@ export function resolveIncludes(
 				return [];
 			}
 			lines = selected;
+		}
+		includedCharacters += lines.reduce((sum, line) => sum + line.length + 1, 0);
+		if (includedCharacters > MAX_INCLUDED_CHARACTERS) {
+			warnings.push(
+				`${page.path}: includes exceed ${MAX_INCLUDED_CHARACTERS} characters, "${target}" and every later include not inserted`
+			);
+			return [];
 		}
 		return expand(lines.join('\n'), [...chain, target], section !== undefined).map((line) =>
 			line === '' ? line : indent + line

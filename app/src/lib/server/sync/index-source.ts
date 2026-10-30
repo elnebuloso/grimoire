@@ -17,6 +17,10 @@ export interface IndexedSource {
 	exclusions: string[];
 }
 
+// Fetched content can name further URLs, round after round; without a cap a docs branch could keep
+// a sync fetching forever.
+export const MAX_URL_INCLUDES = 100;
+
 /** Checks out further directories of the repository so their files can be read. */
 export type FetchDirectories = (directories: string[]) => Promise<void>;
 
@@ -27,7 +31,8 @@ export type FetchUrl = (url: string) => Promise<UrlContent>;
  * Reads every Markdown page of a source from a checkout and resolves its includes, ready for
  * `indexPages`. Include targets outside the source path are fetched with `fetchDirectories`, and
  * URL includes, when the site config allows them, with `fetchUrl`; round by round, until nothing
- * new turns up.
+ * new turns up. At most `MAX_URL_INCLUDES` URLs are fetched; further ones are reported as not
+ * fetched.
  */
 export async function prepareCheckout(
 	checkout: string,
@@ -89,7 +94,14 @@ export async function prepareCheckout(
 		if (missing.size === 0 && pendingUrls.size === 0) break;
 		if (missing.size > 0) await fetchDirectories([...missing]);
 		missing.forEach((directory) => fetched.add(directory));
-		for (const url of pendingUrls) urls.set(url, await fetchUrl(url));
+		for (const url of pendingUrls) {
+			urls.set(
+				url,
+				urls.size < MAX_URL_INCLUDES
+					? await fetchUrl(url)
+					: { problem: `more than ${MAX_URL_INCLUDES} URL includes in one sync` }
+			);
+		}
 	}
 
 	const navPositions = new Map<string, number>();

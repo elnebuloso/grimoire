@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { resolveIncludes, type UrlContent } from './include';
+import { MAX_INCLUDED_CHARACTERS, resolveIncludes, type UrlContent } from './include';
 
 const page = { path: 'docs/deploy.md', sourcePath: 'docs/' };
 
@@ -40,6 +40,23 @@ describe('resolveIncludes', () => {
 			'docs/deploy.md: include cycle docs/deploy.md → docs/a.md → docs/b.md → docs/a.md, "docs/a.md" not inserted again',
 			'docs/deploy.md: include cycle docs/deploy.md → docs/a.md → docs/b.md → docs/deploy.md, "docs/deploy.md" not inserted again'
 		]);
+	});
+
+	it('stops inserting includes once the included text exceeds the budget, and warns once', () => {
+		// Ten includes per level, six levels: a million lines without a cycle.
+		const files: Record<string, string> = { 'docs/level6.md': 'leaf' };
+		for (let level = 0; level < 6; level++) {
+			files[`docs/level${level}.md`] = `--8<-- "docs/level${level + 1}.md"\n`.repeat(10);
+		}
+
+		const result = resolve('# Deploy\n\n--8<-- "docs/level0.md"\n', files);
+
+		expect(result.markdown.length).toBeLessThanOrEqual(MAX_INCLUDED_CHARACTERS + 100);
+		expect(result.markdown).toContain('leaf');
+		expect(result.warnings).toHaveLength(1);
+		expect(result.warnings[0]).toMatch(
+			new RegExp(`^docs/deploy.md: includes exceed ${MAX_INCLUDED_CHARACTERS} characters, `)
+		);
 	});
 
 	it('includes the same file twice when it is not part of a cycle', () => {

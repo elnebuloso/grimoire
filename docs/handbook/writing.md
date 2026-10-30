@@ -59,11 +59,11 @@ extensions and turns them into plain Markdown for agents:
 | Content tabs `=== "Linux"` | `**Linux:**`, with the content. |
 | `nav` in `zensical.toml` or `mkdocs.yml` | The order of the pages in the index; pages missing from `nav` follow by path. The first of the two files found in the source path or above it counts. |
 | `toc` `slugify` and `separator` in the site config | Heading IDs are built the same way, for `pymdownx.slugs.slugify` with its options, `markdown.extensions.toc.slugify` and `slugify_unicode`. Any other function falls back to the default and shows a warning at the source. |
-| Includes `--8<-- "file.md"` | The included file, also from outside the path of the source. |
+| Includes `--8<-- "file.md"` | The included file, also from outside the path of the source. Once the included text of a page passes 1,000,000 characters, that include and every later one on the page are left out with a warning at the source; this stops a page from multiplying through nested includes. |
 | Symlinks | Followed while they point to a file inside the repository. A page or include that points outside it is skipped with a warning at the source, so a commit cannot make grimoire read files of the server. |
 | `#` in a file name | The page is skipped with a warning at the source: in its ID the `#` would start the anchor and name another page. |
 | Partial includes `--8<-- "file.md:4:6"`, `--8<-- "app.py:main"` | Only the selected lines, or the lines between `--8<-- [start:main]` and `--8<-- [end:main]`; the markers themselves are dropped everywhere. |
-| URL includes `--8<-- "https://…/file.md"` | The fetched file, when the site config sets `url_download: true` under `pymdownx.snippets` and the operator allows its origin in `INCLUDE_URL_ALLOW`. A file included by URL may include further URLs only. Anything not fetched (not allowed, a redirect, an error, more than 1 MiB or 10 seconds) is a warning at the source. The file is fetched at every sync, not when it changes. |
+| URL includes `--8<-- "https://…/file.md"` | The fetched file, when the site config sets `url_download: true` under `pymdownx.snippets` and the operator allows its origin in `INCLUDE_URL_ALLOW`. A file included by URL may include further URLs only. Anything not fetched (not allowed, a redirect, an error, more than 1 MiB or 10 seconds, more than 100 URLs in one sync) is a warning at the source. The file is fetched at every sync, not when it changes. |
 | Mermaid diagrams | Kept as a code block. |
 | Images | Only the alt text; write one that says what the image shows. |
 | HTML comments | Dropped. |

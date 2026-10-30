@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { indexPages } from './index-pages';
-import { prepareCheckout, type FetchUrl } from './index-source';
+import { MAX_URL_INCLUDES, prepareCheckout, type FetchUrl } from './index-source';
 
 const URL = 'https://docs.example.com/shared/note.md';
 const source = { path: 'docs/', exclusions: [] };
@@ -59,6 +59,24 @@ describe('indexCheckout with URL includes', () => {
 		expect(fetchUrl).not.toHaveBeenCalled();
 		expect(index.warnings).toEqual([
 			`docs/index.md: include "${URL}" not inserted, URL includes are disabled (url_download in the site config)`
+		]);
+	});
+
+	it('stops fetching after the cap when fetched content keeps naming new URLs', async () => {
+		write({
+			'mkdocs.yml': 'markdown_extensions:\n  - pymdownx.snippets:\n      url_download: true\n',
+			'docs/index.md': `# Start\n\n--8<-- "${URL}?0"\n`
+		});
+		const fetchUrl = vi.fn(async (url: string) => {
+			const next = Number(url.split('?')[1]) + 1;
+			return { content: `Part ${next}.\n\n--8<-- "${URL}?${next}"\n` };
+		});
+
+		const index = await indexCheckout(fetchUrl);
+
+		expect(fetchUrl).toHaveBeenCalledTimes(MAX_URL_INCLUDES);
+		expect(index.warnings).toEqual([
+			`docs/index.md: include "${URL}?${MAX_URL_INCLUDES}" not fetched, more than ${MAX_URL_INCLUDES} URL includes in one sync`
 		]);
 	});
 
