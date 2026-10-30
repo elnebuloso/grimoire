@@ -230,6 +230,13 @@ describe('agentQuery', () => {
 		expect(missed.question).toHaveLength(500);
 		expect(question.startsWith(missed.question)).toBe(true);
 	});
+
+	it('records a missed question trimmed, and one of only whitespace not at all', () => {
+		agentQuery(db, { query: '  release process \n' }, 'all');
+		agentQuery(db, { query: ' \t ' }, 'all');
+
+		expect(listMissedQueries(db)).toMatchObject([{ question: 'release process', count: 1 }]);
+	});
 });
 
 describe('llmsTxt', () => {

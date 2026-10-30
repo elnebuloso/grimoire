@@ -169,8 +169,8 @@ export function queryProjects(
 export const MAX_QUESTION_LENGTH = 500;
 
 /**
- * `queryProjects` for an agent: the question is cut to `MAX_QUESTION_LENGTH` characters, and a
- * query that found nothing is recorded for the admins.
+ * `queryProjects` for an agent: the question is trimmed and cut to `MAX_QUESTION_LENGTH`
+ * characters, and a query that found nothing is recorded for the admins.
  */
 export function agentQuery(
 	db: DatabaseSync,
@@ -178,9 +178,9 @@ export function agentQuery(
 	scope: ProjectScope,
 	now = new Date()
 ): QueryResult {
-	const query = options.query.slice(0, MAX_QUESTION_LENGTH);
+	const query = options.query.trim().slice(0, MAX_QUESTION_LENGTH);
 	const result = queryProjects(db, { ...options, query }, scope);
-	if (result.missed) {
+	if (result.missed && query) {
 		recordMissedQuery(db, { question: query, project: options.project ?? null }, now);
 	}
 	return result;
