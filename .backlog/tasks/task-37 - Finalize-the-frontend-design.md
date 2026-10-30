@@ -1,11 +1,11 @@
 ---
 id: TASK-37
 title: Finalize the frontend design
-status: In Progress
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-28T23:50:00Z'
-updated_date: '2026-10-30 19:40'
+updated_date: '2026-10-30 19:47'
 labels:
   - admin
 milestone: m-0
@@ -34,15 +34,15 @@ Visual reference until then: mockup e/6, local and git-ignored: `cd docs/mockups
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 The admin area has a visual design the user agreed on
-- [ ] #2 Every admin flow covered by `make e2e` still works with the design
-- [ ] #3 Every page and state matches `docs/design.md` in light and dark, compared against the mockup e/6
-- [ ] #4 `docs/mockups/` is deleted once the design is accepted, together with its entry in `.gitignore`
+- [x] #1 The admin area has a visual design the user agreed on
+- [x] #2 Every admin flow covered by `make e2e` still works with the design
+- [x] #3 Every page and state matches `docs/design.md` in light and dark, compared against the mockup e/6
+- [x] #4 `docs/mockups/` is deleted once the design is accepted, together with its entry in `.gitignore`
 <!-- AC:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 Accepted only by the user explicitly confirming the design; not marked done before that
+- [x] #1 Accepted only by the user explicitly confirming the design; not marked done before that
 <!-- DOD:END -->
 
 ## Implementation Plan
@@ -59,4 +59,12 @@ Visual reference until then: mockup e/6, local and git-ignored: `cd docs/mockups
 Ready for acceptance. TASK-178 to TASK-182, TASK-50 and TASK-58 are done. `make e2e` (20 tests, every admin flow) passes with the design (AC #2 evidence). Every page and state was compared against e/6 in light and dark at 390 and 1366 px with screenshots, axe (wcag2a/aa) and an overflow check during those tasks (AC #3 evidence, listed in each task's notes).
 Known deviations from the mockup, deliberate: links after a status ("Log in", "Request a new link", "To the start page") and "New source" are plain links, not link-styled buttons, since `docs/design.md` defines no such element; the page-list line after the file name is one message, shown entirely in `--ink-2`.
 Waiting for the user's explicit acceptance (DoD #1); AC #1 and #4 follow from it.
+
+Accepted by the user explicitly in chat ("Design ist abgenommen"). `docs/mockups/` (local, git-ignored, never tracked) deleted together with its line in `.gitignore`; `docs/design.md` is now the only record of the design. Older tasks still mention the mockups as history.
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+The agreed design (mockup e/6, recorded in `docs/design.md`) is in the product: base and tokens (TASK-178), page frame (TASK-179), components (TASK-180), public and account pages (TASK-181), management pages (TASK-182), theme switch (TASK-50), and the accessibility check failing the build (TASK-58). Every admin flow in `make e2e` works with it, and every page and state was checked against e/6 in light and dark. The user accepted the design; the mockups and their `.gitignore` entry are removed, so `docs/design.md` is the only record from now on.
+<!-- SECTION:FINAL_SUMMARY:END -->
