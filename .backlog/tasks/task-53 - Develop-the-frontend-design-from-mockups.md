@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@claude'
 created_date: '2026-10-29T06:55:00Z'
-updated_date: '2026-10-30 18:12'
+updated_date: '2026-10-30 18:17'
 labels:
   - admin
 milestone: m-0
@@ -57,4 +57,8 @@ Round 1 built: a/1, b/1, c/1. Checked with Playwright over a local server (`pyth
 Round 1 feedback: a/1 rejected, b/1 rejected, c/1 not judged. Next: three new directions d/1, e/1, f/1, built with the `ui-ux-pro-max` skill as the style source, without generic "AI UI" patterns.
 
 Round 2 built: d/1 (Swiss Modernism 2.0), e/1 (Soft UI Evolution), f/1 (Flat Design), each from the `ui-ux-pro-max` style catalog with an explicit anti-slop brief. Checked with Playwright: all pages x states in light and dark, contrast of every visible text measured (WCAG AA, 0 failures with transitions disabled), theme kept across pages, no horizontal overflow at 1366 and 390 px. Fixed during the check: f/1 had its two font files swapped (body text rendered in mono) and its source page overflowed at 390 px. Waiting for the developer's choice.
+
+Round 2 choice: the developer likes e/1 (Soft UI Evolution) best. d/1 and f/1 are not pursued; e is the line to develop.
+
+Round 3 requested: e/2 = e/1 refined with the missing states (global pause, never synced, sync warnings, stored/entered token, empty page filter, copy status; added to SPEC.md); variations of e/2 with one change each: e/3 sidebar navigation, e/4 denser, e/5 different accent, e/6 cooler palette.
 <!-- SECTION:NOTES:END -->
