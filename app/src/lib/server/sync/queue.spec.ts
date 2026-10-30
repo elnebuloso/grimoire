@@ -146,8 +146,8 @@ describe('createSyncQueue', () => {
 describe('startPolling', () => {
 	it('queues every source at start and after each interval, until stopped', async () => {
 		vi.useFakeTimers();
-		const request = vi.fn(() => Promise.resolve<SyncResult>({ status: 'unchanged', commit: 'c' }));
-		const stop = startPolling({ request }, () => [1, 2], 60_000);
+		const request = vi.fn();
+		const stop = startPolling({ requestInBackground: request }, () => [1, 2], 60_000);
 		expect(request.mock.calls).toEqual([[1], [2]]);
 
 		vi.advanceTimersByTime(60_000);
@@ -172,7 +172,7 @@ describe('startPolling', () => {
 			return [1, 2];
 		};
 
-		const stop = startPolling({ request }, listSources, 1000);
+		const stop = startPolling(createSyncQueue(request), listSources, 1000);
 		await vi.advanceTimersByTimeAsync(2000);
 		stop();
 
@@ -194,7 +194,7 @@ describe('startPolling in a process', () => {
 		const queueUrl = pathToFileURL(join(import.meta.dirname, 'queue.ts')).href;
 		const script = `
 			import { startPolling } from ${JSON.stringify(queueUrl)};
-			startPolling({ request: async () => ({ status: 'unchanged', commit: 'c' }) }, () => [1], 60000);
+			startPolling({ requestInBackground: () => {} }, () => [1], 60000);
 		`;
 		const result = spawnSync(process.execPath, ['--input-type=module', '-e', script], {
 			timeout: 10_000

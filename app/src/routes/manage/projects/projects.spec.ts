@@ -9,9 +9,10 @@ import * as sourcePage from './[id]/sources/[sourceId]/+page.server';
 let db: DatabaseSync;
 // vi.mock is hoisted above the imports; the mock it returns has to be hoisted with it.
 const requestSync = vi.hoisted(() => vi.fn(async () => ({ status: 'unchanged', commit: 'abc' })));
+const requestSyncInBackground = vi.hoisted(() => vi.fn());
 
 vi.mock('#lib/server/db/index.js', () => ({ database: () => db }));
-vi.mock('#lib/server/sync/index.js', () => ({ requestSync }));
+vi.mock('#lib/server/sync/index.js', () => ({ requestSync, requestSyncInBackground }));
 // The Git server cannot be asked from a test; the check itself is tested against a local repository.
 const checkSourceAccess = vi.hoisted(() =>
 	vi.fn(async () => ({ ok: true, message: 'Reachable: branch main is at commit abc.' }))
@@ -81,6 +82,7 @@ const SOURCE = {
 beforeEach(() => {
 	db = openDatabase(':memory:');
 	requestSync.mockClear();
+	requestSyncInBackground.mockClear();
 	checkSourceAccess.mockClear();
 });
 
@@ -113,7 +115,7 @@ describe('project page', () => {
 		addProject('platform');
 		await thrown(() => saveSource('1', 'new', SOURCE));
 		await thrown(() => saveSource('1', 'new', { ...SOURCE, name: 'Billing' }));
-		requestSync.mockClear();
+		requestSyncInBackground.mockClear();
 		const changeSlug = (fields: Record<string, string>) =>
 			projectPage.actions.slug({ request: formRequest(fields), params: { id: '1' } } as never);
 
@@ -124,7 +126,7 @@ describe('project page', () => {
 				slugValues: { slug: 'team' }
 			}
 		});
-		expect(requestSync).not.toHaveBeenCalled();
+		expect(requestSyncInBackground).not.toHaveBeenCalled();
 
 		expect(await changeSlug({ slug: 'team', confirmation: 'platform' })).toEqual({
 			slugChanged: true
@@ -132,7 +134,7 @@ describe('project page', () => {
 		expect(projectPage.load({ params: { id: '1' } } as never)).toMatchObject({
 			project: { slug: 'team' }
 		});
-		expect(requestSync.mock.calls).toEqual([
+		expect(requestSyncInBackground.mock.calls).toEqual([
 			[1, { force: true }],
 			[2, { force: true }]
 		]);
@@ -169,7 +171,7 @@ describe('source page', () => {
 			303,
 			'/manage/projects/1/sources/1'
 		]);
-		expect(requestSync).toHaveBeenCalledExactlyOnceWith(1, { force: true });
+		expect(requestSyncInBackground).toHaveBeenCalledExactlyOnceWith(1, { force: true });
 	});
 
 	it('never puts the token into page data', async () => {
@@ -215,7 +217,7 @@ describe('source page', () => {
 
 	it('creates a paused source without syncing it, and syncs it now while it stays paused', async () => {
 		await thrown(() => saveSource('1', 'new', { ...SOURCE, paused: 'on' }));
-		expect(requestSync).not.toHaveBeenCalled();
+		expect(requestSyncInBackground).not.toHaveBeenCalled();
 		expect(loadSource('1', '1')).toMatchObject({ source: { paused: true }, nextCheck: undefined });
 
 		await sourcePage.actions.sync({ params: { id: '1', sourceId: '1' } } as never);
@@ -228,7 +230,7 @@ describe('source page', () => {
 		saveSettings(db, { syncsPaused: true });
 
 		await thrown(() => saveSource('1', 'new', SOURCE));
-		expect(requestSync).not.toHaveBeenCalled();
+		expect(requestSyncInBackground).not.toHaveBeenCalled();
 		expect(loadSource('1', '1')).toMatchObject({
 			source: { paused: false },
 			syncsPaused: true,
@@ -245,7 +247,7 @@ describe('source page', () => {
 		await thrown(() => saveSource('1', '1', SOURCE));
 
 		expect(loadSource('1', '1')).toMatchObject({ source: { paused: false } });
-		expect(requestSync).toHaveBeenCalledExactlyOnceWith(1, { force: true });
+		expect(requestSyncInBackground).toHaveBeenCalledExactlyOnceWith(1, { force: true });
 	});
 
 	it('changes the slug of a source, even a paused one, and syncs it again', async () => {
@@ -257,7 +259,7 @@ describe('source page', () => {
 
 		expect(result).toEqual({ slugChanged: true });
 		expect(loadSource('1', '1')).toMatchObject({ source: { slug: 'login', paused: true } });
-		expect(requestSync).toHaveBeenCalledExactlyOnceWith(1, { force: true });
+		expect(requestSyncInBackground).toHaveBeenCalledExactlyOnceWith(1, { force: true });
 	});
 
 	it('saves the documentation URL and keeps the entered values when it is invalid', async () => {
@@ -289,7 +291,7 @@ describe('source page', () => {
 
 		expect(result).toMatchObject({ status: 400, data: { error: 'Access refused.' } });
 		expect(db.prepare('SELECT count(*) AS n FROM sources').get()).toEqual({ n: 0 });
-		expect(requestSync).not.toHaveBeenCalled();
+		expect(requestSyncInBackground).not.toHaveBeenCalled();
 	});
 
 	it('asks the Git server again only when the URL, branch, username or token change', async () => {
@@ -359,7 +361,7 @@ describe('source page', () => {
 
 	it('syncs now, forced, and returns the result', async () => {
 		await thrown(() => saveSource('1', 'new', SOURCE));
-		requestSync.mockClear();
+		requestSyncInBackground.mockClear();
 
 		const result = await sourcePage.actions.sync({
 			params: { id: '1', sourceId: '1' }

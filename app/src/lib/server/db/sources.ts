@@ -55,7 +55,10 @@ export interface SourceSchedule {
 	lastCheckedAt: Date | null;
 }
 
-/** The schedules polling checks; paused sources are left out, and all of them while syncs are paused. */
+/**
+ * The schedules polling checks; paused sources are left out, and all of them while syncs are
+ * paused: `syncsAutomatically` in SQL, for every source at once.
+ */
 export function listSchedules(db: DatabaseSync): SourceSchedule[] {
 	return db
 		.prepare(

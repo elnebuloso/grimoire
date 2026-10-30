@@ -2,13 +2,12 @@ import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { SYNC_SCHEDULE, TOKEN_ENCRYPTION_KEY } from '$app/env/private';
 import { database } from '#lib/server/db/index.js';
-import { log } from '#lib/server/log.js';
-import { requestSync } from '#lib/server/sync/index.js';
+import { requestSyncInBackground } from '#lib/server/sync/index.js';
 import { redactUrl } from '#lib/server/sync/git.js';
 import { checkSourceAccess } from '#lib/server/admin/source-access.js';
 import { readFormSecret, SOURCE_TOKEN_FIELDS } from '#lib/server/admin/form-secret.js';
 import { m } from '#lib/paraglide/messages.js';
-import { readSettings } from '#lib/server/settings.js';
+import { syncsAutomatically } from '#lib/server/settings.js';
 import {
 	createProjectWithSource,
 	projectProblem,
@@ -139,10 +138,8 @@ export const actions = {
 		if ('error' in result)
 			return reject(firstProblem(input) ?? { step: 'summary', ...result }, input.values);
 
-		if (!input.values.source.paused && !readSettings(database()).syncsPaused) {
-			requestSync(result.sourceId, { force: true }).catch((error: Error) => {
-				log.error({ err: error }, `sync of source ${result.sourceId} failed`);
-			});
+		if (syncsAutomatically(database(), input.values.source)) {
+			requestSyncInBackground(result.sourceId, { force: true });
 		}
 		redirect(303, `/manage/projects/${result.projectId}`);
 	}

@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { openDatabase } from './db/schema';
-import { readSettings, saveSettings } from './settings';
+import { readSettings, saveSettings, syncsAutomatically } from './settings';
 
 let dir: string | undefined;
 
@@ -31,5 +31,16 @@ describe('settings', () => {
 		const db = openDatabase(':memory:');
 		expect(() => db.prepare('INSERT INTO settings (id) VALUES (2)').run()).toThrow(/CHECK/);
 		expect(() => db.prepare('UPDATE settings SET syncs_paused = 2').run()).toThrow(/CHECK/);
+	});
+});
+
+describe('syncsAutomatically', () => {
+	it('is true only while neither the source nor all syncs are paused', () => {
+		const db = openDatabase(':memory:');
+
+		expect(syncsAutomatically(db, { paused: false })).toBe(true);
+		expect(syncsAutomatically(db, { paused: true })).toBe(false);
+		saveSettings(db, { syncsPaused: true });
+		expect(syncsAutomatically(db, { paused: false })).toBe(false);
 	});
 });

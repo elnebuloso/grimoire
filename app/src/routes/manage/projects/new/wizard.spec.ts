@@ -10,9 +10,10 @@ let db: DatabaseSync;
 const KEY = vi.hoisted(() => Buffer.alloc(32, 7));
 const TOKEN = 'glpat-very-secret';
 const requestSync = vi.hoisted(() => vi.fn(async () => ({ status: 'unchanged', commit: 'abc' })));
+const requestSyncInBackground = vi.hoisted(() => vi.fn());
 
 vi.mock('#lib/server/db/index.js', () => ({ database: () => db }));
-vi.mock('#lib/server/sync/index.js', () => ({ requestSync }));
+vi.mock('#lib/server/sync/index.js', () => ({ requestSync, requestSyncInBackground }));
 // The Git server cannot be asked from a test; the check itself is tested against a local repository.
 const checkSourceAccess = vi.hoisted(() =>
 	vi.fn(async () => ({ ok: true, message: 'Reachable: branch main is at commit abc.' }))
@@ -64,6 +65,7 @@ function count(table: string): number {
 beforeEach(() => {
 	db = openDatabase(':memory:');
 	requestSync.mockClear();
+	requestSyncInBackground.mockClear();
 	checkSourceAccess.mockClear();
 	checkSourceAccess.mockResolvedValue({
 		ok: true,
@@ -172,7 +174,7 @@ describe('project wizard', () => {
 			.get() as { project_id: number; slug: string; username: string; encrypted_token: string };
 		expect(source).toMatchObject({ project_id: 1, slug: 'auth-service', username: 'deploy' });
 		expect(decryptToken(source.encrypted_token, KEY)).toBe(TOKEN);
-		expect(requestSync).toHaveBeenCalledWith(1, { force: true });
+		expect(requestSyncInBackground).toHaveBeenCalledWith(1, { force: true });
 	});
 
 	it('carries the paused setting through the steps and creates the source paused without syncing it', async () => {
@@ -184,7 +186,7 @@ describe('project wizard', () => {
 		await submit('create', await throughSummary({ paused: 'on' }));
 
 		expect(db.prepare('SELECT paused FROM sources').get()).toEqual({ paused: 1 });
-		expect(requestSync).not.toHaveBeenCalled();
+		expect(requestSyncInBackground).not.toHaveBeenCalled();
 	});
 
 	it('creates the source without syncing it while all syncs are paused', async () => {
@@ -193,7 +195,7 @@ describe('project wizard', () => {
 		await submit('create', await throughSummary());
 
 		expect(db.prepare('SELECT paused FROM sources').get()).toEqual({ paused: 0 });
-		expect(requestSync).not.toHaveBeenCalled();
+		expect(requestSyncInBackground).not.toHaveBeenCalled();
 	});
 
 	it('carries the documentation URL through the steps and creates the source with it', async () => {
@@ -242,6 +244,6 @@ describe('project wizard', () => {
 			data: { step: 'project', error: 'A project with the slug "platform" already exists.' }
 		});
 		expect([count('projects'), count('sources')]).toEqual([1, 0]);
-		expect(requestSync).not.toHaveBeenCalled();
+		expect(requestSyncInBackground).not.toHaveBeenCalled();
 	});
 });

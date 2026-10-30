@@ -10,6 +10,11 @@ export function readSettings(db: DatabaseSync): Settings {
 	return { syncsPaused: row.syncs_paused === 1 };
 }
 
+/** Whether polling syncs a source: neither the source nor all syncs are paused. */
+export function syncsAutomatically(db: DatabaseSync, source: { paused: boolean }): boolean {
+	return !source.paused && !readSettings(db).syncsPaused;
+}
+
 export function saveSettings(db: DatabaseSync, settings: Settings) {
 	db.prepare('UPDATE settings SET syncs_paused = ?').run(settings.syncsPaused ? 1 : 0);
 }

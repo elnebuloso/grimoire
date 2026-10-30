@@ -3,8 +3,7 @@ import { error, fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { SYNC_SCHEDULE, TOKEN_ENCRYPTION_KEY, TZ } from '$app/env/private';
 import { database } from '#lib/server/db/index.js';
-import { log } from '#lib/server/log.js';
-import { requestSync } from '#lib/server/sync/index.js';
+import { requestSync, requestSyncInBackground } from '#lib/server/sync/index.js';
 import { redactUrl } from '#lib/server/sync/git.js';
 import { nextRun } from '#lib/server/sync/schedule.js';
 import { accessChanged, checkSourceAccess } from '#lib/server/admin/source-access.js';
@@ -23,7 +22,7 @@ import {
 	type SourceSettings
 } from '#lib/server/admin/projects.js';
 import { previewPage, sourceStatus } from '#lib/server/admin/status.js';
-import { readSettings } from '#lib/server/settings.js';
+import { readSettings, syncsAutomatically } from '#lib/server/settings.js';
 
 function pageFor(params: { id: string; sourceId: string }): {
 	project: Project;
@@ -123,11 +122,7 @@ export const actions = {
 		if ('error' in result) return fail(400, { error: result.error, values });
 
 		// Forced, so a changed path or exclusions take effect without waiting for a new commit.
-		if (!form.paused && !readSettings(db).syncsPaused) {
-			requestSync(result.id, { force: true }).catch((error: Error) => {
-				log.error({ err: error }, `sync of source ${result.id} failed`);
-			});
-		}
+		if (syncsAutomatically(db, form)) requestSyncInBackground(result.id, { force: true });
 		redirect(303, `/manage/projects/${project.id}/sources/${result.id}`);
 	},
 	test: async ({ request, params }) => {
@@ -154,9 +149,7 @@ export const actions = {
 		if (problem) return fail(400, { slugError: problem, slugValues: { slug: form.slug } });
 
 		// Stored links carry IDs with the old slug until the source is indexed again, paused or not.
-		requestSync(source.id, { force: true }).catch((error: Error) => {
-			log.error({ err: error }, `sync of source ${source.id} failed`);
-		});
+		requestSyncInBackground(source.id, { force: true });
 		return { slugChanged: true };
 	},
 	delete: ({ params }) => {

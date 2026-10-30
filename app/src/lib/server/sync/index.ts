@@ -20,6 +20,9 @@ const queue = createSyncQueue((sourceId, force, lanes) =>
 /** Syncs one source as soon as the syncs before it are done, e.g. for "sync now". */
 export const requestSync = queue.request;
 
+/** Queues a sync of one source without waiting for it, e.g. after saving it. */
+export const requestSyncInBackground = queue.requestInBackground;
+
 /** Checks every source whenever its schedule – its own, or `SYNC_SCHEDULE` – says so. */
 export function startSyncPolling(): () => void {
 	return startPolling(queue, dueSources, TICK_MS);

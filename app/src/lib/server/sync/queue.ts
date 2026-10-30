@@ -73,14 +73,21 @@ export function createSyncQueue(run: RunSync, { parallelChecks = PARALLEL_CHECKS
 		return promise;
 	}
 
-	return { request };
+	/** Queues a sync without waiting for it; a failure ends up in the log. */
+	function requestInBackground(sourceId: number, options: { force?: boolean } = {}): void {
+		request(sourceId, options).catch((error: Error) => {
+			log.error({ err: error }, `sync of source ${sourceId} failed`);
+		});
+	}
+
+	return { request, requestInBackground };
 }
 
 export type SyncQueue = ReturnType<typeof createSyncQueue>;
 
 /** Queues every source now and then every `intervalMs`; returns a function that stops polling. */
 export function startPolling(
-	queue: SyncQueue,
+	queue: Pick<SyncQueue, 'requestInBackground'>,
 	listSources: () => number[],
 	intervalMs: number
 ): () => void {
@@ -93,11 +100,7 @@ export function startPolling(
 			log.error({ err: error }, 'listing sources to sync failed');
 			return;
 		}
-		for (const sourceId of sourceIds) {
-			queue.request(sourceId).catch((error: Error) => {
-				log.error({ err: error }, `sync of source ${sourceId} failed`);
-			});
-		}
+		for (const sourceId of sourceIds) queue.requestInBackground(sourceId);
 	};
 	poll();
 	// Unreferenced, so a shutdown can finish: the server exits once its listener is closed and the
