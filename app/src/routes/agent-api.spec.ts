@@ -366,6 +366,21 @@ describe('POST /mcp', () => {
 		logError.mockRestore();
 	});
 
+	it('answers an unexpected error outside the tools like the HTTP API', async () => {
+		const logError = vi.spyOn(log, 'error').mockImplementation(() => {});
+		db.exec('ALTER TABLE api_keys RENAME TO api_keys_gone');
+
+		const response = await call('tools/list');
+
+		expect(response.status).toBe(500);
+		expect(await response.text()).toBe('The server failed to answer. Try again later.');
+		expect(logError).toHaveBeenCalledWith(
+			{ err: expect.objectContaining({ message: expect.stringContaining('api_keys') }) },
+			'POST /mcp failed'
+		);
+		logError.mockRestore();
+	});
+
 	it('reads the whole page for an empty anchor, like an empty section over HTTP', async () => {
 		const id = 'platform/auth/run books/deploy';
 		const viaMcp = await tool('read', { id: `${id}#` });

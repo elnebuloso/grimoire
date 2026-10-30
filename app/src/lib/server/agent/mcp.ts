@@ -6,7 +6,7 @@ import type { ProjectScope } from '../api-keys';
 import { database } from '../db';
 import { parseGrimoireId } from '../grimoire-id';
 import { log } from '../log';
-import { SERVER_FAILED, scopeForRequest, unauthorizedResponse } from './http';
+import { SERVER_FAILED, markdownResponse, scopeForRequest, unauthorizedResponse } from './http';
 import {
 	agentInstructions,
 	agentQuery,
@@ -81,13 +81,18 @@ export function createMcpServer(db: DatabaseSync, scope: ProjectScope): McpServe
  * and transport, so nothing is kept between requests and a revoked key stops working at once.
  */
 export async function mcpResponse(request: Request): Promise<Response> {
-	const db = database();
-	const result = scopeForRequest(db, request);
-	if (!result) return unauthorizedResponse();
-	const transport = new WebStandardStreamableHTTPServerTransport({
-		sessionIdGenerator: undefined,
-		enableJsonResponse: true
-	});
-	await createMcpServer(db, result.scope).connect(transport);
-	return transport.handleRequest(request);
+	try {
+		const db = database();
+		const result = scopeForRequest(db, request);
+		if (!result) return unauthorizedResponse();
+		const transport = new WebStandardStreamableHTTPServerTransport({
+			sessionIdGenerator: undefined,
+			enableJsonResponse: true
+		});
+		await createMcpServer(db, result.scope).connect(transport);
+		return await transport.handleRequest(request);
+	} catch (error) {
+		log.error({ err: error }, `${request.method} ${new URL(request.url).pathname} failed`);
+		return markdownResponse(SERVER_FAILED, 500);
+	}
 }
