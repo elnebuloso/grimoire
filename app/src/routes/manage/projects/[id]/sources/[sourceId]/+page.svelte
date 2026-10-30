@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { invalidateAll } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import ChoiceField from '#lib/components/ChoiceField.svelte';
 	import ConfirmForm from '#lib/components/ConfirmForm.svelte';
@@ -14,6 +15,14 @@
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
+
+	// Polls for the outcome of a queued sync; stops as soon as the sync is done.
+	const PENDING_REFRESH_MS = 2000;
+	$effect(() => {
+		if (!data.syncPending) return;
+		const timer = setInterval(() => invalidateAll(), PENDING_REFRESH_MS);
+		return () => clearInterval(timer);
+	});
 
 	const values = $derived(
 		form?.values ?? {
@@ -52,7 +61,10 @@
 		<button>{m.source_sync_now()}</button>
 	</form>
 	{#if data.syncPending}
-		<p role="status">{m.source_sync_pending()}</p>
+		<p role="status">
+			{m.source_sync_pending()}
+			<noscript>{m.source_sync_pending_reload()}</noscript>
+		</p>
 	{/if}
 	{#snippet lastCheck()}
 		{#if data.status?.lastCheckedAt}

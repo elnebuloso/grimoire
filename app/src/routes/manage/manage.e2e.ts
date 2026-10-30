@@ -163,12 +163,12 @@ test('syncs a source now and shows why it failed', async ({ page }) => {
 
 	await page.getByRole('button', { name: 'Sync now' }).click();
 
-	// The sync runs after the answer; its outcome shows in the status once it is done.
-	await expect(async () => {
-		await page.reload();
-		await expect(page.getByRole('status')).toHaveCount(0);
-	}).toPass();
-	await expect(page.getByRole('alert')).toContainText('source path "docs" does not exist');
+	// The sync runs after the answer; the page refreshes by itself until its outcome shows.
+	await expect(page.getByRole('status')).toContainText('A sync is queued or running.');
+	await expect(page.getByRole('alert')).toContainText('source path "docs" does not exist', {
+		timeout: 15_000
+	});
+	await expect(page.getByRole('status')).toHaveCount(0);
 	expect(await page.content()).not.toContain(TOKEN);
 
 	await page.goto('/manage');

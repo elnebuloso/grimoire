@@ -98,7 +98,7 @@
 	"source_title": "Quelle {name}",
 	"source_status": "Status",
 	"source_sync_now": "Jetzt syncen",
-	"source_sync_pending": "Ein Sync wartet oder läuft. Lade die Seite neu für sein Ergebnis.",
+	"source_sync_pending": "Ein Sync ist eingereiht oder läuft.",
 	"source_polling": "Polling",
 	"source_polling_paused": "pausiert; nur „Jetzt syncen“ synct diese Quelle",
 	"source_last_check": "Letzte Prüfung",
@@ -216,5 +216,6 @@
 	"source_history_failed": "fehlgeschlagen",
 	"project_source_warning": "1 Sync-Warnung",
 	"project_source_warnings": "{count} Sync-Warnungen",
-	"dead_links_none": "Keine Quelle hat einen toten Link."
+	"dead_links_none": "Keine Quelle hat einen toten Link.",
+	"source_sync_pending_reload": "Lade die Seite neu für das Ergebnis."
 }

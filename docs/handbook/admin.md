@@ -156,8 +156,8 @@ misleading title shows up before an agent meets it. A page without any snippet s
 
 **Sync now** queues a sync of the source, even when the branch has not moved, and returns right
 away. It runs after the syncs queued before it; until it is done the page says that a sync is
-queued or running. Reload the page for its outcome: the time of the last sync, the commit, and
-the error if it failed.
+queued or running, and refreshes every two seconds until it shows the outcome: the time of the
+last sync, the commit, and the error if it failed. Without JavaScript, reload the page instead.
 
 Pause a source while its repository moves, its token is being replaced or its Git server is
 down for maintenance: polling then leaves it alone instead of collecting the same error at every
