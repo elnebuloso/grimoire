@@ -1,11 +1,11 @@
 ---
 id: TASK-186
 title: Add a footer with icon links and slim down the header and start page
-status: In Progress
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-30 21:34'
-updated_date: '2026-10-30 22:07'
+updated_date: '2026-10-30 22:22'
 labels:
   - admin
 milestone: m-0
@@ -37,13 +37,13 @@ Points to settle while doing it:
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Every page, the error page included, has a footer with an icon link to the GitHub repository and one to the documentation, each with an accessible name in the page language
-- [ ] #2 The start page shows no "grimoire" heading and no GitHub link above the sources, still has one `h1` and the document title "grimoire"
-- [ ] #3 The "Manage" link in the header looks like the "Log out" button in both schemes and at `pointer: coarse` sizes, and is still a link
-- [ ] #4 axe passes on the start page, a management page and the error page in light and dark, and nothing overflows at 390 px
-- [ ] #5 Unused messages are removed from every message file
-- [ ] #6 `make lint`, `make test` and `make e2e` pass
-- [ ] #7 `docs/DESIGN.md` allows icons and says how they look in light and dark; `@lucide/svelte` is pinned to an exact version at least two weeks old and only imported per icon
+- [x] #1 Every page, the error page included, has a footer with an icon link to the GitHub repository and one to the documentation, each with an accessible name in the page language
+- [x] #2 The start page shows no "grimoire" heading and no GitHub link above the sources, still has one `h1` and the document title "grimoire"
+- [x] #3 The "Manage" link in the header looks like the "Log out" button in both schemes and at `pointer: coarse` sizes, and is still a link
+- [x] #4 axe passes on the start page, a management page and the error page in light and dark, and nothing overflows at 390 px
+- [x] #5 Unused messages are removed from every message file
+- [x] #6 `make lint`, `make test` and `make e2e` pass
+- [x] #7 `docs/DESIGN.md` allows icons and says how they look in light and dark; `@lucide/svelte` is pinned to an exact version at least two weeks old and only imported per icon
 <!-- AC:END -->
 
 ## Implementation Plan
@@ -64,4 +64,14 @@ Points to settle while doing it:
 - Footer rule sits on an inner .links element so it is as wide as the sheets; mobile padding follows main.
 - landmark-unique on / and /manage existed before (checked with the changes stashed): the Sources section and the table region inside were both named Sources; the region is now 'Table of sources'.
 - Checked by hand: axe clean on /, /manage, a source page and the error page in light and dark; no overflow at 390 and 1366; footer hover accent.
+
+- On request the footer also names the product "grimoire" (13px, --ink-2), whatever INSTANCE_NAME says.
+- The footer docs link is called "grimoire documentation": "Documentation" clashed with a source's documentation link (e2e caught it).
+- pointer: coarse sizes for Manage come from the shared a.button rule in app.css; not looked at on a touch device.
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Footer on every page with the product name and icon links to the GitHub repository (GitHub mark inline) and the documentation (Lucide book-open, @lucide/svelte 1.57.0 pinned, per-icon import). Start page without its grimoire heading and GitHub link; the Sources heading is the h1. Manage in the header is a link styled like the Log out button (a.button). DESIGN.md allows icons and describes footer and icons. Fixed a pre-existing axe landmark-unique on / and /manage. Verified: axe clean in light and dark on start, management, source and error page, no overflow at 390/1366; make lint, make test, make e2e.
+<!-- SECTION:FINAL_SUMMARY:END -->

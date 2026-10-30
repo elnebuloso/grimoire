@@ -1,11 +1,11 @@
 ---
 id: TASK-185
 title: Let the operator rename grimoire per instance
-status: In Progress
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-30 21:29'
-updated_date: '2026-10-30 22:11'
+updated_date: '2026-10-30 22:22'
 labels:
   - ops
   - admin
@@ -34,14 +34,14 @@ The name is plain text everywhere: escaped in HTML, never interpreted as markup.
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Without `INSTANCE_NAME` everything reads as today
-- [ ] #2 With `INSTANCE_NAME=Acme Docs` the header, the start page heading, every document title, the messages listed in the description in every language, the reset mail and the MCP server name and instructions say Acme Docs
-- [ ] #3 The `claude mcp add` example on the start page uses a server name derived from the instance name that works as a CLI argument
-- [ ] #4 Links to the product (GitHub, handbook) and internal names stay grimoire
-- [ ] #5 A name with HTML characters such as `<b>Docs</b>` is shown as text
-- [ ] #6 Tests cover the default, a custom name on a page title, a message, the mail and the MCP server name
-- [ ] #7 `INSTANCE_NAME` is documented in `app/.env.example` and in the environment variables table of `docs/handbook/docker.md`
-- [ ] #8 `make lint`, `make test` and `make e2e` pass
+- [x] #1 Without `INSTANCE_NAME` everything reads as today
+- [x] #2 With `INSTANCE_NAME=Acme Docs` the header, the start page heading, every document title, the messages listed in the description in every language, the reset mail and the MCP server name and instructions say Acme Docs
+- [x] #3 The `claude mcp add` example on the start page uses a server name derived from the instance name that works as a CLI argument
+- [x] #4 Links to the product (GitHub, handbook) and internal names stay grimoire
+- [x] #5 A name with HTML characters such as `<b>Docs</b>` is shown as text
+- [x] #6 Tests cover the default, a custom name on a page title, a message, the mail and the MCP server name
+- [x] #7 `INSTANCE_NAME` is documented in `app/.env.example` and in the environment variables table of `docs/handbook/docker.md`
+- [x] #8 `make lint`, `make test` and `make e2e` pass
 <!-- AC:END -->
 
 ## Implementation Plan
@@ -61,3 +61,9 @@ The name is plain text everywhere: escaped in HTML, never interpreted as markup.
 - Footer link names (footer_github) stay grimoire: they point at the product (TASK-186).
 - Checked by hand with INSTANCE_NAME="<b>Acme</b> Docs": escaped in title and header, plain text in MCP serverInfo and instructions, example server name b-acme-b-docs.
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+INSTANCE_NAME (default grimoire) names the instance in the header, every page title, the texts that named grimoire in both languages, the reset mail, the MCP server name and the agent instructions; the claude mcp add example uses a slug of it. Product links and the footer product name stay grimoire. The start page heading this task listed was removed by TASK-186, so its tab title carries the name instead. Verified: specs for instructions, MCP serverInfo, mail subject and example server name, a PageHead story with a custom name; hand check with '<b>Acme</b> Docs' shown as text; make lint, make test, make e2e.
+<!-- SECTION:FINAL_SUMMARY:END -->

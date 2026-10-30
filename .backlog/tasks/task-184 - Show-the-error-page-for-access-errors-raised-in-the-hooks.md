@@ -1,11 +1,11 @@
 ---
 id: TASK-184
 title: Show the error page for access errors raised in the hooks
-status: In Progress
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-30 21:27'
-updated_date: '2026-10-30 22:03'
+updated_date: '2026-10-30 22:22'
 labels:
   - admin
 milestone: m-0
@@ -25,12 +25,12 @@ The access decision has to reach the visitor through the normal render path, so 
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 A logged-in user whose role may not open a page gets status 403 and `+error.svelte` with "You may not open this page.", the layout and the title "Access denied – grimoire", in the page language
-- [ ] #2 `/setup` after the setup gets status 404 and `+error.svelte` with the title "Page not found – grimoire"
-- [ ] #3 Both responses carry `<meta name="robots" content="noindex, nofollow">` and `X-Robots-Tag: noindex, nofollow`
-- [ ] #4 Access is still decided on the matched route, every guarded route and endpoint stays guarded, and `access.spec.ts` passes unchanged in what it asserts
-- [ ] #5 An e2e test covers the 403 page for a non-admin user and the 404 on `/setup`
-- [ ] #6 `make lint`, `make test` and `make e2e` pass
+- [x] #1 A logged-in user whose role may not open a page gets status 403 and `+error.svelte` with "You may not open this page.", the layout and the title "Access denied – grimoire", in the page language
+- [x] #2 `/setup` after the setup gets status 404 and `+error.svelte` with the title "Page not found – grimoire"
+- [x] #3 Both responses carry `<meta name="robots" content="noindex, nofollow">` and `X-Robots-Tag: noindex, nofollow`
+- [x] #4 Access is still decided on the matched route, every guarded route and endpoint stays guarded, and `access.spec.ts` passes unchanged in what it asserts
+- [x] #5 An e2e test covers the 403 page for a non-admin user and the 404 on `/setup`
+- [x] #6 `make lint`, `make test` and `make e2e` pass
 <!-- AC:END -->
 
 ## Implementation Plan
@@ -50,3 +50,9 @@ The access decision has to reach the visitor through the normal render path, so 
 - Form actions and data requests are still denied in the hook: actions run before any load.
 - Checked by hand in the agent environment with a role-less user: page view 403 with layout and title, action 403, __data.json 403, /setup 404 with layout.
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Pages the access check denies now render +error.svelte in the layout instead of SvelteKit's bare fallback page: a plain GET page view leaves the 403/404 to a load below the root layout (manage/+layout.server.ts, setup/+page.server.ts); form actions, data requests and endpoints are still denied in the hook, and a page whose load would not throw the error is never served (fail closed). Verified: access.spec.ts (deferral, actions), e2e for 403 as a role-less user and 404 on /setup with title, robots meta and header; make lint, make test (697), make e2e (23).
+<!-- SECTION:FINAL_SUMMARY:END -->
