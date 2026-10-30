@@ -18,6 +18,22 @@ next to it.
   (the setup form and the login form) share the field components, not one component for the whole
   set.
 
+## Styling
+
+`docs/design.md` is the binding source of the visual design; a value it doesn't name isn't used.
+
+- **Design values only through tokens.** Colours, shadows, radii, spacing, fonts and the transition
+  are custom properties in `app/src/app.css`; components and pages use `var(--…)` and contain no
+  raw colour value. A new token comes into `docs/design.md` first, with a light and a dark value
+  that pass its contrast check.
+- **`app/src/app.css` holds what every page shares:** the tokens, the fonts, the base of native
+  elements (type, links, focus ring, inputs, buttons, tables, code) and the page primitives
+  `.sheet`, `.notice`, `.table-scroll` and `.muted`. Nothing else goes there.
+- **Component styles live in the component's own `<style>` block**, page arrangements in the
+  page's. A style a second page needs moves into a component, not into `app.css`.
+- **Both schemes, always.** Check a change in light and dark; the Theme switch in the Storybook
+  toolbar sets `data-theme` on `<html>` as the product does.
+
 ## Stories
 
 - **Every component comes with stories**, one per state it can be in: the usual one, empty, and

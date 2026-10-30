@@ -10,24 +10,6 @@ file in the commit that cuts `1.0.0`.
   doesn't parse it and skips the commit, so the change ships without a release. A change that
   breaks something goes in as `feat` or `fix` and says so in the body.
 
-## Frontend: function first
-
-Ends when the user declares the visual design agreed. Until then the frontend is built for structure
-and function, not looks; anything styled before it is thrown away.
-
-- **No own styling.** No colours, fonts, shadows, radii, animations or theming — not in global CSS,
-  not in `<style>` blocks, not inline, not as utility classes. Structural CSS only: layout
-  (flex/grid), sizes, spacing, visibility. Anything beyond that only where the UI is otherwise not
-  operable, with a comment saying why.
-- **Native elements keep the browser default.** No reset, no normalize — at most
-  `box-sizing: border-box` and `margin: 0` on `body` where the layout needs it.
-- **Third-party components use their shipped stylesheet, unmodified.**
-- **Design skills stay off for `app/`.** Don't load a design, styling or animation skill for work
-  on the product's frontend in this phase, even when its description matches.
-- **Mockups are exempt.** Design mockups live outside `app/` and are where the visual design is
-  worked out: they may be styled freely and built with design, styling and animation skills. They
-  never change `app/`; the agreed design reaches the product only when the phase ends.
-
 ## ADR status
 
 Ends when the project owner (`Projectowner`, the ADRs' decider) has reviewed the ADRs, at the
