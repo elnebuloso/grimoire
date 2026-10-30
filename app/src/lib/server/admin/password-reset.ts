@@ -8,6 +8,7 @@ import {
 	sha256,
 	type AuthProblem
 } from './auth.ts';
+import { createAttemptLimit } from './attempt-limit.ts';
 
 const LINK_MINUTES = 60;
 // Enough for a typo and a second try; more from one client or for one address floods a mailbox.
@@ -15,20 +16,8 @@ const MAX_REQUESTS_PER_CLIENT = 5;
 const MAX_REQUESTS_PER_ADDRESS = 3;
 const REQUEST_WINDOW_MINUTES = 60;
 
-// ponytail: counted in memory and forgotten on restart, like the failed logins; a table if
-// grimoire ever runs on several instances.
-const recentRequests = new Map<string, number[]>();
-
-function withinLimit(key: string, max: number, now: Date): boolean {
-	const since = now.getTime() - REQUEST_WINDOW_MINUTES * 60_000;
-	for (const [other, times] of recentRequests) {
-		if (times.every((time) => time <= since)) recentRequests.delete(other);
-	}
-	const times = (recentRequests.get(key) ?? []).filter((time) => time > since);
-	if (times.length >= max) return false;
-	recentRequests.set(key, [...times, now.getTime()]);
-	return true;
-}
+const clientRequests = createAttemptLimit(MAX_REQUESTS_PER_CLIENT, REQUEST_WINDOW_MINUTES);
+const addressRequests = createAttemptLimit(MAX_REQUESTS_PER_ADDRESS, REQUEST_WINDOW_MINUTES);
 
 /**
  * Starts a reset for the user with `email`: returns the token for the link to send, undefined
@@ -42,13 +31,11 @@ export function requestPasswordReset(
 	email: string,
 	now = new Date()
 ): { to: string; token: string } | { error: 'reset-blocked' } | undefined {
-	if (!withinLimit(`client ${client}`, MAX_REQUESTS_PER_CLIENT, now)) {
-		return { error: 'reset-blocked' };
-	}
+	if (!clientRequests.take(client, now)) return { error: 'reset-blocked' };
 	const address = normalizeEmail(email);
 	const user = db.prepare('SELECT id FROM users WHERE email = ?').get(address) as
 		{ id: number } | undefined;
-	if (!user || !withinLimit(`address ${address}`, MAX_REQUESTS_PER_ADDRESS, now)) return undefined;
+	if (!user || !addressRequests.take(address, now)) return undefined;
 	db.prepare('DELETE FROM password_resets WHERE expires_at <= ?').run(now.toISOString());
 	const token = randomBytes(32).toString('base64url');
 	const expiresAt = new Date(now.getTime() + LINK_MINUTES * 60_000).toISOString();

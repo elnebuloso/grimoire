@@ -10,7 +10,8 @@ import { database } from '#lib/server/db/index.js';
 import { configureLog, log, routeConsoleToLog } from '#lib/server/log.js';
 import { startSyncPolling } from '#lib/server/sync/index.js';
 import { mailer } from '#lib/server/mail/index.js';
-import { accessRedirect, checkAdminAccount, SESSION_COOKIE } from '#lib/server/admin/auth.js';
+import { accessRedirect } from '#lib/server/admin/access.js';
+import { checkAdminAccount, SESSION_COOKIE } from '#lib/server/admin/auth.js';
 import { getTextDirection } from '#lib/paraglide/runtime.js';
 import { paraglideMiddleware } from '#lib/paraglide/server.js';
 

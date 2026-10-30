@@ -9,6 +9,7 @@ import { openDatabase } from '../db/schema';
 type Auth = typeof import('./auth');
 
 let auth: Auth;
+let access: typeof import('./access');
 let db: DatabaseSync;
 let logged: () => string[];
 
@@ -23,6 +24,7 @@ beforeEach(async () => {
 	const { captureLog } = await import('../capture-log');
 	logged = captureLog().messages;
 	auth = await import('./auth');
+	access = await import('./access');
 	db = openDatabase(':memory:');
 });
 
@@ -323,11 +325,11 @@ describe('several users', () => {
 			await auth.login(db, 'b', { email: 'editor@example.com', password: EDITOR_PASSWORD })
 		);
 
-		expect(auth.accessRedirect(db, '/manage', editor)).toBe('forbidden');
-		expect(auth.accessRedirect(db, '/manage/projects/1', editor)).toBe('forbidden');
-		expect(auth.accessRedirect(db, '/logout', editor)).toBeUndefined();
-		expect(auth.accessRedirect(db, '/login', editor)).toBeUndefined();
-		expect(auth.accessRedirect(db, '/account', editor)).toBeUndefined();
+		expect(access.accessRedirect(db, '/manage', editor)).toBe('forbidden');
+		expect(access.accessRedirect(db, '/manage/projects/1', editor)).toBe('forbidden');
+		expect(access.accessRedirect(db, '/logout', editor)).toBeUndefined();
+		expect(access.accessRedirect(db, '/login', editor)).toBeUndefined();
+		expect(access.accessRedirect(db, '/account', editor)).toBeUndefined();
 	});
 
 	it('sends each user home to what they may open', async () => {
@@ -342,11 +344,11 @@ describe('several users', () => {
 			)
 		)!;
 
-		expect([auth.homeOf(admin), auth.homeOf(editor)]).toEqual(['/manage', '/']);
-		expect([auth.mayOpen(editor, '/manage/api-keys'), auth.mayOpen(editor, '/account')]).toEqual([
-			false,
-			true
-		]);
+		expect([access.homeOf(admin), access.homeOf(editor)]).toEqual(['/manage', '/']);
+		expect([
+			access.mayOpen(editor, '/manage/api-keys'),
+			access.mayOpen(editor, '/account')
+		]).toEqual([false, true]);
 	});
 
 	it('offers the setup again while no user has the role admin, even with other users', async () => {
@@ -354,7 +356,7 @@ describe('several users', () => {
 		expect(auth.resetAdmin(db, 'admin@example.com')).toBe(true);
 
 		expect(auth.checkAdminAccount(db)).toBe(false);
-		expect(auth.accessRedirect(db, '/manage', undefined)).toBe('/setup');
+		expect(access.accessRedirect(db, '/manage', undefined)).toBe('/setup');
 		await setUp('new-admin@example.com');
 		expect(auth.checkAdminAccount(db)).toBe(true);
 	});
@@ -463,10 +465,10 @@ describe('changePassword', () => {
 
 describe('accessRedirect', () => {
 	it('sends everything to the setup while there is no admin', async () => {
-		expect(auth.accessRedirect(db, '/manage', undefined)).toBe('/setup');
-		expect(auth.accessRedirect(db, '/login', undefined)).toBe('/setup');
-		expect(auth.accessRedirect(db, '/account', undefined)).toBe('/setup');
-		expect(auth.accessRedirect(db, '/setup', undefined)).toBeUndefined();
+		expect(access.accessRedirect(db, '/manage', undefined)).toBe('/setup');
+		expect(access.accessRedirect(db, '/login', undefined)).toBe('/setup');
+		expect(access.accessRedirect(db, '/account', undefined)).toBe('/setup');
+		expect(access.accessRedirect(db, '/setup', undefined)).toBeUndefined();
 	});
 
 	it('hides the setup once done and requires a session for everything but the login', async () => {
@@ -475,20 +477,20 @@ describe('accessRedirect', () => {
 			await auth.login(db, 'client', { email: 'admin@example.com', password: PASSWORD })
 		);
 
-		expect(auth.accessRedirect(db, '/setup', session)).toBe('not-found');
-		expect(auth.accessRedirect(db, '/manage', undefined)).toBe('/login');
-		expect(auth.accessRedirect(db, '/logout', 'forged')).toBe('/login');
-		expect(auth.accessRedirect(db, '/account', undefined)).toBe('/login');
-		expect(auth.accessRedirect(db, '/login', undefined)).toBeUndefined();
-		expect(auth.accessRedirect(db, '/manage', session)).toBeUndefined();
-		expect(auth.accessRedirect(db, '/login', session)).toBe('/manage');
+		expect(access.accessRedirect(db, '/setup', session)).toBe('not-found');
+		expect(access.accessRedirect(db, '/manage', undefined)).toBe('/login');
+		expect(access.accessRedirect(db, '/logout', 'forged')).toBe('/login');
+		expect(access.accessRedirect(db, '/account', undefined)).toBe('/login');
+		expect(access.accessRedirect(db, '/login', undefined)).toBeUndefined();
+		expect(access.accessRedirect(db, '/manage', session)).toBeUndefined();
+		expect(access.accessRedirect(db, '/login', session)).toBe('/manage');
 	});
 
 	it('serves the reset of a forgotten password without a session', async () => {
 		await setUp();
 
 		for (const page of ['/login/forgot', '/login/reset/[token]']) {
-			expect(auth.accessRedirect(db, page, undefined)).toBeUndefined();
+			expect(access.accessRedirect(db, page, undefined)).toBeUndefined();
 		}
 	});
 });
@@ -496,7 +498,7 @@ describe('accessRedirect', () => {
 describe('pages outside the account and management pages', () => {
 	it('are served whatever the state, even before the setup', async () => {
 		for (const path of ['/', '/projects', '/p/platform/query', '/manage-tools', '/accounting']) {
-			expect(auth.accessRedirect(db, path, undefined)).toBeUndefined();
+			expect(access.accessRedirect(db, path, undefined)).toBeUndefined();
 		}
 	});
 });
@@ -518,7 +520,7 @@ describe('resetAdmin', () => {
 
 		expect(auth.resetAdmin(db, ' Admin@Example.com ')).toBe(true);
 		expect(auth.sessionUser(db, session)).toBeUndefined();
-		expect(auth.accessRedirect(db, '/manage', session)).toBe('/setup');
+		expect(access.accessRedirect(db, '/manage', session)).toBe('/setup');
 		expect(logged()).toContain('Admin account was reset.');
 		expect(loggedToken()).not.toBe(firstToken?.split(' ').at(-1));
 		await setUp('new-admin@example.com');

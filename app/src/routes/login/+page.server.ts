@@ -1,10 +1,10 @@
 import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { database } from '#lib/server/db/index.js';
+import { homeOf } from '#lib/server/admin/access.js';
 import {
 	login,
 	SESSION_COOKIE,
-	homeOf,
 	sessionCookieOptions,
 	sessionUser
 } from '#lib/server/admin/auth.js';

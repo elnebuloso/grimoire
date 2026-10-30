@@ -5,6 +5,7 @@ import type { DatabaseSync } from 'node:sqlite';
 import { inTransaction } from '../db/transaction.ts';
 import { log, logAlways } from '../log.ts';
 import { createLimiter } from '../sync/queue.ts';
+import { createAttemptLimit } from './attempt-limit.ts';
 
 export const SESSION_COOKIE = 'grimoire_session';
 // Every page shows whether the admin is logged in, so the cookie goes to the whole site; no
@@ -24,8 +25,9 @@ export interface SessionUser {
 	roles: Role[];
 }
 const SESSION_HOURS = 12;
+// A client that failed this often within the window is refused until the oldest failure leaves it.
 const MAX_FAILED_LOGINS = 10;
-const BLOCK_MINUTES = 15;
+const FAILED_LOGIN_MINUTES = 15;
 
 /**
  * Why a setup, login or password change was refused. A code rather than a text: `scripts/` load
@@ -46,12 +48,7 @@ export type AuthProblem =
 // Kept in memory only: it exists solely to prove access to the server log, so it is never stored.
 let setupTokenValue: string | undefined;
 let adminSeen = false;
-// ponytail: failed logins are counted in memory per client and forgotten on restart; enough for
-// one instance, a table if grimoire ever runs on several.
-const failedLogins = new Map<
-	string,
-	{ count: number; blockedUntil: number; lastFailedAt: number }
->();
+const failedLogins = createAttemptLimit(MAX_FAILED_LOGINS, FAILED_LOGIN_MINUTES);
 
 export function sha256(value: string): string {
 	return createHash('sha256').update(value).digest('hex');
@@ -198,42 +195,18 @@ export async function login(
 	form: { email: string; password: string },
 	now = new Date()
 ): Promise<{ session: string } | { error: AuthProblem }> {
-	if (isBlocked(client, now) || pendingHashes >= MAX_PENDING_HASHES) return { error: 'blocked' };
-	// Counted before the password is checked: requests sent in parallel would otherwise all pass
-	// the block check while their hashes run. A successful login forgets it again.
-	recordFailedLogin(client, now);
+	// Counted as failed before the password is checked: requests sent in parallel would otherwise
+	// all pass the limit while their hashes run. A successful login forgets it again.
+	if (pendingHashes >= MAX_PENDING_HASHES || !failedLogins.take(client, now)) {
+		return { error: 'blocked' };
+	}
 	const user = findUser(db, form.email);
 	// A password is checked even for an unknown address, so the answer time does not tell which.
 	unknownUserHash ??= await hashPassword(randomBytes(16).toString('hex'));
 	const matches = await passwordMatches(form.password, user?.password_hash ?? unknownUserHash);
 	if (!user || !matches) return { error: 'wrong-credentials' };
-	failedLogins.delete(client);
+	failedLogins.forget(client);
 	return { session: createSession(db, user.id, now) };
-}
-
-function isBlocked(client: string, now: Date): boolean {
-	return (failedLogins.get(client)?.blockedUntil ?? 0) > now.getTime();
-}
-
-function recordFailedLogin(client: string, now: Date) {
-	forgetQuietClients(now);
-	const count = (failedLogins.get(client)?.count ?? 0) + 1;
-	failedLogins.set(client, {
-		count: count >= MAX_FAILED_LOGINS ? 0 : count,
-		blockedUntil: count >= MAX_FAILED_LOGINS ? now.getTime() + BLOCK_MINUTES * 60_000 : 0,
-		lastFailedAt: now.getTime()
-	});
-}
-
-// Without this, every client that ever mistyped a password would stay in memory until a restart.
-// A client without a failure for as long as a block lasts starts counting from zero again.
-function forgetQuietClients(now: Date) {
-	const quietSince = now.getTime() - BLOCK_MINUTES * 60_000;
-	for (const [client, entry] of failedLogins) {
-		if (entry.blockedUntil <= now.getTime() && entry.lastFailedAt <= quietSince) {
-			failedLogins.delete(client);
-		}
-	}
 }
 
 /**
@@ -248,15 +221,16 @@ export async function changePassword(
 	form: { current: string; password: string },
 	now = new Date()
 ): Promise<{ error: AuthProblem } | undefined> {
-	if (isBlocked(client, now) || pendingHashes >= MAX_PENDING_HASHES) return { error: 'blocked' };
 	// Counted before the check, for the same reason as in `login`.
-	recordFailedLogin(client, now);
+	if (pendingHashes >= MAX_PENDING_HASHES || !failedLogins.take(client, now)) {
+		return { error: 'blocked' };
+	}
 	const user = sessionUser(db, session, now);
 	const stored = user && findUser(db, user.email);
 	if (!stored || !(await passwordMatches(form.current, stored.password_hash))) {
 		return { error: 'wrong-current-password' };
 	}
-	failedLogins.delete(client);
+	failedLogins.forget(client);
 	if (form.password.length < MIN_PASSWORD_LENGTH) return { error: 'new-password-too-short' };
 	const passwordHash = await hashPassword(form.password);
 	inTransaction(db, () => {
@@ -329,51 +303,4 @@ export function resetAdmin(db: DatabaseSync, email: string): boolean {
 		db.prepare('DELETE FROM users WHERE id = ?').run(admin.id);
 	});
 	return true;
-}
-
-// The role each page needs, the first matching prefix decides; pages under no prefix need none.
-// Today the whole management area needs `admin`; a page another role may open gets its own,
-// longer prefix before that line.
-const PAGE_ROLES: [prefix: string, role: Role][] = [['/manage', 'admin']];
-
-// Pages of the accounts themselves: they guide through setup and login whatever the roles.
-const ACCOUNT_PAGES = ['/setup', '/login', '/logout', '/account'];
-
-function isUnder(pathname: string, prefix: string): boolean {
-	return pathname === prefix || pathname.startsWith(`${prefix}/`);
-}
-
-/** Whether the user has the role `pathname` needs. */
-export function mayOpen(user: SessionUser, pathname: string): boolean {
-	const role = PAGE_ROLES.find(([prefix]) => isUnder(pathname, prefix))?.[1];
-	return role === undefined || user.roles.includes(role);
-}
-
-/** Where a user goes after logging in: the management area when they may open it. */
-export function homeOf(user: SessionUser): string {
-	return mayOpen(user, '/manage') ? '/manage' : '/';
-}
-
-/**
- * Where a request must go instead: the setup while there is no admin, the login without a valid
- * session, `'not-found'` for the setup once it is done, `'forbidden'` for a page whose role the
- * user lacks; undefined to serve it. Pages that are neither account pages nor guarded by a role
- * are always served. Login, logout and the own account stay open to every user, so one without
- * a role can leave and log in as someone else. `pathname` is the matched route ID (such as
- * `/manage/projects/[id]`), never the raw request path, whose percent-escapes the router decodes.
- */
-export function accessRedirect(
-	db: DatabaseSync,
-	pathname: string,
-	session: string | undefined
-): string | 'not-found' | 'forbidden' | undefined {
-	const guarded = PAGE_ROLES.some(([prefix]) => isUnder(pathname, prefix));
-	if (!guarded && !ACCOUNT_PAGES.some((page) => isUnder(pathname, page))) return undefined;
-	if (!checkAdminAccount(db)) return pathname === '/setup' ? undefined : '/setup';
-	if (pathname === '/setup') return 'not-found';
-	const user = sessionUser(db, session);
-	// The login and the reset of a forgotten password below it need no session.
-	if (isUnder(pathname, '/login')) return user && mayOpen(user, '/manage') ? '/manage' : undefined;
-	if (!user) return '/login';
-	return mayOpen(user, pathname) ? undefined : 'forbidden';
 }
