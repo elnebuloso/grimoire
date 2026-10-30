@@ -27,6 +27,8 @@ migrate(
 );
 db.exec('PRAGMA foreign_keys = ON');
 
+const agentPasswordHash = await hashPassword('agent-password');
+
 db.exec('BEGIN IMMEDIATE');
 try {
 	for (const table of [
@@ -49,7 +51,7 @@ try {
 
 	const agent = db
 		.prepare('INSERT INTO users (username, password_hash) VALUES (?, ?)')
-		.run('agent', hashPassword('agent-password'));
+		.run('agent', agentPasswordHash);
 	db.prepare("INSERT INTO user_roles (user_id, role) VALUES (?, 'admin')").run(
 		agent.lastInsertRowid
 	);

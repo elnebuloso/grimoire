@@ -11,10 +11,15 @@ export const load: PageServerLoad = ({ cookies }) => ({
 export const actions = {
 	default: async ({ request, cookies, getClientAddress }) => {
 		const data = await request.formData();
-		const problem = changePassword(database(), getClientAddress(), cookies.get(SESSION_COOKIE)!, {
-			current: String(data.get('current') ?? ''),
-			password: String(data.get('password') ?? '')
-		});
+		const problem = await changePassword(
+			database(),
+			getClientAddress(),
+			cookies.get(SESSION_COOKIE)!,
+			{
+				current: String(data.get('current') ?? ''),
+				password: String(data.get('password') ?? '')
+			}
+		);
 		if (problem) return fail(400, { error: authMessage(problem) });
 		return { changed: true };
 	}

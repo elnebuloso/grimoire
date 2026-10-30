@@ -32,9 +32,9 @@ function loggedToken(): string {
 	return line.split(' ').at(-1)!;
 }
 
-function setUp(username = 'admin') {
+async function setUp(username = 'admin') {
 	expect(
-		auth.setupAdmin(db, { token: loggedToken(), username, password: PASSWORD })
+		await auth.setupAdmin(db, { token: loggedToken(), username, password: PASSWORD })
 	).toBeUndefined();
 }
 
@@ -44,40 +44,40 @@ function sessionOf(result: { session: string } | { error: string }): string {
 }
 
 describe('setup', () => {
-	it('logs a setup token once while there is no admin', () => {
+	it('logs a setup token once while there is no admin', async () => {
 		auth.checkAdminAccount(db);
 		auth.checkAdminAccount(db);
 
 		expect(logged().filter((message) => message.includes('setup token'))).toHaveLength(1);
 	});
 
-	it('needs the setup token from the log', () => {
+	it('needs the setup token from the log', async () => {
 		loggedToken();
 
-		expect(auth.setupAdmin(db, { token: 'guess', username: 'admin', password: PASSWORD })).toBe(
-			'wrong-setup-token'
-		);
+		expect(
+			await auth.setupAdmin(db, { token: 'guess', username: 'admin', password: PASSWORD })
+		).toBe('wrong-setup-token');
 		expect(auth.checkAdminAccount(db)).toBe(false);
 	});
 
-	it('rejects a short password and an empty username', () => {
+	it('rejects a short password and an empty username', async () => {
 		const token = loggedToken();
 
-		expect(auth.setupAdmin(db, { token, username: 'admin', password: 'short' })).toBe(
+		expect(await auth.setupAdmin(db, { token, username: 'admin', password: 'short' })).toBe(
 			'password-too-short'
 		);
-		expect(auth.setupAdmin(db, { token, username: ' ', password: PASSWORD })).toBe(
+		expect(await auth.setupAdmin(db, { token, username: ' ', password: PASSWORD })).toBe(
 			'username-missing'
 		);
 	});
 
-	it('stores only a scrypt hash and cannot run twice', () => {
+	it('stores only a scrypt hash and cannot run twice', async () => {
 		const token = loggedToken();
-		setUp();
+		await setUp();
 
 		const stored = db.prepare('SELECT password_hash FROM users').get() as { password_hash: string };
 		expect(stored.password_hash).not.toContain(PASSWORD);
-		expect(auth.setupAdmin(db, { token, username: 'other', password: PASSWORD })).toBe(
+		expect(await auth.setupAdmin(db, { token, username: 'other', password: PASSWORD })).toBe(
 			'admin-exists'
 		);
 	});
@@ -86,9 +86,9 @@ describe('setup', () => {
 describe('login', () => {
 	beforeEach(() => setUp());
 
-	it('creates a session for the right credentials', () => {
+	it('creates a session for the right credentials', async () => {
 		const session = sessionOf(
-			auth.login(db, 'client', { username: 'admin', password: PASSWORD }, NOW)
+			await auth.login(db, 'client', { username: 'admin', password: PASSWORD }, NOW)
 		);
 
 		expect(auth.sessionUser(db, session, NOW)).toEqual({
@@ -98,58 +98,79 @@ describe('login', () => {
 		});
 	});
 
-	it('rejects a wrong password or username alike', () => {
-		const wrongPassword = auth.login(db, 'client', { username: 'admin', password: 'nope' }, NOW);
-		const wrongUser = auth.login(db, 'client', { username: 'root', password: PASSWORD }, NOW);
+	it('rejects a wrong password or username alike', async () => {
+		const wrongPassword = await auth.login(
+			db,
+			'client',
+			{ username: 'admin', password: 'nope' },
+			NOW
+		);
+		const wrongUser = await auth.login(db, 'client', { username: 'root', password: PASSWORD }, NOW);
 
 		expect(wrongPassword).toEqual({ error: 'wrong-credentials' });
 		expect(wrongUser).toEqual(wrongPassword);
 	});
 
-	it('blocks a client for 15 minutes after 10 failures, others stay free', () => {
+	it('blocks a client for 15 minutes after 10 failures, others stay free', async () => {
 		for (let attempt = 0; attempt < 10; attempt++) {
-			auth.login(db, 'attacker', { username: 'admin', password: 'nope' }, NOW);
+			await auth.login(db, 'attacker', { username: 'admin', password: 'nope' }, NOW);
 		}
 		const later = new Date(NOW.getTime() + 14 * 60_000);
 		const afterBlock = new Date(NOW.getTime() + 15 * 60_000 + 1);
 
-		expect(auth.login(db, 'attacker', { username: 'admin', password: PASSWORD }, later)).toEqual({
+		expect(
+			await auth.login(db, 'attacker', { username: 'admin', password: PASSWORD }, later)
+		).toEqual({
 			error: 'blocked'
 		});
 		expect(
-			'session' in auth.login(db, 'admin-pc', { username: 'admin', password: PASSWORD }, later)
+			'session' in
+				(await auth.login(db, 'admin-pc', { username: 'admin', password: PASSWORD }, later))
 		).toBe(true);
 		expect(
-			'session' in auth.login(db, 'attacker', { username: 'admin', password: PASSWORD }, afterBlock)
+			'session' in
+				(await auth.login(db, 'attacker', { username: 'admin', password: PASSWORD }, afterBlock))
 		).toBe(true);
 	});
 
-	it('counts failures from zero again after 15 quiet minutes', () => {
-		const fail = (at: Date) => auth.login(db, 'typo', { username: 'admin', password: 'nope' }, at);
-		for (let attempt = 0; attempt < 9; attempt++) fail(NOW);
-		const quiet = new Date(NOW.getTime() + 15 * 60_000);
+	it('blocks a client that sends its attempts in parallel just as well', async () => {
+		const attempts = Array.from({ length: 12 }, () =>
+			auth.login(db, 'attacker', { username: 'admin', password: 'nope' }, NOW)
+		);
 
-		for (let attempt = 0; attempt < 9; attempt++) fail(quiet);
+		const results = await Promise.all(attempts);
 
-		expect(fail(quiet)).toEqual({ error: 'wrong-credentials' });
-		expect(fail(quiet)).toEqual({ error: 'blocked' });
+		expect(
+			results.filter((result) => 'error' in result && result.error === 'blocked')
+		).toHaveLength(2);
 	});
 
-	it('deletes expired sessions when a new one starts', () => {
-		auth.login(db, 'client', { username: 'admin', password: PASSWORD }, NOW);
+	it('counts failures from zero again after 15 quiet minutes', async () => {
+		const fail = (at: Date) => auth.login(db, 'typo', { username: 'admin', password: 'nope' }, at);
+		for (let attempt = 0; attempt < 9; attempt++) await fail(NOW);
+		const quiet = new Date(NOW.getTime() + 15 * 60_000);
+
+		for (let attempt = 0; attempt < 9; attempt++) await fail(quiet);
+
+		expect(await fail(quiet)).toEqual({ error: 'wrong-credentials' });
+		expect(await fail(quiet)).toEqual({ error: 'blocked' });
+	});
+
+	it('deletes expired sessions when a new one starts', async () => {
+		await auth.login(db, 'client', { username: 'admin', password: PASSWORD }, NOW);
 		const later = new Date(NOW.getTime() + 12 * 3_600_000);
 
-		auth.login(db, 'client', { username: 'admin', password: PASSWORD }, later);
+		await auth.login(db, 'client', { username: 'admin', password: PASSWORD }, later);
 
 		expect(db.prepare('SELECT COUNT(*) AS n FROM sessions').get()).toEqual({ n: 1 });
 	});
 
-	it('ends a session after 12 hours or on logout', () => {
+	it('ends a session after 12 hours or on logout', async () => {
 		const first = sessionOf(
-			auth.login(db, 'client', { username: 'admin', password: PASSWORD }, NOW)
+			await auth.login(db, 'client', { username: 'admin', password: PASSWORD }, NOW)
 		);
 		const second = sessionOf(
-			auth.login(db, 'client', { username: 'admin', password: PASSWORD }, NOW)
+			await auth.login(db, 'client', { username: 'admin', password: PASSWORD }, NOW)
 		);
 
 		expect(auth.sessionUser(db, first, new Date(NOW.getTime() + 12 * 3_600_000))).toBeUndefined();
@@ -162,41 +183,45 @@ describe('login', () => {
 describe('several users', () => {
 	const EDITOR_PASSWORD = 'editor horse battery';
 
-	beforeEach(() => {
-		setUp();
-		auth.createUser(db, { username: 'editor', password: EDITOR_PASSWORD, roles: [] });
+	beforeEach(async () => {
+		await setUp();
+		await auth.createUser(db, { username: 'editor', password: EDITOR_PASSWORD, roles: [] });
 	});
 
-	it('logs each user in with their own password and roles', () => {
-		const admin = sessionOf(auth.login(db, 'a', { username: 'admin', password: PASSWORD }, NOW));
+	it('logs each user in with their own password and roles', async () => {
+		const admin = sessionOf(
+			await auth.login(db, 'a', { username: 'admin', password: PASSWORD }, NOW)
+		);
 		const editor = sessionOf(
-			auth.login(db, 'b', { username: 'editor', password: EDITOR_PASSWORD }, NOW)
+			await auth.login(db, 'b', { username: 'editor', password: EDITOR_PASSWORD }, NOW)
 		);
 
 		expect(auth.sessionUser(db, admin, NOW)).toMatchObject({ username: 'admin', roles: ['admin'] });
 		expect(auth.sessionUser(db, editor, NOW)).toMatchObject({ username: 'editor', roles: [] });
-		expect(auth.login(db, 'b', { username: 'editor', password: PASSWORD }, NOW)).toEqual({
+		expect(await auth.login(db, 'b', { username: 'editor', password: PASSWORD }, NOW)).toEqual({
 			error: 'wrong-credentials'
 		});
 	});
 
-	it('refuses a second user with the same username', () => {
-		expect(() =>
+	it('refuses a second user with the same username', async () => {
+		await expect(
 			auth.createUser(db, { username: 'editor', password: PASSWORD, roles: ['admin'] })
-		).toThrow(/UNIQUE/);
+		).rejects.toThrow(/UNIQUE/);
 	});
 
-	it('changes the password and ends the other sessions of the one user only', () => {
-		const admin = sessionOf(auth.login(db, 'a', { username: 'admin', password: PASSWORD }, NOW));
+	it('changes the password and ends the other sessions of the one user only', async () => {
+		const admin = sessionOf(
+			await auth.login(db, 'a', { username: 'admin', password: PASSWORD }, NOW)
+		);
 		const editor = sessionOf(
-			auth.login(db, 'b', { username: 'editor', password: EDITOR_PASSWORD }, NOW)
+			await auth.login(db, 'b', { username: 'editor', password: EDITOR_PASSWORD }, NOW)
 		);
 		const editorElsewhere = sessionOf(
-			auth.login(db, 'c', { username: 'editor', password: EDITOR_PASSWORD }, NOW)
+			await auth.login(db, 'c', { username: 'editor', password: EDITOR_PASSWORD }, NOW)
 		);
 
 		expect(
-			auth.changePassword(
+			await auth.changePassword(
 				db,
 				'b',
 				editor,
@@ -208,14 +233,14 @@ describe('several users', () => {
 		expect(auth.sessionUser(db, editor, NOW)).toBeDefined();
 		expect(auth.sessionUser(db, editorElsewhere, NOW)).toBeUndefined();
 		expect(auth.sessionUser(db, admin, NOW)).toBeDefined();
-		expect('session' in auth.login(db, 'a', { username: 'admin', password: PASSWORD }, NOW)).toBe(
-			true
-		);
+		expect(
+			'session' in (await auth.login(db, 'a', { username: 'admin', password: PASSWORD }, NOW))
+		).toBe(true);
 	});
 
-	it('keeps a user without the role admin out of the management area, but lets them log out or in', () => {
+	it('keeps a user without the role admin out of the management area, but lets them log out or in', async () => {
 		const editor = sessionOf(
-			auth.login(db, 'b', { username: 'editor', password: EDITOR_PASSWORD })
+			await auth.login(db, 'b', { username: 'editor', password: EDITOR_PASSWORD })
 		);
 
 		expect(auth.accessRedirect(db, '/manage', editor)).toBe('forbidden');
@@ -225,14 +250,14 @@ describe('several users', () => {
 		expect(auth.accessRedirect(db, '/account', editor)).toBeUndefined();
 	});
 
-	it('sends each user home to what they may open', () => {
+	it('sends each user home to what they may open', async () => {
 		const admin = auth.sessionUser(
 			db,
-			sessionOf(auth.login(db, 'a', { username: 'admin', password: PASSWORD }))
+			sessionOf(await auth.login(db, 'a', { username: 'admin', password: PASSWORD }))
 		)!;
 		const editor = auth.sessionUser(
 			db,
-			sessionOf(auth.login(db, 'b', { username: 'editor', password: EDITOR_PASSWORD }))
+			sessionOf(await auth.login(db, 'b', { username: 'editor', password: EDITOR_PASSWORD }))
 		)!;
 
 		expect([auth.homeOf(admin), auth.homeOf(editor)]).toEqual(['/manage', '/']);
@@ -242,13 +267,13 @@ describe('several users', () => {
 		]);
 	});
 
-	it('offers the setup again while no user has the role admin, even with other users', () => {
+	it('offers the setup again while no user has the role admin, even with other users', async () => {
 		expect(auth.resetAdmin(db, 'editor')).toBe(false);
 		expect(auth.resetAdmin(db, 'admin')).toBe(true);
 
 		expect(auth.checkAdminAccount(db)).toBe(false);
 		expect(auth.accessRedirect(db, '/manage', undefined)).toBe('/setup');
-		setUp('new-admin');
+		await setUp('new-admin');
 		expect(auth.checkAdminAccount(db)).toBe(true);
 	});
 });
@@ -258,67 +283,97 @@ describe('changePassword', () => {
 	let current: string;
 	let other: string;
 
-	beforeEach(() => {
-		setUp();
-		current = sessionOf(auth.login(db, 'laptop', { username: 'admin', password: PASSWORD }, NOW));
-		other = sessionOf(auth.login(db, 'phone', { username: 'admin', password: PASSWORD }, NOW));
+	beforeEach(async () => {
+		await setUp();
+		current = sessionOf(
+			await auth.login(db, 'laptop', { username: 'admin', password: PASSWORD }, NOW)
+		);
+		other = sessionOf(
+			await auth.login(db, 'phone', { username: 'admin', password: PASSWORD }, NOW)
+		);
 	});
 
 	function login(password: string) {
 		return auth.login(db, 'check', { username: 'admin', password }, NOW);
 	}
 
-	it('replaces the password and ends every session but the current one', () => {
+	it('replaces the password and ends every session but the current one', async () => {
 		expect(
-			auth.changePassword(db, 'laptop', current, { current: PASSWORD, password: NEW_PASSWORD }, NOW)
+			await auth.changePassword(
+				db,
+				'laptop',
+				current,
+				{ current: PASSWORD, password: NEW_PASSWORD },
+				NOW
+			)
 		).toBeUndefined();
 
-		expect('session' in login(NEW_PASSWORD)).toBe(true);
-		expect(login(PASSWORD)).toEqual({ error: 'wrong-credentials' });
+		expect('session' in (await login(NEW_PASSWORD))).toBe(true);
+		expect(await login(PASSWORD)).toEqual({ error: 'wrong-credentials' });
 		expect(auth.sessionUser(db, current, NOW)).toBeDefined();
 		expect(auth.sessionUser(db, other, NOW)).toBeUndefined();
 		const stored = db.prepare('SELECT password_hash FROM users').get() as { password_hash: string };
 		expect(stored.password_hash).not.toContain(NEW_PASSWORD);
 	});
 
-	it('changes nothing for a wrong current password and counts it as a failed login', () => {
+	it('changes nothing for a wrong current password and counts it as a failed login', async () => {
 		for (let attempt = 0; attempt < 9; attempt++) {
 			expect(
-				auth.changePassword(db, 'laptop', current, { current: 'nope', password: NEW_PASSWORD }, NOW)
+				await auth.changePassword(
+					db,
+					'laptop',
+					current,
+					{ current: 'nope', password: NEW_PASSWORD },
+					NOW
+				)
 			).toBe('wrong-current-password');
 		}
-		auth.login(db, 'laptop', { username: 'admin', password: 'nope' }, NOW);
+		await auth.login(db, 'laptop', { username: 'admin', password: 'nope' }, NOW);
 
-		expect(auth.login(db, 'laptop', { username: 'admin', password: PASSWORD }, NOW)).toEqual({
+		expect(await auth.login(db, 'laptop', { username: 'admin', password: PASSWORD }, NOW)).toEqual({
 			error: 'blocked'
 		});
 		expect(
-			auth.changePassword(db, 'laptop', current, { current: PASSWORD, password: NEW_PASSWORD }, NOW)
+			await auth.changePassword(
+				db,
+				'laptop',
+				current,
+				{ current: PASSWORD, password: NEW_PASSWORD },
+				NOW
+			)
 		).toBe('blocked');
-		expect('session' in login(PASSWORD)).toBe(true);
+		expect('session' in (await login(PASSWORD))).toBe(true);
 		expect(auth.sessionUser(db, other, NOW)).toBeDefined();
 	});
 
-	it('rejects a new password shorter than 12 characters', () => {
+	it('rejects a new password shorter than 12 characters', async () => {
 		expect(
-			auth.changePassword(db, 'laptop', current, { current: PASSWORD, password: 'short pass' }, NOW)
+			await auth.changePassword(
+				db,
+				'laptop',
+				current,
+				{ current: PASSWORD, password: 'short pass' },
+				NOW
+			)
 		).toBe('new-password-too-short');
-		expect('session' in login(PASSWORD)).toBe(true);
+		expect('session' in (await login(PASSWORD))).toBe(true);
 		expect(auth.sessionUser(db, other, NOW)).toBeDefined();
 	});
 });
 
 describe('accessRedirect', () => {
-	it('sends everything to the setup while there is no admin', () => {
+	it('sends everything to the setup while there is no admin', async () => {
 		expect(auth.accessRedirect(db, '/manage', undefined)).toBe('/setup');
 		expect(auth.accessRedirect(db, '/login', undefined)).toBe('/setup');
 		expect(auth.accessRedirect(db, '/account', undefined)).toBe('/setup');
 		expect(auth.accessRedirect(db, '/setup', undefined)).toBeUndefined();
 	});
 
-	it('hides the setup once done and requires a session for everything but the login', () => {
-		setUp();
-		const session = sessionOf(auth.login(db, 'client', { username: 'admin', password: PASSWORD }));
+	it('hides the setup once done and requires a session for everything but the login', async () => {
+		await setUp();
+		const session = sessionOf(
+			await auth.login(db, 'client', { username: 'admin', password: PASSWORD })
+		);
 
 		expect(auth.accessRedirect(db, '/setup', session)).toBe('not-found');
 		expect(auth.accessRedirect(db, '/manage', undefined)).toBe('/login');
@@ -331,7 +386,7 @@ describe('accessRedirect', () => {
 });
 
 describe('pages outside the account and management pages', () => {
-	it('are served whatever the state, even before the setup', () => {
+	it('are served whatever the state, even before the setup', async () => {
 		for (const path of ['/', '/projects', '/p/platform/query', '/manage-tools', '/accounting']) {
 			expect(auth.accessRedirect(db, path, undefined)).toBeUndefined();
 		}
@@ -341,13 +396,15 @@ describe('pages outside the account and management pages', () => {
 describe('resetAdmin', () => {
 	beforeEach(() => setUp());
 
-	it('changes nothing unless the admin username is confirmed', () => {
+	it('changes nothing unless the admin username is confirmed', async () => {
 		expect(auth.resetAdmin(db, 'root')).toBe(false);
 		expect(auth.checkAdminAccount(db)).toBe(true);
 	});
 
-	it('deletes the account and its sessions; the server reports it and offers a new setup', () => {
-		const session = sessionOf(auth.login(db, 'client', { username: 'admin', password: PASSWORD }));
+	it('deletes the account and its sessions; the server reports it and offers a new setup', async () => {
+		const session = sessionOf(
+			await auth.login(db, 'client', { username: 'admin', password: PASSWORD })
+		);
 		const firstToken = logged().find((message) => message.includes('setup token'));
 		auth.checkAdminAccount(db);
 
@@ -356,13 +413,13 @@ describe('resetAdmin', () => {
 		expect(auth.accessRedirect(db, '/manage', session)).toBe('/setup');
 		expect(logged()).toContain('Admin account was reset.');
 		expect(loggedToken()).not.toBe(firstToken?.split(' ').at(-1));
-		setUp('new-admin');
+		await setUp('new-admin');
 	});
 });
 
 describe('scripts/reset-admin.ts', () => {
-	it('refuses to run without a terminal and leaves the admin in place', () => {
-		setUp();
+	it('refuses to run without a terminal and leaves the admin in place', async () => {
+		await setUp();
 		const path = join(mkdtempSync(join(tmpdir(), 'grimoire-reset-')), 'grimoire.db');
 		const fileDb = openDatabase(path);
 		fileDb.exec("INSERT INTO users (id, username, password_hash) VALUES (1, 'admin', 'x')");

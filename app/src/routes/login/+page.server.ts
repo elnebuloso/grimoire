@@ -21,7 +21,7 @@ export const actions = {
 			password: String(data.get('password') ?? '')
 		};
 		const db = database();
-		const result = login(db, getClientAddress(), form);
+		const result = await login(db, getClientAddress(), form);
 		if ('error' in result)
 			return fail(400, { error: authMessage(result.error), username: form.username });
 		cookies.set(SESSION_COOKIE, result.session, sessionCookieOptions);

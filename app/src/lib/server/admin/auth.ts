@@ -1,4 +1,5 @@
-import { createHash, randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
+import { createHash, randomBytes, scrypt, timingSafeEqual } from 'node:crypto';
+import { promisify } from 'node:util';
 import type { DatabaseSync } from 'node:sqlite';
 // With its extension: the scripts in `scripts/` load this file with plain node.
 import { log, logAlways } from '../log.ts';
@@ -56,16 +57,24 @@ function sameText(a: string, b: string): boolean {
 	return timingSafeEqual(Buffer.from(sha256(a)), Buffer.from(sha256(b)));
 }
 
-export function hashPassword(password: string): string {
+// Asynchronous, so the thread pool hashes while the server keeps answering other requests.
+const scryptAsync = promisify(scrypt) as (
+	password: string,
+	salt: Buffer,
+	keyLength: number
+) => Promise<Buffer>;
+
+export async function hashPassword(password: string): Promise<string> {
 	const salt = randomBytes(16);
-	return `${salt.toString('base64')}$${scryptSync(password, salt, 64).toString('base64')}`;
+	const hash = await scryptAsync(password, salt, 64);
+	return `${salt.toString('base64')}$${hash.toString('base64')}`;
 }
 
-function passwordMatches(password: string, stored: string): boolean {
+async function passwordMatches(password: string, stored: string): Promise<boolean> {
 	const [salt, hash] = stored.split('$');
 	const expected = Buffer.from(hash, 'base64');
 	return timingSafeEqual(
-		scryptSync(password, Buffer.from(salt, 'base64'), expected.length),
+		await scryptAsync(password, Buffer.from(salt, 'base64'), expected.length),
 		expected
 	);
 }
@@ -84,15 +93,17 @@ function adminExists(db: DatabaseSync): boolean {
 }
 
 /** Creates a user with the given roles; the username must be free. Returns the new id. */
-export function createUser(
+export async function createUser(
 	db: DatabaseSync,
 	form: { username: string; password: string; roles: Role[] }
-): number {
+): Promise<number> {
+	// Hashed before the transaction: other requests share the connection while it is awaited.
+	const passwordHash = await hashPassword(form.password);
 	db.exec('BEGIN IMMEDIATE');
 	try {
 		const { lastInsertRowid } = db
 			.prepare('INSERT INTO users (username, password_hash) VALUES (?, ?)')
-			.run(form.username, hashPassword(form.password));
+			.run(form.username, passwordHash);
 		for (const role of form.roles) {
 			db.prepare('INSERT INTO user_roles (user_id, role) VALUES (?, ?)').run(lastInsertRowid, role);
 		}
@@ -126,15 +137,19 @@ export function checkAdminAccount(db: DatabaseSync): boolean {
 }
 
 /** Creates the first user, with the role `admin`; returns why when it cannot. */
-export function setupAdmin(
+export async function setupAdmin(
 	db: DatabaseSync,
 	form: { token: string; username: string; password: string }
-): AuthProblem | undefined {
+): Promise<AuthProblem | undefined> {
 	if (checkAdminAccount(db)) return 'admin-exists';
 	if (!setupTokenValue || !sameText(form.token, setupTokenValue)) return 'wrong-setup-token';
 	if (!form.username.trim()) return 'username-missing';
 	if (form.password.length < MIN_PASSWORD_LENGTH) return 'password-too-short';
-	createUser(db, { username: form.username.trim(), password: form.password, roles: ['admin'] });
+	await createUser(db, {
+		username: form.username.trim(),
+		password: form.password,
+		roles: ['admin']
+	});
 	checkAdminAccount(db);
 	return undefined;
 }
@@ -143,21 +158,21 @@ export function setupAdmin(
  * Checks the credentials of one client. Returns a new session token, or why not; a client is
  * blocked for a while after too many failures.
  */
-export function login(
+export async function login(
 	db: DatabaseSync,
 	client: string,
 	form: { username: string; password: string },
 	now = new Date()
-): { session: string } | { error: AuthProblem } {
+): Promise<{ session: string } | { error: AuthProblem }> {
 	if (isBlocked(client, now)) return { error: 'blocked' };
+	// Counted before the password is checked: requests sent in parallel would otherwise all pass
+	// the block check while their hashes run. A successful login forgets it again.
+	recordFailedLogin(client, now);
 	const user = findUser(db, form.username);
 	// A password is checked even for an unknown username, so the answer time does not tell which.
-	unknownUserHash ??= hashPassword(randomBytes(16).toString('hex'));
-	const matches = passwordMatches(form.password, user?.password_hash ?? unknownUserHash);
-	if (!user || !matches) {
-		recordFailedLogin(client, now);
-		return { error: 'wrong-credentials' };
-	}
+	unknownUserHash ??= await hashPassword(randomBytes(16).toString('hex'));
+	const matches = await passwordMatches(form.password, user?.password_hash ?? unknownUserHash);
+	if (!user || !matches) return { error: 'wrong-credentials' };
 	failedLogins.delete(client);
 	return { session: createSession(db, user.id, now) };
 }
@@ -192,28 +207,27 @@ function forgetQuietClients(now: Date) {
  * A wrong current password counts as a failed login of `client`. Returns why when nothing was
  * changed.
  */
-export function changePassword(
+export async function changePassword(
 	db: DatabaseSync,
 	client: string,
 	session: string,
 	form: { current: string; password: string },
 	now = new Date()
-): AuthProblem | undefined {
+): Promise<AuthProblem | undefined> {
 	if (isBlocked(client, now)) return 'blocked';
+	// Counted before the check, for the same reason as in `login`.
+	recordFailedLogin(client, now);
 	const user = sessionUser(db, session, now);
 	const stored = user && findUser(db, user.username);
-	if (!stored || !passwordMatches(form.current, stored.password_hash)) {
-		recordFailedLogin(client, now);
+	if (!stored || !(await passwordMatches(form.current, stored.password_hash))) {
 		return 'wrong-current-password';
 	}
 	failedLogins.delete(client);
 	if (form.password.length < MIN_PASSWORD_LENGTH) return 'new-password-too-short';
+	const passwordHash = await hashPassword(form.password);
 	db.exec('BEGIN IMMEDIATE');
 	try {
-		db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(
-			hashPassword(form.password),
-			stored.id
-		);
+		db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(passwordHash, stored.id);
 		db.prepare('DELETE FROM sessions WHERE user_id = ? AND token_hash != ?').run(
 			stored.id,
 			sha256(session)

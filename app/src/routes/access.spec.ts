@@ -151,8 +151,11 @@ describe('setup action', () => {
 describe('header', () => {
 	it('links each user only to the pages they may open', async () => {
 		const adminSession = await setUpAdmin();
-		admin.auth.createUser(db, { username: 'editor', password: PASSWORD, roles: [] });
-		const login = admin.auth.login(db, 'editor-pc', { username: 'editor', password: PASSWORD });
+		await admin.auth.createUser(db, { username: 'editor', password: PASSWORD, roles: [] });
+		const login = await admin.auth.login(db, 'editor-pc', {
+			username: 'editor',
+			password: PASSWORD
+		});
 		if (!('session' in login)) throw new Error(login.error);
 		const { load } = await import('./+layout.server');
 		const header = (session?: string) =>
@@ -188,7 +191,7 @@ describe('login action', () => {
 	});
 
 	it('sends a user without the role admin to the start page instead of a 403', async () => {
-		admin.auth.createUser(db, { username: 'editor', password: PASSWORD, roles: [] });
+		await admin.auth.createUser(db, { username: 'editor', password: PASSWORD, roles: [] });
 		const result = await thrown(() =>
 			admin.login({
 				request: formRequest('/login', { username: 'editor', password: PASSWORD }),
@@ -248,7 +251,10 @@ describe('password action', () => {
 		expect(admin.auth.sessionUser(db, session)).toBeDefined();
 		expect(
 			'session' in
-				admin.auth.login(db, 'other', { username: 'admin', password: 'staple battery horse' })
+				(await admin.auth.login(db, 'other', {
+					username: 'admin',
+					password: 'staple battery horse'
+				}))
 		).toBe(true);
 	});
 
@@ -286,8 +292,11 @@ describe('admin access guard', () => {
 
 	it('answers 403 to a user without the role admin', async () => {
 		await setUpAdmin();
-		admin.auth.createUser(db, { username: 'editor', password: PASSWORD, roles: [] });
-		const login = admin.auth.login(db, 'editor-pc', { username: 'editor', password: PASSWORD });
+		await admin.auth.createUser(db, { username: 'editor', password: PASSWORD, roles: [] });
+		const login = await admin.auth.login(db, 'editor-pc', {
+			username: 'editor',
+			password: PASSWORD
+		});
 		if (!('session' in login)) throw new Error(login.error);
 
 		const result = await thrown(request('/manage', login.session).run);
@@ -338,13 +347,13 @@ describe('handleError', () => {
 		url: new URL('https://grimoire.example/manage/projects/1')
 	};
 
-	it('logs an unexpected error with its stack in one line', () => {
+	it('logs an unexpected error with its stack in one line', async () => {
 		admin.hooks.handleError({ error: new TypeError('no route'), event, kind: 'unknown' } as never);
 
 		expect(logged()).toEqual(['POST /manage/projects/1 failed']);
 	});
 
-	it('logs nothing for an expected error such as a missing page', () => {
+	it('logs nothing for an expected error such as a missing page', async () => {
 		admin.hooks.handleError({ error: new Error('Not found'), event, kind: 'not_found' } as never);
 
 		expect(logged()).toEqual([]);
