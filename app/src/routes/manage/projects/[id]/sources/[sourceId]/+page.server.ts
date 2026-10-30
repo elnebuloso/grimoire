@@ -7,8 +7,9 @@ import { log } from '#lib/server/log.js';
 import { requestSync } from '#lib/server/sync/index.js';
 import { redactUrl } from '#lib/server/sync/git.js';
 import { nextRun } from '#lib/server/sync/schedule.js';
-import { decryptToken, encryptToken } from '#lib/server/token-encryption.js';
 import { accessChanged, checkSourceAccess } from '#lib/server/admin/source-access.js';
+import { readFormSecret, SOURCE_TOKEN_FIELDS } from '#lib/server/admin/form-secret.js';
+import { m } from '#lib/paraglide/messages.js';
 import {
 	changeSourceSlug,
 	deleteSource,
@@ -62,16 +63,13 @@ export const load: PageServerLoad = ({ params, url }) => {
 };
 
 /**
- * The form as sent, and the values to send back into it. Secrets are not sent back, not even into
- * the form they came from: an entered token returns only encrypted, so a test or a rejected save
- * keeps it without the page ever holding it in plain text.
+ * The form as sent, the values to send back into it, and the problem of a damaged carried token.
+ * Secrets are not sent back, not even into the form they came from: an entered token returns only
+ * encrypted, so a test or a rejected save keeps it without the page ever holding it in plain text.
  */
 function readSourceForm(data: FormData) {
 	const field = (name: string) => String(data.get(name) ?? '');
-	const enteredToken = field('token').trim();
-	const encryptedToken = enteredToken
-		? encryptToken(enteredToken, TOKEN_ENCRYPTION_KEY)
-		: field('encryptedToken');
+	const token = readFormSecret(data, TOKEN_ENCRYPTION_KEY, SOURCE_TOKEN_FIELDS);
 	const form: SourceForm = {
 		name: field('name'),
 		gitUrl: field('gitUrl'),
@@ -82,8 +80,8 @@ function readSourceForm(data: FormData) {
 		schedule: field('schedule'),
 		paused: data.get('paused') === 'on',
 		username: field('username'),
-		token: encryptedToken ? decryptToken(encryptedToken, TOKEN_ENCRYPTION_KEY) : '',
-		removeToken: data.get('removeToken') === 'on'
+		token: token.value,
+		removeToken: token.remove
 	};
 	const values = {
 		name: form.name,
@@ -96,9 +94,9 @@ function readSourceForm(data: FormData) {
 		paused: form.paused,
 		username: form.username,
 		removeToken: form.removeToken,
-		encryptedToken
+		encryptedToken: token.sealed
 	};
-	return { form, values };
+	return { form, values, damaged: token.damaged ? m.error_token_damaged() : undefined };
 }
 
 async function accessProblem(
@@ -113,9 +111,10 @@ async function accessProblem(
 export const actions = {
 	save: async ({ request, params }) => {
 		const { project, source } = pageFor(params);
-		const { form, values } = readSourceForm(await request.formData());
+		const { form, values, damaged } = readSourceForm(await request.formData());
 		const db = database();
 		const problem =
+			damaged ??
 			sourceProblem(db, project.id, source?.id, form) ??
 			(accessChanged(db, source?.id, form) ? await accessProblem(db, source?.id, form) : undefined);
 		if (problem) return fail(400, { error: problem, values });
@@ -133,7 +132,8 @@ export const actions = {
 	},
 	test: async ({ request, params }) => {
 		const { source } = pageFor(params);
-		const { form, values } = readSourceForm(await request.formData());
+		const { form, values, damaged } = readSourceForm(await request.formData());
+		if (damaged) return fail(400, { error: damaged, values });
 		const access = await checkSourceAccess(database(), TOKEN_ENCRYPTION_KEY, source?.id, form);
 		return { access, values };
 	},

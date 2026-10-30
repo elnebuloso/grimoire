@@ -5,8 +5,9 @@ import { database } from '#lib/server/db/index.js';
 import { log } from '#lib/server/log.js';
 import { requestSync } from '#lib/server/sync/index.js';
 import { redactUrl } from '#lib/server/sync/git.js';
-import { decryptToken, encryptToken } from '#lib/server/token-encryption.js';
 import { checkSourceAccess } from '#lib/server/admin/source-access.js';
+import { readFormSecret, SOURCE_TOKEN_FIELDS } from '#lib/server/admin/form-secret.js';
+import { m } from '#lib/paraglide/messages.js';
 import { readSettings } from '#lib/server/settings.js';
 import {
 	createProjectWithSource,
@@ -27,9 +28,18 @@ export interface WizardValues {
 
 export const load: PageServerLoad = () => ({ globalSchedule: SYNC_SCHEDULE });
 
-function readValues(data: FormData): WizardValues {
+/** What the steps sent: the values to send back, and the token in plain text for the checks. */
+interface WizardInput {
+	values: WizardValues;
+	token: string;
+	/** The carried token could not be decrypted. */
+	damaged: boolean;
+}
+
+function readInput(data: FormData): WizardInput {
 	const field = (name: string) => String(data.get(name) ?? '');
-	return {
+	const token = readFormSecret(data, TOKEN_ENCRYPTION_KEY, SOURCE_TOKEN_FIELDS);
+	const values: WizardValues = {
 		project: { name: field('projectName'), description: field('description') },
 		source: {
 			name: field('sourceName'),
@@ -42,31 +52,22 @@ function readValues(data: FormData): WizardValues {
 			paused: data.get('paused') === 'on',
 			username: field('username')
 		},
-		encryptedToken: field('encryptedToken')
+		encryptedToken: token.sealed
 	};
+	return { values, token: token.value, damaged: token.damaged };
 }
 
-/** Takes a newly entered token, or drops the carried one when asked to. */
-function withToken(values: WizardValues, data: FormData): WizardValues {
-	const token = String(data.get('token') ?? '').trim();
-	if (token) return { ...values, encryptedToken: encryptToken(token, TOKEN_ENCRYPTION_KEY) };
-	if (data.get('removeToken') === 'on') return { ...values, encryptedToken: '' };
-	return values;
-}
-
-function sourceForm(values: WizardValues): SourceForm {
-	const token = values.encryptedToken
-		? decryptToken(values.encryptedToken, TOKEN_ENCRYPTION_KEY)
-		: '';
-	return { ...values.source, token, removeToken: false };
+function sourceForm(input: WizardInput): SourceForm {
+	return { ...input.values.source, token: input.token, removeToken: false };
 }
 
 /** The first step that is not valid, with its problem; undefined when every step is. */
-function firstProblem(values: WizardValues): { step: Step; error: string } | undefined {
+function firstProblem(input: WizardInput): { step: Step; error: string } | undefined {
+	if (input.damaged) return { step: 'source', error: m.error_token_damaged() };
 	const db = database();
-	const project = projectProblem(db, undefined, values.project);
+	const project = projectProblem(db, undefined, input.values.project);
 	if (project) return { step: 'project', error: project };
-	const source = sourceProblem(db, undefined, undefined, sourceForm(values));
+	const source = sourceProblem(db, undefined, undefined, sourceForm(input));
 	if (source) return { step: 'source', error: source };
 	return undefined;
 }
@@ -83,62 +84,62 @@ function reject(problem: { step: Step; error: string }, values: WizardValues) {
 
 /** Whether grimoire can reach the repository of the source step; checked on the way to saving. */
 async function accessProblem(
-	values: WizardValues
+	input: WizardInput
 ): Promise<{ step: Step; error: string } | undefined> {
 	const access = await checkSourceAccess(
 		database(),
 		TOKEN_ENCRYPTION_KEY,
 		undefined,
-		sourceForm(values)
+		sourceForm(input)
 	);
 	return access.ok ? undefined : { step: 'source', error: access.message };
 }
 
 export const actions = {
 	project: async ({ request }) => {
-		const data = await request.formData();
-		return show('project', withToken(readValues(data), data));
+		const { values } = readInput(await request.formData());
+		return show('project', values);
 	},
 	source: async ({ request }) => {
-		const data = await request.formData();
-		const values = withToken(readValues(data), data);
-		const problem = projectProblem(database(), undefined, values.project);
-		if (problem) return reject({ step: 'project', error: problem }, values);
-		return show('source', values);
+		const input = readInput(await request.formData());
+		const problem = projectProblem(database(), undefined, input.values.project);
+		if (problem) return reject({ step: 'project', error: problem }, input.values);
+		return show('source', input.values);
 	},
 	test: async ({ request }) => {
-		const data = await request.formData();
-		const values = withToken(readValues(data), data);
+		const input = readInput(await request.formData());
+		if (input.damaged) {
+			return reject({ step: 'source', error: m.error_token_damaged() }, input.values);
+		}
 		const access = await checkSourceAccess(
 			database(),
 			TOKEN_ENCRYPTION_KEY,
 			undefined,
-			sourceForm(values)
+			sourceForm(input)
 		);
-		return { ...show('source', values), access };
+		return { ...show('source', input.values), access };
 	},
 	summary: async ({ request }) => {
-		const data = await request.formData();
-		const values = withToken(readValues(data), data);
-		const problem = firstProblem(values) ?? (await accessProblem(values));
-		if (problem) return reject(problem, values);
-		return show('summary', values);
+		const input = readInput(await request.formData());
+		const problem = firstProblem(input) ?? (await accessProblem(input));
+		if (problem) return reject(problem, input.values);
+		return show('summary', input.values);
 	},
 	create: async ({ request }) => {
-		const values = readValues(await request.formData());
-		const problem = await accessProblem(values);
-		if (problem) return reject(problem, values);
+		const input = readInput(await request.formData());
+		const problem = firstProblem(input) ?? (await accessProblem(input));
+		if (problem) return reject(problem, input.values);
 		const result = createProjectWithSource(
 			database(),
 			TOKEN_ENCRYPTION_KEY,
-			values.project,
-			sourceForm(values)
+			input.values.project,
+			sourceForm(input)
 		);
 		// Somebody took the slug since the summary was shown: back to the step it belongs to.
 		if ('error' in result)
-			return reject(firstProblem(values) ?? { step: 'summary', ...result }, values);
+			return reject(firstProblem(input) ?? { step: 'summary', ...result }, input.values);
 
-		if (!values.source.paused && !readSettings(database()).syncsPaused) {
+		if (!input.values.source.paused && !readSettings(database()).syncsPaused) {
 			requestSync(result.sourceId, { force: true }).catch((error: Error) => {
 				log.error({ err: error }, `sync of source ${result.sourceId} failed`);
 			});

@@ -339,6 +339,24 @@ describe('source page', () => {
 		expect(stored.encrypted_token).not.toBeNull();
 	});
 
+	it('answers a changed carried token with 400 instead of failing', async () => {
+		const fields = { ...SOURCE, token: '', encryptedToken: 'tampered' };
+		const tested = await sourcePage.actions.test({
+			request: formRequest(fields),
+			params: { id: '1', sourceId: 'new' }
+		} as never);
+		const saved = await saveSource('1', 'new', fields);
+
+		for (const result of [tested, saved]) {
+			expect(result).toMatchObject({
+				status: 400,
+				data: { error: 'The entered access token could not be read back. Enter it again.' }
+			});
+		}
+		expect(checkSourceAccess).not.toHaveBeenCalled();
+		expect(db.prepare('SELECT COUNT(*) AS n FROM sources').get()).toEqual({ n: 0 });
+	});
+
 	it('syncs now, forced, and returns the result', async () => {
 		await thrown(() => saveSource('1', 'new', SOURCE));
 		requestSync.mockClear();

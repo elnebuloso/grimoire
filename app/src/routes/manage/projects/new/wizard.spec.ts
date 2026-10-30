@@ -125,6 +125,24 @@ describe('project wizard', () => {
 		expect(removed).toMatchObject({ step: 'summary', values: { encryptedToken: '' } });
 	});
 
+	it('answers a changed carried token with 400 and asks for it again', async () => {
+		const tampered = { ...(await throughSummary()), encryptedToken: 'tampered' };
+
+		for (const action of ['test', 'summary', 'create'] as const) {
+			const result = await submit(action, tampered);
+
+			expect(result).toMatchObject({
+				status: 400,
+				data: {
+					step: 'source',
+					error: 'The entered access token could not be read back. Enter it again.',
+					values: { encryptedToken: '' }
+				}
+			});
+		}
+		expect(count('projects')).toBe(0);
+	});
+
 	it('sends a rejected Git URL back without its credentials', async () => {
 		const result = await submit('summary', {
 			...FIELDS,
