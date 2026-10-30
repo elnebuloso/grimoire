@@ -106,6 +106,16 @@ describe('chunkPage', () => {
 		expect(estimateTokens('123456789')).toBe(3);
 	});
 
+	it('reads a heading of any length in linear time', () => {
+		const started = performance.now();
+		const page = chunk(
+			`# Guide\n\n## Long${' '.repeat(40_000)}x\n\n## Braces ${'{'.repeat(40_000)}x}x\n`
+		);
+		// A pattern for the attribute list that retries from every position took seconds here.
+		expect(performance.now() - started).toBeLessThan(1000);
+		expect(page.snippets[0].aliases).toEqual(['long-x', 'braces-xx']);
+	});
+
 	it('generates the anchors MkDocs generates', () => {
 		const headings = [
 			'# Auth-Service',

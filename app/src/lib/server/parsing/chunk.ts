@@ -39,7 +39,6 @@ interface Section {
 
 const MIN_TOKENS = 50;
 const MAX_TOKENS = 800;
-const ATTRIBUTE_LIST = /\s*\{:?([^}]*)\}\s*$/;
 
 export function estimateTokens(text: string): number {
 	return Math.ceil(text.length / 4);
@@ -131,10 +130,16 @@ function assignAnchors(headings: Heading[], slugify: Slugify): Map<Heading, stri
 function takeAttributeListId(heading: Heading): string | undefined {
 	const last = heading.children.at(-1);
 	if (last?.type !== 'text') return undefined;
-	const match = ATTRIBUTE_LIST.exec(last.value);
-	if (!match) return undefined;
-	last.value = last.value.slice(0, match.index);
-	return /#([\w-]+)/.exec(match[1])?.[1];
+	// By hand rather than `/\s*\{([^}]*)\}\s*$/`, which retries from every position and so takes
+	// time quadratic in the length of the heading.
+	const text = last.value.trimEnd();
+	if (!text.endsWith('}')) return undefined;
+	const inner = text.slice(0, -1);
+	const open = inner.indexOf('{', inner.lastIndexOf('}') + 1);
+	if (open === -1) return undefined;
+	const attributes = inner.slice(open + 1);
+	last.value = last.value.slice(0, open).trimEnd();
+	return /#([\w-]+)/.exec(attributes)?.[1];
 }
 
 function mergeSmallSections(section: Section) {

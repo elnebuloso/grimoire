@@ -36,8 +36,9 @@ export const MAX_INCLUDED_CHARACTERS = 1_000_000;
 const SINGLE_LINE = /^([ \t]*)(;*)-+8<-+[ \t]+("(?:\\"|[^"\r\n])+?"|'(?:\\'|[^'\r\n])+?')\r?$/;
 const BLOCK_MARKER = /^([ \t]*)(;*)-+8<-+\r?$/;
 // After the file name: line ranges such as `:4:6,-2:`, or `:name` for a section.
-const SELECTION =
-	/^(.*?)(?:((?::-?[0-9]*){1,2}(?:(?:,(?=[-0-9:])-?[0-9]*)(?::-?[0-9]*)?)*)|:([a-z][-_0-9a-z]*))?$/i;
+const FIRST_RANGE = /^(?::-?[0-9]*){1,2}$/;
+const LATER_RANGE = /^(?=[-0-9:])-?[0-9]*(?::-?[0-9]*)?$/;
+const SECTION_NAME = /^[a-z][-_0-9a-z]*$/i;
 // `--8<-- [start:name]` anywhere on a line, so it may sit inside a code comment.
 const SECTION_MARKER =
 	/^(.*?)(;*)(-+8<-+[ \t]+)(\[[ \t]*(start|end)[ \t]*:[ \t]*([a-z][-_0-9a-z]*)[ \t]*\])(.*)$/i;
@@ -103,7 +104,7 @@ export function resolveIncludes(
 	}
 
 	function include(name: string, indent: string, chain: string[]): string[] {
-		const [, file, ranges, section] = SELECTION.exec(name)!;
+		const { file, ranges, section } = splitSelection(name);
 		const isUrl = URL_TARGET.test(file.trim());
 		const parent = chain.at(-1)!;
 		if (!isUrl && URL_TARGET.test(parent)) {
@@ -189,6 +190,35 @@ function findBlockEnd(lines: string[], start: number): number {
 }
 
 /** Ranges like `:4:6,-2:` – 1-based and inclusive, negative counts from the end, `0` means 1. */
+/**
+ * Splits an include name into file and selection like pymdownx.snippets' pattern
+ * `(.*?)(?:(ranges)|:(section))?$`: the file is the shortest start whose rest is a selection.
+ * Parsed by hand, because that pattern takes time quadratic in the length of the name, and a
+ * docs branch decides the name.
+ */
+function splitSelection(name: string): { file: string; ranges?: string; section?: string } {
+	const parts = name.split(',');
+	// Ranges after the first one follow a comma; find where the run of those at the end begins.
+	let first = parts.length - 1;
+	while (first > 0 && LATER_RANGE.test(parts[first])) first--;
+	let offset = parts.slice(0, first).reduce((length, part) => length + part.length + 1, 0);
+	for (const part of parts.slice(first)) {
+		// The first range has one or two colons, so it starts at one of the last two.
+		const last = part.lastIndexOf(':');
+		for (const start of [part.lastIndexOf(':', last - 1), last]) {
+			if (start >= 0 && FIRST_RANGE.test(part.slice(start))) {
+				return { file: name.slice(0, offset + start), ranges: name.slice(offset + start) };
+			}
+		}
+		offset += part.length + 1;
+	}
+	const colon = name.lastIndexOf(':');
+	if (colon >= 0 && SECTION_NAME.test(name.slice(colon + 1))) {
+		return { file: name.slice(0, colon), section: name.slice(colon + 1) };
+	}
+	return { file: name };
+}
+
 function selectLines(lines: string[], ranges: string): string[] {
 	const total = lines.length;
 	return ranges

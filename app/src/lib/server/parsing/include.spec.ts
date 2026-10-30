@@ -149,6 +149,21 @@ describe('resolveIncludes', () => {
 		it('reports the file without its selection as outside the source path', () => {
 			expect(resolve('--8<-- "lines.md:2:3"', files).outsideSourcePath).toEqual(['lines.md']);
 		});
+
+		it('takes the shortest file name whose rest is a selection, commas and colons included', () => {
+			const named = { 'a,b.md': '1\n2\n3\n', 'c:1': '1\n2\n3\n' };
+			expect(resolve('--8<-- "a,b.md:2:2"', named).markdown).toBe('2');
+			expect(resolve('--8<-- "c:1:2:3"', named).markdown).toBe('2\n3');
+		});
+
+		it('reads a very long name in linear time', () => {
+			const name = ',:1'.repeat(17_000) + '!';
+			const started = performance.now();
+			const result = resolve(`--8<-- "${name}"`, files);
+			// The pattern pymdownx.snippets uses took seconds for this name.
+			expect(performance.now() - started).toBeLessThan(1000);
+			expect(result.warnings).toEqual([`docs/deploy.md: include "${name}" not found`]);
+		});
 	});
 
 	describe('named sections', () => {
