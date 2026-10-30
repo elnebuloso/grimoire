@@ -1,11 +1,11 @@
 ---
 id: TASK-126
 title: Reject language switch targets that browsers read as another origin
-status: To Do
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-30 09:45'
-updated_date: '2026-10-30 09:45'
+updated_date: '2026-10-30 10:08'
 labels:
   - admin
 milestone: m-0
@@ -23,6 +23,18 @@ Found in the whole-project code review of 2026-10-30. The redirect guard in `app
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 The target is resolved against the request URL and the redirect only happens when the resolved origin equals the request origin; otherwise it falls back to the same default as other rejected targets
+- [x] #1 The target is resolved against the request URL and the redirect only happens when the resolved origin equals the request origin; otherwise it falls back to the same default as other rejected targets
 - [ ] #2 Tests cover `/\t/evil.example`, `//evil.example`, `/\\evil.example`, absolute URLs and a normal same-origin path with query string
 <!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+Resolve redirectTo with new URL(target, request url) and redirect to pathname+search+hash only when the origin matches; else '/'. Unit test for the route.
+<!-- SECTION:PLAN:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+The language switch resolves redirectTo against the request URL like a browser and only redirects within the same origin, else to '/'. New route test covers /<tab>/evil.example, //evil.example, /\\evil.example, an absolute URL, javascript: and a same-origin path with query and anchor; the tab case fails against the old guard.
+<!-- SECTION:FINAL_SUMMARY:END -->
