@@ -42,7 +42,8 @@ const INDEXING_DEADLINE_MS = 10 * 60_000;
 export type SyncResult =
 	| { status: 'unchanged'; commit: string }
 	| { status: 'synced'; commit: string; pages: number; warnings: string[] }
-	| { status: 'failed'; error: string };
+	/** `commit` is the one that failed to index; undefined when the sync failed before one was known. */
+	| { status: 'failed'; error: string; commit?: string };
 
 /**
  * Brings one source into the index: checks the branch with `ls-remote`, and when it moved, clones
@@ -61,7 +62,7 @@ export async function syncSource(
 		startedAt,
 		finishedAt: new Date(),
 		outcome: result.status,
-		commit: result.status === 'failed' ? null : result.commit,
+		commit: result.commit ?? null,
 		error: result.status === 'failed' ? result.error : null
 	});
 	return result;
@@ -98,7 +99,7 @@ async function checkAndSync(
 		// Indexing the same commit again fails the same way, and a run up to the deadline would
 		// otherwise hold the single sync slot in every interval; a new commit or a forced run retries.
 		if (latest === source.failedCommit && source.error && !options.force) {
-			return { status: 'failed', error: source.error };
+			return { status: 'failed', error: source.error, commit: latest };
 		}
 
 		return await lanes.sync(async () => {
@@ -128,7 +129,7 @@ async function checkAndSync(
 	} catch (error) {
 		const message = redact((error as Error).message, remote);
 		recordSyncError(db, sourceId, message, indexingCommit);
-		return { status: 'failed', error: message };
+		return { status: 'failed', error: message, commit: indexingCommit };
 	} finally {
 		recordCheck(db, sourceId, checkedAt);
 	}

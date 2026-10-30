@@ -349,7 +349,8 @@ describe('syncSource', () => {
 
 		expect(result).toEqual({
 			status: 'failed',
-			error: 'indexing took longer than 0.001 seconds'
+			error: 'indexing took longer than 0.001 seconds',
+			commit: git(bare, 'rev-parse', 'main').trim()
 		});
 		expect(rows('SELECT error FROM sources WHERE id = ?', source)).toEqual([
 			{ error: 'indexing took longer than 0.001 seconds' }
@@ -364,11 +365,23 @@ describe('syncSource', () => {
 		commitFiles({ 'docs/new.md': '# New\n' });
 		await syncSource(db, source, { key, workDirectory: work, indexingDeadlineMs: 1 });
 
+		const failing = git(bare, 'rev-parse', 'main').trim();
+
 		// Without the short deadline, indexing would succeed: failing again shows it did not run.
 		expect(await syncSource(db, source, { key, workDirectory: work })).toEqual({
 			status: 'failed',
-			error: 'indexing took longer than 0.001 seconds'
+			error: 'indexing took longer than 0.001 seconds',
+			commit: failing
 		});
+		expect(
+			rows(
+				'SELECT outcome, commit_hash, runs FROM sync_runs WHERE source_id = ? ORDER BY id',
+				source
+			)
+		).toEqual([
+			{ outcome: 'synced', commit_hash: expect.any(String), runs: 1 },
+			{ outcome: 'failed', commit_hash: failing, runs: 2 }
+		]);
 		expect(rows('SELECT error FROM sources WHERE id = ?', source)).toEqual([
 			{ error: 'indexing took longer than 0.001 seconds' }
 		]);
@@ -405,7 +418,8 @@ describe('syncSource', () => {
 
 		expect(exhausted).toEqual({
 			status: 'failed',
-			error: expect.stringMatching(/^indexing ended with .+ before it finished, out of memory/)
+			error: expect.stringMatching(/^indexing ended with .+ before it finished, out of memory/),
+			commit: git(bare, 'rev-parse', 'main').trim()
 		});
 		const other = addSource(`file://${bare}`, { exclusions: ['docs/huge.md', 'docs/drafts/**'] });
 		expect(
