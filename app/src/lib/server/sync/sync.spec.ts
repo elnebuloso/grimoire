@@ -7,7 +7,8 @@ import type { DatabaseSync } from 'node:sqlite';
 import { openDatabase } from '../db/schema';
 import { listSchedules } from '../db/sources';
 import { encryptToken } from '../token-encryption';
-import { createLimiter, createSyncQueue, type SyncLanes } from './queue';
+import { createLimiter } from '../limiter';
+import { createSyncQueue, type SyncLanes } from './queue';
 import { isDue } from './schedule';
 import { syncSource } from './sync';
 

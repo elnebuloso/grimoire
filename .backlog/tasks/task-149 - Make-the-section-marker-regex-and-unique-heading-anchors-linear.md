@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-30 13:41'
-updated_date: '2026-10-30 13:47'
+updated_date: '2026-10-30 14:04'
 labels:
   - parsing
 milestone: m-0
@@ -46,6 +46,8 @@ Found by the whole-project code review of 2026-10-30 (13:25), measured with Node
 
 <!-- SECTION:NOTES:BEGIN -->
 Before the fix (Node 24.22.1, under test load): the dashes test took 40 s, the repeated-headings test 17 s. After: 5 ms and about 1.5 s for 8,000 repeated vs about 1 s for distinct headings. An absolute time limit for the heading test was too close (1.5 s vs 3 s), hence the relative check. Existing anchor and section tests (MkDocs anchors incl. `Rollback_1`, `_1`/`_2`, markers inside comments, escaped `;--8<--`) pass unchanged. `make lint` and `make test` (629 tests) pass.
+
+Follow-up: the repeated-headings test exceeded vitest 5 s under full-suite load with 8,000 headings; reduced to 5,000 per side (quadratic numbering is still about 7 times slower than distinct headings there) with a 30 s test timeout.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary

@@ -1,9 +1,7 @@
 // With its extension: a test runs this file in a child process with plain node.
+import { createLimiter, type Limiter } from '../limiter.ts';
 import { log } from '../log.ts';
 import type { SyncResult } from './sync';
-
-/** Runs `work` once a slot is free. */
-export type Lane = <T>(work: () => Promise<T>) => Promise<T>;
 
 /**
  * Where the stages of a sync run: `check` asks the Git server whether the branch moved and only
@@ -11,8 +9,8 @@ export type Lane = <T>(work: () => Promise<T>) => Promise<T>;
  * database write lock.
  */
 export interface SyncLanes {
-	check: Lane;
-	sync: Lane;
+	check: Limiter;
+	sync: Limiter;
 }
 
 export type RunSync = (sourceId: number, force: boolean, lanes: SyncLanes) => Promise<SyncResult>;
@@ -24,25 +22,6 @@ interface Job {
 
 // Enough to check 200 sources well within a polling interval without flooding a Git server.
 const PARALLEL_CHECKS = 4;
-
-/** Lets at most `max` pieces of work run at once; the others wait in order. */
-export function createLimiter(max: number): Lane {
-	let active = 0;
-	const waiting: (() => void)[] = [];
-	return async (work) => {
-		// A finished piece hands its slot straight to the next waiting one, so a newcomer
-		// cannot slip in between and exceed the limit.
-		if (active < max) active++;
-		else await new Promise<void>((resolve) => waiting.push(resolve));
-		try {
-			return await work();
-		} finally {
-			const next = waiting.shift();
-			if (next) next();
-			else active--;
-		}
-	};
-}
 
 /**
  * Runs syncs with checks of several sources in parallel and the expensive stage one at a time.

@@ -4,7 +4,7 @@ import type { DatabaseSync } from 'node:sqlite';
 // With its extension: the scripts in `scripts/` load this file with plain node.
 import { inTransaction } from '../db/transaction.ts';
 import { log, logAlways } from '../log.ts';
-import { createLimiter } from '../sync/queue.ts';
+import { createLimiter } from '../limiter.ts';
 import { createAttemptLimit } from './attempt-limit.ts';
 
 export const SESSION_COOKIE = 'grimoire_session';

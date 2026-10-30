@@ -3,7 +3,7 @@ import { spawnSync } from 'node:child_process';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { captureLog } from '../capture-log';
-import { createLimiter, createSyncQueue, startPolling, type SyncLanes } from './queue';
+import { createSyncQueue, startPolling, type SyncLanes } from './queue';
 import type { SyncResult } from './sync';
 
 /** Lets a test decide when each awaited piece of work finishes. */
@@ -60,29 +60,6 @@ function fakeSync() {
 afterEach(() => {
 	vi.useRealTimers();
 	vi.restoreAllMocks();
-});
-
-describe('createLimiter', () => {
-	it('runs at most the given number at once and all of them in the end', async () => {
-		const limit = createLimiter(2);
-		const work = gate();
-		let running = 0;
-		let highest = 0;
-		const done = Array.from({ length: 5 }, () =>
-			limit(async () => {
-				running++;
-				highest = Math.max(highest, running);
-				await work.wait();
-				running--;
-			})
-		);
-		await flush();
-		expect(work.waiting()).toBe(2);
-
-		await work.releaseAll();
-		await Promise.all(done);
-		expect(highest).toBe(2);
-	});
 });
 
 describe('createSyncQueue', () => {
