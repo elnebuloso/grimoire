@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@claude'
 created_date: '2026-10-29T06:55:00Z'
-updated_date: '2026-10-30 17:53'
+updated_date: '2026-10-30 18:12'
 labels:
   - admin
 milestone: m-0
@@ -53,4 +53,8 @@ The mockups are separate from `app/`: they imitate the current behaviour but do 
 Round 1 started: shared tooling `docs/mockups/_shared/mockup.js` (theme switch system/light/dark, state bar via `?state=`) and the binding page/state/text spec `docs/mockups/_shared/SPEC.md`, both git-ignored like the rest of `docs/mockups/`. Lines a/1 (calm, editorial), b/1 (technical, industrial), c/1 (product console) in progress.
 
 Round 1 built: a/1, b/1, c/1. Checked with Playwright over a local server (`python3 -m http.server` in `docs/mockups/`; browsers block file:// for the scripts): all 15 pages x all states (60 per line) in light and dark without console errors, failed requests, horizontal overflow or missing h1; theme choice kept across pages; no overflow at 390px. Known gaps for the next stage: preview showed a billing-docs page on platform-docs and the overview counted 1 API key while the list shows 2 (both fixed in SPEC.md); no state yet for the global-pause polling text, the stored-token labels, sync warnings, PageList no-match and CopyButton results. Waiting for the developer's choice.
+
+Round 1 feedback: a/1 rejected, b/1 rejected, c/1 not judged. Next: three new directions d/1, e/1, f/1, built with the `ui-ux-pro-max` skill as the style source, without generic "AI UI" patterns.
+
+Round 2 built: d/1 (Swiss Modernism 2.0), e/1 (Soft UI Evolution), f/1 (Flat Design), each from the `ui-ux-pro-max` style catalog with an explicit anti-slop brief. Checked with Playwright: all pages x states in light and dark, contrast of every visible text measured (WCAG AA, 0 failures with transitions disabled), theme kept across pages, no horizontal overflow at 1366 and 390 px. Fixed during the check: f/1 had its two font files swapped (body text rendered in mono) and its source page overflowed at 390 px. Waiting for the developer's choice.
 <!-- SECTION:NOTES:END -->
