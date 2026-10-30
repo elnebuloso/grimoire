@@ -13,6 +13,7 @@
 		name: 'Platform docs',
 		description: 'Platform team handbook',
 		public: false,
+		docsUrl: null,
 		pages: 7,
 		snippets: 24,
 		tokens: 3120,
@@ -80,12 +81,23 @@
 		timeZone: 'UTC',
 		sources: [
 			synced,
-			{ ...synced, id: 2, slug: 'billing-docs', name: 'Billing docs', public: true }
+			{
+				...synced,
+				id: 2,
+				slug: 'billing-docs',
+				name: 'Billing docs',
+				public: true,
+				docsUrl: 'https://docs.example.com/billing/'
+			}
 		]
 	}}
 	play={async ({ canvas }) => {
 		await expect(canvas.getByRole('row', { name: /platform-docs/ })).toHaveTextContent('private');
 		await expect(canvas.getByRole('row', { name: /billing-docs/ })).toHaveTextContent('public');
+		await expect(canvas.getByRole('link')).toHaveAttribute(
+			'href',
+			'https://docs.example.com/billing/'
+		);
 	}}
 />
 

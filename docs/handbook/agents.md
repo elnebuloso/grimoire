@@ -43,7 +43,8 @@ claude mcp add --transport http grimoire https://grimoire.example.com/mcp \
   --header "Authorization: Bearer <YOUR_API_KEY>"
 ```
 
-The start page `/` of the instance shows this command with its address filled in.
+The start page `/` of the instance shows this command with its address filled in, and with
+**Try a query** what an agent without a key gets from the public sources.
 
 The server sends its instructions on connect: when to search, how to read on, how to change
 documentation. An agent connected over MCP needs nothing about grimoire in its `CLAUDE.md`.

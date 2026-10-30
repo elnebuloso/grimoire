@@ -1,4 +1,5 @@
 <script lang="ts">
+	import QueryForm from '#lib/components/QueryForm.svelte';
 	import SourceStatsTable from '#lib/components/SourceStatsTable.svelte';
 	import { m } from '#lib/paraglide/messages.js';
 	import type { PageProps } from './$types';
@@ -15,6 +16,12 @@
 	<p>{m.no_sources_yet()}</p>
 {:else}
 	<SourceStatsTable sources={data.sources} timeZone={data.timeZone} />
+{/if}
+
+{#if data.query}
+	<h2>{m.query_title()}</h2>
+	<p>{m.start_query_intro()}</p>
+	<QueryForm {...data.query} />
 {/if}
 
 <h2>{m.start_connect_heading()}</h2>

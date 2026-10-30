@@ -59,6 +59,7 @@ describe('sourceStats', () => {
 				name: 'Name',
 				description: 'Login',
 				public: false,
+				docsUrl: null,
 				pages: 2,
 				snippets: 3,
 				tokens: 350,
@@ -72,6 +73,7 @@ describe('sourceStats', () => {
 				name: 'Name',
 				description: 'Login',
 				public: true,
+				docsUrl: null,
 				pages: 1,
 				snippets: 1,
 				tokens: 10,
@@ -103,6 +105,19 @@ describe('sourceStats', () => {
 				error: true
 			},
 			{ slug: 'new-docs', pages: 0, tokens: 0, lastSync: null, error: false }
+		]);
+	});
+
+	it('gives the documentation URL of public sources only', () => {
+		const open = addSource('open-docs', null);
+		const closed = addSource('closed-docs', null);
+		const setDocs = db.prepare('UPDATE sources SET docs_url = ?, public = ? WHERE id = ?');
+		setDocs.run('https://docs.example.com/open/', 1, open);
+		setDocs.run('https://docs.internal.example/closed/', 0, closed);
+
+		expect(sourceStats(db).map(({ slug, docsUrl }) => ({ slug, docsUrl }))).toEqual([
+			{ slug: 'closed-docs', docsUrl: null },
+			{ slug: 'open-docs', docsUrl: 'https://docs.example.com/open/' }
 		]);
 	});
 

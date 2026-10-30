@@ -8,6 +8,8 @@ export interface SourceStats {
 	description: string;
 	/** Readable without an API key. */
 	public: boolean;
+	/** Where the documentation is published, for public sources only; null otherwise. */
+	docsUrl: string | null;
 	pages: number;
 	snippets: number;
 	tokens: number;
@@ -21,6 +23,7 @@ export function sourceStats(db: DatabaseSync): SourceStats[] {
 	const rows = db
 		.prepare(
 			`SELECT sources.id, sources.slug, sources.name, sources.description, sources.public,
+				CASE WHEN sources.public = 1 THEN sources.docs_url END AS docsUrl,
 				(SELECT count(*) FROM live_pages AS pages WHERE pages.source_id = sources.id) AS pages,
 				(SELECT count(*) FROM snippets JOIN live_pages AS pages ON pages.id = snippets.page_id
 					WHERE pages.source_id = sources.id) AS snippets,

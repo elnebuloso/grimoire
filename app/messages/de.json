@@ -7,7 +7,7 @@
 	"header_log_out": "Abmelden",
 	"start_github_link": "grimoire auf GitHub",
 	"start_connect_heading": "Agent verbinden",
-	"start_connect_intro": "Mit Claude Code und einem API-Key aus der Verwaltung:",
+	"start_connect_intro": "Mit Claude Code; den API-Key aus der Verwaltung braucht es nur für private Quellen:",
 	"start_connect_other": "Andere Clients und die HTTP-Routen:",
 	"start_connect_handbook_link": "Agents verbinden",
 	"start_connect_handbook_suffix": "im Handbuch.",
@@ -213,5 +213,6 @@
 	"field_public": "Öffentlich: jeder, der grimoire erreicht, darf diese Quelle ohne API-Key durchsuchen und lesen",
 	"visibility": "Sichtbarkeit",
 	"visibility_public": "öffentlich",
-	"visibility_private": "privat"
+	"visibility_private": "privat",
+	"start_query_intro": "Zeigt, was ein Agent ohne API-Key auf eine Frage bekommt: dieselbe Antwort wie query über HTTP und MCP, aus den öffentlichen Quellen."
 }

@@ -31,6 +31,9 @@
 					{#if name}{@render name(source)}{:else}{source.name}{/if}
 					<code>{source.slug}</code>
 					{#if source.description}<br />{source.description}{/if}
+					{#if source.docsUrl}<br /><a href={source.docsUrl} rel="external"
+							>{m.source_docs_link()}</a
+						>{/if}
 				</th>
 				<td>{source.public ? m.visibility_public() : m.visibility_private()}</td>
 				<td>{source.pages}</td>
