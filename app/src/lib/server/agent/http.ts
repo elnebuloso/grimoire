@@ -7,6 +7,9 @@ import { log } from '../log';
 import { parseTokenBudget } from '../search/query';
 import type { OperationResult, QueryOptions } from './operations';
 
+/** The answer to an unexpected error, on every transport: its message is for the log only. */
+export const SERVER_FAILED = 'The server failed to answer. Try again later.';
+
 /** A Markdown response, the only format the agent HTTP API answers in. */
 export function markdownResponse(markdown: string, status = 200, headers: HeadersInit = {}) {
 	return new Response(markdown, {
@@ -57,7 +60,7 @@ export function agentResponse(
 	} catch (error) {
 		if (error instanceof InvalidRequestError) return markdownResponse(error.message, 400);
 		log.error({ err: error }, `${request.method} ${new URL(request.url).pathname} failed`);
-		return markdownResponse('The server failed to answer. Try again later.', 500);
+		return markdownResponse(SERVER_FAILED, 500);
 	}
 }
 

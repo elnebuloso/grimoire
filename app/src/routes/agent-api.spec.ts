@@ -352,6 +352,20 @@ describe('POST /mcp', () => {
 		});
 	});
 
+	it('answers an unexpected error with the neutral text and logs it, never the error itself', async () => {
+		const logError = vi.spyOn(log, 'error').mockImplementation(() => {});
+		db.exec('ALTER TABLE snippets RENAME TO snippets_gone');
+
+		const result = await tool('query', { query: 'rollback' });
+
+		expect(result).toEqual({ error: true, text: 'The server failed to answer. Try again later.' });
+		expect(logError).toHaveBeenCalledWith(
+			{ err: expect.objectContaining({ message: expect.stringContaining('snippets') }) },
+			'MCP tool query failed'
+		);
+		logError.mockRestore();
+	});
+
 	it('reads the whole page for an empty anchor, like an empty section over HTTP', async () => {
 		const id = 'platform/auth/run books/deploy';
 		const viaMcp = await tool('read', { id: `${id}#` });

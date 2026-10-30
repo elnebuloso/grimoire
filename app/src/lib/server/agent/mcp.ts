@@ -5,7 +5,8 @@ import { version } from '../../../../package.json';
 import type { ProjectScope } from '../api-keys';
 import { database } from '../db';
 import { parseGrimoireId } from '../grimoire-id';
-import { scopeForRequest, unauthorizedResponse } from './http';
+import { log } from '../log';
+import { SERVER_FAILED, scopeForRequest, unauthorizedResponse } from './http';
 import {
 	agentInstructions,
 	agentQuery,
@@ -16,8 +17,19 @@ import {
 	type OperationResult
 } from './operations';
 
-function toolResult({ found, markdown }: OperationResult) {
-	return { content: [{ type: 'text' as const, text: markdown }], isError: !found };
+/**
+ * Runs a tool's operation. An unexpected error is logged and answered with the same neutral text
+ * as over HTTP; left to the MCP SDK, its raw message would go to the agent and nowhere else.
+ */
+function toolResult(tool: string, operation: () => OperationResult) {
+	let result: OperationResult;
+	try {
+		result = operation();
+	} catch (error) {
+		log.error({ err: error }, `MCP tool ${tool} failed`);
+		result = { found: false, markdown: SERVER_FAILED };
+	}
+	return { content: [{ type: 'text' as const, text: result.markdown }], isError: !result.found };
 }
 
 /** An MCP server offering the agent operations within one API key's scope. */
@@ -26,7 +38,7 @@ export function createMcpServer(db: DatabaseSync, scope: ProjectScope): McpServe
 	server.registerTool(
 		'projects',
 		{ description: 'Lists the projects with their short description.' },
-		() => toolResult(listProjects(db, scope))
+		() => toolResult('projects', () => listProjects(db, scope))
 	);
 	server.registerTool(
 		'index',
@@ -34,7 +46,7 @@ export function createMcpServer(db: DatabaseSync, scope: ProjectScope): McpServe
 			description: 'Lists the pages and sections of a project with their IDs.',
 			inputSchema: z.object({ project: z.string() })
 		},
-		({ project }) => toolResult(indexProject(db, project, scope))
+		({ project }) => toolResult('index', () => indexProject(db, project, scope))
 	);
 	server.registerTool(
 		'query',
@@ -47,7 +59,7 @@ export function createMcpServer(db: DatabaseSync, scope: ProjectScope): McpServe
 				tokens: z.number().int().positive().optional().describe('Default 3000')
 			})
 		},
-		(options) => toolResult(agentQuery(db, options, scope))
+		(options) => toolResult('query', () => agentQuery(db, options, scope))
 	);
 	server.registerTool(
 		'read',
@@ -55,10 +67,11 @@ export function createMcpServer(db: DatabaseSync, scope: ProjectScope): McpServe
 			description: 'Returns a page (`project/source/page`) or one section (`…#anchor`).',
 			inputSchema: z.object({ id: z.string() })
 		},
-		({ id }) => {
-			const location = parseGrimoireId(id);
-			return toolResult(location ? readById(db, location, scope) : idNotFound(id));
-		}
+		({ id }) =>
+			toolResult('read', () => {
+				const location = parseGrimoireId(id);
+				return location ? readById(db, location, scope) : idNotFound(id);
+			})
 	);
 	return server;
 }
