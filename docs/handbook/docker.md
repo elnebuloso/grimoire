@@ -104,17 +104,17 @@ while agents searched every 25 ms:
 
 | Limits | Sync | Searches, 99 % / slowest | Memory, peak |
 |---|---|---|---|
-| none | 77 s | 11 ms / 326 ms | 933 MiB |
-| 1 CPU, 512 MiB | 160 s | 46 ms / 411 ms | 392 MiB |
-| 0.5 CPU, 256 MiB | 383 s | 77 ms / 1.3 s | 256 MiB, at the limit |
+| none | 76 s | 44 ms / 365 ms | 923 MiB |
+| 1 CPU, 512 MiB | 149 s | 70 ms / 800 ms | 437 MiB |
+| 0.5 CPU, 256 MiB | 426 s | 178 ms / 953 ms | 256 MiB, at the limit |
 
 For documentation of that size, use `limits: { cpu: "1", memory: 512Mi }` with
 `requests: { cpu: 250m, memory: 512Mi }`. A lower memory limit makes syncs slower until one no
 longer fits; then that sync fails with
 `indexing ended with … before it finished, out of memory for example`, the source keeps its
 previous index, and grimoire keeps answering. On less CPU, a large source can outlast the
-indexing deadline; raise `INDEXING_DEADLINE_MINUTES`. Below one CPU, searches during a sync wait for CPU
-time.
+indexing deadline; raise `INDEXING_DEADLINE_MINUTES`. Below one CPU, searches during a sync wait
+for CPU time.
 
 ## Setup token
 
