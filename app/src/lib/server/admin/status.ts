@@ -31,6 +31,29 @@ export interface SyncHistoryEntry {
 	runs: number;
 }
 
+export interface DeadLinkInSource extends DeadLink {
+	projectId: number;
+	project: string;
+	sourceId: number;
+	source: string;
+}
+
+/** The dead links of all sources, or of one, by project, source and page. */
+export function deadLinks(db: DatabaseSync, sourceId?: number): DeadLinkInSource[] {
+	return db
+		.prepare(
+			`SELECT projects.id AS projectId, projects.slug AS project, sources.id AS sourceId,
+				sources.slug AS source, pages.file, links.anchor, links.target
+			FROM links
+			JOIN live_pages AS pages ON pages.id = links.page_id
+			JOIN sources ON sources.id = pages.source_id
+			JOIN projects ON projects.id = sources.project_id
+			WHERE links.dead = 1 AND (:source IS NULL OR sources.id = :source)
+			ORDER BY projects.slug, sources.slug, pages.file, links.anchor, links.target`
+		)
+		.all({ source: sourceId ?? null }) as unknown as DeadLinkInSource[];
+}
+
 export interface SourceStatus {
 	lastCheckedAt: string | null;
 	lastSyncedAt: string | null;
@@ -66,14 +89,6 @@ export function sourceStatus(db: DatabaseSync, sourceId: number): SourceStatus {
 			GROUP BY pages.id ORDER BY pages.file`
 		)
 		.all(sourceId) as unknown as PageSummary[];
-	const deadLinks = db
-		.prepare(
-			`SELECT pages.file, links.anchor, links.target
-			FROM links JOIN live_pages AS pages ON pages.id = links.page_id
-			WHERE pages.source_id = ? AND links.dead = 1
-			ORDER BY pages.file, links.anchor, links.target`
-		)
-		.all(sourceId) as unknown as DeadLink[];
 	const history = db
 		.prepare(
 			`SELECT started_at AS startedAt, finished_at AS finishedAt, outcome, commit_hash AS 'commit',
@@ -94,7 +109,11 @@ export function sourceStatus(db: DatabaseSync, sourceId: number): SourceStatus {
 			snippets: pages.reduce((sum, page) => sum + page.snippets, 0),
 			tokens: pages.reduce((sum, page) => sum + page.tokens, 0)
 		},
-		deadLinks,
+		deadLinks: deadLinks(db, sourceId).map(({ file, anchor, target }) => ({
+			file,
+			anchor,
+			target
+		})),
 		history
 	};
 }

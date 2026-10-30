@@ -3,7 +3,14 @@ import type { DatabaseSync } from 'node:sqlite';
 import { openDatabase } from '../db/schema';
 import { readById } from '../agent/operations';
 import { parseGrimoireId } from '../grimoire-id';
-import { dashboard, needsAttention, previewPage, sourceHealth, sourceStatus } from './status';
+import {
+	dashboard,
+	deadLinks,
+	needsAttention,
+	previewPage,
+	sourceHealth,
+	sourceStatus
+} from './status';
 
 let db: DatabaseSync;
 
@@ -91,6 +98,41 @@ describe('sourceStatus', () => {
 				{ file: 'index.md', anchor: null, target: 'platform/auth/deploy#nope' }
 			]
 		});
+	});
+});
+
+describe('deadLinks', () => {
+	it('lists the dead links of all sources with their project and source, or of one source', () => {
+		const auth = insertPage(1, 'deploy.md', [{ anchor: null, tokens: 1 }]);
+		const billing = insertPage(2, 'index.md', [{ anchor: null, tokens: 1 }]);
+		insertLink(auth, 'rollback', 'platform/auth/gone', true);
+		insertLink(auth, null, 'platform/auth/index', false);
+		insertLink(billing, null, 'platform/billing/old', true);
+
+		expect(deadLinks(db)).toEqual([
+			{
+				projectId: 1,
+				project: 'platform',
+				sourceId: 1,
+				source: 'auth',
+				file: 'deploy.md',
+				anchor: 'rollback',
+				target: 'platform/auth/gone'
+			},
+			{
+				projectId: 1,
+				project: 'platform',
+				sourceId: 2,
+				source: 'billing',
+				file: 'index.md',
+				anchor: null,
+				target: 'platform/billing/old'
+			}
+		]);
+		expect(deadLinks(db, 2).map((link) => link.target)).toEqual(['platform/billing/old']);
+		expect(sourceStatus(db, 1).deadLinks).toEqual([
+			{ file: 'deploy.md', anchor: 'rollback', target: 'platform/auth/gone' }
+		]);
 	});
 });
 

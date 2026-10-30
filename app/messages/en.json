@@ -215,5 +215,6 @@
 	"source_history_unchanged": "unchanged",
 	"source_history_failed": "failed",
 	"project_source_warning": "1 sync warning",
-	"project_source_warnings": "{count} sync warnings"
+	"project_source_warnings": "{count} sync warnings",
+	"dead_links_none": "No source has a dead link."
 }

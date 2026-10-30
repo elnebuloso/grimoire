@@ -16,6 +16,10 @@
 	</p>
 {/if}
 
+{#snippet deadLinks()}
+	<a href={resolve('/manage/dead-links')}>{data.totals.deadLinks}</a>
+{/snippet}
+
 <h2>{m.admin_overview()}</h2>
 <DescriptionList
 	items={[
@@ -24,7 +28,7 @@
 		[m.pages(), data.totals.pages],
 		[m.snippets(), data.totals.snippets],
 		[m.tokens(), data.totals.tokens],
-		[m.dead_links(), data.totals.deadLinks],
+		[m.dead_links(), deadLinks],
 		[m.api_keys(), data.totals.apiKeys]
 	]}
 />

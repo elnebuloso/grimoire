@@ -130,6 +130,9 @@ and API keys, and lists under "Needs attention" every source with a sync error, 
 no sync yet, linked to its page. Below that, each project shows the same figures as the public
 start page.
 
+The number of dead links leads to a list of all of them, grouped by project and source, each
+group linked to its source.
+
 The page of a project lists its sources each with the time of its last sync, or "never synced",
 and with its sync error and the number of its warnings, so a failing source shows without opening
 every one.
