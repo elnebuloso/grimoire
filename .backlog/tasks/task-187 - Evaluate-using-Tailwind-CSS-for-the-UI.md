@@ -4,8 +4,10 @@ title: Evaluate using Tailwind CSS for the UI
 status: To Do
 assignee: []
 created_date: '2026-10-30 21:41'
+updated_date: '2026-10-30 21:41'
 labels:
   - admin
+milestone: m-0
 dependencies: []
 priority: low
 type: spike
