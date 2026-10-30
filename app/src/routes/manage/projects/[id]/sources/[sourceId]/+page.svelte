@@ -13,6 +13,7 @@
 	import TextField from '#lib/components/TextField.svelte';
 	import { m } from '#lib/paraglide/messages.js';
 	import { MAX_NAME_LENGTH } from '#lib/slug.js';
+	import { NEW_SOURCE_FIELDS } from '#lib/source-fields.js';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
@@ -27,15 +28,19 @@
 
 	const values = $derived(
 		form?.values ?? {
-			name: data.source?.name ?? '',
-			gitUrl: data.source?.gitUrl ?? '',
-			docsUrl: data.source?.docsUrl ?? '',
-			branch: data.source?.branch ?? 'main',
-			path: data.source?.path ?? 'docs/',
-			exclusions: data.source?.exclusions.join('\n') ?? '',
-			schedule: data.source?.schedule ?? '',
-			paused: data.source?.paused ?? false,
-			username: data.source?.username ?? '',
+			...(data.source
+				? {
+						name: data.source.name,
+						gitUrl: data.source.gitUrl,
+						docsUrl: data.source.docsUrl ?? '',
+						branch: data.source.branch,
+						path: data.source.path,
+						exclusions: data.source.exclusions.join('\n'),
+						schedule: data.source.schedule ?? '',
+						paused: data.source.paused,
+						username: data.source.username ?? ''
+					}
+				: NEW_SOURCE_FIELDS),
 			removeToken: false,
 			encryptedToken: ''
 		}
