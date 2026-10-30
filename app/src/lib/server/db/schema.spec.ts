@@ -121,6 +121,23 @@ describe('openDatabase', () => {
 		expect(() => addSource(db, 'docs')).toThrow(/UNIQUE/);
 	});
 
+	it.each([
+		['sources', 'exclusions'],
+		['sources', 'warnings'],
+		['pages', 'tags'],
+		['snippets', 'aliases'],
+		['snippets', 'title_path']
+	])('refuses invalid JSON in %s.%s', (table, column) => {
+		const db = openDatabase(':memory:');
+		const pageId = addPage(db, addSource(db, 'docs'), 'index.md');
+		addSnippet(db, pageId, 0, 'Title', 'text');
+
+		expect(() => db.prepare(`UPDATE ${table} SET ${column} = '["unclosed'`).run()).toThrow(
+			/CHECK constraint failed/
+		);
+		expect(() => db.prepare(`UPDATE ${table} SET ${column} = '["closed"]'`).run()).not.toThrow();
+	});
+
 	it('removes the scope entries of API keys with their source', () => {
 		const db = openDatabase(':memory:');
 		const source = addSource(db, 'auth');

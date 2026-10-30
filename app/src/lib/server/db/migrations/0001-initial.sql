@@ -11,7 +11,7 @@ CREATE TABLE sources (
 	git_url TEXT NOT NULL,
 	branch TEXT NOT NULL,
 	path TEXT NOT NULL,
-	exclusions TEXT NOT NULL DEFAULT '[]',
+	exclusions TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(exclusions)),
 	username TEXT,
 	-- Encrypted by the application with TOKEN_ENCRYPTION_KEY.
 	encrypted_token TEXT,
@@ -32,7 +32,7 @@ CREATE TABLE sources (
 	error TEXT,
 	-- The commit whose indexing failed, so it is not indexed again on every check until it changes.
 	failed_commit TEXT,
-	warnings TEXT NOT NULL DEFAULT '[]'
+	warnings TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(warnings))
 ) STRICT;
 
 CREATE TABLE pages (
@@ -42,7 +42,7 @@ CREATE TABLE pages (
 	file TEXT NOT NULL,
 	title TEXT NOT NULL,
 	description TEXT,
-	tags TEXT NOT NULL DEFAULT '[]',
+	tags TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(tags)),
 	content TEXT NOT NULL,
 	-- Index of the page in the site's `nav`; NULL when the page is not listed there.
 	nav_position INTEGER,
@@ -63,8 +63,8 @@ CREATE TABLE snippets (
 	page_id INTEGER NOT NULL REFERENCES pages (id) ON DELETE CASCADE,
 	position INTEGER NOT NULL,
 	anchor TEXT,
-	aliases TEXT NOT NULL DEFAULT '[]',
-	title_path TEXT NOT NULL,
+	aliases TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(aliases)),
+	title_path TEXT NOT NULL CHECK (json_valid(title_path)),
 	content TEXT NOT NULL,
 	tokens INTEGER NOT NULL,
 	-- A section split into several snippets: which part of how many. The label is added only
