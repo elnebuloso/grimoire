@@ -1,7 +1,7 @@
 import type { DatabaseSync } from 'node:sqlite';
 import { redactUrl } from '../sync/git';
 import { parseSchedule } from '../sync/schedule';
-import type { SourceFields } from '#lib/source-fields.js';
+import type { SourceFields, StoredSourceFields } from '#lib/source-fields.js';
 import { encryptToken } from '../token-encryption';
 import { inTransaction } from '../db/transaction';
 import { m } from '#lib/paraglide/messages.js';
@@ -26,19 +26,9 @@ export interface SlugChangeForm {
 }
 
 /** A source as the management area may show it: the access token is reduced to whether there is one. */
-export interface SourceSettings {
+export interface SourceSettings extends StoredSourceFields {
 	id: number;
 	slug: string;
-	name: string;
-	gitUrl: string;
-	/** Where the documentation is published as a site; null when not given. */
-	docsUrl: string | null;
-	branch: string;
-	path: string;
-	exclusions: string[];
-	schedule: string | null;
-	paused: boolean;
-	username: string | null;
 	hasToken: boolean;
 }
 
