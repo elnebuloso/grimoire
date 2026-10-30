@@ -1,11 +1,11 @@
 ---
 id: TASK-183
 title: Give every page a title and keep grimoire out of search engines
-status: In Progress
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-30 19:41'
-updated_date: '2026-10-30 21:25'
+updated_date: '2026-10-30 21:27'
 labels:
   - admin
 milestone: m-0
@@ -37,12 +37,12 @@ Deliberately not part of this: `meta description`, `link canonical` and Open Gra
 - [x] #2 The title is rendered from one shared place; a page cannot render without it
 - [x] #3 On dynamic pages the title follows the content: a source page names the source, `/manage/sources/new` says New source, the preview names the file, the error page names its state
 - [x] #4 Every page renders `<meta name="robots" content="noindex, nofollow">`
-- [ ] #5 Every response carries `X-Robots-Tag: noindex, nofollow`: pages, error pages, redirects and every agent route, set in one place in `app/src/hooks.server.ts`
-- [x] #6 `app/static/robots.txt` disallows all crawling
-- [x] #7 Tests cover the titles (static, source, preview, error states, German), the robots meta tag on every page, and the header on a page, an error page and an agent route
-- [x] #8 axe `document-title` passes on every page
-- [x] #9 The operator part of the handbook says that grimoire keeps itself out of search engines
-- [x] #10 `make lint`, `make test` and `make e2e` pass
+- [x] #5 `app/static/robots.txt` disallows all crawling
+- [x] #6 Tests cover the titles (static, source, preview, error states, German), the robots meta tag on every page, and the header on a page, an error page and an agent route
+- [x] #7 axe `document-title` passes on every page
+- [x] #8 The operator part of the handbook says that grimoire keeps itself out of search engines
+- [x] #9 `make lint`, `make test` and `make e2e` pass
+- [x] #10 Every response SvelteKit resolves carries `X-Robots-Tag: noindex, nofollow`: pages, error pages and every agent route, set in one place in `app/src/hooks.server.ts`; redirects and errors thrown in a handle are out of reach and hold nothing indexable (agreed with the user)
 <!-- AC:END -->
 
 ## Implementation Plan
@@ -64,3 +64,13 @@ Deliberately not part of this: `meta description`, `link canonical` and Open Gra
 - Gap (AC #5 open): responses produced by redirect()/error() thrown in handleAccess carry no X-Robots-Tag. SvelteKit builds those outside resolve (respond.js catch / handle_fatal_error), so setHeaders never reaches them. They hold nothing indexable (3xx, or SvelteKit's static error page).
 - Pre-existing, found on the way: error() thrown in handleAccess (403 for non-admins, 404 on /setup after setup) always renders SvelteKit's static fallback page (handle_fatal_error -> static_error_page), not +error.svelte: no design, English only, title 'Error: 403', no robots meta. Needs a decision: follow-up task.
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Every page now names itself in the browser tab, server-rendered and in the page language: PageHead sets the document title ("<page> – grimoire", headings naming grimoire as they are), with its own tab title for the source preview and the error states; start and error page render PageHead too. Pages carry a robots noindex meta tag, every response SvelteKit resolves carries X-Robots-Tag: noindex, nofollow (one handle in hooks.server.ts), robots.txt disallows all crawling, and the operator handbook says so.
+
+Verified: make lint, make test (692), make e2e (22), make handbook; axe document-title passes on every page and the preview title was checked by hand in the agent environment.
+
+Agreed limit: redirects and errors thrown in handleAccess carry no X-Robots-Tag, as SvelteKit builds them outside resolve. Follow-up TASK-184 makes access errors render +error.svelte instead of SvelteKit's static fallback page.
+<!-- SECTION:FINAL_SUMMARY:END -->
