@@ -36,7 +36,7 @@
 		<h2 id="connect">{m.start_connect_heading()}</h2>
 		<p>{m.start_connect_intro()}</p>
 		<pre><code
-				>claude mcp add --transport http grimoire {data.origin}/mcp \
+				>claude mcp add --transport http --scope user grimoire {data.origin}/mcp \
   --header "Authorization: Bearer &lt;key&gt;"</code
 			></pre>
 		<p>

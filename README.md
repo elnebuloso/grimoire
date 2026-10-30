@@ -48,7 +48,7 @@ The MCP server lives at `/mcp` (Streamable HTTP) and offers the tools `sources`,
 so any client that can send the key as a header works, for example Claude Code:
 
 ```bash
-claude mcp add --transport http grimoire https://grimoire.example/mcp \
+claude mcp add --transport http --scope user grimoire https://grimoire.example/mcp \
   --header "Authorization: Bearer <key>"
 ```
 

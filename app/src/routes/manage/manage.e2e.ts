@@ -187,7 +187,7 @@ test('shows how to connect Claude Code to this instance', async ({ page }) => {
 	await page.goto('/');
 	// The server derives the origin from `x-forwarded-proto`, as it would behind a proxy.
 	await expect(page.locator('pre')).toHaveText(
-		'claude mcp add --transport http grimoire http://localhost:4173/mcp \\\n' +
+		'claude mcp add --transport http --scope user grimoire http://localhost:4173/mcp \\\n' +
 			'  --header "Authorization: Bearer <key>"'
 	);
 	await expect(page.getByRole('link', { name: 'Connecting agents' })).toHaveAttribute(

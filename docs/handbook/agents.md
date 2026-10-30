@@ -39,9 +39,12 @@ sources to search as a list, `sources: ["auth-service", "gateway"]`. Authenticat
 is the API key header only, without OAuth. With Claude Code:
 
 ```bash
-claude mcp add --transport http grimoire https://grimoire.example.com/mcp \
+claude mcp add --transport http --scope user grimoire https://grimoire.example.com/mcp \
   --header "Authorization: Bearer <YOUR_API_KEY>"
 ```
+
+`--scope user` makes grimoire available in all your projects on this machine; leave it out to add
+it to the current project only.
 
 The start page `/` of the instance shows this command with its address filled in, and with
 **Try a query** what an agent without a key gets from the public sources.
