@@ -3,11 +3,11 @@ id: TASK-132
 title: >-
   Give the indexing worker a deadline so one stuck sync cannot block every
   source
-status: In Progress
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-30 10:55'
-updated_date: '2026-10-30 10:55'
+updated_date: '2026-10-30 11:00'
 labels:
   - sync
 milestone: m-0
@@ -25,8 +25,23 @@ Found in the second whole-project code review of 2026-10-30. `indexInWorker` in 
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 When indexing a source takes longer than a fixed limit, the worker is terminated and the sync ends as `failed` with a readable error that names the limit (e.g. "indexing took longer than N minutes")
-- [ ] #2 After such a timeout the sync lane is free: the next queued sync starts
-- [ ] #3 A normal sync is not affected; the limit is far above the time a large real source needs
-- [ ] #4 A test with a worker that never answers shows the sync fails with the timeout error and does not hang
+- [x] #1 When indexing a source takes longer than a fixed limit, the worker is terminated and the sync ends as `failed` with a readable error that names the limit (e.g. "indexing took longer than N minutes")
+- [x] #2 After such a timeout the sync lane is free: the next queued sync starts
+- [x] #3 A normal sync is not affected; the limit is far above the time a large real source needs
+- [x] #4 A test with a worker that never answers shows the sync fails with the timeout error and does not hang
 <!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. indexInWorker gets a deadline (default 10 minutes, SyncOptions.indexingDeadlineMs as test seam): reject with "indexing took longer than …" and terminate the worker.
+2. Verified first that terminate() rolls back the worker's open SQLite transaction and frees the lock.
+3. Test with a 1 ms deadline through a single-slot lane, then a forced sync on the same lane succeeds.
+4. Handbook admin.md names the limit.
+<!-- SECTION:PLAN:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+indexInWorker now terminates the worker after 10 minutes (INDEXING_DEADLINE_MS) and the sync fails with "indexing took longer than 10 minutes"; the previous index stays live. Measured in a standalone script that Worker.terminate() rolls back the open transaction and releases the SQLite write lock. New sync.spec test runs a sync with a 1 ms deadline through a single-slot lane, checks the error on the result and the source, then a forced sync on the same lane succeeds (slot freed); it fails against the old code. All 71 sync specs pass, make lint and make handbook pass. Handbook admin.md states the limit.
+<!-- SECTION:FINAL_SUMMARY:END -->

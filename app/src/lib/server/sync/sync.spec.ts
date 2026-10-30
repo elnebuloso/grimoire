@@ -7,7 +7,7 @@ import type { DatabaseSync } from 'node:sqlite';
 import { openDatabase } from '../db/schema';
 import { listSchedules, splitCode } from '../db/sources';
 import { encryptToken } from '../token-encryption';
-import { createSyncQueue, type SyncLanes } from './queue';
+import { createLimiter, createSyncQueue, type SyncLanes } from './queue';
 import { isDue } from './schedule';
 import { syncSource } from './sync';
 
@@ -319,6 +319,31 @@ describe('syncSource', () => {
 		expect(state.error).not.toContain(token);
 		expect(state.error).not.toContain(Buffer.from(`deploy:${token}`).toString('base64'));
 		expect(state.encrypted_token).not.toContain(token);
+	});
+
+	it('fails a sync whose indexing outlasts the deadline and frees the sync slot', async () => {
+		const lanes: SyncLanes = { check: createLimiter(1), sync: createLimiter(1) };
+		await syncSource(db, source, { key, workDirectory: work, lanes });
+		commitFiles({ 'docs/new.md': '# New\n' });
+
+		// No worker starts, reads a checkout and writes an index within a millisecond.
+		const result = await syncSource(db, source, {
+			key,
+			workDirectory: work,
+			lanes,
+			indexingDeadlineMs: 1
+		});
+
+		expect(result).toEqual({
+			status: 'failed',
+			error: 'indexing took longer than 0.001 seconds'
+		});
+		expect(rows('SELECT error FROM sources WHERE id = ?', source)).toEqual([
+			{ error: 'indexing took longer than 0.001 seconds' }
+		]);
+		expect(
+			await syncSource(db, source, { key, workDirectory: work, lanes, force: true })
+		).toMatchObject({ status: 'synced', pages: 3 });
 	});
 
 	it('reports a wrong encryption key as an error of the source', async () => {

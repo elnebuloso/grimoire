@@ -130,6 +130,10 @@ or the username.
 Saving a source starts a sync right away, so a changed path or exclusion applies without waiting
 for a new commit; a paused source is saved without one. Deleting a project deletes its sources and their index.
 
+Sources are indexed one at a time. Indexing one may take 10 minutes; past that the sync fails with
+`indexing took longer than 10 minutes`, the source keeps its previous index, and the next source
+is indexed.
+
 ### Changing a slug
 
 A slug can be changed under **Change the slug** at the bottom of the project or source page. It

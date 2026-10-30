@@ -28,7 +28,13 @@ export interface SyncOptions {
 	lanes?: SyncLanes;
 	/** Value of `INCLUDE_URL_ALLOW`: the origins URL includes may be fetched from. */
 	allowedIncludeOrigins?: string[];
+	/** How long indexing may take before the sync fails; defaults to `INDEXING_DEADLINE_MS`. */
+	indexingDeadlineMs?: number;
 }
+
+// A large real source takes about a minute. Without a deadline, content that keeps the worker
+// busy would hold the single sync slot, and with it every other source, until a restart.
+const INDEXING_DEADLINE_MS = 10 * 60_000;
 
 export type SyncResult =
 	| { status: 'unchanged'; commit: string }
@@ -91,15 +97,18 @@ async function checkAndSync(
 			try {
 				await sparseClone(remote, source.branch, source.path, checkout);
 				const commit = await headCommit(checkout);
-				const indexed = await indexInWorker({
-					checkout,
-					source: { path: source.path, exclusions: source.exclusions },
-					remote,
-					allowedIncludeOrigins: options.allowedIncludeOrigins ?? [],
-					databasePath: databasePath(db),
-					sourceId,
-					commit
-				});
+				const indexed = await indexInWorker(
+					{
+						checkout,
+						source: { path: source.path, exclusions: source.exclusions },
+						remote,
+						allowedIncludeOrigins: options.allowedIncludeOrigins ?? [],
+						databasePath: databasePath(db),
+						sourceId,
+						commit
+					},
+					options.indexingDeadlineMs ?? INDEXING_DEADLINE_MS
+				);
 				return { status: 'synced' as const, commit, ...indexed };
 			} finally {
 				await rm(checkout, { recursive: true, force: true });
@@ -120,18 +129,32 @@ async function checkAndSync(
  * thread would hold up every request, and a docs branch that exhausts memory there would end the
  * server instead of the sync.
  */
-function indexInWorker(job: IndexJob): Promise<{ pages: number; warnings: string[] }> {
+function indexInWorker(
+	job: IndexJob,
+	deadlineMs: number
+): Promise<{ pages: number; warnings: string[] }> {
 	// The worker runs from source; `#lib` points at it from the dev server, tests and the build.
 	const worker = new Worker(new URL(import.meta.resolve('#lib/server/sync/index-worker.ts')), {
 		workerData: job
 	});
 	return new Promise((resolve, reject) => {
+		// Terminating rolls back the worker's open transaction; the rows it already committed belong
+		// to a generation that never went live and go with the next successful sync.
+		const deadline = setTimeout(() => {
+			reject(new Error(`indexing took longer than ${formatDuration(deadlineMs)}`));
+			void worker.terminate();
+		}, deadlineMs);
 		worker.once('message', resolve);
 		worker.once('error', reject);
 		worker.once('exit', (code) => {
+			clearTimeout(deadline);
 			if (code !== 0) reject(new Error(`indexing stopped with exit code ${code}`));
 		});
 	});
+}
+
+function formatDuration(ms: number): string {
+	return ms >= 60_000 ? `${ms / 60_000} minutes` : `${ms / 1000} seconds`;
 }
 
 function databasePath(db: DatabaseSync): string {
