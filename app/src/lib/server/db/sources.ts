@@ -234,11 +234,7 @@ function batches<T>(items: T[], weight: (item: T) => number, max: number): T[][]
 
 /** Stores why a sync failed; the index of the last successful sync stays as it is. */
 export function recordSyncError(db: DatabaseSync, sourceId: number, message: string) {
-	db.prepare('UPDATE sources SET error = ?, last_synced_at = ? WHERE id = ?').run(
-		message,
-		new Date().toISOString(),
-		sourceId
-	);
+	db.prepare('UPDATE sources SET error = ? WHERE id = ?').run(message, sourceId);
 }
 
 /** The source was reachable and is up to date, so an earlier error no longer applies. */

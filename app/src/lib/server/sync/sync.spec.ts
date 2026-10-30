@@ -207,6 +207,24 @@ describe('syncSource', () => {
 		expect(readdirSync(work)).toEqual([]);
 	});
 
+	it('sets last_synced_at only when an index is swapped in, never on a failure', async () => {
+		const lastSynced = () =>
+			rows('SELECT last_synced_at FROM sources WHERE id = ?', source)[0].last_synced_at;
+		const unreachable = addSource(`file://${join(root, 'missing.git')}`);
+
+		await syncSource(db, unreachable, { key, workDirectory: work });
+		expect(rows('SELECT last_synced_at FROM sources WHERE id = ?', unreachable)).toEqual([
+			{ last_synced_at: null }
+		]);
+
+		await syncSource(db, source, { key, workDirectory: work });
+		const synced = lastSynced();
+		expect(synced).not.toBeNull();
+		rmSync(bare, { recursive: true });
+		await syncSource(db, source, { key, workDirectory: work });
+		expect(lastSynced()).toBe(synced);
+	});
+
 	it('keeps the last good index when writing the new one fails in the worker', async () => {
 		await syncSource(db, source, { key, workDirectory: work });
 		commitFiles({ 'docs/index.md': '# Home again\n' });

@@ -186,6 +186,31 @@ describe('migrate', () => {
 		]);
 	});
 
+	it('sets last_synced_at to the newest successful sync, or none for a source without an index', () => {
+		const db = new DatabaseSync(':memory:');
+		const index = shippedMigrations.findIndex(
+			({ name }) => name === '0019-last-synced-only-on-success.sql'
+		);
+		migrate(db, shippedMigrations.slice(0, index));
+		db.exec(`INSERT INTO projects (id, slug) VALUES (1, 'platform');
+			INSERT INTO sources (id, project_id, slug, git_url, branch, path, last_commit, last_synced_at, error)
+			VALUES
+				(1, 1, 'failing', 'https://git.example/a.git', 'main', 'docs/', NULL, '2026-10-30T10:00:00Z', 'denied'),
+				(2, 1, 'recovered', 'https://git.example/b.git', 'main', 'docs/', 'abc', '2026-10-30T10:00:00Z', 'denied'),
+				(3, 1, 'trimmed', 'https://git.example/c.git', 'main', 'docs/', 'def', '2026-10-29T08:00:00Z', NULL);
+			INSERT INTO sync_runs (source_id, started_at, finished_at, outcome, commit_hash, error) VALUES
+				(1, '2026-10-30T09:59:00Z', '2026-10-30T10:00:00Z', 'failed', NULL, 'denied'),
+				(2, '2026-10-28T07:59:00Z', '2026-10-28T08:00:00Z', 'synced', 'abc', NULL),
+				(2, '2026-10-30T09:59:00Z', '2026-10-30T10:00:00Z', 'failed', NULL, 'denied');`);
+
+		migrate(db, shippedMigrations.slice(0, index + 1));
+		expect(rows(db, 'SELECT slug, last_synced_at FROM sources ORDER BY id')).toEqual([
+			{ slug: 'failing', last_synced_at: null },
+			{ slug: 'recovered', last_synced_at: '2026-10-28T08:00:00Z' },
+			{ slug: 'trimmed', last_synced_at: '2026-10-29T08:00:00Z' }
+		]);
+	});
+
 	it('keeps the existing index of every source live when generations arrive', () => {
 		const db = new DatabaseSync(':memory:');
 		const index = shippedMigrations.findIndex(({ name }) => name === '0012-index-generations.sql');
