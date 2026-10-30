@@ -8,11 +8,11 @@ import * as sourcePage from './[id]/sources/[sourceId]/+page.server';
 
 let db: DatabaseSync;
 // vi.mock is hoisted above the imports; the mock it returns has to be hoisted with it.
-const requestSync = vi.hoisted(() => vi.fn(async () => ({ status: 'unchanged', commit: 'abc' })));
+const syncPending = vi.hoisted(() => vi.fn(() => false));
 const requestSyncInBackground = vi.hoisted(() => vi.fn());
 
 vi.mock('#lib/server/db/index.js', () => ({ database: () => db }));
-vi.mock('#lib/server/sync/index.js', () => ({ requestSync, requestSyncInBackground }));
+vi.mock('#lib/server/sync/index.js', () => ({ requestSyncInBackground, syncPending }));
 // The Git server cannot be asked from a test; the check itself is tested against a local repository.
 const checkSourceAccess = vi.hoisted(() =>
 	vi.fn(async () => ({ ok: true, message: 'Reachable: branch main is at commit abc.' }))
@@ -61,6 +61,13 @@ async function saveSource(id: string, sourceId: string, fields: Record<string, s
 	} as never);
 }
 
+function syncNow(id: string, sourceId: string) {
+	return sourcePage.actions.sync({
+		params: { id, sourceId },
+		url: new URL(`https://grimoire.example/manage/projects/${id}/sources/${sourceId}?/sync`)
+	} as never);
+}
+
 function loadSource(id: string, sourceId: string, search = '') {
 	return sourcePage.load({
 		params: { id, sourceId },
@@ -81,7 +88,6 @@ const SOURCE = {
 
 beforeEach(() => {
 	db = openDatabase(':memory:');
-	requestSync.mockClear();
 	requestSyncInBackground.mockClear();
 	checkSourceAccess.mockClear();
 });
@@ -220,9 +226,9 @@ describe('source page', () => {
 		expect(requestSyncInBackground).not.toHaveBeenCalled();
 		expect(loadSource('1', '1')).toMatchObject({ source: { paused: true }, nextCheck: undefined });
 
-		await sourcePage.actions.sync({ params: { id: '1', sourceId: '1' } } as never);
+		await thrown(() => syncNow('1', '1'));
 
-		expect(requestSync).toHaveBeenCalledExactlyOnceWith(1, { force: true });
+		expect(requestSyncInBackground).toHaveBeenCalledExactlyOnceWith(1, { force: true });
 		expect(loadSource('1', '1')).toMatchObject({ source: { paused: true } });
 	});
 
@@ -237,8 +243,8 @@ describe('source page', () => {
 			nextCheck: undefined
 		});
 
-		await sourcePage.actions.sync({ params: { id: '1', sourceId: '1' } } as never);
-		expect(requestSync).toHaveBeenCalledExactlyOnceWith(1, { force: true });
+		await thrown(() => syncNow('1', '1'));
+		expect(requestSyncInBackground).toHaveBeenCalledExactlyOnceWith(1, { force: true });
 	});
 
 	it('resumes a paused source when saved without the checkbox and syncs it', async () => {
@@ -359,16 +365,17 @@ describe('source page', () => {
 		expect(db.prepare('SELECT COUNT(*) AS n FROM sources').get()).toEqual({ n: 0 });
 	});
 
-	it('syncs now, forced, and returns the result', async () => {
+	it('queues a forced sync now without waiting for it, and shows it pending', async () => {
 		await thrown(() => saveSource('1', 'new', SOURCE));
 		requestSyncInBackground.mockClear();
 
-		const result = await sourcePage.actions.sync({
-			params: { id: '1', sourceId: '1' }
-		} as never);
+		const result = await thrown(() => syncNow('1', '1'));
+		syncPending.mockReturnValueOnce(true);
 
-		expect(requestSync).toHaveBeenCalledExactlyOnceWith(1, { force: true });
-		expect(result).toEqual({ sync: { status: 'unchanged', commit: 'abc' } });
+		expect(requestSyncInBackground).toHaveBeenCalledExactlyOnceWith(1, { force: true });
+		expect(isRedirect(result) && result.location).toBe('/manage/projects/1/sources/1');
+		expect(loadSource('1', '1')).toMatchObject({ syncPending: true });
+		expect(syncPending).toHaveBeenCalledWith(1);
 	});
 
 	it('shows the status and the preview of a page the query names', async () => {

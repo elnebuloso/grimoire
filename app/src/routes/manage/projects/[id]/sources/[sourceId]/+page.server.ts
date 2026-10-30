@@ -3,7 +3,7 @@ import { error, fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { SYNC_SCHEDULE, TOKEN_ENCRYPTION_KEY, TZ } from '$app/env/private';
 import { database } from '#lib/server/db/index.js';
-import { requestSync, requestSyncInBackground } from '#lib/server/sync/index.js';
+import { requestSyncInBackground, syncPending } from '#lib/server/sync/index.js';
 import { redactUrl } from '#lib/server/sync/git.js';
 import { nextRun } from '#lib/server/sync/schedule.js';
 import { accessChanged, checkSourceAccess } from '#lib/server/admin/source-access.js';
@@ -47,6 +47,7 @@ export const load: PageServerLoad = ({ params, url }) => {
 		project,
 		source,
 		status: source && sourceStatus(database(), source.id),
+		syncPending: source !== undefined && syncPending(source.id),
 		preview:
 			source && previewFile
 				? {
@@ -132,10 +133,14 @@ export const actions = {
 		const access = await checkSourceAccess(database(), TOKEN_ENCRYPTION_KEY, source?.id, form);
 		return { access, values };
 	},
-	sync: async ({ params }) => {
+	sync: async ({ params, url }) => {
 		const { source } = pageFor(params);
 		if (!source) error(404);
-		return { sync: await requestSync(source.id, { force: true }) };
+		// Not awaited: the sync waits for every one queued before it, longer than a reverse proxy
+		// keeps a request open. The page shows that it is pending, and its outcome in the status.
+		requestSyncInBackground(source.id, { force: true });
+		// Back to the page by GET, so reloading it for the outcome does not queue another sync.
+		redirect(303, url.pathname);
 	},
 	slug: async ({ request, params }) => {
 		const { project, source } = pageFor(params);

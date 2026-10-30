@@ -80,7 +80,12 @@ export function createSyncQueue(run: RunSync, { parallelChecks = PARALLEL_CHECKS
 		});
 	}
 
-	return { request, requestInBackground };
+	/** Whether a sync of the source is queued or running. */
+	function isPending(sourceId: number): boolean {
+		return pending.has(sourceId);
+	}
+
+	return { request, requestInBackground, isPending };
 }
 
 export type SyncQueue = ReturnType<typeof createSyncQueue>;

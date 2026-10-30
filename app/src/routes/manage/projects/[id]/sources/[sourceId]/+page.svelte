@@ -51,16 +51,8 @@
 	<form method="post" action="?/sync">
 		<button>{m.source_sync_now()}</button>
 	</form>
-	{#if form?.sync}
-		<p role="status">
-			{#if form.sync.status === 'failed'}
-				{m.source_sync_failed({ error: form.sync.error })}
-			{:else if form.sync.status === 'synced'}
-				{m.source_synced({ commit: form.sync.commit, pages: form.sync.pages })}
-			{:else}
-				{m.source_unchanged({ commit: form.sync.commit })}
-			{/if}
-		</p>
+	{#if data.syncPending}
+		<p role="status">{m.source_sync_pending()}</p>
 	{/if}
 	{#snippet lastCheck()}
 		{#if data.status?.lastCheckedAt}

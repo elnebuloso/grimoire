@@ -9,11 +9,10 @@ import * as wizard from './+page.server';
 let db: DatabaseSync;
 const KEY = vi.hoisted(() => Buffer.alloc(32, 7));
 const TOKEN = 'glpat-very-secret';
-const requestSync = vi.hoisted(() => vi.fn(async () => ({ status: 'unchanged', commit: 'abc' })));
 const requestSyncInBackground = vi.hoisted(() => vi.fn());
 
 vi.mock('#lib/server/db/index.js', () => ({ database: () => db }));
-vi.mock('#lib/server/sync/index.js', () => ({ requestSync, requestSyncInBackground }));
+vi.mock('#lib/server/sync/index.js', () => ({ requestSyncInBackground }));
 // The Git server cannot be asked from a test; the check itself is tested against a local repository.
 const checkSourceAccess = vi.hoisted(() =>
 	vi.fn(async () => ({ ok: true, message: 'Reachable: branch main is at commit abc.' }))
@@ -64,7 +63,6 @@ function count(table: string): number {
 
 beforeEach(() => {
 	db = openDatabase(':memory:');
-	requestSync.mockClear();
 	requestSyncInBackground.mockClear();
 	checkSourceAccess.mockClear();
 	checkSourceAccess.mockResolvedValue({

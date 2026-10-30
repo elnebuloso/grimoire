@@ -129,6 +129,21 @@ describe('createSyncQueue', () => {
 		]);
 	});
 
+	it('tells whether a sync of a source is queued or running', async () => {
+		const done = gate();
+		const queue = createSyncQueue(async () => {
+			await done.wait();
+			return { status: 'unchanged', commit: 'c' };
+		});
+
+		const sync = queue.request(1);
+		expect([queue.isPending(1), queue.isPending(2)]).toEqual([true, false]);
+		await flush();
+		await done.releaseAll();
+		await sync;
+		expect(queue.isPending(1)).toBe(false);
+	});
+
 	it('keeps going after a sync throws', async () => {
 		const run = vi.fn(async (sourceId: number): Promise<SyncResult> => {
 			if (sourceId === 1) throw new Error('source 1 does not exist');

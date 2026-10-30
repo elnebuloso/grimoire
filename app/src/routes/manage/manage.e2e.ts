@@ -163,9 +163,11 @@ test('syncs a source now and shows why it failed', async ({ page }) => {
 
 	await page.getByRole('button', { name: 'Sync now' }).click();
 
-	await expect(page.getByRole('status')).toContainText(
-		'Sync failed: source path "docs" does not exist'
-	);
+	// The sync runs after the answer; its outcome shows in the status once it is done.
+	await expect(async () => {
+		await page.reload();
+		await expect(page.getByRole('status')).toHaveCount(0);
+	}).toPass();
 	await expect(page.getByRole('alert')).toContainText('source path "docs" does not exist');
 	expect(await page.content()).not.toContain(TOKEN);
 
