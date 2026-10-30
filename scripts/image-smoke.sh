@@ -5,11 +5,17 @@
 set -euo pipefail
 
 IMAGE="${1:-grimoire:latest}"
+VERSION="${2:-0.0.0}"
 
 # Runs in the container as the user `node`. The schema comes from the server itself
 # (MIGRATE_ONLY); the source is a Git repository made on the spot, indexed by the real indexing process.
 read -r -d '' SMOKE <<'EOF' || true
 set -eu
+if [ "$GRIMOIRE_VERSION" != "$EXPECTED_VERSION" ]; then
+	echo "GRIMOIRE_VERSION is '$GRIMOIRE_VERSION', expected '$EXPECTED_VERSION'" >&2
+	exit 1
+fi
+echo 'version: ok'
 MIGRATE_ONLY=true node app/build
 
 fixture=/tmp/fixture
@@ -64,5 +70,6 @@ EOF
 docker run --rm \
 	--env TOKEN_ENCRYPTION_KEY="$(head -c 32 /dev/urandom | base64)" \
 	--env LOG_LEVEL=error \
+	--env EXPECTED_VERSION="$VERSION" \
 	--entrypoint sh \
 	"$IMAGE" -c "$SMOKE"

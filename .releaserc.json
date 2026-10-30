@@ -7,7 +7,7 @@
 		[
 			"@semantic-release/exec",
 			{
-				"prepareCmd": "make image && make image-smoke && docker tag grimoire:latest \"$DOCKERHUB_REPOSITORY:${nextRelease.version}\" && docker push \"$DOCKERHUB_REPOSITORY:${nextRelease.version}\""
+				"prepareCmd": "make image GRIMOIRE_VERSION=${nextRelease.version} && make image-smoke GRIMOIRE_VERSION=${nextRelease.version} && docker tag grimoire:latest \"$DOCKERHUB_REPOSITORY:${nextRelease.version}\" && docker push \"$DOCKERHUB_REPOSITORY:${nextRelease.version}\""
 			}
 		],
 		[

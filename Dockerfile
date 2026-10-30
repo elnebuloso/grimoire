@@ -21,6 +21,9 @@ COPY --from=build /grimoire/app/build app/build
 COPY scripts/reset-admin.ts scripts/
 COPY app/src/lib/server app/src/lib/server
 USER node
+# The release passes the version it tags; a local `make image` builds 0.0.0.
+ARG GRIMOIRE_VERSION=0.0.0
+ENV GRIMOIRE_VERSION=$GRIMOIRE_VERSION
 ENV DATABASE_PATH=/data/grimoire.db
 EXPOSE 3000
 CMD ["node", "app/build"]

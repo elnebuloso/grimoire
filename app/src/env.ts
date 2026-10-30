@@ -92,6 +92,11 @@ export const variables = defineEnvVars({
 			'Where grimoire is reached, such as `https://grimoire.example.com`; absolute links (mails, start page, `llms.txt`) point there, else to the address of the request; required with `SMTP_HOST`',
 		schema: parseBaseUrl
 	},
+	GRIMOIRE_VERSION: {
+		description:
+			'Release version of grimoire; the image sets it, operators leave it alone; default `0.0.0` in development',
+		schema: (value) => value?.trim() || '0.0.0'
+	},
 	INSTANCE_NAME: {
 		description:
 			'Name the instance shows to people and agents: header, page titles, mails, MCP server; default `grimoire`',

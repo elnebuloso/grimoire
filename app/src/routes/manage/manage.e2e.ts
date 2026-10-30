@@ -203,6 +203,12 @@ test('shows how to connect Claude Code to this instance', async ({ page }) => {
 		'href',
 		'https://github.com/elnebuloso/grimoire'
 	);
+	// `playwright.config.ts` runs the server as release 1.2.3.
+	await expect(page.locator('footer')).toContainText('grimoire 1.2.3');
+	await expect(page.getByRole('link', { name: '1.2.3' })).toHaveAttribute(
+		'href',
+		'https://github.com/elnebuloso/grimoire/releases/tag/v1.2.3'
+	);
 });
 
 test('leads through the management area with one navigation that marks the current page', async ({

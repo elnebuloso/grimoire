@@ -34,11 +34,14 @@ lint: ## Check formatting, lint rules and types
 format: ## Format the source code with Prettier
 	npm --prefix app run format
 
-image: ## Build the Docker image grimoire:latest
-	docker build --tag grimoire:latest .
+# The release sets it to the version it tags.
+GRIMOIRE_VERSION ?= 0.0.0
 
-image-smoke: ## Run the indexing worker and the reset script inside grimoire:latest (after make image)
-	scripts/image-smoke.sh grimoire:latest
+image: ## Build the Docker image grimoire:latest (GRIMOIRE_VERSION=… sets its version)
+	docker build --build-arg GRIMOIRE_VERSION=$(GRIMOIRE_VERSION) --tag grimoire:latest .
+
+image-smoke: ## Run the indexing worker and the reset script inside grimoire:latest and check its version (after make image)
+	scripts/image-smoke.sh grimoire:latest $(GRIMOIRE_VERSION)
 
 admin-reset: ## Delete the admin account after a lost password; asks for its email address
 	cd app && node --env-file=.env ../scripts/reset-admin.ts

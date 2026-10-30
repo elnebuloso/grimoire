@@ -68,7 +68,9 @@ export default defineConfig({
 				SMTP_PORT: '4125',
 				SMTP_ALLOW_PLAINTEXT: 'true',
 				SMTP_FROM: 'grimoire <grimoire@e2e.example>',
-				BASE_URL: 'http://localhost:4173'
+				BASE_URL: 'http://localhost:4173',
+				// A release version, so the footer links to its notes.
+				GRIMOIRE_VERSION: '1.2.3'
 			}
 		}
 	],

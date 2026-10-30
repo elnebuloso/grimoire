@@ -5,6 +5,7 @@
 	import BookOpen from '@lucide/svelte/icons/book-open';
 	import SegmentedSwitch from '#lib/components/SegmentedSwitch.svelte';
 	import favicon from '#lib/assets/favicon.svg';
+	import { releaseNotesUrl } from '#lib/release.js';
 	import { m } from '#lib/paraglide/messages.js';
 	import { getLocale, locales } from '#lib/paraglide/runtime.js';
 	import type { LayoutProps } from './$types';
@@ -17,6 +18,7 @@
 
 	// Pages with a single form, and the error page, sit in a narrow column.
 	const NARROW_ROUTES = ['/setup', '/login', '/login/forgot', '/login/reset/[token]', '/account'];
+	const releaseNotes = $derived(releaseNotesUrl(data.version));
 	const narrow = $derived(page.error !== null || NARROW_ROUTES.includes(page.route.id ?? ''));
 </script>
 
@@ -75,8 +77,13 @@
 <footer>
 	<div class="links">
 		<!-- The product, whatever INSTANCE_NAME calls this instance. -->
-		<span class="product">grimoire</span>
+		<span class="product"
+			>grimoire
+			<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- a page on GitHub -->
+			{#if releaseNotes}<a href={releaseNotes}>{data.version}</a>{:else}{data.version}{/if}</span
+		>
 		<a
+			class="icon"
 			href="https://github.com/elnebuloso/grimoire"
 			aria-label={m.footer_github()}
 			title={m.footer_github()}
@@ -89,6 +96,7 @@
 			</svg>
 		</a>
 		<a
+			class="icon"
 			href="https://elnebuloso.github.io/grimoire/"
 			aria-label={m.footer_docs()}
 			title={m.footer_docs()}
@@ -169,7 +177,7 @@
 		padding-top: var(--s3);
 		border-top: 1px solid var(--line);
 	}
-	footer a {
+	footer .icon {
 		display: inline-grid;
 		place-items: center;
 		min-width: 32px;
@@ -184,7 +192,12 @@
 		font-weight: 500;
 		letter-spacing: -0.01em;
 	}
-	footer a:hover {
+	.product a {
+		color: inherit;
+		font-weight: 400;
+	}
+	.product a:hover,
+	footer .icon:hover {
 		color: var(--accent);
 	}
 
@@ -203,7 +216,7 @@
 		.session :is(button, .button) {
 			min-height: 44px;
 		}
-		footer a {
+		footer .icon {
 			min-width: 44px;
 			min-height: 44px;
 		}
