@@ -1,10 +1,11 @@
 ---
 id: TASK-113
 title: 'Optional SMTP settings for sending mail, with a mail catcher in dev and e2e'
-status: To Do
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-30 08:18'
+updated_date: '2026-10-30 08:34'
 labels:
   - admin
 milestone: m-0
@@ -28,9 +29,34 @@ The reset by mail needs a way to send mail, and nothing in grimoire sends mail y
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 SMTP is configured through optional variables in `app/src/env.ts` (at least host, port, user, password, sender address); with none set, the app starts and runs as today
-- [ ] #2 A server module sends a mail when SMTP is configured and reports that mail is unavailable otherwise; a failed send is logged without the password and does not crash the request
-- [ ] #3 `make dev` and `make e2e` can run with a mail catcher that receives the mails, with a documented way to start it
-- [ ] #4 The handbook documents the SMTP variables (`docs/handbook/docker.md` or the page that lists the other variables); `make handbook` builds
-- [ ] #5 Tests cover the configured and the unconfigured case; `make lint` and `make test` pass
+- [x] #1 SMTP is configured through optional variables in `app/src/env.ts` (at least host, port, user, password, sender address); with none set, the app starts and runs as today
+- [x] #2 A server module sends a mail when SMTP is configured and reports that mail is unavailable otherwise; a failed send is logged without the password and does not crash the request
+- [x] #3 `make dev` and `make e2e` can run with a mail catcher that receives the mails, with a documented way to start it
+- [x] #4 The handbook documents the SMTP variables (`docs/handbook/docker.md` or the page that lists the other variables); `make handbook` builds
+- [x] #5 Tests cover the configured and the unconfigured case; `make lint` and `make test` pass
 <!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. `nodemailer` 10.1.1 (2026-10-14) and `@types/nodemailer` 8.0.2 (latest; no types for 10 yet), pinned.
+2. `app/src/lib/server/mail/smtp.ts` (no env import, like `sync/schedule.ts`): `parseSmtpPort`, `createMailer(settings)` -> undefined without host, throws without sender, `send` returns false and logs on failure. `mail/index.ts`: `mailer()` built once from `/env/private`; `init` calls it so incomplete settings stop the start.
+3. `SMTP_HOST`, `SMTP_PORT` (default 587, 465 = TLS), `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM` in `app/src/env.ts`, `app/.env.example`, `docs/handbook/docker.md`.
+4. Mailpit `axllent/mailpit:v1.31.6` (2026-10-15): `make mail-catcher` for `make dev` (1025/8025); `make e2e` starts its own as a second Playwright web server (4125/4825) and passes the SMTP variables to the server.
+5. Unit tests with a mocked transport; live check against Mailpit.
+<!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Playwright ends web servers with SIGKILL unless `gracefulShutdown` is set; killed that way, `docker run` left the Mailpit container running. With `gracefulShutdown: { signal: 'SIGTERM' }` the container is gone after the run, and the command removes a leftover one first. With two web servers Playwright no longer derives `baseURL` from the port, so it is set in `use`.
+`make e2e` needs Docker now (CI's ubuntu runner has it).
+The agent environment (`scripts/agent-env.sh`) has no SMTP settings yet; TASK-114 may add them when it needs to try the reset by hand.
+Verified: unit tests for configured, unconfigured, port 465, failed send (logged without the password), port parsing; a temporary test sent through `createMailer` to `make mail-catcher` and the mail showed in Mailpit's API, an unreachable server returned false and was logged; the built server refuses to start with `SMTP_HOST` but no `SMTP_FROM` and starts as before without SMTP; make lint, make test (571), make e2e (17, container removed afterwards), make handbook.
+<!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+grimoire can send mail through an SMTP server set by `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD` and `SMTP_FROM`; without `SMTP_HOST` it runs as before and `mailer()` returns undefined, with a host but no sender it does not start. Sending goes through `nodemailer`; failures are logged and reported as false. `make mail-catcher` runs Mailpit for `make dev`; `make e2e` starts its own Mailpit and points the server at it. Documented in `app/.env.example`, `docs/handbook/docker.md` and the README.
+<!-- SECTION:FINAL_SUMMARY:END -->

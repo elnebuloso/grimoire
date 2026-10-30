@@ -42,18 +42,35 @@ if (!existsSync(repository)) {
 }
 
 export default defineConfig({
-	webServer: {
-		command: `npm run build && node build > ${join(directory, 'server.log')} 2>&1`,
-		port: 4173,
-		env: {
-			PORT: '4173',
-			DATABASE_PATH: join(directory, 'grimoire.db'),
-			TOKEN_ENCRYPTION_KEY: Buffer.alloc(32, 7).toString('base64'),
-			PROTOCOL_HEADER: 'x-forwarded-proto',
-			GIT_CONFIG_GLOBAL: gitConfig
+	webServer: [
+		// Receives the mails the server sends; tests read them at http://localhost:4825/api/v1.
+		// Ports beside those of `make mail-catcher`, so both can run at once.
+		{
+			// Removes a container an aborted run left behind, which would hold the name and ports.
+			command:
+				'docker rm -f grimoire-e2e-mail-catcher >/dev/null 2>&1; docker run --rm --name grimoire-e2e-mail-catcher -p 4125:1025 -p 4825:8025 axllent/mailpit:v1.31.6',
+			url: 'http://localhost:4825/livez',
+			// The first run pulls the image.
+			timeout: 120_000,
+			// Killed outright, docker run would leave the container running; it passes TERM on.
+			gracefulShutdown: { signal: 'SIGTERM', timeout: 10_000 }
+		},
+		{
+			command: `npm run build && node build > ${join(directory, 'server.log')} 2>&1`,
+			port: 4173,
+			env: {
+				PORT: '4173',
+				DATABASE_PATH: join(directory, 'grimoire.db'),
+				TOKEN_ENCRYPTION_KEY: Buffer.alloc(32, 7).toString('base64'),
+				PROTOCOL_HEADER: 'x-forwarded-proto',
+				GIT_CONFIG_GLOBAL: gitConfig,
+				SMTP_HOST: 'localhost',
+				SMTP_PORT: '4125',
+				SMTP_FROM: 'grimoire <grimoire@e2e.example>'
+			}
 		}
-	},
+	],
 	// grimoire assumes https; without this header every admin form fails the origin check.
-	use: { extraHTTPHeaders: { 'x-forwarded-proto': 'http' } },
+	use: { baseURL: 'http://localhost:4173', extraHTTPHeaders: { 'x-forwarded-proto': 'http' } },
 	testMatch: '**/*.e2e.{ts,js}'
 });

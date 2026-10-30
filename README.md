@@ -100,7 +100,8 @@ variables, the volume for the SQLite file, the sync schedule and backups in
 `make e2e` the browser tests of the management area against the production build (both download
 Chromium on first use), `make lint` checks formatting, lint rules and types. `make storybook`
 opens the component catalog; [.claude/rules/ui-components.md](.claude/rules/ui-components.md) says
-how components and their stories are written.
+how components and their stories are written. `make mail-catcher` receives the mails of `make dev`
+(see `app/.env.example`); `make e2e` starts its own. Both need Docker.
 
 Commits follow [Conventional Commits](https://www.conventionalcommits.org). Releases are cut from
 them by the `CI` workflow on every push to `main`, once lint, unit and browser tests passed:

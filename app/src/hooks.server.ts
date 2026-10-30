@@ -9,6 +9,7 @@ import { LOG_FORMAT, LOG_LEVEL, MIGRATE_ONLY } from '$app/env/private';
 import { database } from '#lib/server/db/index.js';
 import { configureLog, log, routeConsoleToLog } from '#lib/server/log.js';
 import { startSyncPolling } from '#lib/server/sync/index.js';
+import { mailer } from '#lib/server/mail/index.js';
 import { accessRedirect, checkAdminAccount, SESSION_COOKIE } from '#lib/server/admin/auth.js';
 import { getTextDirection } from '#lib/paraglide/runtime.js';
 import { paraglideMiddleware } from '#lib/paraglide/server.js';
@@ -25,6 +26,8 @@ export const init: ServerInit = () => {
 	}
 	// Logs the setup token right away when there is no admin account yet.
 	checkAdminAccount(db);
+	// Fails the start on incomplete SMTP settings instead of at the first mail.
+	mailer();
 	startSyncPolling();
 };
 

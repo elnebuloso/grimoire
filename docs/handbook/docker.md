@@ -131,6 +131,10 @@ quota, and syncs take correspondingly longer.
 | `INCLUDE_URL_ALLOW` | not set (none) | Origins pages may include files from by URL. |
 | `LOG_FORMAT` | not set (`ecs`) | `ecs` for one JSON object per line, `pretty` for readable text. |
 | `LOG_LEVEL` | not set (`info`) | Lowest level that is written: `error`, `warn`, `info` or `debug`. |
+| `SMTP_HOST` | not set (no mail) | SMTP server grimoire sends mail through. Not set: no mail is sent, and what needs it is not offered. |
+| `SMTP_PORT` | not set (`587`) | Port of the SMTP server; `465` uses TLS from the start, other ports STARTTLS when the server offers it. |
+| `SMTP_USER`, `SMTP_PASSWORD` | not set | Login at the SMTP server; without `SMTP_USER` grimoire sends without logging in. |
+| `SMTP_FROM` | not set | Sender address of the mails, such as `grimoire <grimoire@example.com>`; required with `SMTP_HOST`, the server does not start without it. |
 | `MIGRATE_ONLY` | `false` | With `true`, update the schema and exit, e.g. in an init container. |
 | `PORT` | `3000` | Port the server listens on. |
 | `PROTOCOL_HEADER`, `ADDRESS_HEADER` | not set | Behind a reverse proxy, the headers carrying the original protocol and client address (see [Management area](admin.md#logging-in)). |

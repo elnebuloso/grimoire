@@ -5,6 +5,7 @@ import { parseSchedule } from '#lib/server/sync/schedule.js';
 import { parseAllowedOrigins } from '#lib/server/sync/url-include.js';
 import { parseLogFormat, parseLogLevel } from '#lib/server/log.js';
 import { parseTimeZone } from '#lib/time-zone.js';
+import { parseSmtpPort } from '#lib/server/mail/smtp.js';
 
 export const variables = defineEnvVars({
 	DATABASE_PATH: {
@@ -44,6 +45,29 @@ export const variables = defineEnvVars({
 		description:
 			'`ecs` writes one JSON object per line in the Elastic Common Schema, `pretty` readable text for local development; default `ecs`',
 		schema: parseLogFormat
+	},
+	SMTP_HOST: {
+		description:
+			'SMTP server grimoire sends mail through, such as password reset links; empty: no mail is sent and the functions that need it are not offered',
+		schema: (value) => value ?? ''
+	},
+	SMTP_PORT: {
+		description:
+			'Port of the SMTP server; 465 uses TLS from the start, others STARTTLS when offered; default 587',
+		schema: parseSmtpPort
+	},
+	SMTP_USER: {
+		description: 'User name at the SMTP server; empty: send without logging in',
+		schema: (value) => value ?? ''
+	},
+	SMTP_PASSWORD: {
+		description: 'Password of `SMTP_USER`',
+		schema: (value) => value ?? ''
+	},
+	SMTP_FROM: {
+		description:
+			'Sender address of the mails, such as `grimoire <grimoire@example.com>`; required with `SMTP_HOST`',
+		schema: (value) => value ?? ''
 	},
 	LOG_LEVEL: {
 		description: 'Lowest level that is written: `error`, `warn`, `info` or `debug`; default `info`',
