@@ -23,8 +23,8 @@ they ask for less.
 
 ### The admin area
 
-- **Accounts are users**, any number of them, each with a unique username and their own password
-  hash. The first one is created by the setup on first start.
+- **Accounts are users**, any number of them, each with a unique email address they log in with
+  and their own password hash. The first one is created by the setup on first start.
 - **A user has any number of roles**, stored as one row per user and role. The roles that exist
   are defined in the code; the schema accepts only those, so a new role is a new migration. Today
   there is one: `admin`, which manages everything in the admin area.
