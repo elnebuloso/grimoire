@@ -104,7 +104,7 @@ It sits in the header of every page, next to the language switch. Both use the s
 ## Components
 
 - **Header.** It sits on the canvas, not on a sheet. On the left is the wordmark "grimoire" linking to the start page. On the right are the session links ("Logged in as" + email, "Manage", "Log out") followed by the Language and Theme switches. "Manage" is a link that looks exactly like the "Log out" button: a raised control, ink colour, no underline.
-- **Footer.** It sits on the canvas below the content, as wide as the header, separated by a `--line` rule. It holds icon links only: the GitHub repository and the documentation, side by side at the end of the line.
+- **Footer.** It sits on the canvas below the content, as wide as the header, separated by a `--line` rule. It holds the product name "grimoire" at the start of the line, 13px, weight 500, `--ink-2`, whatever `INSTANCE_NAME` calls the instance, and the icon links to the GitHub repository and the documentation side by side at the end.
 - **Icons.**
   - Line icons from Lucide (`@lucide/svelte`), imported one by one; brand marks Lucide lacks, such as the GitHub mark, as an inline SVG in the same box.
   - 20px, stroke width 2, `currentColor`: `--ink-2` at rest, `--accent` on hover, with the transition. The hit area is at least 32px, 44px at `pointer: coarse`.

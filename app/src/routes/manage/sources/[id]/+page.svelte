@@ -90,7 +90,11 @@
 					<DateTime value={data.nextCheck} timeZone={data.timeZone} />
 				</p>
 			{/if}
-			<ChoiceField name="public" checked={values.public} label={m.field_public({ name: data.instanceName })} />
+			<ChoiceField
+				name="public"
+				checked={values.public}
+				label={m.field_public({ name: data.instanceName })}
+			/>
 			<ChoiceField name="paused" checked={values.paused} label={m.field_paused()} />
 			<div class="fields">
 				<TextField label={m.field_username()} name="username" value={values.username} />

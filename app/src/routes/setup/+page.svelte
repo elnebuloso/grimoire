@@ -8,7 +8,9 @@
 	let { data, form }: PageProps = $props();
 </script>
 
-<PageHead title={m.setup_title({ name: data.instanceName })} namesInstance><p>{m.setup_intro()}</p></PageHead>
+<PageHead title={m.setup_title({ name: data.instanceName })} namesInstance
+	><p>{m.setup_intro()}</p></PageHead
+>
 
 <section class="sheet">
 	<form method="post">

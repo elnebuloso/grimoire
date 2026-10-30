@@ -74,6 +74,8 @@
 
 <footer>
 	<div class="links">
+		<!-- The product, whatever INSTANCE_NAME calls this instance. -->
+		<span class="product">grimoire</span>
 		<a
 			href="https://github.com/elnebuloso/grimoire"
 			aria-label={m.footer_github()}
@@ -162,7 +164,7 @@
 	/* The rule runs as wide as the sheets, not into the padding of the footer. */
 	.links {
 		display: flex;
-		justify-content: flex-end;
+		align-items: center;
 		gap: var(--s2);
 		padding-top: var(--s3);
 		border-top: 1px solid var(--line);
@@ -174,6 +176,13 @@
 		min-height: 32px;
 		color: var(--ink-2);
 		transition: color var(--t);
+	}
+	.product {
+		margin-inline-end: auto;
+		color: var(--ink-2);
+		font-size: 13px;
+		font-weight: 500;
+		letter-spacing: -0.01em;
 	}
 	footer a:hover {
 		color: var(--accent);
