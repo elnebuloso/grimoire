@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import ConfirmForm from '#lib/components/ConfirmForm.svelte';
+	import DateTime from '#lib/components/DateTime.svelte';
 	import FormError from '#lib/components/FormError.svelte';
 	import SlugChangeForm from '#lib/components/SlugChangeForm.svelte';
 	import TextField from '#lib/components/TextField.svelte';
@@ -50,6 +51,19 @@
 				})}{source.paused ? `, ${m.paused()}` : ''}
 				{#if source.docsUrl}
 					– <a href={source.docsUrl} rel="external">{m.source_docs_link()}</a>
+				{/if}
+				–
+				{#if source.health.lastSyncedAt}
+					{m.source_last_sync()}:
+					<DateTime value={source.health.lastSyncedAt} timeZone={data.timeZone} />
+				{:else}
+					{m.admin_never_synced()}
+				{/if}
+				{#if source.health.error}– {m.admin_sync_error({ error: source.health.error })}{/if}
+				{#if source.health.warnings.length > 0}
+					– {source.health.warnings.length === 1
+						? m.project_source_warning()
+						: m.project_source_warnings({ count: source.health.warnings.length })}
 				{/if}
 			</li>
 		{/each}

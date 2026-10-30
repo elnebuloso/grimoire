@@ -213,5 +213,7 @@
 	"source_history_runs": "{runs} runs",
 	"source_history_synced": "synced",
 	"source_history_unchanged": "unchanged",
-	"source_history_failed": "failed"
+	"source_history_failed": "failed",
+	"project_source_warning": "1 sync warning",
+	"project_source_warnings": "{count} sync warnings"
 }

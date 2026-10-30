@@ -10,6 +10,7 @@ import {
 	saveProject,
 	type Project
 } from '#lib/server/admin/projects.js';
+import { sourceHealth } from '#lib/server/admin/status.js';
 
 // `/manage/projects/new` is the wizard's own route.
 function projectFor(param: string): Project {
@@ -21,7 +22,14 @@ function projectFor(param: string): Project {
 
 export const load: PageServerLoad = ({ params }) => {
 	const project = projectFor(params.id);
-	return { project, sources: listSources(database(), project.id) };
+	const health = new Map(sourceHealth(database(), project.id).map((h) => [h.sourceId, h]));
+	return {
+		project,
+		sources: listSources(database(), project.id).map((source) => ({
+			...source,
+			health: health.get(source.id)!
+		}))
+	};
 };
 
 export const actions = {

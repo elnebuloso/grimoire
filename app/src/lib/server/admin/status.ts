@@ -145,21 +145,50 @@ export interface Totals {
 	apiKeys: number;
 }
 
-export interface SourceNeedingAttention {
+/** The sync state of a source, as the dashboard and the project page show it. */
+export interface SourceHealth {
 	projectId: number;
 	project: string;
 	sourceId: number;
 	source: string;
+	lastSyncedAt: string | null;
 	neverSynced: boolean;
 	error: string | null;
 	warnings: string[];
+}
+
+/** Whether a source belongs in the dashboard's "needs attention" list. */
+export function needsAttention(health: SourceHealth): boolean {
+	return health.neverSynced || health.error !== null || health.warnings.length > 0;
+}
+
+/** The sync state of every source, or of the sources of one project, by project and source slug. */
+export function sourceHealth(db: DatabaseSync, projectId?: number): SourceHealth[] {
+	const rows = db
+		.prepare(
+			`SELECT projects.id AS projectId, projects.slug AS project, sources.id AS sourceId,
+				sources.slug AS source, sources.last_synced_at AS lastSyncedAt, sources.error,
+				sources.warnings
+			FROM sources JOIN projects ON projects.id = sources.project_id
+			WHERE :project IS NULL OR projects.id = :project
+			ORDER BY projects.slug, sources.slug`
+		)
+		.all({ project: projectId ?? null }) as unknown as (Omit<
+		SourceHealth,
+		'neverSynced' | 'warnings'
+	> & { warnings: string })[];
+	return rows.map((row) => ({
+		...row,
+		neverSynced: row.lastSyncedAt === null,
+		warnings: JSON.parse(row.warnings) as string[]
+	}));
 }
 
 export interface Dashboard {
 	totals: Totals;
 	projects: ProjectStats[];
 	/** Sources with a sync error, sync warnings, or no sync yet. */
-	attention: SourceNeedingAttention[];
+	attention: SourceHealth[];
 }
 
 export function dashboard(db: DatabaseSync): Dashboard {
@@ -169,21 +198,6 @@ export function dashboard(db: DatabaseSync): Dashboard {
 	const { apiKeys } = db.prepare('SELECT count(*) AS apiKeys FROM api_keys').get() as {
 		apiKeys: number;
 	};
-	const rows = db
-		.prepare(
-			`SELECT projects.id AS projectId, projects.slug AS project, sources.id AS sourceId,
-				sources.slug AS source, sources.last_synced_at IS NULL AS neverSynced, sources.error,
-				sources.warnings
-			FROM sources JOIN projects ON projects.id = sources.project_id
-			WHERE sources.error IS NOT NULL OR sources.warnings != '[]'
-				OR sources.last_synced_at IS NULL
-			ORDER BY projects.slug, sources.slug`
-		)
-		.all() as unknown as (Omit<SourceNeedingAttention, 'neverSynced' | 'warnings'> & {
-		neverSynced: number;
-		warnings: string;
-	})[];
-
 	return {
 		totals: {
 			projects: projects.length,
@@ -195,10 +209,6 @@ export function dashboard(db: DatabaseSync): Dashboard {
 			apiKeys
 		},
 		projects,
-		attention: rows.map((row) => ({
-			...row,
-			neverSynced: row.neverSynced === 1,
-			warnings: JSON.parse(row.warnings) as string[]
-		}))
+		attention: sourceHealth(db).filter(needsAttention)
 	};
 }

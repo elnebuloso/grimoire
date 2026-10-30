@@ -107,6 +107,32 @@ describe('project page', () => {
 		});
 	});
 
+	it('lists each source with its sync state', async () => {
+		addProject('platform');
+		await thrown(() => saveSource('1', 'new', SOURCE));
+		await thrown(() => saveSource('1', 'new', { ...SOURCE, name: 'Billing' }));
+		db.prepare(
+			`UPDATE sources SET last_synced_at = '2026-10-30T10:00:00.000Z', error = 'denied',
+				warnings = '["a.md: skipped"]' WHERE id = 1`
+		).run();
+
+		const { sources } = projectPage.load({ params: { id: '1' } } as never) as {
+			sources: { id: number; health: object }[];
+		};
+		expect(sources.map((source) => [source.id, source.health])).toEqual([
+			[
+				1,
+				expect.objectContaining({
+					lastSyncedAt: '2026-10-30T10:00:00.000Z',
+					neverSynced: false,
+					error: 'denied',
+					warnings: ['a.md: skipped']
+				})
+			],
+			[2, expect.objectContaining({ lastSyncedAt: null, neverSynced: true, error: null })]
+		]);
+	});
+
 	it('answers a missing name with 400, the message and the entered values', async () => {
 		addProject('platform');
 		const result = await saveProject('1', { name: ' ', description: 'again' });

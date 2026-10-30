@@ -3,7 +3,7 @@ import type { DatabaseSync } from 'node:sqlite';
 import { openDatabase } from '../db/schema';
 import { readById } from '../agent/operations';
 import { parseGrimoireId } from '../grimoire-id';
-import { dashboard, previewPage, sourceStatus } from './status';
+import { dashboard, needsAttention, previewPage, sourceHealth, sourceStatus } from './status';
 
 let db: DatabaseSync;
 
@@ -201,6 +201,7 @@ describe('dashboard', () => {
 				project: 'docs',
 				sourceId: 3,
 				source: 'broken',
+				lastSyncedAt: '2026-10-28T10:00:00Z',
 				neverSynced: false,
 				error: 'git ls-remote failed',
 				warnings: []
@@ -210,6 +211,7 @@ describe('dashboard', () => {
 				project: 'docs',
 				sourceId: 4,
 				source: 'noisy',
+				lastSyncedAt: '2026-10-28T10:00:00Z',
 				neverSynced: false,
 				error: null,
 				warnings: ['docs/a.md: skipped, bad front matter']
@@ -219,6 +221,7 @@ describe('dashboard', () => {
 				project: 'platform',
 				sourceId: 1,
 				source: 'auth',
+				lastSyncedAt: null,
 				neverSynced: true,
 				error: null,
 				warnings: []
@@ -228,11 +231,28 @@ describe('dashboard', () => {
 				project: 'platform',
 				sourceId: 2,
 				source: 'billing',
+				lastSyncedAt: null,
 				neverSynced: true,
 				error: null,
 				warnings: []
 			}
 		]);
+	});
+
+	it('gives the sync state of every source of one project, healthy ones included', () => {
+		expect(
+			sourceHealth(db, 2).map(({ source, neverSynced, error, warnings }) => ({
+				source,
+				neverSynced,
+				error,
+				warnings: warnings.length
+			}))
+		).toEqual([
+			{ source: 'broken', neverSynced: false, error: 'git ls-remote failed', warnings: 0 },
+			{ source: 'fine', neverSynced: false, error: null, warnings: 0 },
+			{ source: 'noisy', neverSynced: false, error: null, warnings: 1 }
+		]);
+		expect(sourceHealth(db).filter(needsAttention)).toEqual(dashboard(db).attention);
 	});
 
 	it('lists the projects with the figures of the public start page', () => {

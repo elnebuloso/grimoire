@@ -130,6 +130,10 @@ and API keys, and lists under "Needs attention" every source with a sync error, 
 no sync yet, linked to its page. Below that, each project shows the same figures as the public
 start page.
 
+The page of a project lists its sources each with the time of its last sync, or "never synced",
+and with its sync error and the number of its warnings, so a failing source shows without opening
+every one.
+
 The page of a source shows when it was last checked and synced, the commit, and how many pages,
 snippets and tokens it holds. A sync that failed shows its error; the index of the last
 successful sync stays in use until the next one succeeds. Pages that could not be processed are
