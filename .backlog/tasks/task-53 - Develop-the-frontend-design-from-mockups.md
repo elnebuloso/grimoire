@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@claude'
 created_date: '2026-10-29T06:55:00Z'
-updated_date: '2026-10-30 18:17'
+updated_date: '2026-10-30 18:25'
 labels:
   - admin
 milestone: m-0
@@ -61,4 +61,6 @@ Round 2 built: d/1 (Swiss Modernism 2.0), e/1 (Soft UI Evolution), f/1 (Flat Des
 Round 2 choice: the developer likes e/1 (Soft UI Evolution) best. d/1 and f/1 are not pursued; e is the line to develop.
 
 Round 3 requested: e/2 = e/1 refined with the missing states (global pause, never synced, sync warnings, stored/entered token, empty page filter, copy status; added to SPEC.md); variations of e/2 with one change each: e/3 sidebar navigation, e/4 denser, e/5 different accent, e/6 cooler palette.
+
+Round 3 built: e/2 (all missing states, dark input border raised to 3:1 on raised surfaces), e/3 sidebar nav (CSS only), e/4 denser (spacing 2-32, controls 34px, 44px on coarse pointers), e/5 ink-blue accent (#2A4596 / #9FB5F2; ochre rejected as too close to the warning colour), e/6 cool neutrals with petrol shifted to #0C5876 / #7FC2DD. Playwright: 690 page states in light and dark, 0 contrast failures, no overflow at 390, 900 and 1366 px, theme kept across pages. Waiting for the developer's choice.
 <!-- SECTION:NOTES:END -->
