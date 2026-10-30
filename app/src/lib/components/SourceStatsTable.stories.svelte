@@ -12,6 +12,7 @@
 		slug: 'platform-docs',
 		name: 'Platform docs',
 		description: 'Platform team handbook',
+		public: false,
 		pages: 7,
 		snippets: 24,
 		tokens: 3120,
@@ -68,8 +69,23 @@
 	args={{ timeZone: 'UTC', sources: [{ ...synced, error: true, deadLinks: 3 }] }}
 	play={async ({ canvas }) => {
 		const cells = canvas.getAllByRole('cell');
-		await expect(cells[4]).toHaveTextContent('yes');
-		await expect(cells[5]).toHaveTextContent('3');
+		await expect(cells[5]).toHaveTextContent('yes');
+		await expect(cells[6]).toHaveTextContent('3');
+	}}
+/>
+
+<Story
+	name="Public and private"
+	args={{
+		timeZone: 'UTC',
+		sources: [
+			synced,
+			{ ...synced, id: 2, slug: 'billing-docs', name: 'Billing docs', public: true }
+		]
+	}}
+	play={async ({ canvas }) => {
+		await expect(canvas.getByRole('row', { name: /platform-docs/ })).toHaveTextContent('private');
+		await expect(canvas.getByRole('row', { name: /billing-docs/ })).toHaveTextContent('public');
 	}}
 />
 

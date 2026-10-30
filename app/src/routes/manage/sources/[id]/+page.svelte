@@ -204,6 +204,7 @@
 	{#if data.nextCheck}
 		<p>{m.source_next_check()} <DateTime value={data.nextCheck} timeZone={data.timeZone} /></p>
 	{/if}
+	<ChoiceField name="public" checked={values.public} label={m.field_public()} />
 	<ChoiceField name="paused" checked={values.paused} label={m.field_paused()} />
 	<TextField label={m.field_username()} name="username" value={values.username} />
 	<TextField

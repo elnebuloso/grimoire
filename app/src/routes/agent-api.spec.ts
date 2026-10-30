@@ -132,6 +132,53 @@ describe('every route', () => {
 	});
 });
 
+describe('public sources', () => {
+	beforeEach(() => {
+		db.prepare("UPDATE sources SET public = 1 WHERE slug = 'platform-docs'").run();
+	});
+
+	it('lists, searches and reads only the public sources without a key', async () => {
+		expect((await get(sources, '/sources', {}, null)).body).toBe(
+			'- platform-docs: Login and gateway'
+		);
+
+		const found = await get(query, '/query?q=rollback', {}, null);
+		expect(found.body).toContain('Source: platform-docs/run books/deploy#rollback');
+		expect(found.body).not.toContain('billing-docs');
+
+		const hidden = await get(
+			sourceIndex,
+			'/sources/billing-docs',
+			{ source: 'billing-docs' },
+			null
+		);
+		expect(hidden.status).toBe(404);
+		const page = await get(
+			sourceIndex,
+			'/sources/platform-docs',
+			{ source: 'platform-docs' },
+			null
+		);
+		expect(page.status).toBe(200);
+	});
+
+	it('adds the public sources to a key limited to others', async () => {
+		const listed = await get(sources, '/sources', {}, billingKey);
+
+		expect(listed.body).toBe('- billing-docs\n- platform-docs: Login and gateway');
+	});
+
+	it('still rejects an unknown key', async () => {
+		expect((await get(sources, '/sources', {}, 'grimoire_unknown')).status).toBe(401);
+	});
+
+	it('does not record a query without a key that found nothing', async () => {
+		await get(query, '/query?q=kubernetes', {}, null);
+
+		expect(listMissedQueries(db)).toEqual([]);
+	});
+});
+
 describe('GET /sources', () => {
 	it('lists only the sources in the key scope', async () => {
 		expect((await get(sources, '/sources')).body).toBe(
@@ -296,7 +343,7 @@ describe('POST /mcp', () => {
 		return mcp({ request } as never);
 	}
 
-	async function tool(name: string, args: object = {}, key = allKey) {
+	async function tool(name: string, args: object = {}, key: string | null = allKey) {
 		const { result } = await (await call('tools/call', { name, arguments: args }, key)).json();
 		return { error: result.isError as boolean, text: result.content[0].text as string };
 	}
@@ -308,6 +355,12 @@ describe('POST /mcp', () => {
 			expect(response.status).toBe(401);
 			expect(response.headers.get('WWW-Authenticate')).toBe('Bearer');
 		}
+	});
+
+	it('answers without a key within the public sources once there is one', async () => {
+		db.prepare("UPDATE sources SET public = 1 WHERE slug = 'billing-docs'").run();
+
+		expect(await tool('sources', {}, null)).toEqual({ error: false, text: '- billing-docs' });
 	});
 
 	it('sends the agent instructions on initialize', async () => {

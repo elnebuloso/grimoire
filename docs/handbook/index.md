@@ -14,7 +14,7 @@ and agents change it there, and grimoire only reads it.
 |---|---|---|
 | Operator | Runs the container, sets its environment, keeps the database and its backups. | [Running grimoire](docker.md), [Database](database.md) |
 | Admin | Sets up sources and API keys in the management area, watches syncs. | [Management area](admin.md) |
-| Agent developer | Connects an agent with an API key. | [Connecting agents](agents.md) |
+| Agent developer | Connects an agent, with an API key for private sources. | [Connecting agents](agents.md) |
 | Author | Writes the documentation in Git, as a person or an agent. | [Writing documentation](writing.md) |
 
 In a small team one person often holds several roles; each page is written for one of them.
@@ -30,8 +30,9 @@ Git repository ──sync──▶ source ─┴─▶ search, read ──▶ ag
 
 - Source: one Git repository, one branch and one path in it, such as `docs/` on `main`, with a
   name and a slug such as `auth-service`. Two documentation paths in one repository are two
-  sources. Agents search all sources or name the ones they want; an API key opens all sources or
-  a selection.
+  sources. Agents search all sources or name the ones they want.
+- Public or private: a public source can be searched and read without an API key; a private one
+  only with a key that opens all sources or that one. A new source is private.
 - Sync: grimoire checks every source on a schedule and reads it again when its branch moved.
   Until a sync is complete, agents get answers from the previous one.
 - Snippet: one heading with the text below it. Agents get snippets, never whole pages, unless

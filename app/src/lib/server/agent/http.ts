@@ -20,16 +20,23 @@ export function markdownResponse(markdown: string, status = 200, headers: Header
 
 /**
  * The scope of the `Authorization: Bearer <key>` of a request, or undefined when the key is
- * missing, unknown or expired.
+ * unknown or expired. Without a key, the request sees the public sources; undefined while there
+ * is none, so an instance without public sources asks for a key as before.
  */
 export function scopeForRequest(
 	db: DatabaseSync,
 	request: Request
 ): { scope: SourceScope } | undefined {
-	const key = request.headers.get('Authorization')?.match(/^Bearer (.+)$/i)?.[1];
+	const authorization = request.headers.get('Authorization');
+	if (authorization === null) return hasPublicSource(db) ? { scope: 'public' } : undefined;
+	const key = authorization.match(/^Bearer (.+)$/i)?.[1];
 	if (!key) return undefined;
 	const now = new Date();
 	return scopeForKey(db, key, { now, today: dateIn(TZ, now) });
+}
+
+function hasPublicSource(db: DatabaseSync): boolean {
+	return db.prepare('SELECT 1 FROM sources WHERE public = 1 LIMIT 1').get() !== undefined;
 }
 
 /** The 401 for a request without a valid API key. */
@@ -43,9 +50,10 @@ export function unauthorizedResponse(): Response {
 export class InvalidRequestError extends Error {}
 
 /**
- * Answers an agent request: rejects it without a valid `Authorization: Bearer <key>`, otherwise
- * runs the operation within the key's scope. A result that was not found becomes a 404, an
- * `InvalidRequestError` a 400, and any other error is logged and becomes a 500.
+ * Answers an agent request: rejects an invalid `Authorization: Bearer <key>`, otherwise runs the
+ * operation within the key's scope, or within the public sources for a request without a key. A
+ * result that was not found becomes a 404, an `InvalidRequestError` a 400, and any other error is
+ * logged and becomes a 500.
  */
 export function agentResponse(
 	request: Request,

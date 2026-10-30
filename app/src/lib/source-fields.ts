@@ -11,6 +11,8 @@ export interface SourceFields {
 	exclusions: string;
 	schedule: string;
 	paused: boolean;
+	/** Readable without an API key. */
+	public: boolean;
 	username: string;
 }
 
@@ -24,6 +26,7 @@ export const NEW_SOURCE_FIELDS: SourceFields = {
 	exclusions: '',
 	schedule: '',
 	paused: false,
+	public: false,
 	username: ''
 };
 
@@ -39,6 +42,7 @@ export interface StoredSourceFields {
 	exclusions: string[];
 	schedule: string | null;
 	paused: boolean;
+	public: boolean;
 	username: string | null;
 }
 
@@ -54,6 +58,7 @@ export function toSourceFields(source: StoredSourceFields): SourceFields {
 		exclusions: source.exclusions.join('\n'),
 		schedule: source.schedule ?? '',
 		paused: source.paused,
+		public: source.public,
 		username: source.username ?? ''
 	};
 }
@@ -70,6 +75,7 @@ export function readSourceFields(data: FormData): SourceFields {
 		exclusions: field('exclusions'),
 		schedule: field('schedule'),
 		paused: data.get('paused') === 'on',
+		public: data.get('public') === 'on',
 		username: field('username')
 	};
 }

@@ -56,8 +56,8 @@ Create a source with **New source** on `Manage > Overview`.
 
 !!! note "Public"
     The start page `/` shows every source's name, slug and short description without a login,
-    with its counts of pages, snippets, tokens and dead links, its last sync and whether it has a
-    sync error. It shows neither Git URLs nor error texts.
+    with whether it is public or private, its counts of pages, snippets, tokens and dead links, its
+    last sync and whether it has a sync error. It shows neither Git URLs nor error texts.
 
 To serve two paths of one repository, add it twice, as two sources, and name each for what it
 holds, such as `Billing API` and `Billing runbooks`.
@@ -71,6 +71,7 @@ holds, such as `Billing API` and `Billing runbooks`.
 | **Path in the repository** | Relative to the repository root, such as `docs/`; empty for the whole repository; no `..`. |
 | **Exclusions** | Glob patterns relative to the repository root, one per line, such as `docs/drafts/**`. |
 | **Schedule** | Cron with five fields in the instance's time zone, such as `0 6 * * 1-5` for weekdays at 6:00; empty uses the global schedule the label shows. A schedule that never runs, such as `0 0 30 2 *`, is rejected. |
+| **Public** | Off for a new source. On, anyone who can reach grimoire searches and reads the source without an API key, over MCP and HTTP; content read in the meantime cannot be taken back by switching it off. Off, only API keys for all sources or for this one read it. |
 | **Paused** | Polling skips the source; only **Sync now** syncs it. |
 | **Username**, **Access token** | A read-only token of the Git host, see the table below. |
 
@@ -182,11 +183,11 @@ means the documentation lacks the topic or names it differently. Open a question
 
 - Questions are stored as the agent sent them and may contain whatever the agent put in.
 - Entries are deleted after 30 days and beyond the newest 10,000.
-- Questions naming an unknown source are not recorded.
+- Questions naming an unknown source are not recorded, nor questions sent without an API key.
 
 ## API keys
 
-`Manage > API keys`. A key reads all sources, including future ones, or a selection.
+`Manage > API keys`. A key reads all sources, including future ones, or a selection; public sources need no key.
 
 - The key is shown once, right after **Create key**; grimoire cannot show it again. A lost key
   cannot be recovered: revoke it and create a new one.

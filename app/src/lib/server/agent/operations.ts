@@ -149,7 +149,8 @@ export const MAX_QUESTION_LENGTH = 500;
 
 /**
  * `querySources` for an agent: the question is trimmed and cut to `MAX_QUESTION_LENGTH`
- * characters, and a query that found nothing is recorded for the admins.
+ * characters, and a query that found nothing is recorded for the admins. Queries without an API
+ * key are not recorded: anyone could fill the list with them.
  */
 export function agentQuery(
 	db: DatabaseSync,
@@ -159,7 +160,7 @@ export function agentQuery(
 ): QueryResult {
 	const query = options.query.trim().slice(0, MAX_QUESTION_LENGTH);
 	const result = querySources(db, { ...options, query }, scope);
-	if (result.missed && query) {
+	if (result.missed && query && scope !== 'public') {
 		recordMissedQuery(db, { question: query, sources: options.sources ?? null }, now);
 	}
 	return result;

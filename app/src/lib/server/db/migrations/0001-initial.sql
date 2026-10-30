@@ -19,6 +19,8 @@ CREATE TABLE sources (
 	docs_url TEXT,
 	-- Cron expression with five fields; NULL means the global default (SYNC_SCHEDULE).
 	sync_schedule TEXT,
+	-- 1 when anyone may read the source without an API key; a new source is private.
+	public INTEGER NOT NULL DEFAULT 0 CHECK (public IN (0, 1)),
 	-- 1 while the admin has paused the source: polling skips it, "sync now" still syncs it.
 	paused INTEGER NOT NULL DEFAULT 0 CHECK (paused IN (0, 1)),
 	last_checked_at TEXT,

@@ -15,6 +15,7 @@
 	<thead>
 		<tr>
 			<th scope="col">{m.source()}</th>
+			<th scope="col">{m.visibility()}</th>
 			<th scope="col">{m.pages()}</th>
 			<th scope="col">{m.snippets()}</th>
 			<th scope="col">{m.tokens()}</th>
@@ -31,6 +32,7 @@
 					<code>{source.slug}</code>
 					{#if source.description}<br />{source.description}{/if}
 				</th>
+				<td>{source.public ? m.visibility_public() : m.visibility_private()}</td>
 				<td>{source.pages}</td>
 				<td>{source.snippets}</td>
 				<td>{source.tokens}</td>

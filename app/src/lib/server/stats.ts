@@ -6,6 +6,8 @@ export interface SourceStats {
 	slug: string;
 	name: string;
 	description: string;
+	/** Readable without an API key. */
+	public: boolean;
 	pages: number;
 	snippets: number;
 	tokens: number;
@@ -18,7 +20,7 @@ export interface SourceStats {
 export function sourceStats(db: DatabaseSync): SourceStats[] {
 	const rows = db
 		.prepare(
-			`SELECT sources.id, sources.slug, sources.name, sources.description,
+			`SELECT sources.id, sources.slug, sources.name, sources.description, sources.public,
 				(SELECT count(*) FROM live_pages AS pages WHERE pages.source_id = sources.id) AS pages,
 				(SELECT count(*) FROM snippets JOIN live_pages AS pages ON pages.id = snippets.page_id
 					WHERE pages.source_id = sources.id) AS snippets,
@@ -32,6 +34,9 @@ export function sourceStats(db: DatabaseSync): SourceStats[] {
 			FROM sources
 			ORDER BY sources.slug`
 		)
-		.all() as unknown as (Omit<SourceStats, 'error'> & { error: number })[];
-	return rows.map((row) => ({ ...row, error: row.error === 1 }));
+		.all() as unknown as (Omit<SourceStats, 'error' | 'public'> & {
+		error: number;
+		public: number;
+	})[];
+	return rows.map((row) => ({ ...row, public: row.public === 1, error: row.error === 1 }));
 }

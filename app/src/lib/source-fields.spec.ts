@@ -12,6 +12,7 @@ describe('toSourceFields', () => {
 		exclusions: ['drafts/**', 'old/*.md'],
 		schedule: '0 * * * *',
 		paused: true,
+		public: true,
 		username: 'deploy'
 	};
 

@@ -39,10 +39,12 @@ interface SnippetRow extends Omit<SnippetHit, 'titlePath'> {
 }
 
 /** Matches the rows of `sources` in a scope, bound as `:scope` with `scopeParameter`. */
-export const IN_SCOPE = '(:scope IS NULL OR sources.slug IN (SELECT value FROM json_each(:scope)))';
+export const IN_SCOPE = `(:scope IS NULL OR sources.public = 1
+	OR sources.slug IN (SELECT value FROM json_each(:scope)))`;
 
 export function scopeParameter(scope: SourceScope): string | null {
-	return scope === 'all' ? null : JSON.stringify(scope);
+	if (scope === 'all') return null;
+	return JSON.stringify(scope === 'public' ? [] : scope);
 }
 
 interface SnippetQuery {

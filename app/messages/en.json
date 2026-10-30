@@ -209,5 +209,9 @@
 	"apikeys_no_sources": "no sources",
 	"apikeys_error_source_gone": "A selected source no longer exists.",
 	"query_sources": "Sources (none checked: all)",
-	"query_all_sources": "All sources"
+	"query_all_sources": "All sources",
+	"field_public": "Public: anyone who can reach grimoire may search and read this source without an API key",
+	"visibility": "Visibility",
+	"visibility_public": "public",
+	"visibility_private": "private"
 }

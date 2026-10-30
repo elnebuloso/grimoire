@@ -59,12 +59,13 @@ interface SourceRow {
 	exclusions: string;
 	sync_schedule: string | null;
 	paused: number;
+	public: number;
 	username: string | null;
 	has_token: number;
 }
 
 const SOURCE_COLUMNS = `id, slug, name, description, git_url, docs_url, branch, path, exclusions, sync_schedule, paused,
-	username, encrypted_token IS NOT NULL AS has_token`;
+	public, username, encrypted_token IS NOT NULL AS has_token`;
 
 function toSettings(row: SourceRow): SourceSettings {
 	return {
@@ -79,6 +80,7 @@ function toSettings(row: SourceRow): SourceSettings {
 		exclusions: JSON.parse(row.exclusions) as string[],
 		schedule: row.sync_schedule,
 		paused: row.paused === 1,
+		public: row.public === 1,
 		username: row.username,
 		hasToken: row.has_token === 1
 	};
@@ -231,6 +233,7 @@ export function saveSource(
 		),
 		sync_schedule: schedule,
 		paused: form.paused ? 1 : 0,
+		public: form.public ? 1 : 0,
 		username: form.username.trim() || null
 	};
 	const encryptedToken = token ? encryptToken(token, key) : null;
@@ -239,9 +242,9 @@ export function saveSource(
 		const result = db
 			.prepare(
 				`INSERT INTO sources (slug, name, description, git_url, docs_url, branch, path,
-					exclusions, sync_schedule, paused, username, encrypted_token)
+					exclusions, sync_schedule, paused, public, username, encrypted_token)
 				VALUES (:slug, :name, :description, :git_url, :docs_url, :branch, :path,
-					:exclusions, :sync_schedule, :paused, :username, :encrypted_token)`
+					:exclusions, :sync_schedule, :paused, :public, :username, :encrypted_token)`
 			)
 			.run({
 				...values,
@@ -255,7 +258,7 @@ export function saveSource(
 			`UPDATE sources SET name = :name, description = :description, git_url = :git_url,
 			docs_url = :docs_url, branch = :branch, path = :path,
 			exclusions = :exclusions, sync_schedule = :sync_schedule, paused = :paused,
-			username = :username
+			public = :public, username = :username
 		WHERE id = :id`
 		)
 		.run({ ...values, id: sourceId });

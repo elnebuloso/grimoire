@@ -28,6 +28,7 @@ function sourceForm(changes: Partial<SourceForm> = {}): SourceForm {
 		exclusions: '',
 		schedule: '',
 		paused: false,
+		public: false,
 		username: '',
 		token: '',
 		removeToken: false,
@@ -69,9 +70,21 @@ describe('saveSource', () => {
 			exclusions: ['a/**', 'b.md'],
 			schedule: null,
 			paused: false,
+			public: false,
 			username: null,
 			hasToken: false
 		});
+	});
+
+	it('creates a source private and switches it public and back', () => {
+		const id = created(saveSource(db, KEY, undefined, sourceForm()));
+		expect(findSource(db, id)).toMatchObject({ public: false });
+
+		saveSource(db, KEY, id, sourceForm({ public: true }));
+		expect(findSource(db, id)).toMatchObject({ public: true });
+
+		saveSource(db, KEY, id, sourceForm({ public: false }));
+		expect(findSource(db, id)).toMatchObject({ public: false });
 	});
 
 	it('leaves a paused source out of polling and brings it back with its last check', () => {

@@ -6,8 +6,14 @@ import { inTransaction } from './db/transaction.ts';
 const KEY_PREFIX = 'grimoire_';
 const KEY_BYTES = 32;
 
-/** The sources a key may see: all of them, or a selection of source slugs. */
-export type SourceScope = 'all' | string[];
+/** The sources a key opens: all of them, or a selection of source slugs. */
+export type KeyScope = 'all' | string[];
+
+/**
+ * The sources a caller may see: what its key opens and the public ones; only the public ones
+ * (`'public'`) for a request without a key.
+ */
+export type SourceScope = KeyScope | 'public';
 
 export interface ApiKey {
 	id: number;
@@ -17,7 +23,7 @@ export interface ApiKey {
 	lastUsedAt: string | null;
 	/** The last day, `YYYY-MM-DD` in the time zone of the instance, the key is accepted; null for no expiry. */
 	validUntil: string | null;
-	sources: SourceScope;
+	sources: KeyScope;
 }
 
 /** The moment of a request, and its calendar date in the time zone of the instance. */
@@ -52,7 +58,7 @@ export type ApiKeyRefusal = { error: 'unknown-source' } | { error: 'unknown-key'
 export function createApiKey(
 	db: DatabaseSync,
 	name: string,
-	sources: SourceScope,
+	sources: KeyScope,
 	validUntil: string | null = null
 ): { id: number; key: string } | { error: 'unknown-source' } {
 	const key = KEY_PREFIX + randomBytes(KEY_BYTES).toString('base64url');
@@ -78,7 +84,7 @@ export function createApiKey(
 export function updateApiKey(
 	db: DatabaseSync,
 	id: number,
-	sources: SourceScope,
+	sources: KeyScope,
 	validUntil: string | null
 ): { id: number } | ApiKeyRefusal {
 	return inTransaction(db, () => {
@@ -95,7 +101,7 @@ export function updateApiKey(
 }
 
 /** The IDs of the selected sources, none for all sources, undefined if a slug is unknown. */
-function findSourceIds(db: DatabaseSync, sources: SourceScope): number[] | undefined {
+function findSourceIds(db: DatabaseSync, sources: KeyScope): number[] | undefined {
 	if (sources === 'all') return [];
 	const findSource = db.prepare('SELECT id FROM sources WHERE slug = ?');
 	const ids: number[] = [];
