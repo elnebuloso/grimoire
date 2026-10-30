@@ -257,23 +257,44 @@ describe('syncSource', () => {
 	});
 
 	it('records when every check started, whether it synced, found nothing new or failed', async () => {
-		const checkedAt = () =>
-			new Date(
-				rows('SELECT last_checked_at FROM sources WHERE id = ?', source)[0]
-					.last_checked_at as string
-			);
-		const expectCheckedDuring = async (sync: () => Promise<unknown>) => {
-			const before = new Date();
-			await sync();
-			const after = new Date();
-			expect(checkedAt().getTime()).toBeGreaterThanOrEqual(before.getTime());
-			expect(checkedAt().getTime()).toBeLessThanOrEqual(after.getTime());
+		// Only Date is faked: timers, Git and the indexing process run as usual.
+		vi.useFakeTimers({ toFake: ['Date'] });
+		let checkStartedAt = new Date('2026-10-30T08:00:00.000Z');
+		// The clock is set where a check starts; the sync stage runs an hour later.
+		const lanes: SyncLanes = {
+			check: (work) => {
+				vi.setSystemTime(checkStartedAt);
+				return work();
+			},
+			sync: (work) => {
+				vi.setSystemTime(checkStartedAt.getTime() + 3_600_000);
+				return work();
+			}
 		};
+		const checkedAt = () =>
+			rows('SELECT last_checked_at FROM sources WHERE id = ?', source)[0].last_checked_at;
 
-		await expectCheckedDuring(() => syncSource(db, source, { key, workDirectory: work }));
-		await expectCheckedDuring(() => syncSource(db, source, { key, workDirectory: work }));
-		rmSync(bare, { recursive: true });
-		await expectCheckedDuring(() => syncSource(db, source, { key, workDirectory: work }));
+		try {
+			expect(await syncSource(db, source, { key, workDirectory: work, lanes })).toMatchObject({
+				status: 'synced'
+			});
+			expect(checkedAt()).toBe('2026-10-30T08:00:00.000Z');
+
+			checkStartedAt = new Date('2026-10-30T09:00:00.000Z');
+			expect(await syncSource(db, source, { key, workDirectory: work, lanes })).toMatchObject({
+				status: 'unchanged'
+			});
+			expect(checkedAt()).toBe('2026-10-30T09:00:00.000Z');
+
+			rmSync(bare, { recursive: true });
+			checkStartedAt = new Date('2026-10-30T10:00:00.000Z');
+			expect(await syncSource(db, source, { key, workDirectory: work, lanes })).toMatchObject({
+				status: 'failed'
+			});
+			expect(checkedAt()).toBe('2026-10-30T10:00:00.000Z');
+		} finally {
+			vi.useRealTimers();
+		}
 	});
 
 	it('records the check before the sync stage, so a process dying in it is not due again on restart', async () => {
