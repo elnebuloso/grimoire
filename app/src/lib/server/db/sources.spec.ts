@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import type { DatabaseSync } from 'node:sqlite';
 import { indexPages } from '../sync/index-pages';
 import { openDatabase } from './schema';
-import { replaceSourceIndex, type SourceIndex } from './sources';
+import { recordSyncRun, replaceSourceIndex, type SourceIndex, type SyncRun } from './sources';
 
 let db: DatabaseSync;
 
@@ -76,5 +76,75 @@ describe('replaceSourceIndex', () => {
 		replaceSourceIndex(db, 1, sourceIndex('new', NEW));
 		expect(liveTitles()).toEqual(['New A', 'New B', 'New C']);
 		expect(count('pages')).toBe(3);
+	});
+});
+
+describe('recordSyncRun', () => {
+	const at = (minute: number) => new Date(Date.UTC(2026, 9, 30, 12, minute));
+
+	function record(run: SyncRun, minute: number, sourceId = 1) {
+		const startedAt = at(minute);
+		const finishedAt = new Date(startedAt.getTime() + 30_000);
+		recordSyncRun(db, sourceId, { ...run, startedAt, finishedAt });
+	}
+
+	function history() {
+		return db
+			.prepare(
+				'SELECT outcome, commit_hash, error, runs, started_at, finished_at FROM sync_runs ORDER BY id'
+			)
+			.all();
+	}
+
+	const synced = (commit: string): SyncRun => ({ outcome: 'synced', commit, error: null });
+	const unchanged = (commit: string): SyncRun => ({ outcome: 'unchanged', commit, error: null });
+	const failed = (error: string): SyncRun => ({ outcome: 'failed', commit: null, error });
+
+	it('counts repeats of the latest entry in it, keeping when the first started', () => {
+		record(synced('a'), 0);
+		record(unchanged('a'), 5);
+		record(unchanged('a'), 10);
+		record(failed('unreachable'), 15);
+		record(failed('unreachable'), 20);
+		record(failed('denied'), 25);
+		record(unchanged('a'), 30);
+
+		expect(history()).toEqual([
+			expect.objectContaining({ outcome: 'synced', commit_hash: 'a', runs: 1 }),
+			{
+				outcome: 'unchanged',
+				commit_hash: 'a',
+				error: null,
+				runs: 2,
+				started_at: '2026-10-30T12:05:00.000Z',
+				finished_at: '2026-10-30T12:10:30.000Z'
+			},
+			expect.objectContaining({ outcome: 'failed', error: 'unreachable', runs: 2 }),
+			expect.objectContaining({ outcome: 'failed', error: 'denied', runs: 1 }),
+			expect.objectContaining({ outcome: 'unchanged', commit_hash: 'a', runs: 1 })
+		]);
+	});
+
+	it('keeps every sync apart, even of the same commit', () => {
+		record(synced('a'), 0);
+		record(synced('a'), 5);
+
+		expect(history()).toHaveLength(2);
+	});
+
+	it('keeps the newest 100 entries of a source', () => {
+		for (let minute = 0; minute < 101; minute++) record(synced(`c${minute}`), minute);
+
+		expect(count('sync_runs')).toBe(100);
+		expect(history()[0]).toMatchObject({ commit_hash: 'c1' });
+	});
+
+	it('is deleted with its source, and skips a source deleted while it synced', () => {
+		record(synced('a'), 0);
+		db.exec('DELETE FROM sources WHERE id = 1');
+		expect(count('sync_runs')).toBe(0);
+
+		record(synced('b'), 5);
+		expect(count('sync_runs')).toBe(0);
 	});
 });

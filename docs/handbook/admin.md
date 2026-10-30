@@ -136,6 +136,12 @@ successful sync stays in use until the next one succeeds. Pages that could not b
 listed as warnings, and links that lead nowhere as dead links, each with the page and section
 it is on.
 
+The **Sync history** below lists the recent runs of the source, newest first: when, whether it
+synced, found the branch unchanged or failed, the commit and the error. Runs that repeat the one
+before, unchanged at the same commit or failing with the same error, are counted in one line with
+the time of the first and the last, so the history shows since when a source has been failing
+even with polling every few minutes. The newest 100 lines per source are kept.
+
 Every page links to a preview: the page exactly as the agent operation `read` returns it, split
 into its snippets with their `Source:` and `Edit:` lines. Each snippet is listed with its title
 path, its ID and its estimated tokens, so a section that came out too large, too small or under a

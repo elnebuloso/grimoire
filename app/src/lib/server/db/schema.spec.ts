@@ -94,6 +94,7 @@ describe('openDatabase', () => {
 			'snippets',
 			'snippets_fts',
 			'sources',
+			'sync_runs',
 			'user_roles',
 			'users'
 		]);

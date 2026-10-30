@@ -55,7 +55,8 @@ describe('sourceStatus', () => {
 			warnings: [],
 			pages: [],
 			totals: { pages: 0, snippets: 0, tokens: 0 },
-			deadLinks: []
+			deadLinks: [],
+			history: []
 		});
 	});
 
@@ -90,6 +91,34 @@ describe('sourceStatus', () => {
 				{ file: 'index.md', anchor: null, target: 'platform/auth/deploy#nope' }
 			]
 		});
+	});
+});
+
+describe('sync history', () => {
+	it('lists the runs of the source, newest first', () => {
+		db.exec(`INSERT INTO sync_runs (source_id, started_at, finished_at, outcome, commit_hash, error, runs)
+			VALUES (1, '2026-10-30T10:00:00.000Z', '2026-10-30T10:01:00.000Z', 'synced', 'abc', NULL, 1),
+				(1, '2026-10-30T10:05:00.000Z', '2026-10-30T11:00:00.000Z', 'failed', NULL, 'denied', 12),
+				(2, '2026-10-30T10:00:00.000Z', '2026-10-30T10:01:00.000Z', 'synced', 'def', NULL, 1)`);
+
+		expect(sourceStatus(db, 1).history).toEqual([
+			{
+				startedAt: '2026-10-30T10:05:00.000Z',
+				finishedAt: '2026-10-30T11:00:00.000Z',
+				outcome: 'failed',
+				commit: null,
+				error: 'denied',
+				runs: 12
+			},
+			{
+				startedAt: '2026-10-30T10:00:00.000Z',
+				finishedAt: '2026-10-30T10:01:00.000Z',
+				outcome: 'synced',
+				commit: 'abc',
+				error: null,
+				runs: 1
+			}
+		]);
 	});
 });
 

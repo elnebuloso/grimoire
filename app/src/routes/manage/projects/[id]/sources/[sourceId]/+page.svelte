@@ -107,6 +107,47 @@
 			{/each}
 		</ul>
 	{/if}
+	<h3>{m.source_history()}</h3>
+	{#if data.status.history.length === 0}
+		<p>{m.source_history_none()}</p>
+	{:else}
+		<table>
+			<thead>
+				<tr>
+					<th>{m.source_history_when()}</th>
+					<th>{m.source_history_outcome()}</th>
+					<th>{m.source_commit()}</th>
+					<th>{m.source_error()}</th>
+				</tr>
+			</thead>
+			<tbody>
+				{#each data.status.history as run, index (index)}
+					<tr>
+						<td>
+							{#if run.runs > 1}
+								<DateTime value={run.startedAt} timeZone={data.timeZone} /> –
+								<DateTime value={run.finishedAt} timeZone={data.timeZone} />
+								({m.source_history_runs({ runs: run.runs })})
+							{:else}
+								<DateTime value={run.finishedAt} timeZone={data.timeZone} />
+							{/if}
+						</td>
+						<td>
+							{run.outcome === 'synced'
+								? m.source_history_synced()
+								: run.outcome === 'unchanged'
+									? m.source_history_unchanged()
+									: m.source_history_failed()}
+						</td>
+						<td
+							>{#if run.commit}<code title={run.commit}>{run.commit.slice(0, 12)}</code>{/if}</td
+						>
+						<td>{run.error ?? ''}</td>
+					</tr>
+				{/each}
+			</tbody>
+		</table>
+	{/if}
 	{#if data.status.pages.length > 0}
 		<h3>{m.pages()}</h3>
 		<ul>

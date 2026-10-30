@@ -205,5 +205,13 @@
 	"missed_intro": "Fragen, die Agenten über HTTP oder MCP gestellt haben und die nichts gefunden haben, 30 Tage aufbewahrt: Der Dokumentation fehlt das Thema, oder sie nennt es anders. Eine Frage öffnet sich in Suche ausprobieren.",
 	"missed_none": "Keine Abfrage ohne Treffer in den letzten 30 Tagen.",
 	"missed_count": "Wie oft",
-	"missed_last_asked": "Zuletzt gefragt"
+	"missed_last_asked": "Zuletzt gefragt",
+	"source_history": "Sync-Verlauf",
+	"source_history_none": "Es lief noch kein Sync.",
+	"source_history_when": "Wann",
+	"source_history_outcome": "Ergebnis",
+	"source_history_runs": "{runs} Läufe",
+	"source_history_synced": "synchronisiert",
+	"source_history_unchanged": "unverändert",
+	"source_history_failed": "fehlgeschlagen"
 }

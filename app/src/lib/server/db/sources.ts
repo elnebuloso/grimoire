@@ -257,6 +257,63 @@ export function clearSyncError(db: DatabaseSync, sourceId: number) {
 	db.prepare('UPDATE sources SET error = NULL WHERE id = ?').run(sourceId);
 }
 
+// Enough to see a source's recent story; repeats are counted in one entry, not stored apart.
+const SYNC_RUNS_KEPT = 100;
+
+export interface SyncRun {
+	outcome: 'unchanged' | 'synced' | 'failed';
+	/** Null for a run that failed before it learned the commit. */
+	commit: string | null;
+	error: string | null;
+}
+
+/**
+ * Stores a sync run of a source. A run that repeats the latest entry of the source, unchanged at
+ * the same commit or failed with the same error, is counted in that entry instead. Does nothing
+ * for a source deleted while it synced.
+ */
+export function recordSyncRun(
+	db: DatabaseSync,
+	sourceId: number,
+	run: SyncRun & { startedAt: Date; finishedAt: Date }
+) {
+	const latest = db
+		.prepare(
+			`SELECT id, outcome, commit_hash, error FROM sync_runs
+			WHERE source_id = ? ORDER BY id DESC LIMIT 1`
+		)
+		.get(sourceId) as
+		{ id: number; outcome: string; commit_hash: string | null; error: string | null } | undefined;
+	if (
+		latest &&
+		run.outcome !== 'synced' &&
+		latest.outcome === run.outcome &&
+		latest.commit_hash === run.commit &&
+		latest.error === run.error
+	) {
+		db.prepare('UPDATE sync_runs SET finished_at = ?, runs = runs + 1 WHERE id = ?').run(
+			run.finishedAt.toISOString(),
+			latest.id
+		);
+		return;
+	}
+	db.prepare(
+		`INSERT INTO sync_runs (source_id, started_at, finished_at, outcome, commit_hash, error)
+		SELECT id, ?, ?, ?, ?, ? FROM sources WHERE id = ?`
+	).run(
+		run.startedAt.toISOString(),
+		run.finishedAt.toISOString(),
+		run.outcome,
+		run.commit,
+		run.error,
+		sourceId
+	);
+	db.prepare(
+		`DELETE FROM sync_runs WHERE source_id = :source AND id <= (
+			SELECT id FROM sync_runs WHERE source_id = :source ORDER BY id DESC LIMIT 1 OFFSET :kept)`
+	).run({ source: sourceId, kept: SYNC_RUNS_KEPT });
+}
+
 /** Separates code blocks from the prose of a snippet, so search can weigh them differently. */
 export function splitCode(markdown: string): { text: string; code: string } {
 	const nodes = parseMarkdown(markdown).children;

@@ -19,6 +19,18 @@ export interface DeadLink {
 	target: string;
 }
 
+export interface SyncHistoryEntry {
+	/** When the first of the counted runs started. */
+	startedAt: string;
+	/** When the last of the counted runs finished. */
+	finishedAt: string;
+	outcome: 'unchanged' | 'synced' | 'failed';
+	commit: string | null;
+	error: string | null;
+	/** How many runs in a row ended like this one. */
+	runs: number;
+}
+
 export interface SourceStatus {
 	lastCheckedAt: string | null;
 	lastSyncedAt: string | null;
@@ -28,6 +40,8 @@ export interface SourceStatus {
 	pages: PageSummary[];
 	totals: { pages: number; snippets: number; tokens: number };
 	deadLinks: DeadLink[];
+	/** Newest first. */
+	history: SyncHistoryEntry[];
 }
 
 export function sourceStatus(db: DatabaseSync, sourceId: number): SourceStatus {
@@ -60,6 +74,13 @@ export function sourceStatus(db: DatabaseSync, sourceId: number): SourceStatus {
 			ORDER BY pages.file, links.anchor, links.target`
 		)
 		.all(sourceId) as unknown as DeadLink[];
+	const history = db
+		.prepare(
+			`SELECT started_at AS startedAt, finished_at AS finishedAt, outcome, commit_hash AS 'commit',
+				error, runs
+			FROM sync_runs WHERE source_id = ? ORDER BY id DESC`
+		)
+		.all(sourceId) as unknown as SyncHistoryEntry[];
 
 	return {
 		lastCheckedAt: source.last_checked_at,
@@ -73,7 +94,8 @@ export function sourceStatus(db: DatabaseSync, sourceId: number): SourceStatus {
 			snippets: pages.reduce((sum, page) => sum + page.snippets, 0),
 			tokens: pages.reduce((sum, page) => sum + page.tokens, 0)
 		},
-		deadLinks
+		deadLinks,
+		history
 	};
 }
 

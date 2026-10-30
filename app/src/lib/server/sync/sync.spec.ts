@@ -235,6 +235,32 @@ describe('syncSource', () => {
 		await expectCheckedDuring(() => syncSource(db, source, { key, workDirectory: work }));
 	});
 
+	it('records every run in the history of the source', async () => {
+		const history = () =>
+			rows(
+				'SELECT outcome, commit_hash, error, runs FROM sync_runs WHERE source_id = ? ORDER BY id',
+				source
+			);
+		const first = git(bare, 'rev-parse', 'main').trim();
+
+		await syncSource(db, source, { key, workDirectory: work });
+		await syncSource(db, source, { key, workDirectory: work });
+		await syncSource(db, source, { key, workDirectory: work });
+		rmSync(bare, { recursive: true });
+		await syncSource(db, source, { key, workDirectory: work });
+
+		expect(history()).toEqual([
+			{ outcome: 'synced', commit_hash: first, error: null, runs: 1 },
+			{ outcome: 'unchanged', commit_hash: first, error: null, runs: 2 },
+			{
+				outcome: 'failed',
+				commit_hash: null,
+				error: expect.stringMatching(/git ls-remote failed/),
+				runs: 1
+			}
+		]);
+	});
+
 	it('never stores the access token, not even in an error', async () => {
 		const token = 'glpat-very-secret-token';
 		const withToken = addSource(`https://deploy:${token}@127.0.0.1:9/auth.git`, { token });

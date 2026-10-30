@@ -205,5 +205,13 @@
 	"missed_intro": "Questions agents asked over HTTP or MCP that found nothing, kept for 30 days: the documentation is missing the topic, or uses other words for it. A question opens in Try a query.",
 	"missed_none": "No query without results in the last 30 days.",
 	"missed_count": "Times asked",
-	"missed_last_asked": "Last asked"
+	"missed_last_asked": "Last asked",
+	"source_history": "Sync history",
+	"source_history_none": "No sync has run yet.",
+	"source_history_when": "When",
+	"source_history_outcome": "Outcome",
+	"source_history_runs": "{runs} runs",
+	"source_history_synced": "synced",
+	"source_history_unchanged": "unchanged",
+	"source_history_failed": "failed"
 }

@@ -3,7 +3,13 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { DatabaseSync } from 'node:sqlite';
 import { Worker } from 'node:worker_threads';
-import { clearSyncError, recordCheck, recordSyncError, sourceForSync } from '../db/sources';
+import {
+	clearSyncError,
+	recordCheck,
+	recordSyncError,
+	recordSyncRun,
+	sourceForSync
+} from '../db/sources';
 import { decryptToken } from '../token-encryption';
 import {
 	addSparseDirectories,
@@ -42,8 +48,26 @@ export type SyncResult =
  * Brings one source into the index: checks the branch with `ls-remote`, and when it moved, clones
  * the source path into a temporary directory, indexes it and replaces the source's pages in one
  * transaction. On failure the previous index stays active and the error is stored on the source.
+ * Every run goes into the source's sync history.
  */
 export async function syncSource(
+	db: DatabaseSync,
+	sourceId: number,
+	options: SyncOptions
+): Promise<SyncResult> {
+	const startedAt = new Date();
+	const result = await checkAndSync(db, sourceId, options);
+	recordSyncRun(db, sourceId, {
+		startedAt,
+		finishedAt: new Date(),
+		outcome: result.status,
+		commit: result.status === 'failed' ? null : result.commit,
+		error: result.status === 'failed' ? result.error : null
+	});
+	return result;
+}
+
+async function checkAndSync(
 	db: DatabaseSync,
 	sourceId: number,
 	options: SyncOptions
