@@ -64,7 +64,11 @@ export function createMailer(settings: SmtpSettings): Mailer | undefined {
 				await transport.sendMail({ from: settings.from, ...mail });
 				return true;
 			} catch (error) {
-				log.error({ err: error }, `Sending mail to ${mail.to} failed`);
+				// Without the address: logs are shipped elsewhere, and SMTP errors such as a rejected
+				// recipient quote it.
+				const { message, code } = error as Error & { code?: string };
+				const reason = message.replace(new RegExp(RegExp.escape(mail.to), 'gi'), '<recipient>');
+				log.error({ err: { message: reason, code } }, `Sending mail "${mail.subject}" failed`);
 				return false;
 			}
 		},

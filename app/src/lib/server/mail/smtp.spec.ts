@@ -65,9 +65,27 @@ describe('createMailer', () => {
 		sendMail.mockRejectedValue(new Error('Invalid login: 535 Authentication failed'));
 
 		expect(await createMailer(SETTINGS)!.send(MAIL)).toBe(false);
-		expect(log.messages()).toEqual(['Sending mail to admin@example.com failed']);
+		expect(log.messages()).toEqual(['Sending mail "Hello" failed']);
 		expect(log.text()).toContain('535 Authentication failed');
 		expect(log.text()).not.toContain('smtp-secret');
+	});
+
+	it('logs a failed send without the recipient address, even when the error quotes it', async () => {
+		const log = captureLog();
+		sendMail.mockRejectedValue(
+			Object.assign(
+				new Error("Can't send mail - all recipients were rejected: 550 <Admin@Example.com>"),
+				{
+					code: 'EENVELOPE',
+					rejected: ['admin@example.com']
+				}
+			)
+		);
+
+		expect(await createMailer(SETTINGS)!.send(MAIL)).toBe(false);
+		expect(log.text()).toContain('550 <<recipient>>');
+		expect(log.text()).toContain('EENVELOPE');
+		expect(log.text().toLowerCase()).not.toContain('admin@example.com');
 	});
 });
 
