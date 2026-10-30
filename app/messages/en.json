@@ -178,5 +178,15 @@
 	"wizard_docs_url": "Documentation URL",
 	"error_docs_url": "Enter the documentation URL as a web address starting with https:// or http://, e.g. https://docs.example.com/platform/.",
 	"error_docs_url_credentials": "The documentation URL must not contain a username or password.",
-	"manage_nav": "Management"
+	"manage_nav": "Management",
+	"query_title": "Try a query",
+	"query_intro": "Shows what an agent gets back for a question: the same answer as query over HTTP and MCP, across all projects.",
+	"query_question": "Question",
+	"query_project": "Project",
+	"query_all_projects": "All projects",
+	"query_tokens": "Token budget",
+	"query_submit": "Search",
+	"query_answer": "Answer",
+	"query_error_question": "Enter a question.",
+	"query_error_tokens": "The token budget must be a positive whole number."
 }

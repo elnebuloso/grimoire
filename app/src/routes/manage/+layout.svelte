@@ -8,6 +8,7 @@
 
 	const links = $derived([
 		{ href: resolve('/manage'), label: m.admin_overview() },
+		{ href: resolve('/manage/query'), label: m.query_title() },
 		{ href: resolve('/manage/api-keys'), label: m.api_keys() },
 		{ href: resolve('/manage/settings'), label: m.settings_title() },
 		{ href: resolve('/account'), label: m.password_title() }

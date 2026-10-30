@@ -178,5 +178,15 @@
 	"wizard_docs_url": "Dokumentations-URL",
 	"error_docs_url": "Gib die Dokumentations-URL als Webadresse mit https:// oder http:// ein, z. B. https://docs.example.com/platform/.",
 	"error_docs_url_credentials": "Die Dokumentations-URL darf keinen Benutzernamen und kein Passwort enthalten.",
-	"manage_nav": "Verwaltung"
+	"manage_nav": "Verwaltung",
+	"query_title": "Suche ausprobieren",
+	"query_intro": "Zeigt, was ein Agent auf eine Frage bekommt: dieselbe Antwort wie query über HTTP und MCP, über alle Projekte.",
+	"query_question": "Frage",
+	"query_project": "Projekt",
+	"query_all_projects": "Alle Projekte",
+	"query_tokens": "Token-Budget",
+	"query_submit": "Suchen",
+	"query_answer": "Antwort",
+	"query_error_question": "Gib eine Frage ein.",
+	"query_error_tokens": "Das Token-Budget muss eine positive ganze Zahl sein."
 }

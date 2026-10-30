@@ -150,6 +150,15 @@ check. Its index, schedule and settings stay; **Sync now** still syncs it once w
 it. Untick "Paused" to resume it, and polling syncs it again when its schedule next comes due.
 The page of the source and the source list of the project show that it is paused.
 
+## Trying a query
+
+**Try a query** answers a question exactly as the agent operation `query` does over HTTP and MCP:
+the matching snippets in ranking order, as many as fit the token budget, and a line naming the IDs
+of the hits that did not fit. Leave the project at "All projects" to search everything, or pick one.
+No API key is involved; every project is searched. Use it to check whether a page is found for the
+words agents ask with, and how much of it fits the budget they send. The result has its own
+address, so a query can be shared as a link.
+
 ## Settings
 
 **Settings** in the management area hold what applies to the whole instance. They are stored in the

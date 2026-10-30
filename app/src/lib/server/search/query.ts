@@ -81,7 +81,7 @@ export function selectSnippets(
 	return rows.map(toSnippetHit);
 }
 
-const DEFAULT_TOKENS = 3000;
+export const DEFAULT_TOKENS = 3000;
 // Caps the list of hits that did not fit; beyond this the agent should rephrase, not read on.
 const MAX_HITS = 20;
 
