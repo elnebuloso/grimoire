@@ -53,6 +53,11 @@ a proxy, every admin form is rejected with `Cross-site POST form submissions are
 browser sends no such header. To try grimoire locally, put a proxy in front, as in the
 [Docker Compose](docker.md#docker-compose) example.
 
+Outside `localhost`, grimoire needs `https`. The login cookie is marked `Secure` on every host but
+`localhost`, and a browser keeps no `Secure` cookie from a page served over `http`. Behind a proxy
+serving plain `http` under another name, such as `http://grimoire.lan:8080`, the login is
+accepted, and the next page asks for it again.
+
 grimoire works out its own origin anew for every request: the protocol as above, the host from
 the `Host` header. The proxy must therefore pass on the `Host` the browser sent. A proxy that
 replaces it with the name of the upstream, as nginx does unless told `proxy_set_header Host $host;`,

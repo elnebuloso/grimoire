@@ -1,8 +1,9 @@
 # Running with Docker
 
 grimoire runs as one container: the server, `git` for syncing, and a volume for the SQLite file.
-It expects a reverse proxy in front of it that terminates TLS or at least passes on the original
-protocol; served directly over plain `http`, every admin form is rejected (see
+It expects a reverse proxy in front of it that terminates TLS. Plain `http` works only on
+`localhost`, with a proxy that passes on the original protocol: served directly, every admin form
+is rejected, and under any other host name the browser drops the login cookie (see
 [Management area](admin.md#logging-in)).
 
 ## Image
