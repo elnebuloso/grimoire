@@ -196,6 +196,15 @@ describe('resolveIncludes', () => {
 			);
 		});
 
+		it('reads a long run of dashes in linear time', () => {
+			const dashes = '-'.repeat(200_000);
+			const started = performance.now();
+			const result = resolve(`${dashes}8< [start:x`, {});
+			// A pattern that retried the dashes from every position took about a minute here.
+			expect(performance.now() - started).toBeLessThan(1000);
+			expect(result.markdown).toBe(`${dashes}8< [start:x`);
+		});
+
 		it('removes markers from the page itself', () => {
 			expect(resolve('Page\n<!-- --8<-- [start:x] -->\nEnd', {}).markdown).toBe('Page\nEnd');
 		});

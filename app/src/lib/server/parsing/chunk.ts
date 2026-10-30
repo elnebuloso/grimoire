@@ -108,6 +108,9 @@ function assignAnchors(headings: Heading[], slugify: Slugify): Map<Heading, stri
 	const customIds = new Map(headings.map((heading) => [heading, takeAttributeListId(heading)]));
 	const used = new Set([...customIds.values()].filter((id) => id !== undefined));
 	const anchors = new Map<Heading, string>();
+	// Per taken slug, the suffix to try next: counting up from `_1` again for every repeat of the
+	// same heading took quadratic time.
+	const nextSuffix = new Map<string, number>();
 
 	for (const heading of headings) {
 		const customId = customIds.get(heading);
@@ -116,9 +119,13 @@ function assignAnchors(headings: Heading[], slugify: Slugify): Map<Heading, stri
 			continue;
 		}
 		let anchor = slugify(toString(heading, { includeHtml: false }));
-		while (!anchor || used.has(anchor)) {
+		if (!anchor || used.has(anchor)) {
 			const numbered = /^(.*)_(\d+)$/.exec(anchor);
-			anchor = numbered ? `${numbered[1]}_${Number(numbered[2]) + 1}` : `${anchor}_1`;
+			const base = numbered ? numbered[1] : anchor;
+			let suffix = nextSuffix.get(anchor) ?? (numbered ? Number(numbered[2]) + 1 : 1);
+			while (used.has(`${base}_${suffix}`)) suffix++;
+			nextSuffix.set(anchor, suffix + 1);
+			anchor = `${base}_${suffix}`;
 		}
 		used.add(anchor);
 		anchors.set(heading, anchor);

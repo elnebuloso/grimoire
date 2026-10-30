@@ -116,6 +116,21 @@ describe('chunkPage', () => {
 		expect(page.snippets[0].aliases).toEqual(['long-x', 'braces-xx']);
 	});
 
+	it('numbers repeated headings about as fast as distinct ones', () => {
+		const timed = (markdown: string) => {
+			const started = performance.now();
+			return { page: chunk(markdown), time: performance.now() - started };
+		};
+		const distinct = timed(
+			`# Guide\n\n${Array.from({ length: 8000 }, (_, i) => `## Parameters ${i}\n\n`).join('')}`
+		);
+		const repeated = timed(`# Guide\n\n${'## Parameters\n\n'.repeat(8000)}`);
+		// Relative, so a slow machine slows both: counting up from `_1` again for every repeat took
+		// ten times as long as distinct headings here.
+		expect(repeated.time).toBeLessThan(distinct.time * 3);
+		expect(repeated.page.snippets[0].aliases.at(-1)).toBe('parameters_7999');
+	});
+
 	it('generates the anchors MkDocs generates', () => {
 		const headings = [
 			'# Auth-Service',

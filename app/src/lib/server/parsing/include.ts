@@ -39,9 +39,11 @@ const BLOCK_MARKER = /^([ \t]*)(;*)-+8<-+\r?$/;
 const FIRST_RANGE = /^(?::-?[0-9]*){1,2}$/;
 const LATER_RANGE = /^(?=[-0-9:])-?[0-9]*(?::-?[0-9]*)?$/;
 const SECTION_NAME = /^[a-z][-_0-9a-z]*$/i;
-// `--8<-- [start:name]` anywhere on a line, so it may sit inside a code comment.
+// `--8<-- [start:name]` anywhere on a line, so it may sit inside a code comment. The lookbehinds
+// let a match start only where a run of `;` or `-` starts – the first match pymdownx's leading
+// `^(.*?)` finds – instead of at every dash of a long run, which took quadratic time.
 const SECTION_MARKER =
-	/^(.*?)(;*)(-+8<-+[ \t]+)(\[[ \t]*(start|end)[ \t]*:[ \t]*([a-z][-_0-9a-z]*)[ \t]*\])(.*)$/i;
+	/(?<!;)(;*)(?<!-)(-+8<-+[ \t]+)(\[[ \t]*(start|end)[ \t]*:[ \t]*([a-z][-_0-9a-z]*)[ \t]*\])(.*)$/i;
 
 /**
  * Replaces pymdownx.snippets includes (`--8<-- "file.md"` and the block format) with the content
@@ -90,7 +92,7 @@ export function resolveIncludes(
 			if (!block || end === -1) {
 				const marker = isSection ? null : SECTION_MARKER.exec(line);
 				if (!marker) output.push(line);
-				else if (marker[2]) output.push(unescapeMarker(marker));
+				else if (marker[1]) output.push(unescapeMarker(marker));
 				continue;
 			}
 			for (const entry of lines.slice(i + 1, end)) {
@@ -244,16 +246,16 @@ function extractSection(lines: string[], name: string): string[] | undefined {
 	let found = false;
 	for (const line of lines) {
 		const marker = SECTION_MARKER.exec(line);
-		if (marker && inside && marker[2]) {
+		if (marker && inside && marker[1]) {
 			result.push(unescapeMarker(marker));
 			continue;
 		}
-		if (marker && marker[6] === name) {
-			if (marker[5] === 'start' && !inside) {
+		if (marker && marker[5] === name) {
+			if (marker[4] === 'start' && !inside) {
 				inside = found = true;
 				continue;
 			}
-			if (marker[5] === 'start') continue;
+			if (marker[4] === 'start') continue;
 			break;
 		}
 		if (marker) continue;
@@ -263,6 +265,6 @@ function extractSection(lines: string[], name: string): string[] | undefined {
 }
 
 function unescapeMarker(marker: RegExpExecArray): string {
-	const [, before, escape, dashes, section, , , after] = marker;
-	return before + escape.replace(';', '') + dashes + section + after;
+	const [, escape, dashes, section, , , after] = marker;
+	return marker.input.slice(0, marker.index) + escape.replace(';', '') + dashes + section + after;
 }

@@ -1,10 +1,11 @@
 ---
 id: TASK-149
 title: Make the section-marker regex and unique heading anchors linear
-status: To Do
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-30 13:41'
+updated_date: '2026-10-30 13:47'
 labels:
   - parsing
 milestone: m-0
@@ -27,8 +28,28 @@ Found by the whole-project code review of 2026-10-30 (13:25), measured with Node
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 A 200,000-character line of `-` passes through `resolveIncludes` in well under a second, covered by a time-limited test in `include.spec.ts`
-- [ ] #2 Section markers (`--8<-- [start:name]` / `[end:name]`, also inside code comments and after leading text) are recognized exactly as before; existing include tests pass unchanged
-- [ ] #3 8,000 identical headings pass through `chunkPage` in about the time of 8,000 different ones, covered by a time-limited test in `chunk.spec.ts`
-- [ ] #4 Generated anchors are unchanged, including repeated headings, custom `{#id}` anchors and headings whose slug already ends in `_<n>`
+- [x] #1 A 200,000-character line of `-` passes through `resolveIncludes` in well under a second, covered by a time-limited test in `include.spec.ts`
+- [x] #2 Section markers (`--8<-- [start:name]` / `[end:name]`, also inside code comments and after leading text) are recognized exactly as before; existing include tests pass unchanged
+- [x] #3 8,000 identical headings pass through `chunkPage` in about the time of 8,000 different ones, covered by a time-limited test in `chunk.spec.ts`
+- [x] #4 Generated anchors are unchanged, including repeated headings, custom `{#id}` anchors and headings whose slug already ends in `_<n>`
 <!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. `SECTION_MARKER`: drop the leading `^(.*?)` and search unanchored, with lookbehinds `(?<!;)(;*)(?<!-)` so a match starts only where a run of `;`/`-` starts; that is the same first match the lazy prefix found. Take the text before the marker from `marker.index`.
+2. Anchors: remember per taken slug the next suffix to try (`nextSuffix` map), so repeats of one heading do not count up from `_1` again.
+3. Tests: 200,000 dashes through `resolveIncludes` under 1 s; 8,000 identical headings through `chunkPage` under 3× the time of 8,000 distinct ones (relative, so a slow machine does not flake it).
+<!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Before the fix (Node 24.22.1, under test load): the dashes test took 40 s, the repeated-headings test 17 s. After: 5 ms and about 1.5 s for 8,000 repeated vs about 1 s for distinct headings. An absolute time limit for the heading test was too close (1.5 s vs 3 s), hence the relative check. Existing anchor and section tests (MkDocs anchors incl. `Rollback_1`, `_1`/`_2`, markers inside comments, escaped `;--8<--`) pass unchanged. `make lint` and `make test` (629 tests) pass.
+<!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Both parser paths a docs branch could drive into quadratic time are linear now. `SECTION_MARKER` in `parsing/include.ts` no longer has the leading `^(.*?)`; lookbehinds start a match only at the start of a `;`/`-` run, which is the same match as before, so markers are recognized exactly as before. `parsing/chunk.ts` remembers the next free suffix per taken slug instead of counting up from `_1` for every repeated heading; anchors are unchanged. Regression tests in `include.spec.ts` (200,000 dashes, 40 s before, 5 ms now) and `chunk.spec.ts` (8,000 repeated vs distinct headings, 17 s before). `make lint` and `make test` pass.
+<!-- SECTION:FINAL_SUMMARY:END -->
