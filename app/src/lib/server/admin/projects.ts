@@ -245,9 +245,8 @@ export function sourceProblem(
 		}
 	}
 
-	const gitUrl = form.gitUrl.trim();
-	const urlProblem = checkGitUrl(gitUrl);
-	if (urlProblem) return urlProblem;
+	const remoteIssue = remoteProblem(db, sourceId, form);
+	if (remoteIssue) return remoteIssue;
 
 	const docsUrlProblem = checkDocsUrl(form.docsUrl.trim());
 	if (docsUrlProblem) return docsUrlProblem;
@@ -269,7 +268,22 @@ export function sourceProblem(
 		}
 	}
 
-	const token = form.token.trim();
+	return undefined;
+}
+
+/**
+ * Why grimoire must not contact the Git server in `form`; undefined when it may. Checked before
+ * saving and before every access test, which sends the stored token along.
+ */
+export function remoteProblem(
+	db: DatabaseSync,
+	sourceId: number | undefined,
+	form: SourceForm
+): string | undefined {
+	const gitUrl = form.gitUrl.trim();
+	const urlProblem = checkGitUrl(gitUrl);
+	if (urlProblem) return urlProblem;
+
 	const previous =
 		sourceId === undefined
 			? undefined
@@ -279,7 +293,7 @@ export function sourceProblem(
 	// admin to enter it again, so a changed URL cannot carry it off unnoticed.
 	if (
 		previous?.encrypted_token &&
-		!token &&
+		!form.token.trim() &&
 		!form.removeToken &&
 		new URL(previous.git_url).origin !== new URL(gitUrl).origin
 	) {

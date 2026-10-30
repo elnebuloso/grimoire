@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { createServer as createHttpServer, type Server as HttpServer } from 'node:http';
 import { createServer, type AddressInfo, type Socket } from 'node:net';
 import { tmpdir } from 'node:os';
@@ -84,6 +84,15 @@ describe('checkRemote', () => {
 		const missing = `file://${join(directory, 'missing.git')}`;
 
 		expect(await checkRemote({ url: missing }, 'main')).toMatchObject({ status: 'refused' });
+	});
+
+	it('runs no command for a URL that looks like an option', async () => {
+		const marker = join(directory, 'marker');
+
+		const check = await checkRemote({ url: `--upload-pack=touch ${marker} #` }, 'main');
+
+		expect(check.status).not.toBe('ok');
+		expect(existsSync(marker)).toBe(false);
 	});
 
 	it('counts a server that never answers as unreachable', async () => {

@@ -34,7 +34,8 @@ export async function checkRemote(
 ): Promise<RemoteCheck> {
 	let output: string;
 	try {
-		output = await git(['ls-remote', remote.url, `refs/heads/${branch}`], remote, timeoutMs);
+		// `--` keeps a URL that starts with `-` from being read as an option such as `--upload-pack`.
+		output = await git(['ls-remote', '--', remote.url, `refs/heads/${branch}`], remote, timeoutMs);
 	} catch (error) {
 		const detail = (error as Error).message;
 		return { status: REFUSED.test(detail) ? 'refused' : 'unreachable', detail };

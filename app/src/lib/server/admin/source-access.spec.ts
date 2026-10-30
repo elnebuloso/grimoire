@@ -9,14 +9,28 @@ import * as git from '../sync/git';
 import { saveProject, saveSource, type SourceForm } from './projects';
 import { accessChanged, checkSourceAccess } from './source-access';
 
+const repositories = vi.hoisted(() => ({ directory: '' }));
+
+// The form only accepts https; the server at `https://git.example/` is a local bare repository.
 vi.mock('../sync/git', async (original) => {
 	const actual = await original<typeof git>();
-	return { ...actual, checkRemote: vi.fn(actual.checkRemote) };
+	return {
+		...actual,
+		checkRemote: vi.fn((remote: git.GitRemote, ...rest: [string, number?]) =>
+			actual.checkRemote(
+				{
+					...remote,
+					url: remote.url.replace('https://git.example/', `file://${repositories.directory}/`)
+				},
+				...rest
+			)
+		)
+	};
 });
 
 const KEY = Buffer.alloc(32, 7);
 let directory: string;
-let url: string;
+const url = 'https://git.example/docs.git';
 let db: DatabaseSync;
 
 function form(changes: Partial<SourceForm> = {}): SourceForm {
@@ -45,7 +59,7 @@ beforeAll(() => {
 	run('add', '.');
 	run('-c', 'user.name=t', '-c', 'user.email=t@example.com', 'commit', '--quiet', '-m', 'x');
 	execFileSync('git', ['clone', '--quiet', '--bare', work, join(directory, 'docs.git')]);
-	url = `file://${join(directory, 'docs.git')}`;
+	repositories.directory = directory;
 });
 
 afterAll(() => rmSync(directory, { recursive: true, force: true }));
@@ -59,13 +73,8 @@ beforeEach(() => {
 function storedSource(token = 'glpat-stored'): number {
 	const project = saveProject(db, undefined, { name: 'Platform', description: '' });
 	if ('error' in project) throw new Error(project.error);
-	// The form only accepts https; the local repository is reached over file://.
-	const source = saveSource(db, KEY, project.id, undefined, {
-		...form({ token }),
-		gitUrl: 'https://git.example/docs.git'
-	});
+	const source = saveSource(db, KEY, project.id, undefined, form({ token }));
 	if ('error' in source) throw new Error(source.error);
-	db.prepare('UPDATE sources SET git_url = ? WHERE id = ?').run(url, source.id);
 	return source.id;
 }
 
@@ -79,7 +88,7 @@ describe('checkSourceAccess', () => {
 
 	it.each([
 		[{ branch: 'develop' }, 'The repository has no branch develop.'],
-		[{ gitUrl: 'file:///nowhere/docs.git' }, 'Access refused, or there is no repository']
+		[{ gitUrl: 'https://git.example/nowhere.git' }, 'Access refused, or there is no repository']
 	])('says why it cannot read %j', async (changes, message) => {
 		const result = await checkSourceAccess(db, KEY, undefined, form(changes));
 
@@ -96,6 +105,32 @@ describe('checkSourceAccess', () => {
 		expect(tokenUsed()).toBe('glpat-new');
 		await checkSourceAccess(db, KEY, id, form({ removeToken: true }));
 		expect(tokenUsed()).toBeUndefined();
+	});
+
+	it.each([
+		['http://git.example/docs.git', 'https'],
+		['file:///etc/docs.git', 'https'],
+		['https://deploy:secret@git.example/docs.git', 'own fields'],
+		['--upload-pack=touch /tmp/pwned', 'Enter the Git URL']
+	])('contacts no server for %s, which could not be saved', async (gitUrl, message) => {
+		const result = await checkSourceAccess(db, KEY, undefined, form({ gitUrl }));
+
+		expect(result).toEqual({ ok: false, message: expect.stringContaining(message) });
+		expect(git.checkRemote).not.toHaveBeenCalled();
+	});
+
+	it('does not send the stored token to another server', async () => {
+		const id = storedSource();
+
+		const result = await checkSourceAccess(
+			db,
+			KEY,
+			id,
+			form({ gitUrl: 'https://attacker.example/x' })
+		);
+
+		expect(result).toEqual({ ok: false, message: expect.stringContaining('token') });
+		expect(git.checkRemote).not.toHaveBeenCalled();
 	});
 });
 
