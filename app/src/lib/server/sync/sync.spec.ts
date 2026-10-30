@@ -7,6 +7,7 @@ import type { DatabaseSync } from 'node:sqlite';
 import { openDatabase } from '../db/schema';
 import { splitCode } from '../db/sources';
 import { encryptToken } from '../token-encryption';
+import { createSyncQueue, type SyncLanes } from './queue';
 import { syncSource } from './sync';
 
 const key = Buffer.alloc(32, 7);
@@ -283,6 +284,57 @@ describe('syncSource', () => {
 			status: 'failed',
 			error: expect.stringMatching(/TOKEN_ENCRYPTION_KEY/)
 		});
+	});
+});
+
+describe('deleting a source while it syncs', () => {
+	/** Runs the sync, deleting with `sql` just before the stage named by `when` starts. */
+	function deletingBefore(when: keyof SyncLanes, sql: string): SyncLanes {
+		const run: SyncLanes['check'] = (work) => work();
+		const deleting: SyncLanes['check'] = (work) => {
+			db.prepare(sql).run();
+			return work();
+		};
+		return when === 'check' ? { check: deleting, sync: run } : { check: run, sync: deleting };
+	}
+
+	function leftOver(sourceId: number) {
+		return {
+			pages: rows('SELECT id FROM pages WHERE source_id = ?', sourceId).length,
+			snippets: rows('SELECT id FROM snippets').length,
+			links: rows('SELECT target FROM links').length,
+			runs: rows('SELECT id FROM sync_runs WHERE source_id = ?', sourceId).length
+		};
+	}
+
+	it.each([
+		['the source', 'check', `DELETE FROM sources`],
+		['the source', 'sync', `DELETE FROM sources`],
+		['its project', 'sync', `DELETE FROM projects`]
+	] as const)('leaves nothing behind when %s is deleted before the %s', async (_, when, sql) => {
+		const outcome = await syncSource(db, source, {
+			key,
+			workDirectory: work,
+			lanes: deletingBefore(when, sql)
+		});
+
+		expect(outcome.status).toBe('failed');
+		expect(leftOver(source)).toEqual({ pages: 0, snippets: 0, links: 0, runs: 0 });
+	});
+
+	it('keeps the queue working after a source was deleted while queued', async () => {
+		const other = addSource(`file://${bare}`);
+		const queue = createSyncQueue((id, force, lanes) =>
+			syncSource(db, id, { key, workDirectory: work, force, lanes })
+		);
+		db.prepare('DELETE FROM sources WHERE id = ?').run(source);
+
+		const deleted = queue.request(source);
+		const kept = queue.request(other);
+
+		await expect(deleted).rejects.toThrow(`source ${source} does not exist`);
+		expect(await kept).toMatchObject({ status: 'synced' });
+		expect(queue.isPending(source)).toBe(false);
 	});
 });
 
