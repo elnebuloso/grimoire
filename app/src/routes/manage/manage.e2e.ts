@@ -119,10 +119,16 @@ test('creates a source and never shows its token', async ({ page }) => {
 
 	// The repository has no `docs/`: the sync that creating starts fails, for the next test.
 	await page.getByLabel('Git URL').fill(GIT_URL);
+	// The test answers in place: a reload would drop this mark.
+	await page.evaluate(() => Object.assign(window, { notReloaded: true }));
 	await page.getByRole('button', { name: 'Test connection' }).click();
-	await expect(
-		page.getByRole('status').filter({ hasText: 'Reachable: branch main is at commit' })
-	).toBeVisible();
+	const reachable = page
+		.getByRole('status')
+		.filter({ hasText: 'Reachable: branch main is at commit' });
+	await expect(reachable).toBeVisible();
+	await expect(reachable.locator('svg')).toBeVisible();
+	expect(await page.evaluate(() => 'notReloaded' in window)).toBe(true);
+	await expect(page.getByLabel('Path in the repository')).toHaveValue('docs');
 	await page.getByRole('button', { name: 'Create source' }).click();
 
 	await expect(page.getByRole('heading', { name: 'Source Auth Service' })).toBeVisible();

@@ -202,7 +202,7 @@ export function savingReindexes(
 		stored.error !== null ||
 		stored.git_url !== form.gitUrl.trim() ||
 		stored.branch !== form.branch.trim() ||
-		stored.path !== form.path.trim() ||
+		repositoryPath(stored.path) !== repositoryPath(form.path) ||
 		stored.exclusions !== exclusionsJson(form.exclusions)
 	);
 }
@@ -250,7 +250,7 @@ export function saveSource(
 	const name = form.name.trim();
 	const gitUrl = form.gitUrl.trim();
 	const branch = form.branch.trim();
-	const path = form.path.trim();
+	const path = repositoryPath(form.path);
 	const schedule = form.schedule.trim() || null;
 	const token = form.token.trim();
 	const values = {
@@ -327,6 +327,11 @@ function checkGitUrl(gitUrl: string): string | undefined {
 		return m.error_git_url_credentials();
 	}
 	return undefined;
+}
+
+// A trailing slash changes nothing: `docs` and `docs/` are the same directory.
+function repositoryPath(path: string): string {
+	return path.trim().replace(/\/+$/, '');
 }
 
 // The URL ends up in `href`: only web addresses pass, never `javascript:` or a relative path, and

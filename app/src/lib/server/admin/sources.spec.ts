@@ -10,6 +10,7 @@ import {
 	listSources,
 	parseIdParam,
 	saveSource,
+	savingReindexes,
 	type SourceForm
 } from './sources';
 
@@ -66,7 +67,7 @@ describe('saveSource', () => {
 			gitUrl: 'https://gitlab.example.com/platform/auth.git',
 			docsUrl: null,
 			branch: 'main',
-			path: 'docs/',
+			path: 'docs',
 			exclusions: ['a/**', 'b.md'],
 			schedule: null,
 			paused: false,
@@ -74,6 +75,15 @@ describe('saveSource', () => {
 			username: null,
 			hasToken: false
 		});
+	});
+
+	it('stores the path without a trailing slash and indexes again only for another path', () => {
+		const id = created(saveSource(db, KEY, undefined, sourceForm({ path: 'docs/' })));
+
+		expect(findSource(db, id)).toMatchObject({ path: 'docs' });
+		expect(savingReindexes(db, id, sourceForm({ path: 'docs/' }))).toBe(false);
+		expect(savingReindexes(db, id, sourceForm({ path: 'docs' }))).toBe(false);
+		expect(savingReindexes(db, id, sourceForm({ path: 'guides' }))).toBe(true);
 	});
 
 	it('creates a source private and switches it public and back', () => {

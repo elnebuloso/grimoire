@@ -28,7 +28,7 @@ Git repository ──sync──▶ source ─┴─▶ search, read ──▶ ag
              pages ─▶ snippets with IDs
 ```
 
-- Source: one Git repository, one branch and one path in it, such as `docs/` on `main`, with a
+- Source: one Git repository, one branch and one path in it, such as `docs` on `main`, with a
   name and a slug such as `auth-service`. Two documentation paths in one repository are two
   sources. Agents search all sources or name the ones they want.
 - Public or private: a public source can be searched and read without an API key; a private one

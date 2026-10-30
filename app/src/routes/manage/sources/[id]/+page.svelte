@@ -1,5 +1,7 @@
 <script lang="ts">
+	import { enhance } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
+	import CircleCheck from '@lucide/svelte/icons/circle-check';
 	import { resolve } from '$app/paths';
 	import ChoiceField from '#lib/components/ChoiceField.svelte';
 	import ConfirmForm from '#lib/components/ConfirmForm.svelte';
@@ -20,6 +22,8 @@
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
+
+	let testPending = $state(false);
 
 	// Polls for the outcome of a queued sync; stops as soon as the sync is done.
 	const PENDING_REFRESH_MS = 2000;
@@ -51,7 +55,24 @@
 {#snippet settings()}
 	<section class="sheet" aria-labelledby="settings">
 		{#if data.source}<h2 id="settings">{m.source_settings()}</h2>{/if}
-		<form method="post" action="?/save">
+		<!-- In place: the connection test answers without reloading what was typed and where it
+		was scrolled to; saving still leads to the source as before. -->
+		<form
+			method="post"
+			action="?/save"
+			use:enhance={({ action, formElement }) => {
+				const testing = action.search === '?/test';
+				if (testing) testPending = true;
+				return async ({ update }) => {
+					await update({ reset: false, invalidateAll: !testing });
+					testPending = false;
+					// The answer carries an entered token back only encrypted; as after a reload, the
+					// page keeps no plain copy of it.
+					const token = formElement.elements.namedItem('token');
+					if (token instanceof HTMLInputElement) token.value = '';
+				};
+			}}
+		>
 			<FormError message={form?.error} />
 			<div class="fields">
 				{#if data.source}
@@ -125,13 +146,18 @@
 				{#if 'error' in form.access}
 					<p class="notice alert" role="alert">{form.access.error}</p>
 				{:else}
-					<p class="notice" role="status">{form.access.message}</p>
+					<p class="notice reachable" role="status">
+						<CircleCheck size={18} aria-hidden="true" />
+						{form.access.message}
+					</p>
 				{/if}
 			{/if}
 			<div class="actions">
 				<!-- Saving comes first: Enter submits with the first button of a form. -->
 				<button class="primary">{data.source ? m.save() : m.source_create()}</button>
-				<button formaction="?/test">{m.access_test()}</button>
+				<button formaction="?/test" disabled={testPending} aria-busy={testPending}
+					>{m.access_test()}</button
+				>
 			</div>
 		</form>
 	</section>
@@ -321,6 +347,15 @@
 {/if}
 
 <style>
+	.reachable {
+		display: flex;
+		align-items: center;
+		gap: var(--s2);
+	}
+	.reachable :global(svg) {
+		flex: none;
+		color: var(--ok);
+	}
 	.split,
 	.side {
 		display: grid;

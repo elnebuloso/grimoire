@@ -74,7 +74,7 @@ holds, such as `Billing API` and `Billing runbooks`.
 | **Short description** | Optional. Agents see it in `sources` and use it to choose where to search: name what the documentation covers, such as `Login, sessions and tokens of the auth service`. |
 | **Git URL (HTTPS)** | `https://` only. Username and token go in their own fields, never in the URL. |
 | **Documentation site** | Optional. Linked on the source page, and for a public source on the start page; agents do not see it. |
-| **Path in the repository** | Relative to the repository root, such as `docs/`; empty for the whole repository; no `..`. |
+| **Path in the repository** | Relative to the repository root, such as `docs`; a trailing slash is dropped; empty for the whole repository; no `..`. |
 | **Exclusions** | Glob patterns relative to the repository root, one per line, such as `docs/drafts/**`. |
 | **Schedule** | Cron with five fields in the instance's time zone, such as `0 6 * * 1-5` for weekdays at 6:00; empty uses the global schedule the label shows. A schedule that never runs, such as `0 0 30 2 *`, is rejected. |
 | **Public** | Off for a new source. On, anyone who can reach grimoire searches and reads the source without an API key, over MCP and HTTP; content read in the meantime cannot be taken back by switching it off. Off, only API keys for all sources or for this one read it. |
