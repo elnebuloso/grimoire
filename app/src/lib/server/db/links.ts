@@ -1,4 +1,5 @@
 import type { DatabaseSync } from 'node:sqlite';
+import { grimoireId } from '../grimoire-id';
 
 export interface Backlink {
 	/** grimoire ID of the snippet holding the link. */
@@ -33,9 +34,8 @@ export function findBacklinks(db: DatabaseSync, pageId: string): Backlink[] {
 		.all({ id: pageId }) as unknown as BacklinkRow[];
 
 	return rows.map((row) => {
-		const page = `${row.project}/${row.source}/${row.file.replace(/\.md$/, '')}`;
 		return {
-			from: row.anchor ? `${page}#${row.anchor}` : page,
+			from: grimoireId(row, row.anchor),
 			target: row.target,
 			dead: row.dead === 1
 		};

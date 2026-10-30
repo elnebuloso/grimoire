@@ -2,6 +2,7 @@ import { posix } from 'node:path';
 import { visit } from 'unist-util-visit';
 import { estimateTokens, type ChunkedPage } from './chunk.ts';
 import { parseMarkdown, stringifyMarkdown } from './markdown.ts';
+import { grimoireId } from '../grimoire-id.ts';
 
 export interface SourceLocation {
 	project: string;
@@ -49,11 +50,11 @@ export function resolveLinks(
 			path === '' ? file : posix.normalize(posix.join(posix.dirname(file), decode(path)));
 		if (targetFile === '..' || targetFile.startsWith('../')) return { target: url, dead: true };
 
-		const pageId = `${location.project}/${location.source}/${targetFile.replace(/\.md$/, '')}`;
+		const page = { ...location, file: targetFile };
 		const target = pages.get(targetFile);
-		if (!target) return { target: anchor ? `${pageId}#${anchor}` : pageId, dead: true };
-		if (!anchor || anchor === target.titleAnchor) return { target: pageId, dead: false };
-		return { target: `${pageId}#${anchor}`, dead: !hasAnchor(target, anchor) };
+		if (!target) return { target: grimoireId(page, anchor), dead: true };
+		if (!anchor || anchor === target.titleAnchor) return { target: grimoireId(page), dead: false };
+		return { target: grimoireId(page, anchor), dead: !hasAnchor(target, anchor) };
 	}
 
 	for (const [file, page] of pages) {

@@ -2,6 +2,7 @@ import { posix } from 'node:path';
 import type { DatabaseSync } from 'node:sqlite';
 import { estimateTokens } from '../parsing/chunk';
 import { redactUrl } from '../sync/git';
+import { grimoireId } from '../grimoire-id';
 
 export interface SearchOptions {
 	query: string;
@@ -95,7 +96,7 @@ function packIntoBudget(hits: SnippetHit[], budget: number): string {
 		const block = renderSnippet(hit);
 		const tokens = estimateTokens(`${block}\n\n`);
 		if (tokens > remaining) {
-			skipped.push(snippetId(hit));
+			skipped.push(grimoireId(hit, hit.anchor));
 			continue;
 		}
 		blocks.push(block);
@@ -110,14 +111,9 @@ export function renderSnippet(hit: SnippetHit): string {
 	const file = posix.join(hit.path, hit.file);
 	return [
 		`### ${hit.titlePath.join(' › ')}`,
-		`Source: ${snippetId(hit)}`,
+		`Source: ${grimoireId(hit, hit.anchor)}`,
 		`Edit: ${redactUrl(hit.gitUrl)} (${hit.branch}) ${file}`,
 		'',
 		hit.content.trimEnd()
 	].join('\n');
-}
-
-export function snippetId(hit: SnippetHit): string {
-	const page = `${hit.project}/${hit.source}/${hit.file.replace(/\.md$/, '')}`;
-	return hit.anchor ? `${page}#${hit.anchor}` : page;
 }

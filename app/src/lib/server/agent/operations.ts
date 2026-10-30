@@ -1,4 +1,5 @@
 import type { DatabaseSync } from 'node:sqlite';
+import { grimoireId, parseGrimoireId } from '../grimoire-id';
 import { renderSnippet, searchSnippets, toSnippetHit, type SnippetRow } from '../search/query';
 import instructions from './instructions.md?raw';
 
@@ -74,7 +75,8 @@ export function indexProject(
 			lines.push('', `## ${source}`, '');
 		}
 		if (row.file === null) continue;
-		const pageId = `${project}/${source}/${row.file.replace(/\.md$/, '')}`;
+		const page = { project, source: row.source, file: row.file };
+		const pageId = grimoireId(page);
 		if (row.file !== file) {
 			file = row.file;
 			anchor = undefined;
@@ -87,7 +89,7 @@ export function indexProject(
 		// A title path holds project, source and page title before the section's own headings.
 		const depth = titlePath.length - 3;
 		const title = titlePath.at(-1)!.replace(/ \(\d+\/\d+\)$/, '');
-		lines.push(`${'  '.repeat(depth)}- ${pageId}#${anchor}: ${title}`);
+		lines.push(`${'  '.repeat(depth)}- ${grimoireId(page, anchor)}: ${title}`);
 	}
 	return { found: true, markdown: lines.join('\n') };
 }
@@ -124,7 +126,8 @@ export function llmsTxt(
 			lines.push('', `## ${source}`, '');
 		}
 		if (row.file === null) continue;
-		const path = [project, source, ...row.file.replace(/\.md$/, '').split('/')]
+		const path = grimoireId({ project, source: row.source, file: row.file })
+			.split('/')
 			.map(encodeURIComponent)
 			.join('/');
 		lines.push(`- [${row.title}](${origin}/p/${path})`);
@@ -161,9 +164,8 @@ export function queryProjects(
  * returns the parent.
  */
 export function readById(db: DatabaseSync, id: string, scope: ProjectScope): OperationResult {
-	const [pageId, anchor] = id.split('#', 2);
-	const [project, source, ...page] = pageId.split('/');
-	if (page.length === 0) return idNotFound(id);
+	const location = parseGrimoireId(id);
+	if (!location) return idNotFound(id);
 
 	const rows = db
 		.prepare(
@@ -181,10 +183,10 @@ export function readById(db: DatabaseSync, id: string, scope: ProjectScope): Ope
 			ORDER BY snippets.position`
 		)
 		.all({
-			project,
-			source,
-			file: `${page.join('/')}.md`,
-			anchor: anchor ?? null,
+			project: location.project,
+			source: location.source,
+			file: location.file,
+			anchor: location.anchor ?? null,
 			scope: scopeParameter(scope)
 		}) as unknown as SnippetRow[];
 
