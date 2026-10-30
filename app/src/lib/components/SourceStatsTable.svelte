@@ -2,6 +2,7 @@
 	import { m } from '#lib/paraglide/messages.js';
 	import type { Snippet } from 'svelte';
 	import DateTime from './DateTime.svelte';
+	import TableScroll from './TableScroll.svelte';
 	import type { SourceStats } from '#lib/server/stats.js';
 
 	let {
@@ -11,9 +12,7 @@
 	}: { sources: SourceStats[]; timeZone: string; name?: Snippet<[SourceStats]> } = $props();
 </script>
 
-<!-- Focusable, so a keyboard can scroll the table where it holds no link. -->
-<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
-<div class="table-scroll" role="region" aria-label={m.sources()} tabindex="0">
+<TableScroll label={m.sources()}>
 	<table>
 		<thead>
 			<tr>
@@ -58,7 +57,7 @@
 			{/each}
 		</tbody>
 	</table>
-</div>
+</TableScroll>
 
 <style>
 	.source {
