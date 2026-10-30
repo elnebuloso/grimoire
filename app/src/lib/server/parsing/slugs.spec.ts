@@ -173,4 +173,17 @@ describe('configuredSlugify', () => {
 			'toc slugify "my_site.slugs.custom" is not supported, heading IDs use the default'
 		);
 	});
+
+	it.each([
+		['normalize: nfc', 'normalize'],
+		['case: upper', 'case']
+	])('falls back to the default with a warning for pymdownx option %s', (option) => {
+		const { slugify, warning } = fromMkdocs(
+			`markdown_extensions:\n  - toc:\n      slugify: !!python/object/apply:pymdownx.slugs.slugify\n        kwds:\n          ${option}\n`
+		);
+		expect(slugify('Über Größe')).toBe('uber-groe');
+		expect(warning).toBe(
+			`toc slugify option "${option}" is not supported, heading IDs use the default`
+		);
+	});
 });

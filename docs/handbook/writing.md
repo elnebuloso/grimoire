@@ -57,7 +57,7 @@ with `read`. A link that leaves the source's path is dead, in MkDocs as well.
 | Admonitions `!!! warning "Caution"` | `> **Caution:** …` with the content. |
 | Content tabs `=== "Linux"` | `**Linux:**` with the content. |
 | `nav` in `zensical.toml` or `mkdocs.yml` | The order of pages in the index; pages missing from `nav` follow by path. The first of the two files found in the source path or above it counts. |
-| `toc` `slugify` and `separator` in the site config | Anchors are built the same way for `pymdownx.slugs.slugify` with its options, `markdown.extensions.toc.slugify` and `slugify_unicode`; any other function falls back to the default with a warning. |
+| `toc` `slugify` and `separator` in the site config | Anchors are built the same way for `pymdownx.slugs.slugify` with its options, `markdown.extensions.toc.slugify` and `slugify_unicode`; any other function, and a `normalize` or `case` value `pymdownx.slugs.slugify` does not know, falls back to the default with a warning. |
 | Includes `--8<-- "file.md"` | The included file, also from outside the source's path. |
 | Partial includes `--8<-- "file.md:4:6"`, `--8<-- "app.py:main"` | The selected lines, or those between `--8<-- [start:main]` and `--8<-- [end:main]`; the markers are dropped everywhere. |
 | URL includes `--8<-- "https://docs.example.com/shared/footer.md"` | The fetched file, when the site config sets `url_download: true` under `pymdownx.snippets` and the operator allowed the origin. It is fetched at every sync. A file included by URL may include further URLs only. |
@@ -68,8 +68,9 @@ with `read`. A link that leaves the source's path is dead, in MkDocs as well.
 
 ## Sync warnings
 
-A warning skips one page or one include; the rest of the source syncs. Admins see the warnings on
-the source page. Fix them in the repository; the next sync clears them.
+A warning skips one page or one include; the rest of the source syncs. When every page is skipped,
+the sync fails and agents keep getting the previous index. Admins see the warnings on the source
+page. Fix them in the repository; the next sync clears them.
 
 | Warning | Fix |
 |---|---|

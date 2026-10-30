@@ -61,9 +61,28 @@ export function configuredSlugify(settings: Record<string, unknown>): {
 			return { ...fallback, warning: unknownSlugify(object) };
 		}
 		const options = isRecord(slugify.kwds) ? slugify.kwds : {};
+		const invalid = invalidPymdownxOption(options);
+		if (invalid) return { ...fallback, warning: unsupportedOption(invalid) };
 		return { slugify: pymdownxSlugify(options, separator) };
 	}
 	return { ...fallback, warning: unknownSlugify(String(slugify)) };
+}
+
+const NORMALIZATION_FORMS = ['NFC', 'NFD', 'NFKC', 'NFKD'];
+const CASES = ['none', 'lower', 'lower-ascii', 'fold'];
+
+// An unknown normalization form throws on every heading, which skipped every page; an unknown case
+// would build other IDs than the site does.
+function invalidPymdownxOption(options: PymdownxSlugOptions): string | undefined {
+	if (options.normalize !== undefined && !NORMALIZATION_FORMS.includes(options.normalize)) {
+		return `normalize: ${options.normalize}`;
+	}
+	if (options.case !== undefined && !CASES.includes(options.case)) return `case: ${options.case}`;
+	return undefined;
+}
+
+function unsupportedOption(option: string): string {
+	return `toc slugify option "${option}" is not supported, heading IDs use the default`;
 }
 
 function unknownSlugify(name: string): string {

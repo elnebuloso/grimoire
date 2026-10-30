@@ -33,7 +33,8 @@ export interface PagesToIndex extends PreparedSource {
  * Turns prepared pages into snippets and links. The Markdown processing that takes most of a
  * sync; it runs in the indexing child process, which plain Node starts, so it imports only what
  * plain Node can load.
- * A page that cannot be processed is skipped with a warning.
+ * A page that cannot be processed is skipped with a warning. When pages were found but none could
+ * be processed, it throws instead: an empty index would replace the working one.
  */
 export function indexPages(job: PagesToIndex): Omit<SourceIndex, 'commit'> {
 	const warnings = [...job.warnings];
@@ -54,6 +55,10 @@ export function indexPages(job: PagesToIndex): Omit<SourceIndex, 'commit'> {
 		} catch (error) {
 			warnings.push(`${posix.join(job.sourcePath, file)}: skipped, ${(error as Error).message}`);
 		}
+	}
+
+	if (job.pages.length > 0 && indexed.length === 0) {
+		throw new Error(`no page could be indexed, ${warnings.at(-1)}`);
 	}
 
 	const linked = resolveLinks(new Map(indexed.map((page) => [page.file, page.chunked])));

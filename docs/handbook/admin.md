@@ -135,6 +135,7 @@ page and under **Needs attention**.
 | `the Git server asks for a username and token: the repository is private, or there is none at this URL` | Enter a username and token, or correct the Git URL. |
 | `branch "main" not found in https://…` | Correct **Branch**. |
 | `source path "docs" does not exist in the repository` | Correct **Path in the repository**. |
+| `no page could be indexed, docs/deploy.md: skipped, …` | Every page failed, so the previous index stays. Ask the authors to fix what the message names (see [Writing documentation](writing.md#sync-warnings)). |
 | `invalid cron expression "0 25 * * *": …` | Correct **Schedule**. |
 | `indexing took longer than 10 minutes` | Split the source into smaller paths, ask authors to look for a huge or generated page, or ask the operator for a longer indexing deadline (see [Memory and CPU limits](docker.md#memory-and-cpu-limits)). |
 | `indexing ended with … before it finished, out of memory for example` | Ask the operator for more memory (see [Memory and CPU limits](docker.md#memory-and-cpu-limits)). |

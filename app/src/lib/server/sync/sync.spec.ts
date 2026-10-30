@@ -204,6 +204,22 @@ describe('syncSource', () => {
 		expect(readdirSync(work)).toEqual([]);
 	});
 
+	it('keeps the last good index and fails when no page of the new commit can be indexed', async () => {
+		await syncSource(db, source, { key, workDirectory: work });
+		commitFiles({ 'docs/index.md': null, 'docs/deploy.md': null });
+
+		const result = await syncSource(db, source, { key, workDirectory: work });
+
+		expect(result).toMatchObject({
+			status: 'failed',
+			error: expect.stringMatching(/^no page could be indexed, docs\/broken.md: skipped, /)
+		});
+		expect(rows('SELECT file FROM pages ORDER BY file')).toEqual([
+			{ file: 'deploy.md' },
+			{ file: 'index.md' }
+		]);
+	});
+
 	it('sets last_synced_at only when an index is swapped in, never on a failure', async () => {
 		const lastSynced = () =>
 			rows('SELECT last_synced_at FROM sources WHERE id = ?', source)[0].last_synced_at;
