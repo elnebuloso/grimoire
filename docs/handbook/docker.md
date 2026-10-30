@@ -139,6 +139,7 @@ quota, and syncs take correspondingly longer.
 | `MIGRATE_ONLY` | `false` | With `true`, update the schema and exit, e.g. in an init container. |
 | `PORT` | `3000` | Port the server listens on. |
 | `PROTOCOL_HEADER`, `ADDRESS_HEADER` | not set | Behind a reverse proxy, the headers carrying the original protocol and client address (see [Management area](admin.md#logging-in)). |
+| `HOST_HEADER` | not set (`Host`) | Header carrying the host the browser asked for, for a proxy that does not pass on `Host` unchanged (see [Management area](admin.md#logging-in)). There is no `ORIGIN` variable. |
 
 The variables are described in detail in [Database](database.md#configuration).
 

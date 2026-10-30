@@ -53,6 +53,16 @@ a proxy, every admin form is rejected with `Cross-site POST form submissions are
 browser sends no such header. To try grimoire locally, put a proxy in front, as in the
 [Docker Compose](docker.md#docker-compose) example.
 
+grimoire works out its own origin anew for every request: the protocol as above, the host from
+the `Host` header. The proxy must therefore pass on the `Host` the browser sent. A proxy that
+replaces it with the name of the upstream, as nginx does unless told `proxy_set_header Host $host;`,
+makes grimoire take itself for `https://grimoire:3000`, and every form fails with the same
+`Cross-site POST form submissions are forbidden`. Where the proxy cannot keep `Host`, set
+`HOST_HEADER` to the header carrying the original host instead, for example `x-forwarded-host`.
+There is no `ORIGIN` variable, unlike in some other SvelteKit applications; setting one changes
+nothing. `BASE_URL` takes no part in this check either: it only sets where links point (see
+[Environment](docker.md#environment)).
+
 ## Changing the password
 
 The account page `/account`, behind the own name in the header, changes the password of every
