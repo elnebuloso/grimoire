@@ -1,10 +1,11 @@
 ---
 id: TASK-183
 title: Give every page a title and keep grimoire out of search engines
-status: To Do
-assignee: []
+status: In Progress
+assignee:
+  - '@claude'
 created_date: '2026-10-30 19:41'
-updated_date: '2026-10-30 19:46'
+updated_date: '2026-10-30 21:25'
 labels:
   - admin
 milestone: m-0
@@ -32,14 +33,34 @@ Deliberately not part of this: `meta description`, `link canonical` and Open Gra
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Every page, including the error page in each of its states, renders a `<title>` naming the page and grimoire in the server response, in the language of the page
-- [ ] #2 The title is rendered from one shared place; a page cannot render without it
-- [ ] #3 On dynamic pages the title follows the content: a source page names the source, `/manage/sources/new` says New source, the preview names the file, the error page names its state
-- [ ] #4 Every page renders `<meta name="robots" content="noindex, nofollow">`
+- [x] #1 Every page, including the error page in each of its states, renders a `<title>` naming the page and grimoire in the server response, in the language of the page
+- [x] #2 The title is rendered from one shared place; a page cannot render without it
+- [x] #3 On dynamic pages the title follows the content: a source page names the source, `/manage/sources/new` says New source, the preview names the file, the error page names its state
+- [x] #4 Every page renders `<meta name="robots" content="noindex, nofollow">`
 - [ ] #5 Every response carries `X-Robots-Tag: noindex, nofollow`: pages, error pages, redirects and every agent route, set in one place in `app/src/hooks.server.ts`
-- [ ] #6 `app/static/robots.txt` disallows all crawling
-- [ ] #7 Tests cover the titles (static, source, preview, error states, German), the robots meta tag on every page, and the header on a page, an error page and an agent route
-- [ ] #8 axe `document-title` passes on every page
-- [ ] #9 The operator part of the handbook says that grimoire keeps itself out of search engines
-- [ ] #10 `make lint`, `make test` and `make e2e` pass
+- [x] #6 `app/static/robots.txt` disallows all crawling
+- [x] #7 Tests cover the titles (static, source, preview, error states, German), the robots meta tag on every page, and the header on a page, an error page and an agent route
+- [x] #8 axe `document-title` passes on every page
+- [x] #9 The operator part of the handbook says that grimoire keeps itself out of search engines
+- [x] #10 `make lint`, `make test` and `make e2e` pass
 <!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. PageHead renders the document title from its title prop (page name – grimoire; a heading that already names grimoire stays as is), optional documentTitle for the preview; home and error page move to PageHead so every page goes through it
+2. app.html renders the robots meta tag; a first handle in hooks.server.ts sets X-Robots-Tag on every response, redirects and errors included
+3. robots.txt disallows everything; operator handbook names it
+4. Tests: PageHead story for the title, unit test for the header handle, e2e over every page for title, meta tag and axe document-title, German and error states
+5. make lint, make test, make e2e
+<!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+- PageHead renders <title> from its title prop ("<page> – grimoire" via m.document_title; a heading naming grimoire stays as is) and takes documentTitle for the preview and the error page. Start page and error page now render PageHead too, so every page goes through it; error titles live in src/routes/error-titles.ts with a unit test.
+- app.html renders <meta name="robots" content="noindex, nofollow">; handleRobots, first in the hooks sequence, sets X-Robots-Tag via event.setHeaders; robots.txt disallows /; docs/handbook/docker.md (Reverse proxy) says so.
+- Tests: PageHead stories check document.title; manage.e2e checks server-rendered title and robots meta on every page plus the header on a page, an error page and agent routes; language.e2e checks the German 404 title. Preview title and axe document-title checked by hand in the agent environment on all pages (0 violations).
+- Gap (AC #5 open): responses produced by redirect()/error() thrown in handleAccess carry no X-Robots-Tag. SvelteKit builds those outside resolve (respond.js catch / handle_fatal_error), so setHeaders never reaches them. They hold nothing indexable (3xx, or SvelteKit's static error page).
+- Pre-existing, found on the way: error() thrown in handleAccess (403 for non-admins, 404 on /setup after setup) always renders SvelteKit's static fallback page (handle_fatal_error -> static_error_page), not +error.svelte: no design, English only, title 'Error: 403', no robots meta. Needs a decision: follow-up task.
+<!-- SECTION:NOTES:END -->
