@@ -227,5 +227,18 @@
 	"error_unexpected": "Something went wrong. Try again later.",
 	"error_start_page": "To the start page",
 	"pages_filter": "Filter pages",
-	"pages_filter_none": "No page matches the filter."
+	"pages_filter_none": "No page matches the filter.",
+	"auth_reset_blocked": "Too many requests for a new password. Try again later.",
+	"auth_reset_link_invalid": "This link is invalid, used or expired. Request a new one.",
+	"login_forgot": "Forgot your password?",
+	"forgot_title": "Reset your password",
+	"forgot_intro": "Enter the email address of your account. If it has one, a link to set a new password is sent there; it is valid for one hour.",
+	"forgot_submit": "Send link",
+	"forgot_sent": "If an account with this address exists, a link to set a new password is on its way.",
+	"reset_title": "Set a new password",
+	"reset_submit": "Set password",
+	"reset_done": "Password set. All sessions of the account have ended.",
+	"reset_request_new": "Request a new link",
+	"mail_reset_subject": "Set a new password for grimoire",
+	"mail_reset_text": "Someone asked for a new password for the grimoire account {email}. Set it within one hour with this link:\n\n{url}\n\nIf it was not you, ignore this mail; the password stays as it is."
 }

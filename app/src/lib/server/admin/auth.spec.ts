@@ -446,6 +446,14 @@ describe('accessRedirect', () => {
 		expect(auth.accessRedirect(db, '/manage', session)).toBeUndefined();
 		expect(auth.accessRedirect(db, '/login', session)).toBe('/manage');
 	});
+
+	it('serves the reset of a forgotten password without a session', async () => {
+		await setUp();
+
+		for (const page of ['/login/forgot', '/login/reset/[token]']) {
+			expect(auth.accessRedirect(db, page, undefined)).toBeUndefined();
+		}
+	});
 });
 
 describe('pages outside the account and management pages', () => {

@@ -66,7 +66,8 @@ export default defineConfig({
 				GIT_CONFIG_GLOBAL: gitConfig,
 				SMTP_HOST: 'localhost',
 				SMTP_PORT: '4125',
-				SMTP_FROM: 'grimoire <grimoire@e2e.example>'
+				SMTP_FROM: 'grimoire <grimoire@e2e.example>',
+				BASE_URL: 'http://localhost:4173'
 			}
 		}
 	],

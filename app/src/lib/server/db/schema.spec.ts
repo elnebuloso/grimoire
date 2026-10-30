@@ -88,6 +88,7 @@ describe('openDatabase', () => {
 			'links',
 			'missed_queries',
 			'pages',
+			'password_resets',
 			'projects',
 			'sessions',
 			'settings',

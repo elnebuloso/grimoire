@@ -276,7 +276,7 @@ test('creates an API key that works for its project until it is revoked', async 
 	expect((await projects()).status()).toBe(401);
 });
 
-// Last, because every test before it logs in with the old password.
+// Near the end, because every test before it logs in with the old password.
 test('changes the password and logs in with the new one', async ({ page }) => {
 	const newPassword = 'staple battery horse';
 	await logIn(page);
@@ -297,6 +297,54 @@ test('changes the password and logs in with the new one', async ({ page }) => {
 	await page.goto('/manage');
 	await page.getByRole('button', { name: 'Log out' }).click();
 	await logIn(page);
+	await expect(page.getByRole('alert')).toHaveText('Wrong email address or password.');
+	await logIn(page, newPassword);
+	await expect(page).toHaveURL('/manage');
+});
+
+// The mail catcher started in `playwright.config.ts`.
+const MAIL_API = 'http://localhost:4825/api/v1';
+
+async function resetLinkFromMail(): Promise<string> {
+	let text = '';
+	// Sending is not awaited by the server, so the mail arrives some time after the answer.
+	await expect
+		.poll(
+			async () => {
+				const { messages } = await (await fetch(`${MAIL_API}/messages`)).json();
+				const mail = messages.find((message: { To: { Address: string }[] }) =>
+					message.To.some((to) => to.Address === EMAIL)
+				);
+				if (mail) text = (await (await fetch(`${MAIL_API}/message/${mail.ID}`)).json()).Text;
+				return text;
+			},
+			{ timeout: 15_000 }
+		)
+		.toContain('/login/reset/');
+	return text.match(/http:\/\/localhost:4173\/login\/reset\/[\w-]+/)![0];
+}
+
+test('sets a forgotten password through the link in the mail', async ({ page }) => {
+	const forgottenPassword = 'staple battery horse';
+	const newPassword = 'horse staple battery';
+	await fetch(`${MAIL_API}/messages`, { method: 'DELETE' });
+	await page.goto('/login');
+	await page.getByRole('link', { name: 'Forgot your password?' }).click();
+	await page.getByLabel('Email address').fill(EMAIL);
+	await page.getByRole('button', { name: 'Send link' }).click();
+	await expect(page.getByRole('status')).toContainText(
+		'a link to set a new password is on its way'
+	);
+
+	const link = await resetLinkFromMail();
+	await page.goto(link);
+	await page.getByLabel('Password').fill(newPassword);
+	await page.getByRole('button', { name: 'Set password' }).click();
+	await expect(page.getByRole('status')).toContainText('Password set.');
+
+	await page.goto(link);
+	await expect(page.getByRole('alert')).toContainText('This link is invalid, used or expired.');
+	await logIn(page, forgottenPassword);
 	await expect(page.getByRole('alert')).toHaveText('Wrong email address or password.');
 	await logIn(page, newPassword);
 	await expect(page).toHaveURL('/manage');

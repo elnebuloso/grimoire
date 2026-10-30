@@ -38,7 +38,9 @@ export type AuthProblem =
 	| 'blocked'
 	| 'wrong-credentials'
 	| 'wrong-current-password'
-	| 'new-password-too-short';
+	| 'new-password-too-short'
+	| 'reset-blocked'
+	| 'reset-link-invalid';
 
 // Kept in memory only: it exists solely to prove access to the server log, so it is never stored.
 let setupTokenValue: string | undefined;
@@ -50,7 +52,7 @@ const failedLogins = new Map<
 	{ count: number; blockedUntil: number; lastFailedAt: number }
 >();
 
-function sha256(value: string): string {
+export function sha256(value: string): string {
 	return createHash('sha256').update(value).digest('hex');
 }
 
@@ -97,7 +99,7 @@ async function passwordMatches(password: string, stored: string): Promise<boolea
 let unknownUserHash: string | undefined;
 
 // Addresses are compared and stored in lowercase: nobody expects their login to depend on it.
-function normalizeEmail(email: string): string {
+export function normalizeEmail(email: string): string {
 	return email.trim().toLowerCase();
 }
 
@@ -301,7 +303,7 @@ export function resetAdmin(db: DatabaseSync, email: string): boolean {
 	if (!admin) return false;
 	inTransaction(db, () => {
 		// Deleted one by one: the reset script opens the file without enforcing foreign keys.
-		for (const table of ['sessions', 'user_roles']) {
+		for (const table of ['sessions', 'user_roles', 'password_resets']) {
 			db.prepare(`DELETE FROM ${table} WHERE user_id = ?`).run(admin.id);
 		}
 		db.prepare('DELETE FROM users WHERE id = ?').run(admin.id);
@@ -350,7 +352,8 @@ export function accessRedirect(
 	if (!checkAdminAccount(db)) return pathname === '/setup' ? undefined : '/setup';
 	if (pathname === '/setup') return 'not-found';
 	const user = sessionUser(db, session);
-	if (pathname === '/login') return user && mayOpen(user, '/manage') ? '/manage' : undefined;
+	// The login and the reset of a forgotten password below it need no session.
+	if (isUnder(pathname, '/login')) return user && mayOpen(user, '/manage') ? '/manage' : undefined;
 	if (!user) return '/login';
 	return mayOpen(user, pathname) ? undefined : 'forbidden';
 }

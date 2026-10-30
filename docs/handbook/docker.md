@@ -134,6 +134,7 @@ quota, and syncs take correspondingly longer.
 | `SMTP_HOST` | not set (no mail) | SMTP server grimoire sends mail through. Not set: no mail is sent, and what needs it is not offered. |
 | `SMTP_PORT` | not set (`587`) | Port of the SMTP server; `465` uses TLS from the start, other ports STARTTLS when the server offers it. |
 | `SMTP_USER`, `SMTP_PASSWORD` | not set | Login at the SMTP server; without `SMTP_USER` grimoire sends without logging in. |
+| `BASE_URL` | not set | Where grimoire is reached, such as `https://grimoire.example.com`; links in mails point there. Required with `SMTP_HOST`. |
 | `SMTP_FROM` | not set | Sender address of the mails, such as `grimoire <grimoire@example.com>`; required with `SMTP_HOST`, the server does not start without it. |
 | `MIGRATE_ONLY` | `false` | With `true`, update the schema and exit, e.g. in an init container. |
 | `PORT` | `3000` | Port the server listens on. |

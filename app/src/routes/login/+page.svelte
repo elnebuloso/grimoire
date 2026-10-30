@@ -1,10 +1,11 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import FormError from '#lib/components/FormError.svelte';
 	import TextField from '#lib/components/TextField.svelte';
 	import { m } from '#lib/paraglide/messages.js';
 	import type { PageProps } from './$types';
 
-	let { form }: PageProps = $props();
+	let { data, form }: PageProps = $props();
 </script>
 
 <h1>{m.login_title()}</h1>
@@ -28,3 +29,7 @@
 	/>
 	<button>{m.header_log_in()}</button>
 </form>
+
+{#if data.resetByMail}
+	<p><a href={resolve('/login/forgot')}>{m.login_forgot()}</a></p>
+{/if}

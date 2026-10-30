@@ -5,7 +5,7 @@ import { parseSchedule } from '#lib/server/sync/schedule.js';
 import { parseAllowedOrigins } from '#lib/server/sync/url-include.js';
 import { parseLogFormat, parseLogLevel } from '#lib/server/log.js';
 import { parseTimeZone } from '#lib/time-zone.js';
-import { parseSmtpPort } from '#lib/server/mail/smtp.js';
+import { parseBaseUrl, parseSmtpPort } from '#lib/server/mail/smtp.js';
 
 export const variables = defineEnvVars({
 	DATABASE_PATH: {
@@ -68,6 +68,11 @@ export const variables = defineEnvVars({
 		description:
 			'Sender address of the mails, such as `grimoire <grimoire@example.com>`; required with `SMTP_HOST`',
 		schema: (value) => value ?? ''
+	},
+	BASE_URL: {
+		description:
+			'Where grimoire is reached, such as `https://grimoire.example.com`; links in mails point there; required with `SMTP_HOST`',
+		schema: parseBaseUrl
 	},
 	LOG_LEVEL: {
 		description: 'Lowest level that is written: `error`, `warn`, `info` or `debug`; default `info`',

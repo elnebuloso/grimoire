@@ -9,7 +9,9 @@ const MESSAGES: Record<AuthProblem, () => string> = {
 	blocked: () => m.auth_blocked(),
 	'wrong-credentials': () => m.auth_wrong_credentials(),
 	'wrong-current-password': () => m.auth_wrong_current_password(),
-	'new-password-too-short': () => m.auth_new_password_too_short({ min: MIN_PASSWORD_LENGTH })
+	'new-password-too-short': () => m.auth_new_password_too_short({ min: MIN_PASSWORD_LENGTH }),
+	'reset-blocked': () => m.auth_reset_blocked(),
+	'reset-link-invalid': () => m.auth_reset_link_invalid()
 };
 
 /** The message for the form, in the language of the request. */

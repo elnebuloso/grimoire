@@ -7,6 +7,8 @@ export interface SmtpSettings {
 	user: string;
 	password: string;
 	from: string;
+	/** Where grimoire is reached, such as `https://grimoire.example.com`; links in mails point there. */
+	baseUrl: string;
 }
 
 export interface Mail {
@@ -18,6 +20,8 @@ export interface Mail {
 export interface Mailer {
 	/** Whether the SMTP server accepted the mail; a failure is logged, never thrown. */
 	send(mail: Mail): Promise<boolean>;
+	/** The address of `path` on this instance, for a link in a mail. */
+	link(path: string): string;
 }
 
 export function parseSmtpPort(value: string | undefined): number {
@@ -28,10 +32,24 @@ export function parseSmtpPort(value: string | undefined): number {
 	return port;
 }
 
+export function parseBaseUrl(value: string | undefined): string {
+	if (!value) return '';
+	const url = URL.parse(value);
+	if (!url || !['https:', 'http:'].includes(url.protocol) || url.pathname !== '/' || url.search) {
+		throw new Error(
+			`BASE_URL must be an origin such as https://grimoire.example.com, got "${value}"`
+		);
+	}
+	return url.origin;
+}
+
 /** Sends through the SMTP server of `settings`; undefined while no host is set. */
 export function createMailer(settings: SmtpSettings): Mailer | undefined {
 	if (!settings.host) return undefined;
 	if (!settings.from) throw new Error('SMTP_FROM is required when SMTP_HOST is set');
+	// Links in mails cannot use the origin of the request: its Host header is the sender's choice,
+	// and a reset link pointing to another host would hand the token to whoever runs it.
+	if (!settings.baseUrl) throw new Error('BASE_URL is required when SMTP_HOST is set');
 	const transport = createTransport({
 		host: settings.host,
 		port: settings.port,
@@ -49,6 +67,9 @@ export function createMailer(settings: SmtpSettings): Mailer | undefined {
 				log.error({ err: error }, `Sending mail to ${mail.to} failed`);
 				return false;
 			}
+		},
+		link(path) {
+			return new URL(path, settings.baseUrl).href;
 		}
 	};
 }

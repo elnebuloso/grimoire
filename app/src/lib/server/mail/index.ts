@@ -1,4 +1,11 @@
-import { SMTP_FROM, SMTP_HOST, SMTP_PASSWORD, SMTP_PORT, SMTP_USER } from '$app/env/private';
+import {
+	BASE_URL,
+	SMTP_FROM,
+	SMTP_HOST,
+	SMTP_PASSWORD,
+	SMTP_PORT,
+	SMTP_USER
+} from '$app/env/private';
 import { createMailer, type Mailer } from './smtp.js';
 
 export type { Mail, Mailer } from './smtp.js';
@@ -13,7 +20,8 @@ export function mailer(): Mailer | undefined {
 			port: SMTP_PORT,
 			user: SMTP_USER,
 			password: SMTP_PASSWORD,
-			from: SMTP_FROM
+			from: SMTP_FROM,
+			baseUrl: BASE_URL
 		})
 	};
 	return configured.mailer;

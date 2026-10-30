@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { captureLog } from '../capture-log';
-import { createMailer, parseSmtpPort, type SmtpSettings } from './smtp';
+import { createMailer, parseBaseUrl, parseSmtpPort, type SmtpSettings } from './smtp';
 
 // No SMTP server in a test: the transport is replaced, what grimoire hands it is checked.
 const sendMail = vi.hoisted(() => vi.fn());
@@ -12,7 +12,8 @@ const SETTINGS: SmtpSettings = {
 	port: 587,
 	user: 'grimoire',
 	password: 'smtp-secret',
-	from: 'grimoire <grimoire@example.com>'
+	from: 'grimoire <grimoire@example.com>',
+	baseUrl: 'https://grimoire.example.com'
 };
 const MAIL = { to: 'admin@example.com', subject: 'Hello', text: 'Body' };
 
@@ -27,8 +28,15 @@ describe('createMailer', () => {
 		expect(createTransport).not.toHaveBeenCalled();
 	});
 
-	it('refuses a host without a sender address', () => {
+	it('refuses a host without a sender address or base URL', () => {
 		expect(() => createMailer({ ...SETTINGS, from: '' })).toThrow(/SMTP_FROM/);
+		expect(() => createMailer({ ...SETTINGS, baseUrl: '' })).toThrow(/BASE_URL/);
+	});
+
+	it('links to the configured base URL', () => {
+		expect(createMailer(SETTINGS)!.link('/login/reset/abc')).toBe(
+			'https://grimoire.example.com/login/reset/abc'
+		);
 	});
 
 	it('sends through the configured server from the sender address', async () => {
@@ -69,6 +77,22 @@ describe('parseSmtpPort', () => {
 		expect(parseSmtpPort('1025')).toBe(1025);
 		for (const value of ['0', '65536', 'smtp', '25.5']) {
 			expect(() => parseSmtpPort(value)).toThrow(/SMTP_PORT/);
+		}
+	});
+});
+
+describe('parseBaseUrl', () => {
+	it('keeps an origin and rejects anything else', () => {
+		expect(parseBaseUrl(undefined)).toBe('');
+		expect(parseBaseUrl('https://grimoire.example.com/')).toBe('https://grimoire.example.com');
+		expect(parseBaseUrl('http://localhost:5173')).toBe('http://localhost:5173');
+		for (const value of [
+			'grimoire.example.com',
+			'ftp://grimoire.example.com',
+			'https://grimoire.example.com/docs',
+			'https://grimoire.example.com/?a=1'
+		]) {
+			expect(() => parseBaseUrl(value)).toThrow(/BASE_URL/);
 		}
 	});
 });

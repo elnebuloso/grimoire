@@ -221,8 +221,20 @@ expires.
 
 ## Lost password
 
-Without the current password, the password cannot be changed on the account page. Delete the admin
-account with the script in the container:
+When grimoire can send mail (`SMTP_HOST` and `BASE_URL` set, see
+[Environment](docker.md#environment)), the login page offers **Forgot your password?**
+(`/login/forgot`). It asks for the email address and sends a link to it that sets a new password;
+the answer is the same whether the address has an account or not. The link is valid for one hour
+and works once. Setting the new password ends every session of that user and voids their other
+links. One client may ask 5 times an hour, and one address gets at most 3 links an hour; further
+requests for it are answered as usual but send nothing. The link points to `BASE_URL`, never to
+the host the request named: otherwise anyone could request a link for someone else's address
+that leads to their own server.
+
+Without SMTP the login page offers none of this, and `/login/forgot` answers `404`.
+
+Without mail, or for the last admin who cannot receive it, delete the admin account with the
+script in the container:
 
 ```bash
 docker exec -it grimoire node scripts/reset-admin.ts
