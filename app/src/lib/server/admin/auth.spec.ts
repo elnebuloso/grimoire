@@ -91,16 +91,19 @@ describe('setupAdmin submitted twice at once', () => {
 	it.each([
 		['the same address', 'admin@example.com'],
 		['another address', 'other@example.com']
-	])('creates one admin and answers the second submit with %s admin-exists', async (_, email) => {
+	])('creates one admin and answers the other submit with %s admin-exists', async (_, email) => {
 		const token = loggedToken();
 
+		// The two password hashes run in parallel; either submit may finish first.
 		const results = await Promise.all([
 			auth.setupAdmin(db, { token, email: 'admin@example.com', password: PASSWORD }),
 			auth.setupAdmin(db, { token, email, password: PASSWORD })
 		]);
 
-		expect(results).toEqual([undefined, { error: 'admin-exists' }]);
-		expect(db.prepare('SELECT email FROM users').all()).toEqual([{ email: 'admin@example.com' }]);
+		expect(results).toContainEqual({ error: 'admin-exists' });
+		expect(results).toContainEqual(undefined);
+		const winner = results[0] === undefined ? 'admin@example.com' : email;
+		expect(db.prepare('SELECT email FROM users').all()).toEqual([{ email: winner }]);
 	});
 });
 

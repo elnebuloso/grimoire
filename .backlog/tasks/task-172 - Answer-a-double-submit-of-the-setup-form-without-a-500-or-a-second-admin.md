@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-30 16:13'
-updated_date: '2026-10-30 16:29'
+updated_date: '2026-10-30 17:07'
 labels:
   - admin
 milestone: m-0
@@ -35,6 +35,12 @@ The setup page runs without JavaScript (`csr = false`), so a double click sends 
 2. `setupAdmin` hashes, then checks `adminExists` and inserts in one transaction; answers `admin-exists` when another submit won
 3. Test two concurrent `setupAdmin` calls, same and different address
 <!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Follow-up: the first version of the race test assumed the first submit wins; both password hashes run in parallel, so either may. In 10 full `make test` runs it failed 6 times. The test now accepts either winner and checks that exactly one admin exists, the winner. Green 15 times in a row; fails against the pre-fix `auth.ts`.
+<!-- SECTION:NOTES:END -->
 
 ## Final Summary
 
