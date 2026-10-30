@@ -7,6 +7,7 @@
 	import DescriptionList from '#lib/components/DescriptionList.svelte';
 	import FormError from '#lib/components/FormError.svelte';
 	import NameField from '#lib/components/NameField.svelte';
+	import PageList from '#lib/components/PageList.svelte';
 	import SlugChangeForm from '#lib/components/SlugChangeForm.svelte';
 	import TextAreaField from '#lib/components/TextAreaField.svelte';
 	import TextField from '#lib/components/TextField.svelte';
@@ -52,10 +53,6 @@
 {/if}
 
 {#if data.source && data.status}
-	{@const sourcePage = resolve('/manage/projects/[id]/sources/[sourceId]', {
-		id: String(data.project.id),
-		sourceId: String(data.source.id)
-	})}
 	<h2>{m.source_status()}</h2>
 	<form method="post" action="?/sync">
 		<button>{m.source_sync_now()}</button>
@@ -162,18 +159,7 @@
 	{/if}
 	{#if data.status.pages.length > 0}
 		<h3>{m.pages()}</h3>
-		<ul>
-			{#each data.status.pages as page (page.file)}
-				<li>
-					<a href="{sourcePage}?preview={encodeURIComponent(page.file)}">{page.file}</a>
-					– {m.source_page_line({
-						title: page.title,
-						snippets: page.snippets,
-						tokens: page.tokens
-					})}
-				</li>
-			{/each}
-		</ul>
+		<PageList pages={data.status.pages} projectId={data.project.id} sourceId={data.source.id} />
 	{/if}
 	{#if data.preview}
 		<h3>{m.source_preview_title({ file: data.preview.file })}</h3>

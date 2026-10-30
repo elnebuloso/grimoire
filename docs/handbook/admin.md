@@ -149,7 +149,7 @@ before, unchanged at the same commit or failing with the same error, are counted
 the time of the first and the last, so the history shows since when a source has been failing
 even with polling every few minutes. The newest 100 lines per source are kept.
 
-Every page links to a preview: the page exactly as the agent operation `read` returns it, split
+The pages can be filtered by file path and title. Every page links to a preview: the page exactly as the agent operation `read` returns it, split
 into its snippets with their `Source:` and `Edit:` lines. Each snippet is listed with its title
 path, its ID and its estimated tokens, so a section that came out too large, too small or under a
 misleading title shows up before an agent meets it. A page without any snippet says so.

@@ -224,5 +224,7 @@
 	"error_not_found": "This page does not exist.",
 	"error_forbidden": "You may not open this page.",
 	"error_unexpected": "Something went wrong. Try again later.",
-	"error_start_page": "To the start page"
+	"error_start_page": "To the start page",
+	"pages_filter": "Filter pages",
+	"pages_filter_none": "No page matches the filter."
 }

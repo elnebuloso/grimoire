@@ -224,5 +224,7 @@
 	"error_not_found": "Diese Seite gibt es nicht.",
 	"error_forbidden": "Diese Seite darfst du nicht öffnen.",
 	"error_unexpected": "Etwas ist schiefgegangen. Versuch es später noch einmal.",
-	"error_start_page": "Zur Startseite"
+	"error_start_page": "Zur Startseite",
+	"pages_filter": "Seiten filtern",
+	"pages_filter_none": "Keine Seite passt zum Filter."
 }
