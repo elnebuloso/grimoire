@@ -15,7 +15,7 @@ Its character: calm, tactile and quiet. Cool neutral surfaces, one petrol accent
 - **Status is text and an edge, never a badge.**
   - State values are coloured words, e.g. "yes" under Sync error, or "synced" / "failed".
   - Notices and lists that need attention carry a 3px bar on their leading edge.
-  - There are no pills, icons or emoji. The word always carries the meaning; colour only repeats it.
+  - There are no pills or emoji, and no status is shown by an icon. The word always carries the meaning; colour only repeats it.
 - **One accent.** Petrol marks links, the primary button, focus and the info notice. It is used for nothing else.
 - **Numbers are a ledger, not tiles.** Overview figures are a term | value list with right-aligned tabular numbers.
 - **Mono only for machine strings:** slugs, commit hashes, snippet IDs, file paths, cron expressions, exclusions, the API key and snippet markdown.
@@ -75,7 +75,6 @@ It sits in the header of every page, next to the language switch. Both use the s
 |---|---|---|
 | body | 15px / 1.55 | 400 |
 | `h1` | 26px (23px below 40rem), tracking -0.015em | 600 |
-| `h1` on the start page | 34px (28px below 40rem), tracking -0.03em | 600 |
 | `h2` | 18px | 600 |
 | `h3` | 15px | 600 |
 | `h4` | 14px | 500 |
@@ -104,7 +103,13 @@ It sits in the header of every page, next to the language switch. Both use the s
 
 ## Components
 
-- **Header.** It sits on the canvas, not on a sheet. On the left is the wordmark "grimoire" linking to the start page. On the right are the session links ("Logged in as" + email, "Manage", "Log out") followed by the Language and Theme switches.
+- **Header.** It sits on the canvas, not on a sheet. On the left is the wordmark "grimoire" linking to the start page. On the right are the session links ("Logged in as" + email, "Manage", "Log out") followed by the Language and Theme switches. "Manage" is a link that looks exactly like the "Log out" button: a raised control, ink colour, no underline.
+- **Footer.** It sits on the canvas below the content, as wide as the header, separated by a `--line` rule. It holds icon links only: the GitHub repository and the documentation, side by side at the end of the line.
+- **Icons.**
+  - Line icons from Lucide (`@lucide/svelte`), imported one by one; brand marks Lucide lacks, such as the GitHub mark, as an inline SVG in the same box.
+  - 20px, stroke width 2, `currentColor`: `--ink-2` at rest, `--accent` on hover, with the transition. The hit area is at least 32px, 44px at `pointer: coarse`.
+  - An icon link has a text name for assistive technology and as tooltip; the SVG itself is hidden from it.
+  - An icon may stand beside a word; it replaces one only where the target is known by its mark, such as the footer links.
 - **Segmented track** (Language, Theme):
   - A recessed `--well` groove with a small label.
   - The chosen option is raised out of it: `--raised` plus the raised shadow, ink colour, weight 500.
@@ -117,7 +122,7 @@ It sits in the header of every page, next to the language switch. Both use the s
 - **Page layout on wide screens (from 64rem):**
   - Overview: the numbers ledger (19rem) next to "Needs attention", with Sources full width below.
   - Source page: status, history, pages and preview on the left; a 25rem column on the right with Settings, Change the slug and Delete.
-  - Start page: Sources full width, then "Try a query" next to "Connect an agent".
+  - Start page: Sources full width, then "Try a query" next to "Connect an agent". It has no page title on the canvas: the heading of the Sources sheet is the page's `h1`, set at the `h2` size.
 - **Facts (description list).** A two-column ledger: term in `--ink-2` at 14px, value in ink, hairlines between rows. The numbers variant right-aligns tabular values at weight 500.
 - **Tables:**
   - Heads in `--ink-2` at 13px / 500, no wrap. Rows separated by hairlines, 12px cell padding.
@@ -154,7 +159,7 @@ These would break its character:
 - coloured page backgrounds
 - badges or pills for values
 - stat cards
-- icons or emoji
+- emoji
 - a second accent colour
 - shadows on anything that is not a sheet or a raised control
 - motion that moves or scales elements

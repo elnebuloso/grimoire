@@ -1,5 +1,4 @@
 <script lang="ts">
-	import PageHead from '#lib/components/PageHead.svelte';
 	import QueryForm from '#lib/components/QueryForm.svelte';
 	import SourceStatsTable from '#lib/components/SourceStatsTable.svelte';
 	import { m } from '#lib/paraglide/messages.js';
@@ -8,14 +7,11 @@
 	let { data }: PageProps = $props();
 </script>
 
-<div class="hero">
-	<PageHead title="grimoire">
-		<a href="https://github.com/elnebuloso/grimoire">{m.start_github_link()}</a>
-	</PageHead>
-</div>
+<!-- The one page without a PageHead: no title on the canvas, so the tab gets its own. -->
+<svelte:head><title>grimoire</title></svelte:head>
 
 <section class="sheet flush" aria-labelledby="sources">
-	<div class="sheet-head"><h2 id="sources">{m.sources()}</h2></div>
+	<div class="sheet-head"><h1 id="sources">{m.sources()}</h1></div>
 	{#if data.sources.length === 0}
 		<p class="muted">{m.no_sources_yet()}</p>
 	{:else}
@@ -48,9 +44,9 @@
 </div>
 
 <style>
-	.hero :global(h1) {
-		font-size: 34px;
-		letter-spacing: -0.03em;
+	h1 {
+		font-size: 18px;
+		letter-spacing: normal;
 	}
 	.pair {
 		display: grid;
@@ -61,11 +57,6 @@
 		.pair {
 			grid-auto-flow: column;
 			grid-auto-columns: minmax(0, 1fr);
-		}
-	}
-	@media (max-width: 40rem) {
-		.hero :global(h1) {
-			font-size: 28px;
 		}
 	}
 </style>

@@ -12,7 +12,7 @@
 	}: { sources: SourceStats[]; timeZone: string; name?: Snippet<[SourceStats]> } = $props();
 </script>
 
-<TableScroll label={m.sources()}>
+<TableScroll label={m.sources_table()}>
 	<table>
 		<thead>
 			<tr>

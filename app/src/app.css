@@ -271,7 +271,8 @@ input[type='radio'] {
 	accent-color: var(--accent);
 }
 
-button {
+button,
+a.button {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
@@ -285,6 +286,7 @@ button {
 	border: 1px solid color-mix(in srgb, var(--edge) 55%, transparent);
 	border-radius: var(--r-control);
 	box-shadow: var(--lift-raised);
+	text-decoration: none;
 	cursor: pointer;
 	transition:
 		color var(--t),
@@ -292,10 +294,13 @@ button {
 		border-color var(--t),
 		box-shadow var(--t);
 }
-button:hover {
+button:hover,
+a.button:hover {
+	color: var(--ink);
 	border-color: var(--edge);
 }
-button:active {
+button:active,
+a.button:active {
 	background: var(--well);
 	box-shadow: var(--sink);
 }
@@ -332,6 +337,7 @@ details > summary:hover {
 
 @media (pointer: coarse) {
 	button,
+	a.button,
 	input:not([type='checkbox'], [type='radio'], [type='hidden']),
 	select {
 		min-height: 44px;

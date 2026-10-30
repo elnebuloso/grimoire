@@ -1,10 +1,11 @@
 ---
 id: TASK-186
 title: Add a footer with icon links and slim down the header and start page
-status: To Do
-assignee: []
+status: In Progress
+assignee:
+  - '@claude'
 created_date: '2026-10-30 21:34'
-updated_date: '2026-10-30 21:39'
+updated_date: '2026-10-30 22:07'
 labels:
   - admin
 milestone: m-0
@@ -44,3 +45,23 @@ Points to settle while doing it:
 - [ ] #6 `make lint`, `make test` and `make e2e` pass
 - [ ] #7 `docs/DESIGN.md` allows icons and says how they look in light and dark; `@lucide/svelte` is pinned to an exact version at least two weeks old and only imported per icon
 <!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. DESIGN.md: icons allowed (status still a word), Footer, Icons, Manage as raised control, start page without canvas title
+2. @lucide/svelte 1.57.0 (2026-10-14) pinned; BookOpen per-icon import; GitHub mark inline SVG
+3. Footer in +layout.svelte, a.button in app.css for Manage
+4. Start page: hero removed, Sources heading becomes h1 at h2 size, own <title>grimoire</title>
+5. Fix pre-existing axe landmark-unique (sources section and its table region shared the name)
+<!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+- start_github_link renamed to footer_github and reused as the GitHub link name; new footer_docs, sources_table.
+- The start page sets <svelte:head><title>grimoire</title> itself: it has no PageHead any more.
+- Footer rule sits on an inner .links element so it is as wide as the sheets; mobile padding follows main.
+- landmark-unique on / and /manage existed before (checked with the changes stashed): the Sources section and the table region inside were both named Sources; the region is now 'Table of sources'.
+- Checked by hand: axe clean on /, /manage, a source page and the error page in light and dark; no overflow at 390 and 1366; footer hover accent.
+<!-- SECTION:NOTES:END -->
