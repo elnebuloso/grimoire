@@ -1,6 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { DatabaseSync } from 'node:sqlite';
 import { expect, test, type Page } from '@playwright/test';
+import { createUser } from '../../lib/server/admin/auth.ts';
 
 const EMAIL = 'admin@example.com';
 const PASSWORD = 'correct horse battery';
@@ -18,9 +20,9 @@ function setupToken(): string {
 	return log.match(/setup token ([\w-]+)/)![1];
 }
 
-async function logIn(page: Page, password = PASSWORD) {
+async function logIn(page: Page, password = PASSWORD, email = EMAIL) {
 	await page.goto('/login');
-	await page.getByLabel('Email address').fill(EMAIL);
+	await page.getByLabel('Email address').fill(email);
 	await page.getByLabel('Password').fill(password);
 	await page.getByRole('button', { name: 'Log in' }).click();
 }
@@ -252,6 +254,30 @@ test('names every page in its browser tab and keeps it out of search indexes', a
 	await page.goto('/manage');
 	await page.getByRole('link', { name: 'Auth Service', exact: true }).click();
 	await expect(page).toHaveTitle('Source Auth Service – grimoire');
+});
+
+test('shows the error page in the layout to a user without the role and on a finished setup', async ({
+	page
+}) => {
+	const editor = 'editor@example.com';
+	const db = new DatabaseSync(join(process.env.E2E_DIR!, 'grimoire.db'));
+	await createUser(db, { email: editor, password: PASSWORD, roles: [] });
+	db.close();
+
+	const setup = await page.goto('/setup');
+	expect(setup?.status()).toBe(404);
+	await expect(page.getByRole('heading', { name: 'This page does not exist.' })).toBeVisible();
+	await expect(page).toHaveTitle('Page not found – grimoire');
+
+	await logIn(page, PASSWORD, editor);
+	await expect(page).toHaveURL('/');
+	const forbidden = await page.goto('/manage/settings');
+	expect(forbidden?.status()).toBe(403);
+	expect(forbidden?.headers()['x-robots-tag']).toBe('noindex, nofollow');
+	await expect(page.getByRole('heading', { name: 'You may not open this page.' })).toBeVisible();
+	await expect(page).toHaveTitle('Access denied – grimoire');
+	await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', 'noindex, nofollow');
+	await expect(page.getByRole('button', { name: 'Log out' })).toBeVisible();
 });
 
 test('marks pages, error pages and agent routes as not to be indexed', async ({ request }) => {

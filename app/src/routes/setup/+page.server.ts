@@ -1,11 +1,16 @@
-import { fail, redirect } from '@sveltejs/kit';
-import type { Actions } from './$types';
+import { error, fail, redirect } from '@sveltejs/kit';
+import type { Actions, PageServerLoad } from './$types';
 import { database } from '#lib/server/db/index.js';
 import { login, setupAdmin, SESSION_COOKIE, sessionCookieOptions } from '#lib/server/admin/auth.js';
 import { authMessage } from '#lib/server/admin/auth-messages.js';
 
 // A plain form needs no JavaScript; hydrating it would reset what was typed before it finished.
 export const csr = false;
+
+// The access hook decides; thrown here, the error renders in the layout.
+export const load: PageServerLoad = ({ locals }) => {
+	if (locals.accessDenied) error(locals.accessDenied);
+};
 
 export const actions = {
 	default: async ({ request, cookies, getClientAddress }) => {

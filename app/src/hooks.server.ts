@@ -46,14 +46,37 @@ export const handleRobots: Handle = ({ event, resolve }) => {
 	return resolve(event);
 };
 
+const SERVER_ROUTES = Object.keys(import.meta.glob('./routes/**/+server.ts')).map(
+	(file) => file.slice('./routes'.length, -'/+server.ts'.length) || '/'
+);
+
+// Route IDs of the pages that are not also endpoints, such as `/manage/sources/[id]`.
+const PAGE_ROUTES = new Set(
+	Object.keys(import.meta.glob('./routes/**/+page.svelte'))
+		.map((file) => file.slice('./routes'.length, -'/+page.svelte'.length) || '/')
+		.filter((route) => !SERVER_ROUTES.includes(route))
+);
+
 // Decides on the route the router matched, not on `event.url.pathname`: the router decodes the
 // path, so `/m%61nage` runs the `/manage` page while its raw pathname matches no guarded prefix.
 // A path without a route has nothing to guard and ends in a 404.
-export const handleAccess: Handle = ({ event, resolve }) => {
+export const handleAccess: Handle = async ({ event, resolve }) => {
 	if (event.route.id === null) return resolve(event);
 	const target = accessRedirect(database(), event.route.id, event.cookies.get(SESSION_COOKIE));
-	if (target === 'not-found') error(404);
-	if (target === 'forbidden') error(403);
+	if (target === 'not-found' || target === 'forbidden') {
+		const status = target === 'not-found' ? 404 : 403;
+		// Thrown here, SvelteKit answers with its bare fallback page; thrown by a page's load, it
+		// renders +error.svelte in the layout. Only a plain page view can take that way round:
+		// form actions run before any load, endpoints have none.
+		if (event.request.method !== 'GET' || event.isDataRequest || !PAGE_ROUTES.has(event.route.id)) {
+			error(status);
+		}
+		event.locals.accessDenied = status;
+		const response = await resolve(event);
+		// A page whose load does not throw it would be served: never send that response.
+		if (response.status !== status) error(status);
+		return response;
+	}
 	if (target) redirect(303, target);
 	return resolve(event);
 };

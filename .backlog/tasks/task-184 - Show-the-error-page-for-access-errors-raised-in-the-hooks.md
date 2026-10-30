@@ -1,9 +1,11 @@
 ---
 id: TASK-184
 title: Show the error page for access errors raised in the hooks
-status: To Do
-assignee: []
+status: In Progress
+assignee:
+  - '@claude'
 created_date: '2026-10-30 21:27'
+updated_date: '2026-10-30 22:03'
 labels:
   - admin
 milestone: m-0
@@ -30,3 +32,21 @@ The access decision has to reach the visitor through the normal render path, so 
 - [ ] #5 An e2e test covers the 403 page for a non-admin user and the 404 on `/setup`
 - [ ] #6 `make lint`, `make test` and `make e2e` pass
 <!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. handleAccess: for a denied plain GET page view (not a data request, route has a +page and no +server), set locals.accessDenied and resolve; everything else still throws in the hook
+2. A load below the root layout throws it (manage/+layout.server.ts, setup/+page.server.ts), so +error.svelte renders in the layout; root layout load errors would fall back to the static page
+3. Fail closed: a response that does not carry the denied status is discarded and the hook throws
+4. access.spec.ts for deferral and actions, e2e for 403 and finished setup
+<!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+- Errors thrown in handle and in the root layout load always render SvelteKit's static_error_page (respond.js / page/index.js), hence the deferral to a nested load.
+- PAGE_ROUTES from import.meta.glob of +page.svelte minus +server.ts routes; route ids include groups, so they match event.route.id.
+- Form actions and data requests are still denied in the hook: actions run before any load.
+- Checked by hand in the agent environment with a role-less user: page view 403 with layout and title, action 403, __data.json 403, /setup 404 with layout.
+<!-- SECTION:NOTES:END -->

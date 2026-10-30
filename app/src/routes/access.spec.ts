@@ -273,14 +273,34 @@ describe('password action', () => {
 describe('admin access guard', () => {
 	const served = new Response('served');
 
-	function request(path: string, session?: string, routeId: string | null = path) {
-		const resolve = vi.fn(async () => served);
+	function request(
+		path: string,
+		session?: string,
+		routeId: string | null = path,
+		{ method = 'GET', response = served } = {}
+	) {
+		const resolve = vi.fn(async () => response);
+		const url = new URL(`https://grimoire.example${path}`);
 		const event = {
-			url: new URL(`https://grimoire.example${path}`),
+			url,
+			request: new Request(url, { method }),
+			isDataRequest: false,
+			locals: {} as App.Locals,
 			route: { id: routeId },
 			cookies: fakeCookies(session ? { grimoire_session: session } : {})
 		};
-		return { resolve, run: () => admin.handleAccess({ event, resolve } as never) };
+		return { event, resolve, run: () => admin.handleAccess({ event, resolve } as never) };
+	}
+
+	async function editorSession() {
+		await setUpAdmin();
+		await admin.auth.createUser(db, { email: 'editor@example.com', password: PASSWORD, roles: [] });
+		const login = await admin.auth.login(db, 'editor-pc', {
+			email: 'editor@example.com',
+			password: PASSWORD
+		});
+		if (!('session' in login)) throw new Error(login.error);
+		return login.session;
 	}
 
 	it('sends every admin page to the setup while there is no admin', async () => {
@@ -291,17 +311,30 @@ describe('admin access guard', () => {
 	});
 
 	it('answers 403 to a user without the role admin', async () => {
-		await setUpAdmin();
-		await admin.auth.createUser(db, { email: 'editor@example.com', password: PASSWORD, roles: [] });
-		const login = await admin.auth.login(db, 'editor-pc', {
-			email: 'editor@example.com',
-			password: PASSWORD
-		});
-		if (!('session' in login)) throw new Error(login.error);
-
-		const result = await thrown(request('/manage', login.session).run);
+		const result = await thrown(request('/manage', await editorSession()).run);
 
 		expect(isHttpError(result) && result.status).toBe(403);
+	});
+
+	it('leaves a denied page view to the load, which renders the error page', async () => {
+		const errorPage = new Response('error page', { status: 403 });
+		const page = request('/manage/settings', await editorSession(), undefined, {
+			response: errorPage
+		});
+
+		expect(await page.run()).toBe(errorPage);
+		expect(page.event.locals.accessDenied).toBe(403);
+	});
+
+	it('denies a form action before it runs', async () => {
+		const action = request('/manage/settings', await editorSession(), undefined, {
+			method: 'POST'
+		});
+
+		const result = await thrown(action.run);
+
+		expect(isHttpError(result) && result.status).toBe(403);
+		expect(action.resolve).not.toHaveBeenCalled();
 	});
 
 	it('hides the setup once done and requires a session for the management area', async () => {
