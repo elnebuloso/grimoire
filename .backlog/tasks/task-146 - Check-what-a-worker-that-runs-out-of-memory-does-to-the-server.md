@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-30 11:29'
-updated_date: '2026-10-30 11:53'
+updated_date: '2026-10-30 12:09'
 labels:
   - sync
 milestone: m-0
@@ -46,6 +46,8 @@ Experiments (Node 24.22.1, a script that allocates until the heap is exhausted):
 - Worker thread with resourceLimits.maxOldGenerationSizeMb on the host: with 1 MB strings the whole process died with "FATAL ERROR: Reached heap limit" in 5 of 6 runs at 256 MB, also at 96 and 128 MB; 192, 320, 384-768 MB survived. Small objects survived at 64 and 256 MB. So resourceLimits makes it worse, not safer.
 - Child process (fork) with --max-old-space-size 128/256 on the host: parent survived 12/12. In a 256 MiB container without any limit: the child was killed with SIGKILL and the parent survived, 6/6.
 - Worker.terminate() / killing the process during a transaction released the SQLite lock and rolled back (checked for the thread in TASK-132; the deadline test passes with the process).
+
+Follow-up: under the load of the whole make test run, a sync test with two indexing runs took over 5 s (1.4 s alone): a child process starts slower than a worker thread, and the out-of-memory test uses CPU in parallel. The sync spec now allows 30 s per test; make test passed twice in a row afterwards (627 tests).
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary

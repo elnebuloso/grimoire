@@ -19,6 +19,10 @@ vi.mock('../parsing/include', () => ({
 	}
 }));
 
+// Every sync clones with real Git and indexes in a child process; under the load of the whole
+// test run that takes seconds, not the default 5 s at most.
+vi.setConfig({ testTimeout: 30_000 });
+
 const key = Buffer.alloc(32, 7);
 const filler = 'Some words to keep this section above the merge threshold. '.repeat(6);
 
@@ -364,7 +368,7 @@ describe('syncSource', () => {
 		expect(
 			await syncSource(db, other, { key, workDirectory: work, indexingHeapMb: 32 })
 		).toMatchObject({ status: 'synced', pages: 2 });
-	}, 60_000);
+	});
 
 	it('reports a wrong encryption key as an error of the source', async () => {
 		const withToken = addSource(`file://${bare}`, { token: 'secret' });
