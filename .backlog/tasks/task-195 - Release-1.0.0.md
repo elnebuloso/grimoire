@@ -4,6 +4,7 @@ title: Release 1.0.0
 status: To Do
 assignee: []
 created_date: '2026-10-30 23:20'
+updated_date: '2026-10-30 23:27'
 labels: []
 milestone: m-2
 dependencies:
@@ -11,6 +12,7 @@ dependencies:
   - TASK-192
   - TASK-193
   - TASK-194
+  - TASK-196
 priority: high
 type: task
 ordinal: 257000
