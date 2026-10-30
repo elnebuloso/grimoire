@@ -44,13 +44,13 @@ function addPage(sourceId: number, file: string, ...snippets: SnippetFields[]) {
 			pageId,
 			position,
 			anchor ?? null,
-			JSON.stringify(['p', 's', title]),
+			JSON.stringify([title]),
 			content
 		);
 		insert(
 			'INSERT INTO snippets_fts (rowid, title_path, text, code) VALUES (?, ?, ?, ?)',
 			id,
-			`p › s › ${title}`,
+			title,
 			text,
 			code
 		);
@@ -94,13 +94,13 @@ describe('searchSnippets', () => {
 
 		expect(searchSnippets(db, { query: 'rollback' })).toBe(
 			[
-				'### p › s › Rollback',
+				'### platform › auth › Rollback',
 				'Source: platform/auth/guide/deploy#rollback',
 				'Edit: https://git.example/auth.git (main) docs/guide/deploy.md',
 				'',
 				'Run it.',
 				'',
-				'### p › s › Overview',
+				'### platform › auth › Overview',
 				'Source: platform/auth/index',
 				'Edit: https://git.example/auth.git (main) docs/index.md',
 				'',

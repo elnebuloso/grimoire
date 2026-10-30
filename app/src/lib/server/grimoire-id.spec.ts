@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { grimoireId, parseGrimoireId } from './grimoire-id';
+import { grimoireId, parseGrimoireId, storedLink, withSlugs } from './grimoire-id';
 
 const page = { project: 'platform', source: 'docs', file: 'guides/setup.md' };
 
@@ -31,5 +31,31 @@ describe('parseGrimoireId', () => {
 	it('names no page without a page part', () => {
 		expect(parseGrimoireId('platform/docs')).toBeUndefined();
 		expect(parseGrimoireId('platform/docs#install')).toBeUndefined();
+	});
+});
+
+describe('withSlugs', () => {
+	it('turns every form of a stored link into a full ID', () => {
+		const stored = [
+			`[a](${storedLink('guide#x')})`,
+			`[b](<${storedLink('first steps')}>)`,
+			`[c]: ${storedLink('deploy')}`,
+			`<${storedLink('index')}>`
+		].join('\n');
+
+		expect(withSlugs(stored, 'platform', 'docs')).toBe(
+			[
+				'[a](platform/docs/guide#x)',
+				'[b](<platform/docs/first steps>)',
+				'[c]: platform/docs/deploy',
+				'<platform/docs/index>'
+			].join('\n')
+		);
+	});
+
+	it('leaves the scheme alone where it is no link destination', () => {
+		const text = 'Run `grimoire:sync` or write grimoire: in a sentence.';
+
+		expect(withSlugs(text, 'platform', 'docs')).toBe(text);
 	});
 });

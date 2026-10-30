@@ -8,8 +8,6 @@ import type { PreprocessedPage } from '../parsing/preprocess';
 
 export interface SyncSource {
 	id: number;
-	project: string;
-	slug: string;
 	gitUrl: string;
 	branch: string;
 	path: string;
@@ -37,8 +35,6 @@ export interface SourceIndex {
 
 interface SourceRow {
 	id: number;
-	project: string;
-	slug: string;
 	git_url: string;
 	branch: string;
 	path: string;
@@ -82,17 +78,13 @@ export function recordCheck(db: DatabaseSync, sourceId: number, at: Date) {
 export function sourceForSync(db: DatabaseSync, sourceId: number): SyncSource {
 	const row = db
 		.prepare(
-			`SELECT sources.id, projects.slug AS project, sources.slug, git_url, branch, path,
-				exclusions, username, encrypted_token, last_commit
-			FROM sources JOIN projects ON projects.id = sources.project_id
-			WHERE sources.id = ?`
+			`SELECT id, git_url, branch, path, exclusions, username, encrypted_token, last_commit
+			FROM sources WHERE id = ?`
 		)
 		.get(sourceId) as SourceRow | undefined;
 	if (!row) throw new Error(`source ${sourceId} does not exist`);
 	return {
 		id: row.id,
-		project: row.project,
-		slug: row.slug,
 		gitUrl: row.git_url,
 		branch: row.branch,
 		path: row.path,

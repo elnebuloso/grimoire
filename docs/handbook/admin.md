@@ -120,8 +120,8 @@ A slug can be changed under **Change the slug** at the bottom of the project or 
 works like renaming a namespace: every snippet ID changes, so IDs an agent has kept and URLs such
 as `/p/<slug>/query` in an agent's configuration stop working, for a project in all its sources.
 The page says so, and the change only goes through once you type the current slug as
-confirmation and the new one is free. grimoire then syncs the affected sources again, paused or
-not, so links between pages carry the new IDs.
+confirmation and the new one is free. It takes effect at once: search, `read` and the links
+between pages answer with the new IDs without a sync.
 
 ## Status and sync
 

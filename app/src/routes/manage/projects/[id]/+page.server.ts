@@ -1,7 +1,6 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { database } from '#lib/server/db/index.js';
-import { requestSyncInBackground } from '#lib/server/sync/index.js';
 import {
 	changeProjectSlug,
 	deleteProject,
@@ -45,11 +44,6 @@ export const actions = {
 		};
 		const problem = changeProjectSlug(database(), project.id, form);
 		if (problem) return fail(400, { slugError: problem, slugValues: { slug: form.slug } });
-
-		// Stored links carry IDs with the old slug until each source is indexed again.
-		for (const source of listSources(database(), project.id)) {
-			requestSyncInBackground(source.id, { force: true });
-		}
 		return { slugChanged: true };
 	},
 	delete: ({ params }) => {

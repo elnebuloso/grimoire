@@ -5,13 +5,6 @@ import { parseMarkdown, stringifyMarkdown } from './markdown.ts';
 import type { PreprocessedPage } from './preprocess';
 import { pythonMarkdownSlugify, type Slugify } from './slugs.ts';
 
-export interface PageLocation {
-	project: string;
-	source: string;
-	/** Path relative to the source path, e.g. `deploy.md`. */
-	file: string;
-}
-
 export interface Snippet {
 	/** Undefined for the overview snippet, which has no heading of its own. */
 	anchor?: string;
@@ -56,7 +49,8 @@ export function estimateTokens(text: string): number {
  */
 export function chunkPage(
 	page: PreprocessedPage,
-	location: PageLocation,
+	/** Path relative to the source path, e.g. `deploy.md`. */
+	file: string,
 	slugify: Slugify = pythonMarkdownSlugify
 ): ChunkedPage {
 	const tree = parseMarkdown(page.markdown);
@@ -98,17 +92,11 @@ export function chunkPage(
 	const firstParagraph = root.nodes.find((node) => node.type === 'paragraph');
 	const description =
 		page.description ?? (firstParagraph && toString(firstParagraph, { includeHtml: false }));
-	const title = page.title ?? firstH1 ?? location.file.replace(/\.md$/, '');
+	const title = page.title ?? firstH1 ?? file.replace(/\.md$/, '');
 
 	mergeSmallSections(root);
 	const snippets: Snippet[] = [];
-	collectSnippets(
-		root,
-		[location.project, location.source, title],
-		location.file,
-		definitions,
-		snippets
-	);
+	collectSnippets(root, [title], file, definitions, snippets);
 	return { title, titleAnchor, description: description || undefined, snippets };
 }
 

@@ -117,7 +117,7 @@ describe('project page', () => {
 		});
 	});
 
-	it('changes the slug with the current one typed and syncs every source again', async () => {
+	it('changes the slug with the current one typed, without syncing the sources again', async () => {
 		addProject('platform');
 		await thrown(() => saveSource('1', 'new', SOURCE));
 		await thrown(() => saveSource('1', 'new', { ...SOURCE, name: 'Billing' }));
@@ -140,10 +140,7 @@ describe('project page', () => {
 		expect(projectPage.load({ params: { id: '1' } } as never)).toMatchObject({
 			project: { slug: 'team' }
 		});
-		expect(requestSyncInBackground.mock.calls).toEqual([
-			[1, { force: true }],
-			[2, { force: true }]
-		]);
+		expect(requestSyncInBackground).not.toHaveBeenCalled();
 	});
 
 	it('answers an unknown or malformed id with 404', async () => {
@@ -256,8 +253,9 @@ describe('source page', () => {
 		expect(requestSyncInBackground).toHaveBeenCalledExactlyOnceWith(1, { force: true });
 	});
 
-	it('changes the slug of a source, even a paused one, and syncs it again', async () => {
+	it('changes the slug of a source, even a paused one, without syncing it again', async () => {
 		await thrown(() => saveSource('1', 'new', { ...SOURCE, paused: 'on' }));
+		requestSyncInBackground.mockClear();
 		const result = await sourcePage.actions.slug({
 			request: formRequest({ slug: 'login', confirmation: 'auth-service' }),
 			params: { id: '1', sourceId: '1' }
@@ -265,7 +263,7 @@ describe('source page', () => {
 
 		expect(result).toEqual({ slugChanged: true });
 		expect(loadSource('1', '1')).toMatchObject({ source: { slug: 'login', paused: true } });
-		expect(requestSyncInBackground).toHaveBeenCalledExactlyOnceWith(1, { force: true });
+		expect(requestSyncInBackground).not.toHaveBeenCalled();
 	});
 
 	it('saves the documentation URL and keeps the entered values when it is invalid', async () => {

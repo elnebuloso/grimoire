@@ -49,7 +49,7 @@ function addSource(
 		commit: 'abc',
 		links: [],
 		warnings: [],
-		pages: [{ file, metadata, chunked: chunkPage(metadata, { project, source, file }) }]
+		pages: [{ file, metadata, chunked: chunkPage(metadata, file) }]
 	});
 }
 

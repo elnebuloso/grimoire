@@ -2,19 +2,14 @@ import { posix } from 'node:path';
 import { visit } from 'unist-util-visit';
 import { estimateTokens, type ChunkedPage } from './chunk.ts';
 import { parseMarkdown, stringifyMarkdown } from './markdown.ts';
-import { grimoireId } from '../grimoire-id.ts';
-
-export interface SourceLocation {
-	project: string;
-	source: string;
-}
+import { pageId, storedLink } from '../grimoire-id.ts';
 
 export interface Link {
 	/** Page holding the link, relative to the source path. */
 	file: string;
 	/** Anchor of the snippet holding the link; undefined for the overview. */
 	anchor?: string;
-	/** grimoire ID of the target, or the link as written when it leaves the source path. */
+	/** ID of the target within the source, or the link as written when it leaves the source path. */
 	target: string;
 	dead: boolean;
 }
@@ -27,15 +22,13 @@ export interface LinkedSource {
 const SCHEME_OR_ABSOLUTE = /^([a-z][a-z\d+.-]*:|\/)/i;
 
 /**
- * Rewrites relative links to Markdown pages of the same source into grimoire IDs, so agents can
- * follow them with `read`, and returns every such link with whether its target exists.
+ * Rewrites relative links to Markdown pages of the same source into stored links, which reading
+ * turns into grimoire IDs agents can follow with `read`, and returns every such link with whether
+ * its target exists.
  * `pages` holds all chunked pages of one source, keyed by file relative to the source path.
  * Links with a scheme, absolute paths and links to non-Markdown files stay as they are.
  */
-export function resolveLinks(
-	pages: Map<string, ChunkedPage>,
-	location: SourceLocation
-): LinkedSource {
+export function resolveLinks(pages: Map<string, ChunkedPage>): LinkedSource {
 	const links = new Map<string, Link>();
 	const linkedPages = new Map<string, ChunkedPage>();
 
@@ -50,11 +43,11 @@ export function resolveLinks(
 			path === '' ? file : posix.normalize(posix.join(posix.dirname(file), decode(path)));
 		if (targetFile === '..' || targetFile.startsWith('../')) return { target: url, dead: true };
 
-		const page = { ...location, file: targetFile };
 		const target = pages.get(targetFile);
-		if (!target) return { target: grimoireId(page, anchor), dead: true };
-		if (!anchor || anchor === target.titleAnchor) return { target: grimoireId(page), dead: false };
-		return { target: grimoireId(page, anchor), dead: !hasAnchor(target, anchor) };
+		if (!target) return { target: pageId(targetFile, anchor), dead: true };
+		if (!anchor || anchor === target.titleAnchor)
+			return { target: pageId(targetFile), dead: false };
+		return { target: pageId(targetFile, anchor), dead: !hasAnchor(target, anchor) };
 	}
 
 	for (const [file, page] of pages) {
@@ -72,7 +65,7 @@ export function resolveLinks(
 					...link
 				});
 				if (link.dead) return;
-				node.url = link.target;
+				node.url = storedLink(link.target);
 				changed = true;
 			});
 

@@ -2,7 +2,7 @@ import { posix } from 'node:path';
 import type { DatabaseSync } from 'node:sqlite';
 import { estimateTokens } from '../parsing/chunk';
 import { redactUrl } from '../sync/git';
-import { grimoireId } from '../grimoire-id';
+import { grimoireId, withSlugs } from '../grimoire-id';
 
 export interface SearchOptions {
 	query: string;
@@ -26,7 +26,10 @@ export interface SnippetHit {
 	content: string;
 }
 
-/** A database row with the columns of `SnippetHit`, the title path still as JSON. */
+/**
+ * A database row with the columns of `SnippetHit` as stored: the title path as JSON and without
+ * project and source, links in the content without them either.
+ */
 export interface SnippetRow extends Omit<SnippetHit, 'titlePath'> {
 	title_path: string;
 }
@@ -74,7 +77,11 @@ export function searchSnippets(db: DatabaseSync, options: SearchOptions): string
 }
 
 export function toSnippetHit({ title_path, ...row }: SnippetRow): SnippetHit {
-	return { ...row, titlePath: JSON.parse(title_path) };
+	return {
+		...row,
+		titlePath: [row.project, row.source, ...(JSON.parse(title_path) as string[])],
+		content: withSlugs(row.content, row.project, row.source)
+	};
 }
 
 // Raw input breaks FTS5 syntax (`auth-service` reads as a column filter, `?` and `=` are errors).

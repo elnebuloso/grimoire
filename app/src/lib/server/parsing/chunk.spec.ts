@@ -2,15 +2,13 @@ import { describe, it, expect } from 'vitest';
 import { chunkPage, estimateTokens } from './chunk';
 import type { PreprocessedPage } from './preprocess';
 
-const location = { project: 'platform', source: 'auth-service', file: 'deploy.md' };
-
 /** A paragraph of roughly the given number of tokens. */
 function text(tokens: number): string {
 	return 'word '.repeat(Math.ceil((tokens * 4) / 5)).trim();
 }
 
 function chunk(markdown: string, metadata: Partial<PreprocessedPage> = {}) {
-	return chunkPage({ tags: [], markdown, ...metadata }, location);
+	return chunkPage({ tags: [], markdown, ...metadata }, 'deploy.md');
 }
 
 describe('chunkPage', () => {
@@ -20,26 +18,16 @@ describe('chunkPage', () => {
 		);
 		expect(page.title).toBe('Auth-Service');
 		expect(page.snippets.map((s) => [s.anchor, s.titlePath.join(' › '), s.file])).toEqual([
-			['deployment', 'platform › auth-service › Auth-Service › Deployment', 'deploy.md'],
-			['rollback', 'platform › auth-service › Auth-Service › Rollback', 'deploy.md'],
-			[
-				'bekannte-probleme',
-				'platform › auth-service › Auth-Service › Bekannte Probleme',
-				'deploy.md'
-			]
+			['deployment', 'Auth-Service › Deployment', 'deploy.md'],
+			['rollback', 'Auth-Service › Rollback', 'deploy.md'],
+			['bekannte-probleme', 'Auth-Service › Bekannte Probleme', 'deploy.md']
 		]);
 	});
 
 	it('keeps ancestor headings in the title path and leaves the heading out of the content', () => {
 		const page = chunk(`# Guide\n\n## Deployment\n\n### Rollback\n\n${text(100)}\n`);
 		expect(page.snippets).toHaveLength(1);
-		expect(page.snippets[0].titlePath).toEqual([
-			'platform',
-			'auth-service',
-			'Guide',
-			'Deployment',
-			'Rollback'
-		]);
+		expect(page.snippets[0].titlePath).toEqual(['Guide', 'Deployment', 'Rollback']);
 		expect(page.snippets[0].content).toBe(`${text(100)}\n`);
 	});
 
@@ -48,7 +36,7 @@ describe('chunkPage', () => {
 			const page = chunk(`# Guide\n\n${text(60)}\n\n## Next\n\n${text(60)}\n`);
 			expect(page.snippets[0]).toMatchObject({
 				anchor: undefined,
-				titlePath: ['platform', 'auth-service', 'Guide', 'Overview']
+				titlePath: ['Guide', 'Overview']
 			});
 			expect(page.description).toBe(text(60));
 		});

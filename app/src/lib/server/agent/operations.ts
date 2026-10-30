@@ -86,8 +86,8 @@ export function indexProject(
 		if (row.anchor === null || row.anchor === anchor) continue;
 		anchor = row.anchor;
 		const titlePath: string[] = JSON.parse(row.title_path!);
-		// A title path holds project, source and page title before the section's own headings.
-		const depth = titlePath.length - 3;
+		// A stored title path holds the page title before the section's own headings.
+		const depth = titlePath.length - 1;
 		const title = titlePath.at(-1)!.replace(/ \(\d+\/\d+\)$/, '');
 		lines.push(`${'  '.repeat(depth)}- ${grimoireId(page, anchor)}: ${title}`);
 	}

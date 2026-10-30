@@ -6,7 +6,7 @@ import { indexPages } from './index-pages';
 import { prepareCheckout, type FetchUrl } from './index-source';
 
 const URL = 'https://docs.example.com/shared/note.md';
-const source = { project: 'platform', slug: 'docs', path: 'docs/', exclusions: [] };
+const source = { path: 'docs/', exclusions: [] };
 let checkout: string;
 
 function write(files: Record<string, string>) {
@@ -18,7 +18,7 @@ function write(files: Record<string, string>) {
 
 async function indexCheckout(fetchUrl: FetchUrl) {
 	const prepared = await prepareCheckout(checkout, source, async () => {}, fetchUrl);
-	return indexPages({ ...prepared, project: source.project, source: source.slug });
+	return indexPages(prepared);
 }
 
 function pageText(index: Awaited<ReturnType<typeof indexCheckout>>) {

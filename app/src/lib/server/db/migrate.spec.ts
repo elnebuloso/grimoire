@@ -147,6 +147,44 @@ describe('migrate', () => {
 			{ token_hash: 'abc', user_id: 1 }
 		]);
 	});
+
+	it('takes project and source slugs out of the stored index', () => {
+		const db = new DatabaseSync(':memory:');
+		const index = shippedMigrations.findIndex(
+			({ name }) => name === '0011-index-without-slugs.sql'
+		);
+		migrate(db, shippedMigrations.slice(0, index));
+		db.exec(`INSERT INTO projects (id, slug) VALUES (1, 'platform');
+			INSERT INTO sources (id, project_id, slug, git_url, branch, path)
+			VALUES (1, 1, 'auth', 'https://git.example/auth.git', 'main', 'docs/');
+			INSERT INTO pages (id, source_id, file, title, content) VALUES (1, 1, 'index.md', 'Start', '');
+			INSERT INTO snippets (id, page_id, position, anchor, title_path, content, tokens)
+			VALUES (1, 1, 0, 'setup', '["platform","auth","Start","Setup"]',
+				'See [a](platform/auth/deploy#x), [b](<platform/auth/first steps>), [c] and [d](../out.md).
+
+[c]: platform/auth/guide', 10);
+			INSERT INTO snippets_fts (rowid, title_path, text, code)
+			VALUES (1, 'platform › auth › Start › Setup', 'See', '');
+			INSERT INTO links (page_id, anchor, target, dead) VALUES
+				(1, 'setup', 'platform/auth/deploy#x', 0),
+				(1, 'setup', '../out.md', 1);`);
+
+		migrate(db, shippedMigrations.slice(0, index + 1));
+		expect(rows(db, 'SELECT title_path, content FROM snippets')).toEqual([
+			{
+				title_path: '["Start","Setup"]',
+				content:
+					'See [a](grimoire:deploy#x), [b](<grimoire:first steps>), [c] and [d](../out.md).\n\n[c]: grimoire:guide'
+			}
+		]);
+		expect(rows(db, 'SELECT title_path FROM snippets_fts')).toEqual([
+			{ title_path: 'Start › Setup' }
+		]);
+		expect(rows(db, 'SELECT target FROM links ORDER BY id')).toEqual([
+			{ target: 'deploy#x' },
+			{ target: '../out.md' }
+		]);
+	});
 });
 
 describe('openMigratedDatabase', () => {

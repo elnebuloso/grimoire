@@ -24,8 +24,6 @@ export interface PreparedSource {
 }
 
 export interface PagesToIndex extends PreparedSource {
-	project: string;
-	source: string;
 	/** Path of the source in the repository, normalised, e.g. `docs` or `.`. */
 	sourcePath: string;
 }
@@ -49,18 +47,14 @@ export function indexPages(job: PagesToIndex): Omit<SourceIndex, 'commit'> {
 		warnings.push(...includeWarnings);
 		try {
 			const metadata = preprocessPage(markdown);
-			const location = { project: job.project, source: job.source, file };
-			const chunked = chunkPage(metadata, location, slugify);
+			const chunked = chunkPage(metadata, file, slugify);
 			indexed.push({ file, navPosition, metadata, chunked });
 		} catch (error) {
 			warnings.push(`${posix.join(job.sourcePath, file)}: skipped, ${(error as Error).message}`);
 		}
 	}
 
-	const linked = resolveLinks(new Map(indexed.map((page) => [page.file, page.chunked])), {
-		project: job.project,
-		source: job.source
-	});
+	const linked = resolveLinks(new Map(indexed.map((page) => [page.file, page.chunked])));
 	const pages = indexed.map((page) => ({ ...page, chunked: linked.pages.get(page.file)! }));
 	return { pages, links: linked.links, warnings };
 }

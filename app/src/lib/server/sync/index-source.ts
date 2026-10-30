@@ -10,8 +10,6 @@ import {
 import type { PreparedSource } from './index-pages';
 
 export interface IndexedSource {
-	project: string;
-	slug: string;
 	/** Path of the source in the repository, e.g. `docs/`. */
 	path: string;
 	/** Glob patterns relative to the repository root, e.g. `docs/drafts/**`. */

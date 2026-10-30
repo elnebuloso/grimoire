@@ -152,9 +152,6 @@ export const actions = {
 		};
 		const problem = changeSourceSlug(database(), project.id, source.id, form);
 		if (problem) return fail(400, { slugError: problem, slugValues: { slug: form.slug } });
-
-		// Stored links carry IDs with the old slug until the source is indexed again, paused or not.
-		requestSyncInBackground(source.id, { force: true });
 		return { slugChanged: true };
 	},
 	delete: ({ params }) => {

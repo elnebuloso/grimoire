@@ -4,6 +4,8 @@ import { openDatabase } from '../db/schema';
 import { replaceSourceIndex } from '../db/sources';
 import { chunkPage, estimateTokens } from '../parsing/chunk';
 import { preprocessPage } from '../parsing/preprocess';
+import { indexPages } from '../sync/index-pages';
+import { changeProjectSlug, changeSourceSlug } from '../admin/projects';
 import {
 	agentInstructions,
 	indexProject,
@@ -71,7 +73,7 @@ function addSource(
 		pages: Object.entries(pages).map(([file, markdown]) => {
 			const metadata = preprocessPage(markdown);
 			const navPosition = nav.includes(file) ? nav.indexOf(file) : undefined;
-			const chunked = chunkPage(metadata, { project, source: slug, file });
+			const chunked = chunkPage(metadata, file);
 			return { file, navPosition, metadata, chunked };
 		})
 	});
@@ -265,6 +267,42 @@ describe('readById', () => {
 			const result = readById(db, id, scope ? [...scope] : undefined);
 			expect(result).toEqual({ found: false, markdown: expect.stringContaining(id) });
 		}
+	});
+});
+
+describe('after a slug change', () => {
+	it('reads, searches, lists and links under the new slugs at once, without a sync', () => {
+		const projectId = addProject('legacy');
+		const sourceId = Number(
+			db
+				.prepare(
+					`INSERT INTO sources (project_id, slug, git_url, branch, path)
+					VALUES (?, 'wiki', 'https://git.example/x.git', 'main', 'docs/')`
+				)
+				.run(projectId).lastInsertRowid
+		);
+		const pages = [
+			{ file: 'index.md', markdown: '# Start\n\nSee [rollback](deploy.md#rollback).\n' },
+			{ file: 'deploy.md', markdown: DEPLOY }
+		].map((page) => ({ ...page, navPosition: undefined, includeWarnings: [] }));
+		replaceSourceIndex(db, sourceId, {
+			commit: 'abc',
+			...indexPages({ pages, warnings: [], sourcePath: 'docs' })
+		});
+
+		changeProjectSlug(db, projectId, { slug: 'team', confirmation: 'legacy' });
+		changeSourceSlug(db, projectId, sourceId, { slug: 'login', confirmation: 'wiki' });
+
+		const start = readById(db, 'team/login/index', undefined);
+		expect(start.markdown).toContain('### team › login › Start');
+		expect(start.markdown).toContain('[rollback](team/login/deploy#rollback)');
+		expect(queryProjects(db, { query: 'rollback' }, undefined).markdown).toContain(
+			'Source: team/login/deploy#rollback'
+		);
+		expect(indexProject(db, 'team', undefined).markdown).toContain(
+			'- team/login/deploy#rollback: Rollback'
+		);
+		expect(readById(db, 'legacy/wiki/index', undefined).found).toBe(false);
 	});
 });
 

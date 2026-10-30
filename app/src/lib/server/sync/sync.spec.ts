@@ -130,8 +130,8 @@ describe('syncSource', () => {
 			rows("SELECT rowid FROM snippets_fts WHERE snippets_fts MATCH 'code:rollback'")
 		).toHaveLength(1);
 		expect(rows('SELECT target, dead FROM links ORDER BY target')).toEqual([
-			{ target: expect.stringMatching(/\/deploy#rollback$/), dead: 0 },
-			{ target: expect.stringMatching(/\/missing$/), dead: 1 }
+			{ target: 'deploy#rollback', dead: 0 },
+			{ target: 'missing', dead: 1 }
 		]);
 
 		const [state] = rows('SELECT last_commit, error, warnings FROM sources WHERE id = ?', source);

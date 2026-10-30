@@ -81,8 +81,6 @@ export async function syncSource(
 				);
 				const indexed = await indexInWorker({
 					...prepared,
-					project: source.project,
-					source: source.slug,
 					databasePath: databasePath(db),
 					sourceId,
 					commit
