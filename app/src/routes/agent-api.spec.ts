@@ -299,6 +299,23 @@ describe('POST /mcp', () => {
 		expect(unknown.error).toBe(true);
 		expect(hidden).toEqual({ ...unknown, text: unknown.text.replace('nope', 'platform') });
 		expect((await tool('read', { id: 'platform/auth/nope' })).error).toBe(true);
+		expect(await tool('read', { id: 'platform/auth' })).toEqual({
+			error: true,
+			text: expect.stringContaining('"platform/auth" not found')
+		});
+	});
+
+	it('reads the whole page for an empty anchor, like an empty section over HTTP', async () => {
+		const id = 'platform/auth/run books/deploy';
+		const viaMcp = await tool('read', { id: `${id}#` });
+		const viaHttp = await get(page, '/p/platform/auth/run%20books/deploy?section=', {
+			project: 'platform',
+			source: 'auth',
+			page: 'run books/deploy'
+		});
+
+		expect(viaMcp).toEqual({ error: false, text: (await tool('read', { id })).text });
+		expect(viaHttp.body).toBe(viaMcp.text);
 	});
 });
 

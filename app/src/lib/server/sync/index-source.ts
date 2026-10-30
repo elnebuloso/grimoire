@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync, realpathSync } from 'node:fs';
 import { isAbsolute, join, matchesGlob, posix, relative } from 'node:path';
 import { resolveIncludes, type IncludeResult, type UrlContent } from '../parsing/include';
+import { hasGrimoireId } from '../grimoire-id';
 import {
 	extensionSettings,
 	findSiteConfig,
@@ -40,6 +41,10 @@ export async function prepareCheckout(
 	const warnings: string[] = [];
 	const raw = new Map<string, string>();
 	for (const file of listPages(checkout, sourcePath, source.exclusions)) {
+		if (!hasGrimoireId(file)) {
+			warnings.push(`${posix.join(sourcePath, file)}: "#" in the file name, skipped`);
+			continue;
+		}
 		const content = read(posix.join(sourcePath, file));
 		if (content === undefined)
 			warnings.push(`${posix.join(sourcePath, file)}: not readable inside the repository, skipped`);

@@ -6,6 +6,7 @@ import { chunkPage, estimateTokens } from '../parsing/chunk';
 import { preprocessPage } from '../parsing/preprocess';
 import { indexPages } from '../sync/index-pages';
 import { changeProjectSlug, changeSourceSlug } from '../admin/projects';
+import { parseGrimoireId } from '../grimoire-id';
 import {
 	agentInstructions,
 	indexProject,
@@ -227,7 +228,7 @@ describe('llmsTxt', () => {
 
 describe('readById', () => {
 	it('returns a whole page, overview first', () => {
-		const result = readById(db, 'platform/auth/deploy', 'all');
+		const result = readById(db, parseGrimoireId('platform/auth/deploy')!, 'all');
 
 		expect(sourceIds(result.markdown)).toEqual([
 			'platform/auth/deploy',
@@ -240,31 +241,30 @@ describe('readById', () => {
 	});
 
 	it('returns a section, all parts of a split one, and the parent of a merged subsection', () => {
-		expect(sourceIds(readById(db, 'platform/auth/deploy#upgrade', 'all').markdown)).toEqual([
-			'platform/auth/deploy#upgrade'
-		]);
-		expect(readById(db, 'platform/auth/deploy#large', 'all').markdown).toMatch(
+		expect(
+			sourceIds(readById(db, parseGrimoireId('platform/auth/deploy#upgrade')!, 'all').markdown)
+		).toEqual(['platform/auth/deploy#upgrade']);
+		expect(readById(db, parseGrimoireId('platform/auth/deploy#large')!, 'all').markdown).toMatch(
 			/Large \(1\/2\)[\s\S]*Large \(2\/2\)/
 		);
-		const merged = readById(db, 'platform/auth/deploy#port', 'all').markdown;
+		const merged = readById(db, parseGrimoireId('platform/auth/deploy#port')!, 'all').markdown;
 		expect(sourceIds(merged)).toEqual(['platform/auth/deploy#rollback']);
 		expect(merged).toContain('Small.');
 	});
 
 	it('reads pages in subdirectories', () => {
-		expect(sourceIds(readById(db, 'platform/auth/guide/start', 'all').markdown)).toEqual([
-			'platform/auth/guide/start'
-		]);
+		expect(
+			sourceIds(readById(db, parseGrimoireId('platform/auth/guide/start')!, 'all').markdown)
+		).toEqual(['platform/auth/guide/start']);
 	});
 
 	it('reports unknown and out-of-scope IDs as not found', () => {
 		for (const [id, scope] of [
 			['platform/auth/missing', 'all'],
 			['platform/auth/deploy#missing', 'all'],
-			['platform/auth', 'all'],
 			['platform/auth/deploy', ['billing']]
 		] as const) {
-			const result = readById(db, id, scope === 'all' ? scope : [...scope]);
+			const result = readById(db, parseGrimoireId(id)!, scope === 'all' ? scope : [...scope]);
 			expect(result).toEqual({ found: false, markdown: expect.stringContaining(id) });
 		}
 	});
@@ -293,7 +293,7 @@ describe('after a slug change', () => {
 		changeProjectSlug(db, projectId, { slug: 'team', confirmation: 'legacy' });
 		changeSourceSlug(db, projectId, sourceId, { slug: 'login', confirmation: 'wiki' });
 
-		const start = readById(db, 'team/login/index', 'all');
+		const start = readById(db, parseGrimoireId('team/login/index')!, 'all');
 		expect(start.markdown).toContain('### team › login › Start');
 		expect(start.markdown).toContain('[rollback](team/login/deploy#rollback)');
 		expect(queryProjects(db, { query: 'rollback' }, 'all').markdown).toContain(
@@ -302,7 +302,7 @@ describe('after a slug change', () => {
 		expect(indexProject(db, 'team', 'all').markdown).toContain(
 			'- team/login/deploy#rollback: Rollback'
 		);
-		expect(readById(db, 'legacy/wiki/index', 'all').found).toBe(false);
+		expect(readById(db, parseGrimoireId('legacy/wiki/index')!, 'all').found).toBe(false);
 	});
 });
 

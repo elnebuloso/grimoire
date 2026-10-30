@@ -1,6 +1,5 @@
 import type { DatabaseSync } from 'node:sqlite';
 import { readById } from '../agent/operations';
-import { grimoireId } from '../grimoire-id';
 import { projectStats, type ProjectStats } from '../stats';
 
 export interface PageSummary {
@@ -84,7 +83,7 @@ export function previewPage(
 	file: string
 ): string | undefined {
 	if (!file.endsWith('.md')) return undefined;
-	const result = readById(db, grimoireId({ project, source, file }), 'all');
+	const result = readById(db, { project, source, file }, 'all');
 	return result.found ? result.markdown : undefined;
 }
 

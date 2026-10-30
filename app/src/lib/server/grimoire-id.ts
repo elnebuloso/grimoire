@@ -6,6 +6,19 @@ export interface PageLocation {
 	file: string;
 }
 
+/** A page within a source, and the anchor of one of its sections; no anchor names the page. */
+export interface SectionLocation extends PageLocation {
+	anchor?: string | null;
+}
+
+/**
+ * Whether a file can be named by an ID. A `#` in its name would read as the start of the anchor,
+ * so such a file is left out of the index rather than listed under an ID that names another page.
+ */
+export function hasGrimoireId(file: string): boolean {
+	return !file.includes('#');
+}
+
 /** The part of an ID within its source: the file without `.md`, and `#anchor` for a section. */
 export function pageId(file: string, anchor?: string | null): string {
 	const page = file.replace(/\.md$/, '');
@@ -21,9 +34,7 @@ export function grimoireId(page: PageLocation, anchor?: string | null): string {
 }
 
 /** The page and anchor an ID names; undefined when it names no page. */
-export function parseGrimoireId(
-	id: string
-): (PageLocation & { anchor: string | undefined }) | undefined {
+export function parseGrimoireId(id: string): SectionLocation | undefined {
 	const hash = id.indexOf('#');
 	const pagePart = hash === -1 ? id : id.slice(0, hash);
 	const [project, source, ...page] = pagePart.split('/');

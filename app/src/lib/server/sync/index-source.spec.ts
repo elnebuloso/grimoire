@@ -79,6 +79,17 @@ describe('indexCheckout with URL includes', () => {
 	});
 });
 
+describe('indexCheckout with "#" in a file name', () => {
+	it('skips the page, whose ID would name another page, and says so', async () => {
+		write({ 'docs/faq.md': '# FAQ\n', 'docs/faq#2.md': '# FAQ 2\n' });
+
+		const index = await indexCheckout(async () => ({ content: '' }));
+
+		expect(index.pages.map((page) => page.file)).toEqual(['faq.md']);
+		expect(index.warnings).toEqual(['docs/faq#2.md: "#" in the file name, skipped']);
+	});
+});
+
 describe('indexCheckout with symlinks', () => {
 	let outside: string;
 

@@ -4,9 +4,11 @@ import { z } from 'zod';
 import { version } from '../../../../package.json';
 import type { ProjectScope } from '../api-keys';
 import { database } from '../db';
+import { parseGrimoireId } from '../grimoire-id';
 import { scopeForRequest, unauthorizedResponse } from './http';
 import {
 	agentInstructions,
+	idNotFound,
 	indexProject,
 	listProjects,
 	queryProjects,
@@ -53,7 +55,10 @@ export function createMcpServer(db: DatabaseSync, scope: ProjectScope): McpServe
 			description: 'Returns a page (`project/source/page`) or one section (`…#anchor`).',
 			inputSchema: z.object({ id: z.string() })
 		},
-		({ id }) => toolResult(readById(db, id, scope))
+		({ id }) => {
+			const location = parseGrimoireId(id);
+			return toolResult(location ? readById(db, location, scope) : idNotFound(id));
+		}
 	);
 	return server;
 }

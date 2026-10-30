@@ -1,6 +1,6 @@
 import type { DatabaseSync } from 'node:sqlite';
 import type { ProjectScope } from '../api-keys';
-import { grimoireId, parseGrimoireId } from '../grimoire-id';
+import { grimoireId, type SectionLocation } from '../grimoire-id';
 import { renderSnippet, searchSnippets, toSnippetHit, type SnippetRow } from '../search/query';
 import instructions from './instructions.md?raw';
 
@@ -157,14 +157,17 @@ export function queryProjects(
 }
 
 /**
- * Returns a whole page (`project/source/page`) or one section of it (`…#anchor`). A section that
- * was split returns all its parts; an anchor of a small subsection merged into its parent
- * returns the parent.
+ * Returns a whole page, or one section of it when an anchor is given. A section that was split
+ * returns all its parts; an anchor of a small subsection merged into its parent returns the
+ * parent.
  */
-export function readById(db: DatabaseSync, id: string, scope: ProjectScope): OperationResult {
-	const location = parseGrimoireId(id);
-	if (!location) return idNotFound(id);
-
+export function readById(
+	db: DatabaseSync,
+	location: SectionLocation,
+	scope: ProjectScope
+): OperationResult {
+	// An empty anchor names no section, so `?section=` and an ID ending in `#` read the page.
+	const anchor = location.anchor || null;
 	const rows = db
 		.prepare(
 			`SELECT projects.slug AS project, sources.slug AS source, sources.git_url AS gitUrl,
@@ -184,11 +187,11 @@ export function readById(db: DatabaseSync, id: string, scope: ProjectScope): Ope
 			project: location.project,
 			source: location.source,
 			file: location.file,
-			anchor: location.anchor ?? null,
+			anchor,
 			scope: scopeParameter(scope)
 		}) as unknown as SnippetRow[];
 
-	if (rows.length === 0) return idNotFound(id);
+	if (rows.length === 0) return idNotFound(grimoireId(location, anchor));
 	return { found: true, markdown: rows.map(toSnippetHit).map(renderSnippet).join('\n\n') };
 }
 
@@ -211,6 +214,7 @@ function projectNotFound(project: string): OperationResult {
 	return { found: false, markdown: `Project "${project}" not found. See \`projects\`.` };
 }
 
-function idNotFound(id: string): OperationResult {
+/** The answer for an ID that names no visible page or section. */
+export function idNotFound(id: string): OperationResult {
 	return { found: false, markdown: `"${id}" not found. The project's \`index\` lists all IDs.` };
 }

@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import type { DatabaseSync } from 'node:sqlite';
 import { openDatabase } from '../db/schema';
 import { readById } from '../agent/operations';
+import { parseGrimoireId } from '../grimoire-id';
 import { dashboard, previewPage, sourceStatus } from './status';
 
 let db: DatabaseSync;
@@ -99,7 +100,9 @@ describe('previewPage', () => {
 		const preview = previewPage(db, 'platform', 'auth', 'guides/deploy.md');
 
 		expect(preview).toContain('Content of guides/deploy.md 0');
-		expect(preview).toBe(readById(db, 'platform/auth/guides/deploy', 'all').markdown);
+		expect(preview).toBe(
+			readById(db, parseGrimoireId('platform/auth/guides/deploy')!, 'all').markdown
+		);
 	});
 
 	it('returns undefined for a page the source does not have', () => {
