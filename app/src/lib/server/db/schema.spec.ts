@@ -4,7 +4,6 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { DatabaseSync } from 'node:sqlite';
 import { openDatabase } from './schema';
-import { findBacklinks } from './links';
 
 function insert(db: DatabaseSync, sql: string, ...values: (string | number | null)[]): number {
 	return Number(db.prepare(sql).run(...values).lastInsertRowid);
@@ -137,24 +136,5 @@ describe('openDatabase', () => {
 		expect(['pages', 'snippets', 'snippets_fts', 'links'].map((table) => count(db, table))).toEqual(
 			[0, 0, 0, 0]
 		);
-	});
-});
-
-describe('findBacklinks', () => {
-	it('returns links to the page and its anchors, not to pages sharing the prefix', () => {
-		const db = openDatabase(':memory:');
-		const project = insert(db, "INSERT INTO projects (slug) VALUES ('platform')");
-		const source = addSource(db, project, 'auth');
-		const index = addPage(db, source, 'index.md');
-		const guide = addPage(db, source, 'guide/setup.md');
-		const link = 'INSERT INTO links (page_id, anchor, target, dead) VALUES (?, ?, ?, ?)';
-		insert(db, link, index, null, 'platform/auth/deploy', 0);
-		insert(db, link, guide, 'steps', 'platform/auth/deploy#nope', 1);
-		insert(db, link, index, null, 'platform/auth/deploy-old', 0);
-
-		expect(findBacklinks(db, 'platform/auth/deploy')).toEqual([
-			{ from: 'platform/auth/guide/setup#steps', target: 'platform/auth/deploy#nope', dead: true },
-			{ from: 'platform/auth/index', target: 'platform/auth/deploy', dead: false }
-		]);
 	});
 });

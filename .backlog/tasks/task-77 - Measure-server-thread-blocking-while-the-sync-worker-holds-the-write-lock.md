@@ -1,10 +1,11 @@
 ---
 id: TASK-77
 title: Measure server-thread blocking while the sync worker holds the write lock
-status: To Do
+status: In Progress
 assignee:
   - '@claude'
 created_date: '2026-10-30 00:14'
+updated_date: '2026-10-30 00:48'
 labels:
   - sync
 milestone: m-0
