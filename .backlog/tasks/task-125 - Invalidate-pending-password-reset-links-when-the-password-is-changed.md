@@ -1,10 +1,11 @@
 ---
 id: TASK-125
 title: Invalidate pending password reset links when the password is changed
-status: To Do
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-30 09:45'
+updated_date: '2026-10-30 10:07'
 labels:
   - admin
 milestone: m-0
@@ -22,6 +23,18 @@ Found in the whole-project code review of 2026-10-30. `resetPassword` in `app/sr
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Changing the password on the account page deletes all pending reset links of that user in the same transaction
+- [x] #1 Changing the password on the account page deletes all pending reset links of that user in the same transaction
 - [ ] #2 A test next to the existing `changePassword` tests shows a link issued before the change is refused afterwards
 <!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+Delete the user's password_resets rows inside changePassword's transaction; test in the changePassword tests.
+<!-- SECTION:PLAN:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+changePassword now deletes all pending reset links of the user in the same transaction as the password update. New test: a link requested before the change is invalid afterwards; it fails without the change.
+<!-- SECTION:FINAL_SUMMARY:END -->

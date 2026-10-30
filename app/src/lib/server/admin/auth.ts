@@ -248,6 +248,9 @@ export async function changePassword(
 			stored.id,
 			sha256(session)
 		);
+		// A reset mail the user did not ask for is a reason to change the password; its link must
+		// not outlive the change.
+		db.prepare('DELETE FROM password_resets WHERE user_id = ?').run(stored.id);
 	});
 	return undefined;
 }

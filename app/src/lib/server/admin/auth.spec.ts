@@ -377,6 +377,22 @@ describe('changePassword', () => {
 		expect(stored.password_hash).not.toContain(NEW_PASSWORD);
 	});
 
+	it('invalidates reset links sent before the change', async () => {
+		const reset = await import('./password-reset');
+		const link = reset.requestPasswordReset(db, 'mail', 'admin@example.com', NOW);
+		if (!link || link === 'reset-blocked') throw new Error('no reset link issued');
+
+		await auth.changePassword(
+			db,
+			'laptop',
+			current,
+			{ current: PASSWORD, password: NEW_PASSWORD },
+			NOW
+		);
+
+		expect(reset.resetLinkValid(db, link.token, NOW)).toBe(false);
+	});
+
 	it('changes nothing for a wrong current password and counts it as a failed login', async () => {
 		for (let attempt = 0; attempt < 9; attempt++) {
 			expect(
