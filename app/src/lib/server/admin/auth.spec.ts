@@ -124,6 +124,26 @@ describe('login', () => {
 		).toBe(true);
 	});
 
+	it('counts failures from zero again after 15 quiet minutes', () => {
+		const fail = (at: Date) => auth.login(db, 'typo', { username: 'admin', password: 'nope' }, at);
+		for (let attempt = 0; attempt < 9; attempt++) fail(NOW);
+		const quiet = new Date(NOW.getTime() + 15 * 60_000);
+
+		for (let attempt = 0; attempt < 9; attempt++) fail(quiet);
+
+		expect(fail(quiet)).toEqual({ error: 'wrong-credentials' });
+		expect(fail(quiet)).toEqual({ error: 'blocked' });
+	});
+
+	it('deletes expired sessions when a new one starts', () => {
+		auth.login(db, 'client', { username: 'admin', password: PASSWORD }, NOW);
+		const later = new Date(NOW.getTime() + 12 * 3_600_000);
+
+		auth.login(db, 'client', { username: 'admin', password: PASSWORD }, later);
+
+		expect(db.prepare('SELECT COUNT(*) AS n FROM sessions').get()).toEqual({ n: 1 });
+	});
+
 	it('ends a session after 12 hours or on logout', () => {
 		const first = sessionOf(
 			auth.login(db, 'client', { username: 'admin', password: PASSWORD }, NOW)

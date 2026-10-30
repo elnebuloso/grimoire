@@ -43,7 +43,10 @@ let setupTokenValue: string | undefined;
 let adminSeen = false;
 // ponytail: failed logins are counted in memory per client and forgotten on restart; enough for
 // one instance, a table if grimoire ever runs on several.
-const failedLogins = new Map<string, { count: number; blockedUntil: number }>();
+const failedLogins = new Map<
+	string,
+	{ count: number; blockedUntil: number; lastFailedAt: number }
+>();
 
 function sha256(value: string): string {
 	return createHash('sha256').update(value).digest('hex');
@@ -164,11 +167,24 @@ function isBlocked(client: string, now: Date): boolean {
 }
 
 function recordFailedLogin(client: string, now: Date) {
+	forgetQuietClients(now);
 	const count = (failedLogins.get(client)?.count ?? 0) + 1;
 	failedLogins.set(client, {
 		count: count >= MAX_FAILED_LOGINS ? 0 : count,
-		blockedUntil: count >= MAX_FAILED_LOGINS ? now.getTime() + BLOCK_MINUTES * 60_000 : 0
+		blockedUntil: count >= MAX_FAILED_LOGINS ? now.getTime() + BLOCK_MINUTES * 60_000 : 0,
+		lastFailedAt: now.getTime()
 	});
+}
+
+// Without this, every client that ever mistyped a password would stay in memory until a restart.
+// A client without a failure for as long as a block lasts starts counting from zero again.
+function forgetQuietClients(now: Date) {
+	const quietSince = now.getTime() - BLOCK_MINUTES * 60_000;
+	for (const [client, entry] of failedLogins) {
+		if (entry.blockedUntil <= now.getTime() && entry.lastFailedAt <= quietSince) {
+			failedLogins.delete(client);
+		}
+	}
 }
 
 /**
@@ -211,6 +227,8 @@ export function changePassword(
 }
 
 function createSession(db: DatabaseSync, userId: number, now: Date): string {
+	// Expired sessions are useless; removed here, they cannot pile up over the life of an instance.
+	db.prepare('DELETE FROM sessions WHERE expires_at <= ?').run(now.toISOString());
 	const token = randomBytes(32).toString('base64url');
 	const expiresAt = new Date(now.getTime() + SESSION_HOURS * 3_600_000).toISOString();
 	db.prepare('INSERT INTO sessions (token_hash, user_id, expires_at) VALUES (?, ?, ?)').run(
