@@ -7,6 +7,7 @@ created_date: '2026-10-30 19:41'
 updated_date: '2026-10-30 19:46'
 labels:
   - admin
+milestone: m-0
 dependencies: []
 priority: low
 type: bug
