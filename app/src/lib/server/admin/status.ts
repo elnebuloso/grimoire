@@ -67,19 +67,27 @@ export interface SourceStatus {
 	history: SyncHistoryEntry[];
 }
 
-export function sourceStatus(db: DatabaseSync, sourceId: number): SourceStatus {
+/** The sync state of a source of the project; undefined when the project has no such source. */
+export function sourceStatus(
+	db: DatabaseSync,
+	projectId: number,
+	sourceId: number
+): SourceStatus | undefined {
 	const source = db
 		.prepare(
 			`SELECT last_checked_at, last_synced_at, last_commit, error, warnings
-			FROM sources WHERE id = ?`
+			FROM sources WHERE project_id = ? AND id = ?`
 		)
-		.get(sourceId) as {
-		last_checked_at: string | null;
-		last_synced_at: string | null;
-		last_commit: string | null;
-		error: string | null;
-		warnings: string;
-	};
+		.get(projectId, sourceId) as
+		| {
+				last_checked_at: string | null;
+				last_synced_at: string | null;
+				last_commit: string | null;
+				error: string | null;
+				warnings: string;
+		  }
+		| undefined;
+	if (!source) return undefined;
 	const pages = db
 		.prepare(
 			`SELECT pages.file, pages.title, count(snippets.id) AS snippets,

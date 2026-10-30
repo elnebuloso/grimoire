@@ -132,6 +132,22 @@ describe('saveSource', () => {
 		});
 	});
 
+	it('changes no source of another project', () => {
+		const id = created(
+			saveSource(db, KEY, projectId, undefined, sourceForm({ token: 'glpat-stored' }))
+		);
+		const otherProject = created(saveProject(db, undefined, { name: 'Billing', description: '' }));
+		const before = findSource(db, projectId, id);
+
+		expect(() =>
+			saveSource(db, KEY, otherProject, id, sourceForm({ name: 'Taken', token: 'glpat-x' }))
+		).toThrow('has no source');
+		changeSourceSlug(db, otherProject, id, { slug: 'taken', confirmation: 'auth-service' });
+
+		expect(findSource(db, projectId, id)).toEqual(before);
+		expect(storedToken(id)).not.toBeNull();
+	});
+
 	it('leaves a paused source out of polling and brings it back with its last check', () => {
 		const id = created(
 			saveSource(db, KEY, projectId, undefined, sourceForm({ schedule: '0 2 * * *' }))

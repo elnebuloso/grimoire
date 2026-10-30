@@ -54,7 +54,7 @@ beforeEach(() => {
 
 describe('sourceStatus', () => {
 	it('reports a source that was never synced', () => {
-		expect(sourceStatus(db, 1)).toEqual({
+		expect(sourceStatus(db, 1, 1)!).toEqual({
 			lastCheckedAt: null,
 			lastSyncedAt: null,
 			lastCommit: null,
@@ -83,7 +83,7 @@ describe('sourceStatus', () => {
 			WHERE id = 1`
 		).run();
 
-		expect(sourceStatus(db, 1)).toMatchObject({
+		expect(sourceStatus(db, 1, 1)!).toMatchObject({
 			lastCommit: 'abc',
 			lastSyncedAt: '2026-10-01T10:00:00.000Z',
 			error: 'git ls-remote failed',
@@ -130,7 +130,7 @@ describe('deadLinks', () => {
 			}
 		]);
 		expect(deadLinks(db, 2).map((link) => link.target)).toEqual(['platform/billing/old']);
-		expect(sourceStatus(db, 1).deadLinks).toEqual([
+		expect(sourceStatus(db, 1, 1)!.deadLinks).toEqual([
 			{ file: 'deploy.md', anchor: 'rollback', target: 'platform/auth/gone' }
 		]);
 	});
@@ -143,7 +143,7 @@ describe('sync history', () => {
 				(1, '2026-10-30T10:05:00.000Z', '2026-10-30T11:00:00.000Z', 'failed', NULL, 'denied', 12),
 				(2, '2026-10-30T10:00:00.000Z', '2026-10-30T10:01:00.000Z', 'synced', 'def', NULL, 1)`);
 
-		expect(sourceStatus(db, 1).history).toEqual([
+		expect(sourceStatus(db, 1, 1)!.history).toEqual([
 			{
 				startedAt: '2026-10-30T10:05:00.000Z',
 				finishedAt: '2026-10-30T11:00:00.000Z',

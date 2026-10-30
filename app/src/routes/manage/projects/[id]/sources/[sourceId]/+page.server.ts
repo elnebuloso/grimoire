@@ -47,7 +47,7 @@ export const load: PageServerLoad = ({ params, url }) => {
 	return {
 		project,
 		source,
-		status: source && sourceStatus(database(), source.id),
+		status: source && sourceStatus(database(), project.id, source.id),
 		syncPending: source !== undefined && syncPending(source.id),
 		preview:
 			source && previewFile
@@ -83,10 +83,11 @@ function readSourceForm(data: FormData) {
 
 async function accessProblem(
 	db: DatabaseSync,
+	projectId: number,
 	sourceId: number | undefined,
 	form: SourceForm
 ): Promise<string | undefined> {
-	const access = await checkSourceAccess(db, TOKEN_ENCRYPTION_KEY, sourceId, form);
+	const access = await checkSourceAccess(db, TOKEN_ENCRYPTION_KEY, projectId, sourceId, form);
 	return access.ok ? undefined : access.message;
 }
 
@@ -98,7 +99,9 @@ export const actions = {
 		const problem =
 			damaged ??
 			sourceProblem(db, project.id, source?.id, form) ??
-			(accessChanged(db, source?.id, form) ? await accessProblem(db, source?.id, form) : undefined);
+			(accessChanged(db, project.id, source?.id, form)
+				? await accessProblem(db, project.id, source?.id, form)
+				: undefined);
 		if (problem) return fail(400, { error: problem, values });
 
 		const result = saveSource(db, TOKEN_ENCRYPTION_KEY, project.id, source?.id, form);
@@ -109,10 +112,16 @@ export const actions = {
 		redirect(303, `/manage/projects/${project.id}/sources/${result.id}`);
 	},
 	test: async ({ request, params }) => {
-		const { source } = pageFor(params);
+		const { project, source } = pageFor(params);
 		const { form, values, damaged } = readSourceForm(await request.formData());
 		if (damaged) return fail(400, { error: damaged, values });
-		const access = await checkSourceAccess(database(), TOKEN_ENCRYPTION_KEY, source?.id, form);
+		const access = await checkSourceAccess(
+			database(),
+			TOKEN_ENCRYPTION_KEY,
+			project.id,
+			source?.id,
+			form
+		);
 		return { access, values };
 	},
 	sync: async ({ params, url }) => {

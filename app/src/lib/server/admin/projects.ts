@@ -235,7 +235,7 @@ export function sourceProblem(
 		}
 	}
 
-	const remoteIssue = remoteProblem(db, sourceId, form);
+	const remoteIssue = remoteProblem(db, projectId, sourceId, form);
 	if (remoteIssue) return remoteIssue;
 
 	const docsUrlProblem = checkDocsUrl(form.docsUrl.trim());
@@ -261,12 +261,36 @@ export function sourceProblem(
 	return undefined;
 }
 
+/** What grimoire sends to the Git server of a source: its URL, branch and credentials. */
+export interface StoredAccess {
+	gitUrl: string;
+	branch: string;
+	username: string | null;
+	encryptedToken: string | null;
+}
+
+/** The stored access of a source of the project; undefined for a new or another project's one. */
+export function storedAccess(
+	db: DatabaseSync,
+	projectId: number | undefined,
+	sourceId: number | undefined
+): StoredAccess | undefined {
+	if (projectId === undefined || sourceId === undefined) return undefined;
+	return db
+		.prepare(
+			`SELECT git_url AS gitUrl, branch, username, encrypted_token AS encryptedToken
+			FROM sources WHERE project_id = ? AND id = ?`
+		)
+		.get(projectId, sourceId) as StoredAccess | undefined;
+}
+
 /**
  * Why grimoire must not contact the Git server in `form`; undefined when it may. Checked before
  * saving and before every access test, which sends the stored token along.
  */
 export function remoteProblem(
 	db: DatabaseSync,
+	projectId: number | undefined,
 	sourceId: number | undefined,
 	form: SourceForm
 ): string | undefined {
@@ -274,18 +298,14 @@ export function remoteProblem(
 	const urlProblem = checkGitUrl(gitUrl);
 	if (urlProblem) return urlProblem;
 
-	const previous =
-		sourceId === undefined
-			? undefined
-			: (db.prepare('SELECT git_url, encrypted_token FROM sources WHERE id = ?').get(sourceId) as
-					{ git_url: string; encrypted_token: string | null } | undefined);
+	const previous = storedAccess(db, projectId, sourceId);
 	// A stored token goes to whatever server the URL names; moving it to another one needs the
 	// admin to enter it again, so a changed URL cannot carry it off unnoticed.
 	if (
-		previous?.encrypted_token &&
+		previous?.encryptedToken &&
 		!form.token.trim() &&
 		!form.removeToken &&
-		new URL(previous.git_url).origin !== new URL(gitUrl).origin
+		new URL(previous.gitUrl).origin !== new URL(gitUrl).origin
 	) {
 		return m.error_token_other_server();
 	}
@@ -346,15 +366,22 @@ export function saveSource(
 			});
 		return { id: Number(result.lastInsertRowid) };
 	}
-	db.prepare(
-		`UPDATE sources SET name = :name, git_url = :git_url, docs_url = :docs_url,
+	const { changes } = db
+		.prepare(
+			`UPDATE sources SET name = :name, git_url = :git_url, docs_url = :docs_url,
 			branch = :branch, path = :path,
 			exclusions = :exclusions, sync_schedule = :sync_schedule, paused = :paused,
 			username = :username
-		WHERE id = :id`
-	).run({ ...values, id: sourceId });
+		WHERE id = :id AND project_id = :project_id`
+		)
+		.run({ ...values, id: sourceId, project_id: projectId });
+	if (changes === 0) throw new Error(`project ${projectId} has no source ${sourceId}`);
 	if (token || form.removeToken) {
-		db.prepare('UPDATE sources SET encrypted_token = ? WHERE id = ?').run(encryptedToken, sourceId);
+		db.prepare('UPDATE sources SET encrypted_token = ? WHERE id = ? AND project_id = ?').run(
+			encryptedToken,
+			sourceId,
+			projectId
+		);
 	}
 	return { id: sourceId };
 }
@@ -372,7 +399,11 @@ export function changeSourceSlug(
 		sourceSlugTaken(db, projectId, slug, sourceId)
 	);
 	if (problem) return problem;
-	db.prepare('UPDATE sources SET slug = ? WHERE id = ?').run(form.slug.trim(), sourceId);
+	db.prepare('UPDATE sources SET slug = ? WHERE id = ? AND project_id = ?').run(
+		form.slug.trim(),
+		sourceId,
+		projectId
+	);
 	return undefined;
 }
 

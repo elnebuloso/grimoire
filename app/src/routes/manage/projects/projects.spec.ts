@@ -356,6 +356,7 @@ describe('source page', () => {
 		expect(checkSourceAccess).toHaveBeenCalledWith(
 			db,
 			expect.any(Buffer),
+			1,
 			undefined,
 			expect.objectContaining({ token: TOKEN })
 		);
