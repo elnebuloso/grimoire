@@ -18,7 +18,12 @@
 {/if}
 
 {#snippet deadLinks()}
-	<a href={resolve('/manage/dead-links')}>{data.totals.deadLinks}</a>
+	<a
+		href={resolve('/manage/dead-links')}
+		aria-label={data.totals.deadLinks === 1
+			? m.admin_dead_link()
+			: m.admin_dead_links({ count: data.totals.deadLinks })}>{data.totals.deadLinks}</a
+	>
 {/snippet}
 
 <div class="split">
@@ -43,14 +48,14 @@
 			<p class="muted">{m.admin_all_fine()}</p>
 		{:else}
 			<ul class="attention">
-				{#each data.attention as item (item.sourceId)}
-					<li class:error={item.error}>
+				{#each data.attention as item (`${item.sourceId}-${item.kind}`)}
+					<li class:error={item.kind === 'error'}>
 						<a href={resolve('/manage/sources/[id]', { id: String(item.sourceId) })}
 							>{item.source}</a
 						>
-						{#if item.neverSynced}– {m.admin_never_synced()}{/if}
-						{#if item.error}– {m.admin_sync_error({ error: item.error })}{/if}
-						{#if item.warnings.length > 0}
+						{#if item.kind === 'error'}
+							– {m.admin_sync_error({ error: item.error })}
+						{:else if item.kind === 'warnings'}
 							– {item.warnings.length === 1
 								? m.admin_sync_warning()
 								: m.admin_sync_warnings({ count: item.warnings.length })}
@@ -59,6 +64,19 @@
 										<code>{warning}</code>
 									</li>{/each}
 							</ul>
+						{:else if item.kind === 'deadLinks'}
+							–
+							<a href="{resolve('/manage/dead-links')}#source-{item.sourceId}"
+								>{item.count === 1
+									? m.admin_dead_link()
+									: m.admin_dead_links({ count: item.count })}</a
+							>
+						{:else if item.kind === 'paused'}
+							– {item.neverSynced
+								? m.admin_polling_paused_never_synced()
+								: m.admin_polling_paused()}
+						{:else}
+							– {m.admin_never_synced()}
 						{/if}
 					</li>
 				{/each}
@@ -78,6 +96,16 @@
 		<SourceStatsTable sources={data.sources} timeZone={data.timeZone}>
 			{#snippet name(source)}
 				<a href={resolve('/manage/sources/[id]', { id: String(source.id) })}>{source.name}</a>
+			{/snippet}
+			{#snippet deadLinks(source)}
+				{#if source.deadLinks > 0}
+					<a
+						href="{resolve('/manage/dead-links')}#source-{source.id}"
+						aria-label={source.deadLinks === 1
+							? m.admin_dead_link()
+							: m.admin_dead_links({ count: source.deadLinks })}>{source.deadLinks}</a
+					>
+				{:else}0{/if}
 			{/snippet}
 		</SourceStatsTable>
 	{/if}
@@ -107,7 +135,7 @@
 	.attention > li.error {
 		border-color: var(--err);
 	}
-	.attention > li > a {
+	.attention > li > a:first-child {
 		font-family: var(--mono);
 		font-size: 14px;
 		font-weight: 500;

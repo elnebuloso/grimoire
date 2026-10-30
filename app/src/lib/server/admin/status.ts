@@ -167,36 +167,73 @@ export interface SourceHealth {
 	source: string;
 	lastSyncedAt: string | null;
 	neverSynced: boolean;
+	paused: boolean;
 	error: string | null;
 	warnings: string[];
-}
-
-/** Whether a source belongs in the dashboard's "needs attention" list. */
-export function needsAttention(health: SourceHealth): boolean {
-	return health.neverSynced || health.error !== null || health.warnings.length > 0;
 }
 
 /** The sync state of every source, by slug. */
 export function sourceHealth(db: DatabaseSync): SourceHealth[] {
 	const rows = db
 		.prepare(
-			`SELECT id AS sourceId, slug AS source, last_synced_at AS lastSyncedAt, error, warnings
+			`SELECT id AS sourceId, slug AS source, last_synced_at AS lastSyncedAt, paused, error, warnings
 			FROM sources
 			ORDER BY slug`
 		)
-		.all() as unknown as (Omit<SourceHealth, 'neverSynced' | 'warnings'> & { warnings: string })[];
+		.all() as unknown as (Omit<SourceHealth, 'neverSynced' | 'paused' | 'warnings'> & {
+		paused: number;
+		warnings: string;
+	})[];
 	return rows.map((row) => ({
 		...row,
 		neverSynced: row.lastSyncedAt === null,
+		paused: row.paused === 1,
 		warnings: JSON.parse(row.warnings) as string[]
 	}));
+}
+
+/** One problem of one source, as the dashboard lists it under "needs attention". */
+export type Problem = { sourceId: number; source: string } & (
+	| { kind: 'error'; error: string }
+	| { kind: 'warnings'; warnings: string[] }
+	| { kind: 'deadLinks'; count: number }
+	| { kind: 'paused'; neverSynced: boolean }
+	| { kind: 'neverSynced' }
+);
+
+const SEVERITY: Record<Problem['kind'], number> = {
+	error: 0,
+	warnings: 1,
+	deadLinks: 1,
+	paused: 2,
+	neverSynced: 2
+};
+
+/**
+ * The problems of the given sources, most severe first and by source within a severity. A sync
+ * error already explains why a source never synced, and so does paused polling.
+ */
+export function problems(sources: (SourceHealth & { deadLinks: number })[]): Problem[] {
+	const found: Problem[] = [];
+	for (const health of sources) {
+		const of = { sourceId: health.sourceId, source: health.source };
+		if (health.error !== null) found.push({ ...of, kind: 'error', error: health.error });
+		if (health.warnings.length > 0) {
+			found.push({ ...of, kind: 'warnings', warnings: health.warnings });
+		}
+		if (health.deadLinks > 0) found.push({ ...of, kind: 'deadLinks', count: health.deadLinks });
+		if (health.paused) found.push({ ...of, kind: 'paused', neverSynced: health.neverSynced });
+		else if (health.neverSynced && health.error === null)
+			found.push({ ...of, kind: 'neverSynced' });
+	}
+	// Array.prototype.sort is stable, so the order by source survives within a severity.
+	return found.sort((a, b) => SEVERITY[a.kind] - SEVERITY[b.kind]);
 }
 
 export interface Dashboard {
 	totals: Totals;
 	sources: SourceStats[];
-	/** Sources with a sync error, sync warnings, or no sync yet. */
-	attention: SourceHealth[];
+	attention: Problem[];
 }
 
 export function dashboard(db: DatabaseSync): Dashboard {
@@ -216,6 +253,11 @@ export function dashboard(db: DatabaseSync): Dashboard {
 			apiKeys
 		},
 		sources,
-		attention: sourceHealth(db).filter(needsAttention)
+		attention: problems(
+			sourceHealth(db).map((health) => ({
+				...health,
+				deadLinks: sources.find((source) => source.id === health.sourceId)?.deadLinks ?? 0
+			}))
+		)
 	};
 }

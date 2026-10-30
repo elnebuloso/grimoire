@@ -8,8 +8,14 @@
 	let {
 		sources,
 		timeZone,
-		name
-	}: { sources: SourceStats[]; timeZone: string; name?: Snippet<[SourceStats]> } = $props();
+		name,
+		deadLinks
+	}: {
+		sources: SourceStats[];
+		timeZone: string;
+		name?: Snippet<[SourceStats]>;
+		deadLinks?: Snippet<[SourceStats]>;
+	} = $props();
 </script>
 
 <TableScroll label={m.sources_table()}>
@@ -52,7 +58,9 @@
 						{/if}
 					</td>
 					<td class={source.error ? 'error' : 'muted'}>{source.error ? m.yes() : m.no()}</td>
-					<td class="num">{source.deadLinks}</td>
+					<td class="num"
+						>{#if deadLinks}{@render deadLinks(source)}{:else}{source.deadLinks}{/if}</td
+					>
 				</tr>
 			{/each}
 		</tbody>

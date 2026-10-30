@@ -3,14 +3,7 @@ import type { DatabaseSync } from 'node:sqlite';
 import { openDatabase } from '../db/schema';
 import { readById } from '../agent/operations';
 import { parseGrimoireId } from '../grimoire-id';
-import {
-	dashboard,
-	deadLinks,
-	needsAttention,
-	previewPage,
-	sourceHealth,
-	sourceStatus
-} from './status';
+import { dashboard, deadLinks, previewPage, sourceHealth, sourceStatus } from './status';
 
 let db: DatabaseSync;
 
@@ -202,7 +195,12 @@ describe('dashboard', () => {
 				(4, 'noisy', 'Noisy', 'https://git.example.com/n.git', 'main', '', '2026-10-28T10:00:00Z',
 					NULL, '["docs/a.md: skipped, bad front matter"]'),
 				(5, 'fine', 'Fine', 'https://git.example.com/f.git', 'main', '', '2026-10-28T10:00:00Z',
-					NULL, '[]');
+					NULL, '[]'),
+				(6, 'failing', 'Failing', 'https://git.example.com/x.git', 'main', '', NULL,
+					'source path "docs" does not exist in the repository', '[]');
+			INSERT INTO sources (id, slug, name, git_url, branch, path, last_synced_at, paused)
+			VALUES (7, 'held', 'Held', 'https://git.example.com/h.git', 'main', '', '2026-10-28T10:00:00Z', 1);
+			UPDATE sources SET paused = 1 WHERE slug = 'billing';
 			INSERT INTO api_keys (name, key_hash, all_sources) VALUES ('ci', 'hash-1', 1), ('bot', 'hash-2', 0);
 		`);
 		const deploy = insertPage(5, 'deploy.md', [
@@ -216,7 +214,7 @@ describe('dashboard', () => {
 
 	it('adds up the figures of all sources and counts the API keys', () => {
 		expect(dashboard(db).totals).toEqual({
-			sources: 5,
+			sources: 7,
 			pages: 2,
 			snippets: 3,
 			tokens: 105,
@@ -225,59 +223,46 @@ describe('dashboard', () => {
 		});
 	});
 
-	it('lists the sources with an error, with warnings or never synced, but not one in sync', () => {
+	it('lists one item per problem, errors first, then warnings and dead links, then paused and never synced', () => {
 		expect(dashboard(db).attention).toEqual([
+			{ sourceId: 3, source: 'broken', kind: 'error', error: 'git ls-remote failed' },
 			{
-				sourceId: 1,
-				source: 'auth',
-				lastSyncedAt: null,
-				neverSynced: true,
-				error: null,
-				warnings: []
+				sourceId: 6,
+				source: 'failing',
+				kind: 'error',
+				error: 'source path "docs" does not exist in the repository'
 			},
-			{
-				sourceId: 2,
-				source: 'billing',
-				lastSyncedAt: null,
-				neverSynced: true,
-				error: null,
-				warnings: []
-			},
-			{
-				sourceId: 3,
-				source: 'broken',
-				lastSyncedAt: '2026-10-28T10:00:00Z',
-				neverSynced: false,
-				error: 'git ls-remote failed',
-				warnings: []
-			},
+			{ sourceId: 5, source: 'fine', kind: 'deadLinks', count: 1 },
 			{
 				sourceId: 4,
 				source: 'noisy',
-				lastSyncedAt: '2026-10-28T10:00:00Z',
-				neverSynced: false,
-				error: null,
+				kind: 'warnings',
 				warnings: ['docs/a.md: skipped, bad front matter']
-			}
+			},
+			{ sourceId: 1, source: 'auth', kind: 'neverSynced' },
+			{ sourceId: 2, source: 'billing', kind: 'paused', neverSynced: true },
+			{ sourceId: 7, source: 'held', kind: 'paused', neverSynced: false }
 		]);
 	});
 
 	it('gives the sync state of every source, healthy ones included', () => {
 		expect(
-			sourceHealth(db).map(({ source, neverSynced, error, warnings }) => ({
+			sourceHealth(db).map(({ source, neverSynced, paused, error, warnings }) => ({
 				source,
 				neverSynced,
-				error,
+				paused,
+				error: error !== null,
 				warnings: warnings.length
 			}))
 		).toEqual([
-			{ source: 'auth', neverSynced: true, error: null, warnings: 0 },
-			{ source: 'billing', neverSynced: true, error: null, warnings: 0 },
-			{ source: 'broken', neverSynced: false, error: 'git ls-remote failed', warnings: 0 },
-			{ source: 'fine', neverSynced: false, error: null, warnings: 0 },
-			{ source: 'noisy', neverSynced: false, error: null, warnings: 1 }
+			{ source: 'auth', neverSynced: true, paused: false, error: false, warnings: 0 },
+			{ source: 'billing', neverSynced: true, paused: true, error: false, warnings: 0 },
+			{ source: 'broken', neverSynced: false, paused: false, error: true, warnings: 0 },
+			{ source: 'failing', neverSynced: true, paused: false, error: true, warnings: 0 },
+			{ source: 'fine', neverSynced: false, paused: false, error: false, warnings: 0 },
+			{ source: 'held', neverSynced: false, paused: true, error: false, warnings: 0 },
+			{ source: 'noisy', neverSynced: false, paused: false, error: false, warnings: 1 }
 		]);
-		expect(sourceHealth(db).filter(needsAttention)).toEqual(dashboard(db).attention);
 	});
 
 	it('lists the sources with the figures of the public start page', () => {
@@ -285,7 +270,9 @@ describe('dashboard', () => {
 			['auth', 1],
 			['billing', 0],
 			['broken', 0],
+			['failing', 0],
 			['fine', 1],
+			['held', 0],
 			['noisy', 0]
 		]);
 	});

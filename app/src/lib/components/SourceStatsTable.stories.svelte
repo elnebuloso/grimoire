@@ -119,3 +119,23 @@
 		</SourceStatsTable>
 	{/snippet}
 </Story>
+
+<Story
+	name="Linked dead links"
+	args={{ timeZone: 'UTC', sources: [{ ...synced, deadLinks: 3 }] }}
+	play={async ({ canvas }) => {
+		await expect(canvas.getByRole('link', { name: '3 dead links' })).toHaveAttribute(
+			'href',
+			'/manage/dead-links#source-1'
+		);
+	}}
+>
+	{#snippet template(args)}
+		<SourceStatsTable {...args}>
+			{#snippet deadLinks(source)}<a
+					href="{resolve('/manage/dead-links')}#source-{source.id}"
+					aria-label="{source.deadLinks} dead links">{source.deadLinks}</a
+				>{/snippet}
+		</SourceStatsTable>
+	{/snippet}
+</Story>
