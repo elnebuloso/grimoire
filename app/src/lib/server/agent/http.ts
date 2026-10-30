@@ -1,7 +1,7 @@
 import type { DatabaseSync } from 'node:sqlite';
-import { scopeForKey } from '../api-keys';
+import { scopeForKey, type ProjectScope } from '../api-keys';
 import { database } from '../db';
-import type { OperationResult, ProjectScope, QueryOptions } from './operations';
+import type { OperationResult, QueryOptions } from './operations';
 
 /** A Markdown response, the only format the agent HTTP API answers in. */
 export function markdownResponse(markdown: string, status = 200, headers: HeadersInit = {}) {
@@ -13,7 +13,7 @@ export function markdownResponse(markdown: string, status = 200, headers: Header
 
 /**
  * The scope of the `Authorization: Bearer <key>` of a request, or undefined when the key is
- * missing or unknown. `{ scope: undefined }` is a key for all projects, not a rejection.
+ * missing or unknown.
  */
 export function scopeForRequest(
 	db: DatabaseSync,

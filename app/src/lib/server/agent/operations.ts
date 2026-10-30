@@ -1,4 +1,5 @@
 import type { DatabaseSync } from 'node:sqlite';
+import type { ProjectScope } from '../api-keys';
 import { grimoireId, parseGrimoireId } from '../grimoire-id';
 import { renderSnippet, searchSnippets, toSnippetHit, type SnippetRow } from '../search/query';
 import instructions from './instructions.md?raw';
@@ -12,15 +13,12 @@ export interface OperationResult {
 	markdown: string;
 }
 
-/** Slugs of the projects an API key may see; undefined means all of them. */
-export type ProjectScope = string[] | undefined;
-
 // Pages in the site's `nav` first, in its order, then the rest by file path.
 const PAGE_ORDER = 'pages.nav_position IS NULL, pages.nav_position, pages.file';
 const IN_SCOPE = '(:scope IS NULL OR projects.slug IN (SELECT value FROM json_each(:scope)))';
 
 function scopeParameter(scope: ProjectScope): string | null {
-	return scope ? JSON.stringify(scope) : null;
+	return scope === 'all' ? null : JSON.stringify(scope);
 }
 
 /** Lists the visible projects with their short description. */

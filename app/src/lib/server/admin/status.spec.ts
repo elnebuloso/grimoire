@@ -99,7 +99,7 @@ describe('previewPage', () => {
 		const preview = previewPage(db, 'platform', 'auth', 'guides/deploy.md');
 
 		expect(preview).toContain('Content of guides/deploy.md 0');
-		expect(preview).toBe(readById(db, 'platform/auth/guides/deploy', undefined).markdown);
+		expect(preview).toBe(readById(db, 'platform/auth/guides/deploy', 'all').markdown);
 	});
 
 	it('returns undefined for a page the source does not have', () => {

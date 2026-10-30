@@ -96,7 +96,7 @@ beforeEach(() => {
 
 describe('listProjects', () => {
 	it('lists the projects with their description', () => {
-		expect(listProjects(db, undefined)).toEqual({
+		expect(listProjects(db, 'all')).toEqual({
 			found: true,
 			markdown: '- billing\n- platform: Login and gateway'
 		});
@@ -110,7 +110,7 @@ describe('listProjects', () => {
 
 describe('indexProject', () => {
 	it('lists pages and their sections with IDs, split sections once, nested by depth', () => {
-		expect(indexProject(db, 'platform', undefined)).toEqual({
+		expect(indexProject(db, 'platform', 'all')).toEqual({
 			found: true,
 			markdown: [
 				'# platform',
@@ -137,7 +137,7 @@ describe('indexProject', () => {
 			{ 'a.md': '# A', 'b.md': '# B', 'c.md': '# C', 'd.md': '# D' },
 			['c.md', 'a.md']
 		);
-		expect(indexProject(db, 'ordered', undefined).markdown).toBe(
+		expect(indexProject(db, 'ordered', 'all').markdown).toBe(
 			[
 				'# ordered',
 				'',
@@ -152,7 +152,7 @@ describe('indexProject', () => {
 	});
 
 	it('treats an unknown project and one out of scope alike', () => {
-		const unknown = indexProject(db, 'nope', undefined);
+		const unknown = indexProject(db, 'nope', 'all');
 		const hidden = indexProject(db, 'platform', ['billing']);
 
 		expect(unknown.found).toBe(false);
@@ -165,7 +165,7 @@ describe('indexProject', () => {
 
 describe('queryProjects', () => {
 	it('returns the hits in the snippet format', () => {
-		const result = queryProjects(db, { query: 'rollback', project: 'billing' }, undefined);
+		const result = queryProjects(db, { query: 'rollback', project: 'billing' }, 'all');
 
 		expect(result).toEqual({
 			found: true,
@@ -180,7 +180,7 @@ describe('queryProjects', () => {
 	});
 
 	it('says so when nothing matches', () => {
-		const result = queryProjects(db, { query: 'kubernetes' }, undefined);
+		const result = queryProjects(db, { query: 'kubernetes' }, 'all');
 
 		expect(result.found).toBe(true);
 		expect(result.markdown).toContain('No results for "kubernetes"');
@@ -200,7 +200,7 @@ describe('llmsTxt', () => {
 	it('links every page of the project to its HTTP route, sections left out', () => {
 		addSource(addProject('ops'), 'ops', 'runbooks', { 'On Call/first day.md': '# First day' });
 
-		expect(llmsTxt(db, 'platform', undefined, 'https://grimoire.example')).toEqual({
+		expect(llmsTxt(db, 'platform', 'all', 'https://grimoire.example')).toEqual({
 			found: true,
 			markdown: [
 				'# platform',
@@ -213,7 +213,7 @@ describe('llmsTxt', () => {
 				'- [Start](https://grimoire.example/p/platform/auth/guide/start)'
 			].join('\n')
 		});
-		expect(llmsTxt(db, 'ops', undefined, 'https://grimoire.example').markdown).toContain(
+		expect(llmsTxt(db, 'ops', 'all', 'https://grimoire.example').markdown).toContain(
 			'- [First day](https://grimoire.example/p/ops/runbooks/On%20Call/first%20day)'
 		);
 	});
@@ -227,7 +227,7 @@ describe('llmsTxt', () => {
 
 describe('readById', () => {
 	it('returns a whole page, overview first', () => {
-		const result = readById(db, 'platform/auth/deploy', undefined);
+		const result = readById(db, 'platform/auth/deploy', 'all');
 
 		expect(sourceIds(result.markdown)).toEqual([
 			'platform/auth/deploy',
@@ -240,31 +240,31 @@ describe('readById', () => {
 	});
 
 	it('returns a section, all parts of a split one, and the parent of a merged subsection', () => {
-		expect(sourceIds(readById(db, 'platform/auth/deploy#upgrade', undefined).markdown)).toEqual([
+		expect(sourceIds(readById(db, 'platform/auth/deploy#upgrade', 'all').markdown)).toEqual([
 			'platform/auth/deploy#upgrade'
 		]);
-		expect(readById(db, 'platform/auth/deploy#large', undefined).markdown).toMatch(
+		expect(readById(db, 'platform/auth/deploy#large', 'all').markdown).toMatch(
 			/Large \(1\/2\)[\s\S]*Large \(2\/2\)/
 		);
-		const merged = readById(db, 'platform/auth/deploy#port', undefined).markdown;
+		const merged = readById(db, 'platform/auth/deploy#port', 'all').markdown;
 		expect(sourceIds(merged)).toEqual(['platform/auth/deploy#rollback']);
 		expect(merged).toContain('Small.');
 	});
 
 	it('reads pages in subdirectories', () => {
-		expect(sourceIds(readById(db, 'platform/auth/guide/start', undefined).markdown)).toEqual([
+		expect(sourceIds(readById(db, 'platform/auth/guide/start', 'all').markdown)).toEqual([
 			'platform/auth/guide/start'
 		]);
 	});
 
 	it('reports unknown and out-of-scope IDs as not found', () => {
 		for (const [id, scope] of [
-			['platform/auth/missing', undefined],
-			['platform/auth/deploy#missing', undefined],
-			['platform/auth', undefined],
+			['platform/auth/missing', 'all'],
+			['platform/auth/deploy#missing', 'all'],
+			['platform/auth', 'all'],
 			['platform/auth/deploy', ['billing']]
 		] as const) {
-			const result = readById(db, id, scope ? [...scope] : undefined);
+			const result = readById(db, id, scope === 'all' ? scope : [...scope]);
 			expect(result).toEqual({ found: false, markdown: expect.stringContaining(id) });
 		}
 	});
@@ -293,16 +293,16 @@ describe('after a slug change', () => {
 		changeProjectSlug(db, projectId, { slug: 'team', confirmation: 'legacy' });
 		changeSourceSlug(db, projectId, sourceId, { slug: 'login', confirmation: 'wiki' });
 
-		const start = readById(db, 'team/login/index', undefined);
+		const start = readById(db, 'team/login/index', 'all');
 		expect(start.markdown).toContain('### team › login › Start');
 		expect(start.markdown).toContain('[rollback](team/login/deploy#rollback)');
-		expect(queryProjects(db, { query: 'rollback' }, undefined).markdown).toContain(
+		expect(queryProjects(db, { query: 'rollback' }, 'all').markdown).toContain(
 			'Source: team/login/deploy#rollback'
 		);
-		expect(indexProject(db, 'team', undefined).markdown).toContain(
+		expect(indexProject(db, 'team', 'all').markdown).toContain(
 			'- team/login/deploy#rollback: Rollback'
 		);
-		expect(readById(db, 'legacy/wiki/index', undefined).found).toBe(false);
+		expect(readById(db, 'legacy/wiki/index', 'all').found).toBe(false);
 	});
 });
 

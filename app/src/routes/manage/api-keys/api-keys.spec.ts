@@ -49,7 +49,7 @@ describe('create', () => {
 			['projects', 'platform']
 		])) as { created: { key: string } };
 
-		expect(scopeForKey(db, result.created.key)).toEqual({ scope: undefined });
+		expect(scopeForKey(db, result.created.key)).toEqual({ scope: 'all' });
 	});
 
 	it.each([

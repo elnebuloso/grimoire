@@ -39,7 +39,7 @@ describe('scopeForKey', () => {
 	it('gives an all-projects key every project', () => {
 		const { key } = createApiKey(db, 'ci', 'all');
 
-		expect(scopeForKey(db, key)).toEqual({ scope: undefined });
+		expect(scopeForKey(db, key)).toEqual({ scope: 'all' });
 	});
 
 	it('gives a key with a selection only those projects', () => {
@@ -97,7 +97,7 @@ describe('revokeApiKey', () => {
 		revokeApiKey(db, revoked.id);
 
 		expect(scopeForKey(db, revoked.key)).toBeUndefined();
-		expect(scopeForKey(db, kept.key)).toEqual({ scope: undefined });
+		expect(scopeForKey(db, kept.key)).toEqual({ scope: 'all' });
 		expect(db.prepare('SELECT count(*) AS n FROM api_key_projects').get()).toEqual({ n: 0 });
 	});
 });

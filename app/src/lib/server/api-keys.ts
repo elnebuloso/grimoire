@@ -1,16 +1,18 @@
 import { createHash, randomBytes } from 'node:crypto';
 import type { DatabaseSync } from 'node:sqlite';
-import type { ProjectScope } from './agent/operations';
 
 // The prefix lets secret scanners recognise a leaked key.
 const KEY_PREFIX = 'grimoire_';
 const KEY_BYTES = 32;
 
+/** The projects a key may see: all of them, or a selection of project slugs. */
+export type ProjectScope = 'all' | string[];
+
 export interface ApiKey {
 	id: number;
 	name: string;
 	createdAt: string;
-	projects: 'all' | string[];
+	projects: ProjectScope;
 }
 
 // A slow hash protects passwords people choose; a random 256-bit key cannot be guessed, so
@@ -26,7 +28,7 @@ export function hashKey(key: string): string {
 export function createApiKey(
 	db: DatabaseSync,
 	name: string,
-	projects: 'all' | string[]
+	projects: ProjectScope
 ): { id: number; key: string } {
 	const key = KEY_PREFIX + randomBytes(KEY_BYTES).toString('base64url');
 	db.exec('BEGIN IMMEDIATE');
@@ -95,7 +97,7 @@ export function scopeForKey(db: DatabaseSync, key: string): { scope: ProjectScop
 		.prepare('SELECT id, all_projects FROM api_keys WHERE key_hash = ?')
 		.get(hashKey(key)) as { id: number; all_projects: number } | undefined;
 	if (!row) return undefined;
-	if (row.all_projects === 1) return { scope: undefined };
+	if (row.all_projects === 1) return { scope: 'all' };
 	const slugs = db
 		.prepare(
 			`SELECT projects.slug FROM api_key_projects

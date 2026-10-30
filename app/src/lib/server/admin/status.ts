@@ -84,7 +84,7 @@ export function previewPage(
 	file: string
 ): string | undefined {
 	if (!file.endsWith('.md')) return undefined;
-	const result = readById(db, grimoireId({ project, source, file }), undefined);
+	const result = readById(db, grimoireId({ project, source, file }), 'all');
 	return result.found ? result.markdown : undefined;
 }
 

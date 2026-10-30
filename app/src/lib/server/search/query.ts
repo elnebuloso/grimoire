@@ -2,14 +2,15 @@ import { posix } from 'node:path';
 import type { DatabaseSync } from 'node:sqlite';
 import { estimateTokens } from '../parsing/chunk';
 import { redactUrl } from '../sync/git';
+import type { ProjectScope } from '../api-keys';
 import { grimoireId, withSlugs } from '../grimoire-id';
 
 export interface SearchOptions {
 	query: string;
 	/** Slug of the project to search; all projects when undefined. */
 	project?: string;
-	/** Slugs of the projects the caller may see; all projects when undefined. */
-	allowedProjects?: string[];
+	/** The projects the caller may see. */
+	allowedProjects: ProjectScope;
 	tokens?: number;
 }
 
@@ -45,7 +46,7 @@ const MAX_HITS = 20;
  */
 export function searchSnippets(db: DatabaseSync, options: SearchOptions): string {
 	const match = toMatchExpression(options.query);
-	if (!match || options.allowedProjects?.length === 0) return '';
+	if (!match) return '';
 
 	// bm25 weighs the columns title_path, text and code. Internal docs are full of names a title
 	// carries and commands code repeats, hence 10 / 1 / 0.25. Checked with typical questions
@@ -70,7 +71,7 @@ export function searchSnippets(db: DatabaseSync, options: SearchOptions): string
 		.all({
 			match,
 			project: options.project ?? null,
-			allowed: options.allowedProjects ? JSON.stringify(options.allowedProjects) : null
+			allowed: options.allowedProjects === 'all' ? null : JSON.stringify(options.allowedProjects)
 		}) as unknown as SnippetRow[];
 
 	return packIntoBudget(rows.map(toSnippetHit), options.tokens ?? DEFAULT_TOKENS);

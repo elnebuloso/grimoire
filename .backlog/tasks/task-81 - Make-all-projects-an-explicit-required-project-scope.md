@@ -1,9 +1,11 @@
 ---
 id: TASK-81
 title: 'Make "all projects" an explicit, required project scope'
-status: To Do
-assignee: []
+status: Done
+assignee:
+  - '@claude'
 created_date: '2026-10-30 01:34'
+updated_date: '2026-10-30 01:40'
 labels:
   - agent-api
   - search
@@ -35,9 +37,30 @@ An empty array must keep meaning "nothing" (a key whose selected projects are al
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 One scope type `'all' | string[]` is used everywhere a read is scoped; `undefined` no longer means all projects
-- [ ] #2 The scope is a required field/parameter of `SearchOptions` and of the agent operations, so leaving it out is a type error
-- [ ] #3 The type is defined in or below `api-keys.ts`, not in `agent/operations.ts`
-- [ ] #4 An empty selection still sees nothing, and `previewPage` passes `'all'` explicitly
-- [ ] #5 Existing scoping tests pass; `make check` (or the project type check) passes
+- [x] #1 One scope type `'all' | string[]` is used everywhere a read is scoped; `undefined` no longer means all projects
+- [x] #2 The scope is a required field/parameter of `SearchOptions` and of the agent operations, so leaving it out is a type error
+- [x] #3 The type is defined in or below `api-keys.ts`, not in `agent/operations.ts`
+- [x] #4 An empty selection still sees nothing, and `previewPage` passes `'all'` explicitly
+- [x] #5 Existing scoping tests pass; `make check` (or the project type check) passes
 <!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. Define `ProjectScope = 'all' | string[]` in app/src/lib/server/api-keys.ts and use it for `ApiKey.projects`, `createApiKey` and `scopeForKey` (which returns 'all').
+2. Import it in agent/operations.ts, http.ts, mcp.ts and search/query.ts; `scopeParameter` and the search parameter translate 'all' to SQL NULL.
+3. Make `SearchOptions.allowedProjects` required; `previewPage` passes 'all'.
+4. Update tests; probe that omitting the scope fails the type check.
+<!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+`searchSnippets` lost its early return for an empty selection: `json_each('[]')` matches nothing, and the test "leaves out projects the caller may not see" still asserts '' for `[]`. Type-check probe (temporary file, removed): `searchSnippets(db, { query })` -> "Property 'allowedProjects' is missing", `listProjects(db, undefined)` -> "'undefined' is not assignable to 'ProjectScope'". All 461 unit tests and make lint pass.
+<!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+"All projects" is now the explicit `'all'` of one `ProjectScope = 'all' | string[]`, defined in api-keys.ts and required by the agent operations and by `SearchOptions.allowedProjects`. A caller that forgets the scope or passes `undefined` no longer type-checks instead of silently searching every project, and api-keys.ts no longer imports from the agent layer. No behaviour change; verified by the unit tests, make lint and a type-check probe.
+<!-- SECTION:FINAL_SUMMARY:END -->

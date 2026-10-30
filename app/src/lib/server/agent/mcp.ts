@@ -2,6 +2,7 @@ import type { DatabaseSync } from 'node:sqlite';
 import { McpServer, WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/server';
 import { z } from 'zod';
 import { version } from '../../../../package.json';
+import type { ProjectScope } from '../api-keys';
 import { database } from '../db';
 import { scopeForRequest, unauthorizedResponse } from './http';
 import {
@@ -10,8 +11,7 @@ import {
 	listProjects,
 	queryProjects,
 	readById,
-	type OperationResult,
-	type ProjectScope
+	type OperationResult
 } from './operations';
 
 function toolResult({ found, markdown }: OperationResult) {
