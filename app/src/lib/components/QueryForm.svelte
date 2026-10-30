@@ -12,7 +12,13 @@
 <div class="query">
 	<form method="get">
 		<FormError message={error} />
-		<TextField label={m.query_question()} name="q" type="search" value={values.question} />
+		<TextField
+			label={m.query_question()}
+			name="q"
+			type="search"
+			placeholder={m.query_placeholder()}
+			value={values.question}
+		/>
 		{#if sources.length > 0}
 			<fieldset>
 				<legend>{m.query_sources()}</legend>

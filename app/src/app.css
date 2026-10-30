@@ -227,6 +227,10 @@ select {
 		border-color var(--t),
 		background-color var(--t);
 }
+::placeholder {
+	color: var(--ink-2);
+	opacity: 1;
+}
 textarea {
 	min-height: 84px;
 	resize: vertical;

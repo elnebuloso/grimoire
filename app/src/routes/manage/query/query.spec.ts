@@ -87,7 +87,7 @@ describe('query page', () => {
 
 	it('asks for a question instead of searching for blanks', () => {
 		const result = load('?q=++&tokens=3000');
-		expect(result.error).toBe('Enter a question.');
+		expect(result.error).toBe('Enter search terms.');
 		expect(result).not.toHaveProperty('answer');
 	});
 

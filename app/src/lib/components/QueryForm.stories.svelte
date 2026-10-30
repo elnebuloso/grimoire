@@ -12,7 +12,8 @@
 	name="Not sent yet"
 	args={{ sources: ['billing-docs', 'platform-docs'], values }}
 	play={async ({ canvas }) => {
-		const question = canvas.getByRole('searchbox', { name: 'Question' });
+		const question = canvas.getByRole('searchbox', { name: 'Search terms' });
+		await expect(question).toHaveAttribute('placeholder', 'e.g. rollback deployment');
 		await userEvent.type(question, 'rollback');
 		await expect(question).toHaveValue('rollback');
 		const billing = canvas.getByRole('checkbox', { name: 'billing-docs' });
