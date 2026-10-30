@@ -1,7 +1,7 @@
 ---
 id: TASK-162
 title: Make the check-time test in sync.spec.ts pass reliably
-status: In Progress
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-30 15:48'
@@ -44,3 +44,9 @@ Not reproduced: 32 runs of `sync.spec.ts` (4 in parallel, 8 rounds, plus `make l
 Fix: the time is pinned where each check starts via `SyncLanes` (only `Date` faked), and the test expects exactly that time for a synced, an unchanged and a failed check. Mutation check: recording the time at the end of the sync instead fails the test.
 Seen once under that extra load: "fails a sync whose indexing runs out of memory" (about 8 s alone) passed its 30 s timeout; not part of this task.
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+The check-time test in `app/src/lib/server/sync/sync.spec.ts` no longer reads the wall clock: the time is pinned where each check starts via `SyncLanes` (only `Date` faked), and the test expects exactly that time for a synced, an unchanged and a failed check. The original failure was not reproduced (32 loaded runs of the file, 20 full `make test` runs), so AC #1 stays unchecked: the suspected cause, a clock adjustment between the test's own clock readings, is not proven; the 5 s timeout suspicion is ruled out (the file sets 30 s, the test takes about 0.7 s). Verified: 10 full `make test` runs in a row green (664 tests each); a mutation recording the time at the end of the sync fails the test. Accepted by the user as Done with AC #1 open.
+<!-- SECTION:FINAL_SUMMARY:END -->
