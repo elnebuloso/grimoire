@@ -58,7 +58,7 @@ export function searchSnippets(db: DatabaseSync, options: SearchOptions): string
 				snippets.content
 			FROM snippets_fts
 			JOIN snippets ON snippets.id = snippets_fts.rowid
-			JOIN pages ON pages.id = snippets.page_id
+			JOIN live_pages AS pages ON pages.id = snippets.page_id
 			JOIN sources ON sources.id = pages.source_id
 			JOIN projects ON projects.id = sources.project_id
 			WHERE snippets_fts MATCH :match

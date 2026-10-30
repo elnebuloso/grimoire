@@ -46,7 +46,7 @@ export function sourceStatus(db: DatabaseSync, sourceId: number): SourceStatus {
 		.prepare(
 			`SELECT pages.file, pages.title, count(snippets.id) AS snippets,
 				coalesce(sum(snippets.tokens), 0) AS tokens
-			FROM pages LEFT JOIN snippets ON snippets.page_id = pages.id
+			FROM live_pages AS pages LEFT JOIN snippets ON snippets.page_id = pages.id
 			WHERE pages.source_id = ?
 			GROUP BY pages.id ORDER BY pages.file`
 		)
@@ -54,7 +54,7 @@ export function sourceStatus(db: DatabaseSync, sourceId: number): SourceStatus {
 	const deadLinks = db
 		.prepare(
 			`SELECT pages.file, links.anchor, links.target
-			FROM links JOIN pages ON pages.id = links.page_id
+			FROM links JOIN live_pages AS pages ON pages.id = links.page_id
 			WHERE pages.source_id = ? AND links.dead = 1
 			ORDER BY pages.file, links.anchor, links.target`
 		)

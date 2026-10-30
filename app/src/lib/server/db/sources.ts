@@ -95,14 +95,27 @@ export function sourceForSync(db: DatabaseSync, sourceId: number): SyncSource {
 	};
 }
 
+// About 0.15 ms of write lock per snippet: a batch keeps every other writer, the server's
+// requests among them, waiting for well under 100 ms however large the source is.
+const SNIPPETS_PER_BATCH = 500;
+const PAGES_PER_DELETE = 50;
+
 /**
- * Replaces all pages, snippets and links of a source in one transaction, so readers see either
- * the old or the new index, and records the commit as successfully synced.
+ * Replaces all pages, snippets and links of a source and records the commit as successfully
+ * synced. The new index is written in short transactions under the next generation of the source
+ * and goes live at once with it, so readers see either the old or the new index; the old one is
+ * deleted afterwards, again in short transactions.
  */
-export function replaceSourceIndex(db: DatabaseSync, sourceId: number, index: SourceIndex) {
+export function replaceSourceIndex(
+	db: DatabaseSync,
+	sourceId: number,
+	index: SourceIndex,
+	{ snippetsPerBatch = SNIPPETS_PER_BATCH } = {}
+) {
 	const insertPage = db.prepare(
-		`INSERT INTO pages (source_id, file, nav_position, title, description, tags, content)
-		VALUES (?, ?, ?, ?, ?, ?, ?)`
+		`INSERT INTO pages (source_id, generation, file, nav_position, title, description, tags,
+			content)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
 	);
 	const insertSnippet = db.prepare(
 		`INSERT INTO snippets (page_id, position, anchor, aliases, title_path, content, tokens)
@@ -114,54 +127,113 @@ export function replaceSourceIndex(db: DatabaseSync, sourceId: number, index: So
 	const insertLink = db.prepare(
 		'INSERT INTO links (page_id, anchor, target, dead) VALUES (?, ?, ?, ?)'
 	);
-	// Parsed before the write lock is taken, so other connections wait as briefly as possible.
-	const searchTexts = index.pages.map(({ chunked }) =>
-		chunked.snippets.map((snippet) => splitCode(snippet.content))
-	);
+	// Parsed before any write lock is taken, so other connections wait as briefly as possible.
+	const pages = index.pages.map((page) => ({
+		...page,
+		searchTexts: page.chunked.snippets.map((snippet) => splitCode(snippet.content))
+	}));
 
+	// What an interrupted sync left behind would collide with the pages written now.
+	deleteStalePages(db, sourceId);
+	const { generation } = db
+		.prepare('SELECT index_generation + 1 AS generation FROM sources WHERE id = ?')
+		.get(sourceId) as { generation: number };
+	const pageIds = new Map<string, number>();
+
+	const snippetCount = (page: (typeof pages)[number]) => page.chunked.snippets.length;
+	for (const batch of batches(pages, snippetCount, snippetsPerBatch)) {
+		inTransaction(db, () => {
+			for (const { file, navPosition, metadata, chunked, searchTexts } of batch) {
+				const pageId = Number(
+					insertPage.run(
+						sourceId,
+						generation,
+						file,
+						navPosition ?? null,
+						chunked.title,
+						chunked.description ?? null,
+						JSON.stringify(metadata.tags),
+						metadata.markdown
+					).lastInsertRowid
+				);
+				pageIds.set(file, pageId);
+
+				chunked.snippets.forEach((snippet, position) => {
+					const snippetId = insertSnippet.run(
+						pageId,
+						position,
+						snippet.anchor ?? null,
+						JSON.stringify(snippet.aliases),
+						JSON.stringify(snippet.titlePath),
+						snippet.content,
+						snippet.tokens
+					).lastInsertRowid;
+					const { text, code } = searchTexts[position];
+					insertSearchEntry.run(snippetId, snippet.titlePath.join(' › '), text, code);
+				});
+			}
+		});
+	}
+
+	for (const batch of batches(index.links, () => 1, snippetsPerBatch)) {
+		inTransaction(db, () => {
+			for (const link of batch) {
+				const pageId = pageIds.get(link.file);
+				if (pageId === undefined) throw new Error(`link from unknown page ${link.file}`);
+				insertLink.run(pageId, link.anchor ?? null, link.target, link.dead ? 1 : 0);
+			}
+		});
+	}
+
+	db.prepare(
+		`UPDATE sources SET index_generation = ?, last_commit = ?, last_synced_at = ?, error = NULL,
+			warnings = ?
+		WHERE id = ?`
+	).run(
+		generation,
+		index.commit,
+		new Date().toISOString(),
+		JSON.stringify(index.warnings),
+		sourceId
+	);
+	deleteStalePages(db, sourceId);
+}
+
+/** Deletes the pages of a source that are not live, with their snippets and links. */
+function deleteStalePages(db: DatabaseSync, sourceId: number) {
+	const deleteSome = db.prepare(
+		`DELETE FROM pages WHERE id IN (
+			SELECT pages.id FROM pages JOIN sources ON sources.id = pages.source_id
+			WHERE pages.source_id = ? AND pages.generation != sources.index_generation
+			LIMIT ${PAGES_PER_DELETE})`
+	);
+	while (inTransaction(db, () => deleteSome.run(sourceId).changes) > 0);
+}
+
+/** Splits `items` into batches of at most `max` weight, each with at least one item. */
+function batches<T>(items: T[], weight: (item: T) => number, max: number): T[][] {
+	const result: T[][] = [];
+	let batch: T[] = [];
+	let total = 0;
+	for (const item of items) {
+		if (batch.length > 0 && total + weight(item) > max) {
+			result.push(batch);
+			batch = [];
+			total = 0;
+		}
+		batch.push(item);
+		total += weight(item);
+	}
+	if (batch.length > 0) result.push(batch);
+	return result;
+}
+
+function inTransaction<T>(db: DatabaseSync, write: () => T): T {
 	db.exec('BEGIN IMMEDIATE');
 	try {
-		db.prepare('DELETE FROM pages WHERE source_id = ?').run(sourceId);
-		const pageIds = new Map<string, number>();
-
-		for (const [pageIndex, { file, navPosition, metadata, chunked }] of index.pages.entries()) {
-			const pageId = Number(
-				insertPage.run(
-					sourceId,
-					file,
-					navPosition ?? null,
-					chunked.title,
-					chunked.description ?? null,
-					JSON.stringify(metadata.tags),
-					metadata.markdown
-				).lastInsertRowid
-			);
-			pageIds.set(file, pageId);
-
-			chunked.snippets.forEach((snippet, position) => {
-				const snippetId = insertSnippet.run(
-					pageId,
-					position,
-					snippet.anchor ?? null,
-					JSON.stringify(snippet.aliases),
-					JSON.stringify(snippet.titlePath),
-					snippet.content,
-					snippet.tokens
-				).lastInsertRowid;
-				const { text, code } = searchTexts[pageIndex][position];
-				insertSearchEntry.run(snippetId, snippet.titlePath.join(' › '), text, code);
-			});
-		}
-
-		for (const link of index.links) {
-			insertLink.run(pageIds.get(link.file)!, link.anchor ?? null, link.target, link.dead ? 1 : 0);
-		}
-
-		db.prepare(
-			`UPDATE sources SET last_commit = ?, last_synced_at = ?, error = NULL, warnings = ?
-			WHERE id = ?`
-		).run(index.commit, new Date().toISOString(), JSON.stringify(index.warnings), sourceId);
+		const result = write();
 		db.exec('COMMIT');
+		return result;
 	} catch (error) {
 		if (db.isTransaction) db.exec('ROLLBACK');
 		throw error;

@@ -56,7 +56,7 @@ export function indexProject(
 		.prepare(
 			`SELECT sources.slug AS source, pages.file, pages.title, snippets.anchor, snippets.title_path
 			FROM sources
-			LEFT JOIN pages ON pages.source_id = sources.id
+			LEFT JOIN live_pages AS pages ON pages.source_id = sources.id
 			LEFT JOIN snippets ON snippets.page_id = pages.id
 			WHERE sources.project_id = ?
 			ORDER BY sources.slug, ${PAGE_ORDER}, snippets.position`
@@ -111,7 +111,7 @@ export function llmsTxt(
 		.prepare(
 			`SELECT sources.slug AS source, pages.file, pages.title
 			FROM sources
-			LEFT JOIN pages ON pages.source_id = sources.id
+			LEFT JOIN live_pages AS pages ON pages.source_id = sources.id
 			WHERE sources.project_id = ?
 			ORDER BY sources.slug, ${PAGE_ORDER}`
 		)
@@ -173,7 +173,7 @@ export function readById(db: DatabaseSync, id: string, scope: ProjectScope): Ope
 				sources.branch, sources.path, pages.file, snippets.anchor, snippets.title_path,
 				snippets.content
 			FROM snippets
-			JOIN pages ON pages.id = snippets.page_id
+			JOIN live_pages AS pages ON pages.id = snippets.page_id
 			JOIN sources ON sources.id = pages.source_id
 			JOIN projects ON projects.id = sources.project_id
 			WHERE projects.slug = :project AND sources.slug = :source AND pages.file = :file

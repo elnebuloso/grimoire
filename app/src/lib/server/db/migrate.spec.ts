@@ -185,6 +185,25 @@ describe('migrate', () => {
 			{ target: '../out.md' }
 		]);
 	});
+
+	it('keeps the existing index of every source live when generations arrive', () => {
+		const db = new DatabaseSync(':memory:');
+		const index = shippedMigrations.findIndex(({ name }) => name === '0012-index-generations.sql');
+		migrate(db, shippedMigrations.slice(0, index));
+		db.exec(`INSERT INTO projects (id, slug) VALUES (1, 'platform');
+			INSERT INTO sources (id, project_id, slug, git_url, branch, path)
+			VALUES (1, 1, 'auth', 'https://git.example/auth.git', 'main', 'docs/');
+			INSERT INTO pages (id, source_id, file, title, content, nav_position)
+			VALUES (7, 1, 'index.md', 'Start', '', 2);
+			INSERT INTO snippets (page_id, position, title_path, content, tokens)
+			VALUES (7, 0, '["Start"]', 'Text.', 1);`);
+
+		migrate(db, shippedMigrations.slice(0, index + 1));
+		expect(rows(db, 'SELECT id, file, nav_position FROM live_pages')).toEqual([
+			{ id: 7, file: 'index.md', nav_position: 2 }
+		]);
+		expect(rows(db, 'SELECT page_id FROM snippets')).toEqual([{ page_id: 7 }]);
+	});
 });
 
 describe('openMigratedDatabase', () => {
