@@ -4,7 +4,7 @@ title: Evaluate using Tailwind CSS for the UI
 status: To Do
 assignee: []
 created_date: '2026-10-30 21:41'
-updated_date: '2026-10-30 21:41'
+updated_date: '2026-10-30 21:42'
 labels:
   - admin
 milestone: m-0
@@ -23,7 +23,7 @@ Today: no Tailwind. The design (`docs/DESIGN.md`) lives as custom properties and
 
 Questions to answer:
 - What would change for a maintainer: how tokens, both schemes, `prefers-reduced-motion` and `pointer: coarse` sizes map to Tailwind 4 (`@theme`, variants), and what happens to the scoped styles and the page primitives (`.sheet`, `.notice`, `.table-scroll`, `.muted`).
-- Cost: setup through the Svelte CLI (`npx sv@<version> add tailwindcss`, per `.claude/rules/svelte-kit.md`), build size and build time measured against today, Storybook, migration effort of the existing components and pages.
+- Cost: setup only through the Svelte CLI, never by hand (`.claude/rules/svelte-kit.md`): `npx sv@<version> add tailwindcss="plugins:none" --install npm` from `app/` after `nvm use 24.22.1`, with `sv` pinned to a release at least two weeks old (1.1.1 at the time of writing; `npm view sv time`), the add-on's only option `plugins` (typography, forms) set explicitly, and the versions it adds pinned exactly in `app/package.json`, build size and build time measured against today, Storybook, migration effort of the existing components and pages.
 - What it would unlock, e.g. icon tooling such as `@iconify/tailwind4` (TASK-186 chose `@lucide/svelte` because Tailwind is absent).
 - Recommendation: adopt fully, adopt only for new code, or stay with plain CSS, with the reasons.
 
