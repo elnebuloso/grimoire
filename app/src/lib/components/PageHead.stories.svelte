@@ -12,6 +12,26 @@
 	play={async ({ canvas }) => {
 		await expect(canvas.getByRole('heading', { level: 1 })).toHaveTextContent('API keys');
 		await expect(canvas.queryByRole('link')).toBeNull();
+		await expect(document.title).toBe('API keys – grimoire');
+	}}
+/>
+
+<Story
+	name="Title naming grimoire"
+	args={{ title: 'Log in to grimoire' }}
+	play={async () => {
+		await expect(document.title).toBe('Log in to grimoire');
+	}}
+/>
+
+<Story
+	name="Tab title of its own"
+	args={{ title: 'Source Platform docs', documentTitle: 'Preview of auth/login.md' }}
+	play={async ({ canvas }) => {
+		await expect(canvas.getByRole('heading', { level: 1 })).toHaveTextContent(
+			'Source Platform docs'
+		);
+		await expect(document.title).toBe('Preview of auth/login.md – grimoire');
 	}}
 />
 

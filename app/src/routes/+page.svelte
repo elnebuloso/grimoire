@@ -1,4 +1,5 @@
 <script lang="ts">
+	import PageHead from '#lib/components/PageHead.svelte';
 	import QueryForm from '#lib/components/QueryForm.svelte';
 	import SourceStatsTable from '#lib/components/SourceStatsTable.svelte';
 	import { m } from '#lib/paraglide/messages.js';
@@ -8,8 +9,9 @@
 </script>
 
 <div class="hero">
-	<h1>grimoire</h1>
-	<a href="https://github.com/elnebuloso/grimoire">{m.start_github_link()}</a>
+	<PageHead title="grimoire">
+		<a href="https://github.com/elnebuloso/grimoire">{m.start_github_link()}</a>
+	</PageHead>
 </div>
 
 <section class="sheet flush" aria-labelledby="sources">
@@ -46,13 +48,7 @@
 </div>
 
 <style>
-	.hero {
-		display: grid;
-		gap: var(--s2);
-		justify-items: start;
-		padding: 0 var(--s1);
-	}
-	.hero h1 {
+	.hero :global(h1) {
 		font-size: 34px;
 		letter-spacing: -0.03em;
 	}
@@ -68,7 +64,7 @@
 		}
 	}
 	@media (max-width: 40rem) {
-		.hero h1 {
+		.hero :global(h1) {
 			font-size: 28px;
 		}
 	}

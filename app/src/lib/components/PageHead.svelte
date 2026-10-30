@@ -1,19 +1,35 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
+	import { m } from '#lib/paraglide/messages.js';
 
-	/** The head of a page on the canvas: its title, a way back above it and a lead below. */
+	/**
+	 * The head of a page on the canvas: its title, a way back above it and a lead below. Every page
+	 * renders one, so it also gives the browser tab its title.
+	 */
 	let {
 		title,
+		documentTitle = title,
 		back,
 		children
 	}: {
 		title: string;
+		/** What the browser tab names, where it differs from the heading. */
+		documentTitle?: string;
 		/** A link back to where the page belongs, e.g. the list it is part of. */
 		back?: { href: string; label: string };
 		/** The lead: what the page is for, or links that belong to its subject. */
 		children?: Snippet;
 	} = $props();
 </script>
+
+<svelte:head>
+	<!-- A title that names grimoire already, such as "Log in to grimoire", stays as it is. -->
+	<title
+		>{documentTitle.includes('grimoire')
+			? documentTitle
+			: m.document_title({ page: documentTitle })}</title
+	>
+</svelte:head>
 
 <div>
 	<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- the caller resolves it -->

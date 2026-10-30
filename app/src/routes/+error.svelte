@@ -1,21 +1,17 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
+	import PageHead from '#lib/components/PageHead.svelte';
+	import { errorTitles } from './error-titles';
 	import { m } from '#lib/paraglide/messages.js';
 
-	// The message of an unexpected error is not shown: it can name internals.
-	const title = $derived(
-		page.status === 404
-			? m.error_not_found()
-			: page.status === 403
-				? m.error_forbidden()
-				: m.error_unexpected()
-	);
+	const { heading, documentTitle } = $derived(errorTitles(page.status));
 </script>
 
-<section class="sheet" aria-labelledby="error-title">
-	<h1 id="error-title">{title}</h1>
-	<p><a href={resolve('/')}>{m.error_start_page()}</a></p>
+<section class="sheet">
+	<PageHead title={heading} {documentTitle}>
+		<p><a href={resolve('/')}>{m.error_start_page()}</a></p>
+	</PageHead>
 </section>
 
 <style>

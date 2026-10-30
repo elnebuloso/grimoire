@@ -40,6 +40,7 @@
 
 <PageHead
 	title={data.source ? m.source_title({ name: data.source.name }) : m.source_new()}
+	documentTitle={data.preview ? m.source_preview_title({ file: data.preview.file }) : undefined}
 	back={{ href: resolve('/manage'), label: m.all_sources_link() }}
 >
 	{#if data.source?.docsUrl}

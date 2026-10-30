@@ -223,6 +223,44 @@ test('leads through the management area with one navigation that marks the curre
 	await expect(page).toHaveURL('/manage/api-keys');
 });
 
+/** Opens a page and checks that the server already names it and keeps it out of search indexes. */
+async function expectTitle(page: Page, path: string, title: string) {
+	const response = await page.goto(path);
+	expect(await response!.text()).toContain(`<title>${title}</title>`);
+	await expect(page).toHaveTitle(title);
+	await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', 'noindex, nofollow');
+}
+
+test('names every page in its browser tab and keeps it out of search indexes', async ({ page }) => {
+	await expectTitle(page, '/', 'grimoire');
+	await expectTitle(page, '/login', 'Log in to grimoire');
+	await expectTitle(page, '/login/forgot', 'Reset your password – grimoire');
+	await expectTitle(page, '/login/reset/no-such-token', 'Set a new password – grimoire');
+	await expectTitle(page, '/no/such/page', 'Page not found – grimoire');
+
+	await logIn(page);
+	await expectTitle(page, '/manage', 'Manage grimoire');
+	await expectTitle(page, '/manage/sources/new', 'New source – grimoire');
+	await expectTitle(page, '/manage/sources/999999', 'Page not found – grimoire');
+	await expectTitle(page, '/manage/settings', 'Settings – grimoire');
+	await expectTitle(page, '/manage/api-keys', 'API keys – grimoire');
+	await expectTitle(page, '/manage/dead-links', 'Dead links – grimoire');
+	await expectTitle(page, '/manage/missed-queries', 'Queries without results – grimoire');
+	await expectTitle(page, '/manage/query', 'Try a query – grimoire');
+	await expectTitle(page, '/account', 'Change the password – grimoire');
+
+	await page.goto('/manage');
+	await page.getByRole('link', { name: 'Auth Service', exact: true }).click();
+	await expect(page).toHaveTitle('Source Auth Service – grimoire');
+});
+
+test('marks pages, error pages and agent routes as not to be indexed', async ({ request }) => {
+	for (const path of ['/', '/no/such/page', '/sources', '/instructions']) {
+		const response = await request.get(path);
+		expect(response.headers()['x-robots-tag'], path).toBe('noindex, nofollow');
+	}
+});
+
 test('creates an API key that works for its source until it is revoked', async ({
 	page,
 	request

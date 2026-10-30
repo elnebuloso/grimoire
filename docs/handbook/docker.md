@@ -143,6 +143,11 @@ failed logins and password reset requests.
 Outside `localhost`, serve grimoire over `https`. Plain `http` works only on `localhost`, behind a
 proxy that sends the protocol header.
 
+grimoire keeps itself out of search engines: `/robots.txt` disallows all crawling, and pages and
+agent routes answer with `X-Robots-Tag: noindex, nofollow`. Let both through the proxy unchanged;
+a proxy that serves its own `robots.txt` or drops the header lets a crawler that reaches grimoire
+index the documentation it serves.
+
 ### Every form fails with `Cross-site POST form submissions are forbidden`
 
 grimoire compares the origin of every form with its own, built from the protocol and the host of

@@ -39,6 +39,13 @@ export const handleError: HandleServerError = ({ error, event, kind }) => {
 	log.error({ err: error }, `${event.request.method} ${event.url.pathname} failed`);
 };
 
+// grimoire is an internal tool: nothing it serves belongs in a search index, neither the pages nor
+// the documentation the agent routes serve as text. The header also reaches what is not HTML.
+export const handleRobots: Handle = ({ event, resolve }) => {
+	event.setHeaders({ 'X-Robots-Tag': 'noindex, nofollow' });
+	return resolve(event);
+};
+
 // Decides on the route the router matched, not on `event.url.pathname`: the router decodes the
 // path, so `/m%61nage` runs the `/manage` page while its raw pathname matches no guarded prefix.
 // A path without a route has nothing to guard and ends in a 404.
@@ -72,4 +79,4 @@ const handleTheme: Handle = ({ event, resolve }) =>
 			html.replace('%grimoire.theme%', themeAttribute(event.cookies.get(THEME_COOKIE)))
 	});
 
-export const handle = sequence(handleAccess, handleLanguage, handleTheme);
+export const handle = sequence(handleRobots, handleAccess, handleLanguage, handleTheme);

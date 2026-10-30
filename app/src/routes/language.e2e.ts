@@ -51,6 +51,7 @@ test('answers an unknown path with a not-found page in the language of the brows
 	const response = await page.goto('/no/such/page');
 	expect(response?.status()).toBe(404);
 	await expect(page.getByRole('heading', { name: 'Diese Seite gibt es nicht.' })).toBeVisible();
+	await expect(page).toHaveTitle('Seite nicht gefunden – grimoire');
 
 	await page.getByRole('link', { name: 'Zur Startseite' }).click();
 	await expect(page).toHaveURL('/');

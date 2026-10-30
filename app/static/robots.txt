@@ -1,3 +1,3 @@
-# allow crawling everything by default
+# grimoire is an internal tool: keep crawlers out of all of it
 User-agent: *
-Disallow:
+Disallow: /
