@@ -62,7 +62,7 @@ Create a source with **New source** on `Manage > Overview`.
     The start page `/` shows every source's name, slug and short description without a login,
     with whether it is public or private, its counts of pages, snippets, tokens and dead links, its
     last sync and whether it has a sync error. It shows neither Git URLs nor error texts. For
-    public sources it links the **Documentation URL** and offers **Try a query** to everyone,
+    public sources it links the **Documentation site** and offers **Try a query** to everyone,
     searching the public sources only.
 
 To serve two paths of one repository, add it twice, as two sources, and name each for what it
@@ -73,7 +73,7 @@ holds, such as `Billing API` and `Billing runbooks`.
 | **Name** | At most 80 characters. Creating derives the slug from it: lowercase letters, digits and single hyphens, umlauts spelled out (`Prüfung & Abnahme` → `pruefung-abnahme`), at most 40 characters. Renaming keeps the slug. A slug is unique on the instance. |
 | **Short description** | Optional. Agents see it in `sources` and use it to choose where to search: name what the documentation covers, such as `Login, sessions and tokens of the auth service`. |
 | **Git URL (HTTPS)** | `https://` only. Username and token go in their own fields, never in the URL. |
-| **Documentation URL** | Optional. Linked on the source page, and for a public source on the start page; agents do not see it. |
+| **Documentation site** | Optional. Linked on the source page, and for a public source on the start page; agents do not see it. |
 | **Path in the repository** | Relative to the repository root, such as `docs/`; empty for the whole repository; no `..`. |
 | **Exclusions** | Glob patterns relative to the repository root, one per line, such as `docs/drafts/**`. |
 | **Schedule** | Cron with five fields in the instance's time zone, such as `0 6 * * 1-5` for weekdays at 6:00; empty uses the global schedule the label shows. A schedule that never runs, such as `0 0 30 2 *`, is rejected. |

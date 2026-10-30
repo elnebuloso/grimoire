@@ -174,7 +174,7 @@ test('links the documentation of a source only once its URL is set', async ({ pa
 	await page.getByRole('link', { name: 'Auth Service', exact: true }).click();
 	await expect(page.getByRole('link', { name: 'Documentation' })).toHaveCount(0);
 
-	await page.getByLabel('Documentation URL').fill(docsUrl);
+	await page.getByLabel('Documentation site').fill(docsUrl);
 	await page.getByRole('button', { name: 'Save' }).click();
 
 	await expect(page.getByRole('link', { name: 'Documentation' })).toHaveAttribute('href', docsUrl);
