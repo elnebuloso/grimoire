@@ -1,10 +1,11 @@
 ---
 id: TASK-197
 title: 'Admin overview: list problems, not sources, under "Needs attention"'
-status: To Do
+status: In Progress
 assignee:
   - '@claude'
 created_date: '2026-10-30 23:50'
+updated_date: '2026-10-30 23:51'
 labels:
   - admin
   - impeccable
@@ -18,6 +19,8 @@ ordinal: 259000
 
 <!-- SECTION:DESCRIPTION:BEGIN -->
 The Impeccable critique of `/manage` (snapshot in `.impeccable/critique/`, 23/40) found that "Needs attention" hides problems an admin comes for. A source that is paused on purpose looks exactly like a stuck one ("never synced"), and once it has synced the overview no longer shows that polling is off. Dead links are a problem class with no entry in the list: they appear only as a ledger figure whose link is named just "6" and as unlinked counts in the table. The list is ordered by slug, so errors do not rise above warnings once there are many sources. `docs/PRODUCT.md` asks that problems surface on their own; the user chose to turn the list into a list of problems.
+
+Carried out by running `/impeccable harden /manage` (Impeccable skill), as the Action Summary of the critique recommends; the command's playbook governs the design work, this task's acceptance criteria decide when it is done.
 <!-- SECTION:DESCRIPTION:END -->
 
 ## Acceptance Criteria

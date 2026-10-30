@@ -5,6 +5,7 @@ status: To Do
 assignee:
   - '@claude'
 created_date: '2026-10-30 23:50'
+updated_date: '2026-10-30 23:51'
 labels:
   - admin
   - impeccable
@@ -19,6 +20,8 @@ ordinal: 261000
 
 <!-- SECTION:DESCRIPTION:BEGIN -->
 The Impeccable critique of `/manage` found that the "Overview" totals ledger comes first in the source order of `app/src/routes/manage/+page.svelte`. At phone width and for screen readers "Needs attention" therefore comes second, starting at the fold below the header and the wrapped management nav; at desktop width a short attention sheet beside the tall ledger leaves an empty area. Admins come for the problems, not the totals.
+
+Carried out by running `/impeccable layout /manage` (Impeccable skill), as the Action Summary of the critique recommends; the command's playbook governs the design work, this task's acceptance criteria decide when it is done.
 <!-- SECTION:DESCRIPTION:END -->
 
 ## Acceptance Criteria
