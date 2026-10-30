@@ -16,11 +16,13 @@ mail-catcher: ## Receive the mails of make dev at http://localhost:8025, SMTP on
 build: ## Build the production server into app/build
 	npm --prefix app run build
 
-test: ## Run the unit tests and the component stories once
-	cd app && npx playwright install chromium && npm test
+# TEST and E2E narrow a run, e.g. TEST=--changed, TEST=src/routes/access.spec.ts,
+# E2E=src/routes/theme.e2e.ts; see .claude/rules/testing-strategy.md.
+test: ## Run the unit tests and the component stories once (TEST=… narrows the run)
+	cd app && npx playwright install chromium && npm test -- $(TEST)
 
-e2e: ## Run the browser tests against the production build with a fresh database
-	cd app && npx playwright install chromium && npm run test:e2e
+e2e: ## Run the browser tests against the production build with a fresh database (E2E=… narrows the run)
+	cd app && npx playwright install chromium && npm run test:e2e -- $(E2E)
 
 storybook: ## Show the component catalog at http://localhost:6006
 	npm --prefix app run storybook
