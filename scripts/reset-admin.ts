@@ -11,7 +11,9 @@ import { resetAdmin } from '../app/src/lib/server/admin/auth.ts';
 const path = process.env.DATABASE_PATH;
 if (!path || !existsSync(path)) throw new Error(`no database at "${path}"`);
 if (!process.stdin.isTTY) {
-	console.error('Run this in a terminal: it asks for the admin email address to confirm the reset.');
+	console.error(
+		'Run this in a terminal: it asks for the admin email address to confirm the reset.'
+	);
 	process.exit(1);
 }
 

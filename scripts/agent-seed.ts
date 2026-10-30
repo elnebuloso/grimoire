@@ -63,10 +63,16 @@ try {
 	const insertProject = db.prepare(
 		'INSERT INTO projects (slug, name, description) VALUES (?, ?, ?)'
 	);
-	const platform = insertProject.run('platform', 'Platform', 'Platform team handbook')
-		.lastInsertRowid;
-	const billing = insertProject.run('billing', 'Billing', 'Billing team documentation')
-		.lastInsertRowid;
+	const platform = insertProject.run(
+		'platform',
+		'Platform',
+		'Platform team handbook'
+	).lastInsertRowid;
+	const billing = insertProject.run(
+		'billing',
+		'Billing',
+		'Billing team documentation'
+	).lastInsertRowid;
 
 	const insertSource = db.prepare(
 		`INSERT INTO sources (project_id, slug, name, git_url, branch, path, paused)

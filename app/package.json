@@ -16,8 +16,9 @@
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"test:unit": "vitest",
 		"test": "npm run test:unit -- --run",
-		"lint": "prettier --check . && eslint .",
-		"format": "prettier --write .",
+		"lint": "prettier --check . && eslint . && npm run lint:scripts",
+		"lint:scripts": "prettier --config prettier.config.js --check ../scripts && cd .. && eslint --config app/eslint.config.js scripts",
+		"format": "prettier --write . && prettier --config prettier.config.js --write ../scripts",
 		"test:e2e": "playwright test",
 		"storybook": "storybook dev -p 6006",
 		"build-storybook": "storybook build"
