@@ -4,7 +4,7 @@ title: Add a footer with icon links and slim down the header and start page
 status: To Do
 assignee: []
 created_date: '2026-10-30 21:34'
-updated_date: '2026-10-30 21:38'
+updated_date: '2026-10-30 21:39'
 labels:
   - admin
 milestone: m-0
@@ -23,7 +23,7 @@ Requested by the user:
 - The "Manage" link in the header looks like the "Log out" button (raised control), while staying a link.
 
 Decided with the user:
-- Icons are allowed. `docs/design.md` drops "There are no pills, icons or emoji" and "icons or emoji" under "Not part of this design", and says how icons look (size, `currentColor` from the existing tokens, hover, both schemes); the word still carries the meaning of a status.
+- Icons are allowed. `docs/DESIGN.md` drops "There are no pills, icons or emoji" and "icons or emoji" under "Not part of this design", and says how icons look (size, `currentColor` from the existing tokens, hover, both schemes); the word still carries the meaning of a status.
 - Icon library: `@lucide/svelte`, one import per icon (`import BookOpen from '@lucide/svelte/icons/book-open'`), pinned to an exact version at least two weeks old (`npm view @lucide/svelte time`). Not `@iconify/tailwind4` or `@unocss/preset-icons`: grimoire uses neither Tailwind nor UnoCSS.
 - Lucide has no brand icons, so no GitHub logo: the GitHub link uses the official GitHub mark ("mark-github") as one inline SVG with `currentColor`, matching the Lucide icons in size.
 
@@ -42,5 +42,5 @@ Points to settle while doing it:
 - [ ] #4 axe passes on the start page, a management page and the error page in light and dark, and nothing overflows at 390 px
 - [ ] #5 Unused messages are removed from every message file
 - [ ] #6 `make lint`, `make test` and `make e2e` pass
-- [ ] #7 `docs/design.md` allows icons and says how they look in light and dark; `@lucide/svelte` is pinned to an exact version at least two weeks old and only imported per icon
+- [ ] #7 `docs/DESIGN.md` allows icons and says how they look in light and dark; `@lucide/svelte` is pinned to an exact version at least two weeks old and only imported per icon
 <!-- AC:END -->
