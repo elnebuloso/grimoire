@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { execFileSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -10,6 +10,14 @@ import { encryptToken } from '../token-encryption';
 import { createSyncQueue, type SyncLanes } from './queue';
 import { isDue } from './schedule';
 import { syncSource } from './sync';
+
+// Include resolution belongs in the worker thread, which loads its own copy from disk; on the
+// server thread, which these mocks replace, a docs branch could exhaust the server's memory.
+vi.mock('../parsing/include', () => ({
+	resolveIncludes: () => {
+		throw new Error('includes resolved on the server thread');
+	}
+}));
 
 const key = Buffer.alloc(32, 7);
 const filler = 'Some words to keep this section above the merge threshold. '.repeat(6);

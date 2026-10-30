@@ -11,17 +11,8 @@ import {
 	sourceForSync
 } from '../db/sources';
 import { decryptToken } from '../token-encryption';
-import {
-	addSparseDirectories,
-	headCommit,
-	redact,
-	remoteCommit,
-	sparseClone,
-	type GitRemote
-} from './git';
-import { prepareCheckout } from './index-source';
+import { headCommit, redact, remoteCommit, sparseClone, type GitRemote } from './git';
 import type { IndexJob } from './index-worker';
-import { fetchInclude } from './url-include';
 import type { SyncLanes } from './queue';
 
 const IMMEDIATELY: SyncLanes = { check: (work) => work(), sync: (work) => work() };
@@ -100,14 +91,11 @@ async function checkAndSync(
 			try {
 				await sparseClone(remote, source.branch, source.path, checkout);
 				const commit = await headCommit(checkout);
-				const prepared = await prepareCheckout(
-					checkout,
-					source,
-					(directories) => addSparseDirectories(remote, checkout, directories),
-					(url) => fetchInclude(url, options.allowedIncludeOrigins ?? [])
-				);
 				const indexed = await indexInWorker({
-					...prepared,
+					checkout,
+					source: { path: source.path, exclusions: source.exclusions },
+					remote,
+					allowedIncludeOrigins: options.allowedIncludeOrigins ?? [],
 					databasePath: databasePath(db),
 					sourceId,
 					commit
@@ -127,8 +115,10 @@ async function checkAndSync(
 }
 
 /**
- * Turns the pages into snippets and writes them, in a worker thread: on a large source that is
- * a minute of Markdown processing, which on the server's thread would hold up every request.
+ * Reads the checkout, resolves includes, turns the pages into snippets and writes them, in a
+ * worker thread: on a large source that is a minute of Markdown processing, which on the server's
+ * thread would hold up every request, and a docs branch that exhausts memory there would end the
+ * server instead of the sync.
  */
 function indexInWorker(job: IndexJob): Promise<{ pages: number; warnings: string[] }> {
 	// The worker runs from source; `#lib` points at it from the dev server, tests and the build.

@@ -1,14 +1,14 @@
 import { readdirSync, readFileSync, realpathSync } from 'node:fs';
 import { isAbsolute, join, matchesGlob, posix, relative } from 'node:path';
-import { resolveIncludes, type IncludeResult, type UrlContent } from '../parsing/include';
-import { hasGrimoireId } from '../grimoire-id';
+import { resolveIncludes, type IncludeResult, type UrlContent } from '../parsing/include.ts';
+import { hasGrimoireId } from '../grimoire-id.ts';
 import {
 	extensionSettings,
 	findSiteConfig,
 	navOrder,
 	type SiteConfig
-} from '../parsing/site-config';
-import type { PreparedSource } from './index-pages';
+} from '../parsing/site-config.ts';
+import type { PreparedSource } from './index-pages.ts';
 
 export interface IndexedSource {
 	/** Path of the source in the repository, e.g. `docs/`. */
