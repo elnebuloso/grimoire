@@ -41,6 +41,6 @@
 	name="Changed"
 	args={{ current: 'platform-team', effects, changed: true }}
 	play={async ({ canvas }) => {
-		await expect(canvas.getByRole('status')).toHaveTextContent('Slug changed.');
+		await expect(canvas.getByRole('status')).toHaveTextContent('Slug changed. The new IDs apply at once.');
 	}}
 />
