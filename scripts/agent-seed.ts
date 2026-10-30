@@ -80,7 +80,15 @@ try {
 		1
 	);
 	// The path does not exist in the repository, so every sync fails.
-	insertSource.run('billing-archive', 'Billing archive', '', FIXTURE_REPOSITORY, 'archive/docs', 0, 0);
+	insertSource.run(
+		'billing-archive',
+		'Billing archive',
+		'',
+		FIXTURE_REPOSITORY,
+		'archive/docs',
+		0,
+		0
+	);
 	// Paused before its first check: polling never syncs it, only "sync now" does.
 	insertSource.run('platform-next', 'Platform next', '', FIXTURE_REPOSITORY, 'zensical/docs', 1, 0);
 	db.exec('COMMIT');
