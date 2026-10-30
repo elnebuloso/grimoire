@@ -2,6 +2,7 @@
 	import '../app.css';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
+	import SegmentedSwitch from '#lib/components/SegmentedSwitch.svelte';
 	import favicon from '#lib/assets/favicon.svg';
 	import { m } from '#lib/paraglide/messages.js';
 	import { getLocale, locales } from '#lib/paraglide/runtime.js';
@@ -39,15 +40,30 @@
 			<a href={resolve('/login')} data-sveltekit-reload>{m.header_log_in()}</a>
 		{/if}
 	</div>
-	<form class="track" method="post" action="/language" aria-labelledby="language-label">
-		<span id="language-label">{m.header_language()}</span>
-		<input type="hidden" name="redirectTo" value={page.url.pathname + page.url.search} />
-		{#each locales as locale (locale)}
-			<button name="locale" value={locale} lang={locale} aria-pressed={locale === getLocale()}
-				>{languageName(locale)}</button
-			>
-		{/each}
-	</form>
+	<div class="switches">
+		<SegmentedSwitch
+			label={m.header_language()}
+			action="/language"
+			name="locale"
+			options={locales.map((locale) => ({
+				value: locale,
+				label: languageName(locale) ?? locale,
+				lang: locale
+			}))}
+			current={getLocale()}
+		/>
+		<SegmentedSwitch
+			label={m.header_theme()}
+			action="/theme"
+			name="theme"
+			options={[
+				{ value: 'system', label: m.theme_system() },
+				{ value: 'light', label: m.theme_light() },
+				{ value: 'dark', label: m.theme_dark() }
+			]}
+			current={data.theme}
+		/>
+	</div>
 </header>
 
 <main class:narrow>
@@ -90,41 +106,10 @@
 		min-height: 34px;
 	}
 
-	/* The segmented track: a recessed groove, the chosen option raised out of it. */
-	.track {
-		display: inline-flex;
-		align-items: center;
-		gap: 2px;
-		padding: 3px;
-		background: var(--well);
-		border-radius: 10px;
-		box-shadow: var(--sink);
-	}
-	.track span {
-		padding-inline: var(--s1) var(--s2);
-		color: var(--ink-2);
-		font-size: 12px;
-		font-weight: 500;
-	}
-	.track button {
-		min-height: 32px;
-		padding: 0 var(--s3);
-		color: var(--ink-2);
-		background: transparent;
-		border: 0;
-		border-radius: 7px;
-		box-shadow: none;
-		font-size: 13px;
-		font-weight: 400;
-	}
-	.track button:hover {
-		color: var(--ink);
-	}
-	.track button[aria-pressed='true'] {
-		color: var(--ink);
-		background: var(--raised);
-		box-shadow: var(--lift-raised);
-		font-weight: 500;
+	.switches {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--s3);
 	}
 
 	main {
@@ -153,8 +138,7 @@
 		}
 	}
 	@media (pointer: coarse) {
-		.session button,
-		.track button {
+		.session button {
 			min-height: 44px;
 		}
 	}

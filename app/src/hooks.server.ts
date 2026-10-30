@@ -12,6 +12,7 @@ import { startSyncPolling } from '#lib/server/sync/index.js';
 import { mailer } from '#lib/server/mail/index.js';
 import { accessRedirect } from '#lib/server/admin/access.js';
 import { checkAdminAccount, SESSION_COOKIE } from '#lib/server/admin/auth.js';
+import { THEME_COOKIE, themeAttribute } from '#lib/theme.js';
 import { getTextDirection } from '#lib/paraglide/runtime.js';
 import { paraglideMiddleware } from '#lib/paraglide/server.js';
 
@@ -64,4 +65,11 @@ const handleLanguage: Handle = ({ event, resolve }) =>
 		)
 	);
 
-export const handle = sequence(handleAccess, handleLanguage);
+// Renders the picked scheme into the page itself, so it paints in it from the start, script or not.
+const handleTheme: Handle = ({ event, resolve }) =>
+	resolve(event, {
+		transformPageChunk: ({ html }) =>
+			html.replace('%grimoire.theme%', themeAttribute(event.cookies.get(THEME_COOKIE)))
+	});
+
+export const handle = sequence(handleAccess, handleLanguage, handleTheme);
