@@ -4,6 +4,7 @@ title: 'Publish the handbook with the release, not on every push to main'
 status: To Do
 assignee: []
 created_date: '2026-10-30 16:13'
+updated_date: '2026-10-30 16:16'
 labels:
   - ops
 milestone: m-0
@@ -16,7 +17,7 @@ ordinal: 231000
 ## Description
 
 <!-- SECTION:DESCRIPTION:BEGIN -->
-`.github/workflows/handbook.yml` deploys the handbook on every push to `main` that touches `docs/handbook/`, independent of the `check` job in `ci.yml` and of releases, which only happen after the checks pass and with a `feat` or `fix` commit since the last tag. An interface change such as renaming every agent route publishes documentation the moment it reaches `main`, while the released `elnebuloso/grimoire:<version>` image the handbook tells operators to run still serves the old routes; with failing checks that state lasts until they are fixed. Agent developers copy routes that 404.
+`.github/workflows/handbook.yml` deploys the handbook on every push to `main` that touches `docs/handbook/`, independent of the `check` job in `ci.yml` and of releases, which only happen after the checks pass and with a `feat` or `fix` commit since the last tag. An interface change such as renaming every agent route publishes documentation the moment it reaches `main`, while the released `elnebuloso/grimoire:<version>` image the handbook tells operators to run still serves the old routes; with failing checks that state lasts until they are fixed. Agent developers copy routes that 404. The user decided: the handbook goes live only after a release; docs-only fixes wait for the next release or are deployed by hand.
 <!-- SECTION:DESCRIPTION:END -->
 
 ## Acceptance Criteria
