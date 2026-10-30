@@ -136,7 +136,7 @@ export function replaceSourceIndex(
 	}));
 
 	// What an interrupted sync left behind would collide with the pages written now.
-	deleteStalePages(db, sourceId);
+	deleteStalePages(db, sourceId, snippetsPerBatch);
 	const { generation } = db
 		.prepare('SELECT index_generation + 1 AS generation FROM sources WHERE id = ?')
 		.get(sourceId) as { generation: number };
@@ -200,18 +200,24 @@ export function replaceSourceIndex(
 		JSON.stringify(index.warnings),
 		sourceId
 	);
-	deleteStalePages(db, sourceId);
+	deleteStalePages(db, sourceId, snippetsPerBatch);
 }
 
 /** Deletes the pages of a source that are not live, with their snippets and links. */
-function deleteStalePages(db: DatabaseSync, sourceId: number) {
-	const deleteSome = db.prepare(
-		`DELETE FROM pages WHERE id IN (
-			SELECT pages.id FROM pages JOIN sources ON sources.id = pages.source_id
-			WHERE pages.source_id = ? AND pages.generation != sources.index_generation
-			LIMIT ${PAGES_PER_DELETE})`
+function deleteStalePages(db: DatabaseSync, sourceId: number, snippetsPerBatch: number) {
+	const stalePages = `SELECT pages.id FROM pages JOIN sources ON sources.id = pages.source_id
+		WHERE pages.source_id = ? AND pages.generation != sources.index_generation`;
+	// Snippets first and batched like the inserts: each takes its search entry along, and a single
+	// page can have a thousand of them.
+	const deleteSnippets = db.prepare(
+		`DELETE FROM snippets WHERE id IN (
+			SELECT id FROM snippets WHERE page_id IN (${stalePages}) LIMIT ?)`
 	);
-	while (inTransaction(db, () => deleteSome.run(sourceId).changes) > 0);
+	while (inTransaction(db, () => deleteSnippets.run(sourceId, snippetsPerBatch).changes) > 0);
+	const deletePages = db.prepare(
+		`DELETE FROM pages WHERE id IN (${stalePages} LIMIT ${PAGES_PER_DELETE})`
+	);
+	while (inTransaction(db, () => deletePages.run(sourceId).changes) > 0);
 }
 
 /** Splits `items` into batches of at most `max` weight, each with at least one item. */

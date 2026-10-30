@@ -63,6 +63,36 @@ describe('replaceSourceIndex', () => {
 		expect(db.prepare('SELECT last_commit FROM sources').get()).toEqual({ last_commit: 'new' });
 	});
 
+	it('deletes the old index in transactions of at most one batch of snippets', () => {
+		const sections = (page: string) =>
+			Array.from({ length: 5 }, (_, i) => `## ${page} ${i}\n\n${'word '.repeat(60)}`).join('\n\n');
+		replaceSourceIndex(
+			db,
+			1,
+			sourceIndex('large', { 'a.md': sections('A'), 'b.md': sections('B') })
+		);
+		expect(count('snippets')).toBe(10);
+		const snippetsAtCommit: number[] = [];
+		const exec = db.exec.bind(db);
+		vi.spyOn(db, 'exec').mockImplementation((sql) => {
+			if (sql === 'COMMIT') snippetsAtCommit.push(count('snippets'));
+			exec(sql);
+		});
+
+		replaceSourceIndex(db, 1, sourceIndex('small', { 'c.md': '# C\n\nText.\n' }), {
+			snippetsPerBatch: 3
+		});
+
+		const deletedPerCommit = snippetsAtCommit
+			.map((snippets, i) => (snippetsAtCommit[i - 1] ?? 10) - snippets)
+			.filter((deleted) => deleted > 0);
+		expect(deletedPerCommit).toEqual([3, 3, 3, 1]);
+		expect(liveTitles()).toEqual(['C']);
+		expect([count('pages'), count('snippets'), count('snippets_fts'), count('links')]).toEqual([
+			1, 1, 1, 0
+		]);
+	});
+
 	it('keeps the old index live when writing stops halfway, and clears the rest on the next sync', () => {
 		const broken = sourceIndex('broken', NEW);
 		broken.links.push({ file: 'missing.md', target: 'a', dead: false });

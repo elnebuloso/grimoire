@@ -1,9 +1,11 @@
 ---
 id: TASK-136
 title: Delete old index pages in batches weighted by snippets
-status: To Do
-assignee: []
+status: Done
+assignee:
+  - '@claude'
 created_date: '2026-10-30 10:55'
+updated_date: '2026-10-30 11:12'
 labels:
   - sync
 milestone: m-0
@@ -21,7 +23,20 @@ Found in the second whole-project code review of 2026-10-30. After an index swap
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 No delete transaction of an old index removes more snippets than an insert batch writes (`SNIPPETS_PER_BATCH`), whatever the page sizes
-- [ ] #2 After a swap, no pages, snippets, FTS rows or links of the old generation remain
-- [ ] #3 A test with a few pages of many snippets each checks the old generation is fully gone and the delete ran in snippet-bounded batches
+- [x] #1 No delete transaction of an old index removes more snippets than an insert batch writes (`SNIPPETS_PER_BATCH`), whatever the page sizes
+- [x] #2 After a swap, no pages, snippets, FTS rows or links of the old generation remain
+- [x] #3 A test with a few pages of many snippets each checks the old generation is fully gone and the delete ran in snippet-bounded batches
 <!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. deleteStalePages deletes the snippets of stale pages first, at most snippetsPerBatch per transaction (the same weight as inserts), then the now empty pages with their links as before.
+2. Test: a two-page old index of 10 snippets replaced with snippetsPerBatch 3; snippet count at every COMMIT shows deletes of 3, 3, 3, 1 and nothing of the old generation left.
+<!-- SECTION:PLAN:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Old index generations are now deleted snippets first, in transactions of at most SNIPPETS_PER_BATCH (500) snippets with their FTS rows, then the empty pages and their links 50 at a time. Before, 50 pages went in one transaction whatever their size, which for pages near the include budget could hold the write lock longer than the 5 s busy timeout (an estimate from the code figure, not measured). New sources.spec test counts snippets at every COMMIT: the old code deleted 10 in one transaction, the new code 3, 3, 3, 1 with snippetsPerBatch 3, and no pages, snippets, FTS rows or links of the old generation remain. 101 db and sync specs pass.
+<!-- SECTION:FINAL_SUMMARY:END -->
