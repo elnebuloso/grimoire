@@ -1,7 +1,13 @@
 import type { DatabaseSync } from 'node:sqlite';
 import type { ProjectScope } from '../api-keys';
 import { grimoireId, type SectionLocation } from '../grimoire-id';
-import { renderSnippet, searchSnippets, toSnippetHit, type SnippetRow } from '../search/query';
+import {
+	IN_SCOPE,
+	renderSnippet,
+	scopeParameter,
+	searchSnippets,
+	selectSnippets
+} from '../search/query';
 import instructions from './instructions.md?raw';
 
 /** How agents use grimoire; the same text for HTTP and as MCP server instructions. */
@@ -15,11 +21,6 @@ export interface OperationResult {
 
 // Pages in the site's `nav` first, in its order, then the rest by file path.
 const PAGE_ORDER = 'pages.nav_position IS NULL, pages.nav_position, pages.file';
-const IN_SCOPE = '(:scope IS NULL OR projects.slug IN (SELECT value FROM json_each(:scope)))';
-
-function scopeParameter(scope: ProjectScope): string | null {
-	return scope === 'all' ? null : JSON.stringify(scope);
-}
 
 /** Lists the visible projects with their short description. */
 export function listProjects(db: DatabaseSync, scope: ProjectScope): OperationResult {
@@ -167,31 +168,20 @@ export function readById(
 ): OperationResult {
 	// An empty anchor names no section, so `?section=` and an ID ending in `#` read the page.
 	const anchor = location.anchor || null;
-	const rows = db
-		.prepare(
-			`SELECT projects.slug AS project, sources.slug AS source, sources.git_url AS gitUrl,
-				sources.branch, sources.path, pages.file, snippets.anchor, snippets.title_path,
-				snippets.part, snippets.parts, snippets.content
-			FROM snippets
-			JOIN live_pages AS pages ON pages.id = snippets.page_id
-			JOIN sources ON sources.id = pages.source_id
-			JOIN projects ON projects.id = sources.project_id
-			WHERE projects.slug = :project AND sources.slug = :source AND pages.file = :file
-				AND ${IN_SCOPE}
+	const hits = selectSnippets(
+		db,
+		{
+			where: `projects.slug = :project AND sources.slug = :source AND pages.file = :file
 				AND (:anchor IS NULL OR snippets.anchor = :anchor
-					OR :anchor IN (SELECT value FROM json_each(snippets.aliases)))
-			ORDER BY snippets.position`
-		)
-		.all({
-			project: location.project,
-			source: location.source,
-			file: location.file,
-			anchor,
-			scope: scopeParameter(scope)
-		}) as unknown as SnippetRow[];
+					OR :anchor IN (SELECT value FROM json_each(snippets.aliases)))`,
+			orderBy: 'snippets.position'
+		},
+		{ project: location.project, source: location.source, file: location.file, anchor },
+		scope
+	);
 
-	if (rows.length === 0) return idNotFound(grimoireId(location, anchor));
-	return { found: true, markdown: rows.map(toSnippetHit).map(renderSnippet).join('\n\n') };
+	if (hits.length === 0) return idNotFound(grimoireId(location, anchor));
+	return { found: true, markdown: hits.map(renderSnippet).join('\n\n') };
 }
 
 function findProject(

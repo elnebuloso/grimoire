@@ -1,5 +1,5 @@
 import { posix } from 'node:path';
-import type { DatabaseSync } from 'node:sqlite';
+import type { DatabaseSync, SQLInputValue } from 'node:sqlite';
 import { estimateTokens } from '../parsing/chunk';
 import { redactUrl } from '../sync/git';
 import type { ProjectScope } from '../api-keys';
@@ -31,10 +31,54 @@ export interface SnippetHit {
  * A database row with the columns of `SnippetHit` as stored: the title path as JSON, without
  * project and source and without the part label, links in the content without them either.
  */
-export interface SnippetRow extends Omit<SnippetHit, 'titlePath'> {
+interface SnippetRow extends Omit<SnippetHit, 'titlePath'> {
 	title_path: string;
 	part: number;
 	parts: number;
+}
+
+/** Matches the rows of `projects` in a scope, bound as `:scope` with `scopeParameter`. */
+export const IN_SCOPE =
+	'(:scope IS NULL OR projects.slug IN (SELECT value FROM json_each(:scope)))';
+
+export function scopeParameter(scope: ProjectScope): string | null {
+	return scope === 'all' ? null : JSON.stringify(scope);
+}
+
+interface SnippetQuery {
+	/** Further tables joined to `snippets`. */
+	join?: string;
+	where: string;
+	orderBy: string;
+	limit?: number;
+}
+
+/**
+ * The snippets in scope that match `query`, ready to render. Its clauses may use `snippets`,
+ * `pages`, `sources` and `projects`, and the named parameters given in `parameters`.
+ */
+export function selectSnippets(
+	db: DatabaseSync,
+	query: SnippetQuery,
+	parameters: Record<string, SQLInputValue>,
+	scope: ProjectScope
+): SnippetHit[] {
+	const rows = db
+		.prepare(
+			`SELECT projects.slug AS project, sources.slug AS source, sources.git_url AS gitUrl,
+				sources.branch, sources.path, pages.file, snippets.anchor, snippets.title_path,
+				snippets.part, snippets.parts, snippets.content
+			FROM snippets
+			${query.join ?? ''}
+			JOIN live_pages AS pages ON pages.id = snippets.page_id
+			JOIN sources ON sources.id = pages.source_id
+			JOIN projects ON projects.id = sources.project_id
+			WHERE (${query.where}) AND ${IN_SCOPE}
+			ORDER BY ${query.orderBy}
+			${query.limit === undefined ? '' : `LIMIT ${query.limit}`}`
+		)
+		.all({ ...parameters, scope: scopeParameter(scope) }) as unknown as SnippetRow[];
+	return rows.map(toSnippetHit);
 }
 
 const DEFAULT_TOKENS = 3000;
@@ -54,32 +98,22 @@ export function searchSnippets(db: DatabaseSync, options: SearchOptions): string
 	// carries and commands code repeats, hence 10 / 1 / 0.25. Checked with typical questions
 	// against a large real documentation set: equal weights rank the right section first far less
 	// often; anything from 3 to 20 for the title ranks about as well.
-	const rows = db
-		.prepare(
-			`SELECT projects.slug AS project, sources.slug AS source, sources.git_url AS gitUrl,
-				sources.branch, sources.path, pages.file, snippets.anchor, snippets.title_path,
-				snippets.part, snippets.parts, snippets.content
-			FROM snippets_fts
-			JOIN snippets ON snippets.id = snippets_fts.rowid
-			JOIN live_pages AS pages ON pages.id = snippets.page_id
-			JOIN sources ON sources.id = pages.source_id
-			JOIN projects ON projects.id = sources.project_id
-			WHERE snippets_fts MATCH :match
-				AND (:project IS NULL OR projects.slug = :project)
-				AND (:allowed IS NULL OR projects.slug IN (SELECT value FROM json_each(:allowed)))
-			ORDER BY bm25(snippets_fts, 10, 1, 0.25)
-			LIMIT ${MAX_HITS}`
-		)
-		.all({
-			match,
-			project: options.project ?? null,
-			allowed: options.allowedProjects === 'all' ? null : JSON.stringify(options.allowedProjects)
-		}) as unknown as SnippetRow[];
+	const hits = selectSnippets(
+		db,
+		{
+			join: 'JOIN snippets_fts ON snippets_fts.rowid = snippets.id',
+			where: 'snippets_fts MATCH :match AND (:project IS NULL OR projects.slug = :project)',
+			orderBy: 'bm25(snippets_fts, 10, 1, 0.25)',
+			limit: MAX_HITS
+		},
+		{ match, project: options.project ?? null },
+		options.allowedProjects
+	);
 
-	return packIntoBudget(rows.map(toSnippetHit), options.tokens ?? DEFAULT_TOKENS);
+	return packIntoBudget(hits, options.tokens ?? DEFAULT_TOKENS);
 }
 
-export function toSnippetHit({ title_path, part, parts, ...row }: SnippetRow): SnippetHit {
+function toSnippetHit({ title_path, part, parts, ...row }: SnippetRow): SnippetHit {
 	const titlePath = JSON.parse(title_path) as string[];
 	if (parts > 1) titlePath.push(`${titlePath.pop()} (${part}/${parts})`);
 	return {
