@@ -39,6 +39,9 @@ next to it.
 - **Every component comes with stories**, one per state it can be in: the usual one, empty, and
   error or validation states where it has them. Each has a `play` function that checks what the
   state shows; input, toggles and form state are checked by clicking and typing as a user would.
+- **Stories pass the accessibility check.** Every story runs axe (`@storybook/addon-a11y`); a
+  violation fails it. Fix the component; switch a rule off only for a single story, in its
+  `parameters.a11y`, with the reason next to it – never globally.
 - **Stories are tests.** They run in a headless Chromium in `make test` and in CI; a broken story
   fails the build.
 - **Storybook stays out of the product.** It is a development dependency; nothing but
