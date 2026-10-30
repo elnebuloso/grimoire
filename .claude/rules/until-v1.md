@@ -36,3 +36,9 @@ latest with `1.0.0`.
 - **Every ADR stays `Proposed`** — whatever it covers, and even when the user agrees with it
   in chat. The project owner reviews them all before `1.0.0` and is the only one who changes a
   status. Until then an ADR may be changed or deleted at any time.
+
+## Database
+
+- Before release 1.0, grimoire runs nowhere in production: change the schema directly, migrations are neither maintained nor considered.
+- Last step before 1.0: squash all migrations in `app/src/lib/server/db/migrations/` into a single `0001` and sign off the final schema.
+- From 1.0 on: migrations are forward-only and never edited (ADR 0001).
