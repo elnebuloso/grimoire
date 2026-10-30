@@ -43,3 +43,15 @@ test('keeps a language picked with the switch over the browser language', async 
 	await expect(page).toHaveURL('/');
 	await expect(page.getByRole('heading', { name: 'Projekte' })).toBeVisible();
 });
+
+test('answers an unknown path with a not-found page in the language of the browser', async ({
+	browser
+}) => {
+	const page = await pageIn(browser, 'de-DE');
+	const response = await page.goto('/no/such/page');
+	expect(response?.status()).toBe(404);
+	await expect(page.getByRole('heading', { name: 'Diese Seite gibt es nicht.' })).toBeVisible();
+
+	await page.getByRole('link', { name: 'Zur Startseite' }).click();
+	await expect(page).toHaveURL('/');
+});
