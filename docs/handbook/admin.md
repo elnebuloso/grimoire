@@ -28,6 +28,9 @@ characters.
   Try again after a moment.
 - The interface follows the browser's language, English otherwise, until you pick one with the
   language switch; the choice is kept in a cookie. Sync errors and warnings are always in English.
+- The colours follow the light or dark setting of your system until you pick **Light** or
+  **Dark** under **Theme**; the choice is kept in a cookie for 400 days in this browser.
+  **System** follows the system again.
 
 For a login that is accepted and then asked for again, or forms failing with
 `Cross-site POST form submissions are forbidden`, the operator has to fix the proxy (see
