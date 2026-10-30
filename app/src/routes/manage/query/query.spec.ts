@@ -71,6 +71,11 @@ describe('query page', () => {
 		expect(result.values).toEqual({ question: 'rollback', project: 'billing', tokens: '50' });
 	});
 
+	it('does not record a query without results: trying is not an agent asking', () => {
+		expect(load('?q=nothing+matches&tokens=3000').answer).toContain('No results');
+		expect(db.prepare('SELECT count(*) AS n FROM missed_queries').get()).toEqual({ n: 0 });
+	});
+
 	it('asks for a question instead of searching for blanks', () => {
 		const result = load('?q=++&tokens=3000');
 		expect(result.error).toBe('Enter a question.');

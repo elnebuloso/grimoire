@@ -7,6 +7,7 @@ import { preprocessPage } from '#lib/server/parsing/preprocess.js';
 import { createApiKey } from '#lib/server/api-keys.js';
 import { agentInstructions } from '#lib/server/agent/operations.js';
 import { log } from '#lib/server/log.js';
+import { listMissedQueries } from '#lib/server/missed-queries.js';
 import { GET as projects } from './projects/+server';
 import { GET as query } from './query/+server';
 import { GET as instructions } from './instructions/+server';
@@ -162,6 +163,24 @@ describe('GET /query', () => {
 		expect(small.body.length).toBeLessThan(large.body.length);
 	});
 
+	it('records a query without results for the admins, and only such a query', async () => {
+		await get(query, '/query?q=rollback');
+		await get(query, '/query?q=release+process');
+		await get(projectQuery, '/p/billing/query?q=vpn', { project: 'billing' });
+		// An unknown project is a wrong request, not missing documentation.
+		await get(projectQuery, '/p/nope/query?q=vpn', { project: 'nope' });
+
+		const recorded = listMissedQueries(db).map(({ question, project }) => ({ question, project }));
+		// Both were asked within the same millisecond, so the order between them is not fixed.
+		expect(recorded).toHaveLength(2);
+		expect(recorded).toEqual(
+			expect.arrayContaining([
+				{ question: 'release process', project: null },
+				{ question: 'vpn', project: 'billing' }
+			])
+		);
+	});
+
 	it.each(['/query', '/query?q=%20', '/query?q=x&tokens=0', '/query?q=x&tokens=many'])(
 		'rejects %s with 400',
 		async (path) => {
@@ -298,6 +317,11 @@ describe('POST /mcp', () => {
 			'Source: platform/auth/'
 		);
 		expect((await tool('query', { query: 'rollback' }, billingKey)).text).not.toContain('platform');
+		expect(listMissedQueries(db)).toEqual([]);
+		await tool('query', { query: 'release process', project: 'platform' });
+		expect(listMissedQueries(db)).toMatchObject([
+			{ question: 'release process', project: 'platform', count: 1 }
+		]);
 	});
 
 	it('reads a section by an ID with #anchor', async () => {

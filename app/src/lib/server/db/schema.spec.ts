@@ -86,6 +86,7 @@ describe('openDatabase', () => {
 			'api_key_projects',
 			'api_keys',
 			'links',
+			'missed_queries',
 			'pages',
 			'projects',
 			'sessions',

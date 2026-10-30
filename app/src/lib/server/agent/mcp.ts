@@ -8,10 +8,10 @@ import { parseGrimoireId } from '../grimoire-id';
 import { scopeForRequest, unauthorizedResponse } from './http';
 import {
 	agentInstructions,
+	agentQuery,
 	idNotFound,
 	indexProject,
 	listProjects,
-	queryProjects,
 	readById,
 	type OperationResult
 } from './operations';
@@ -47,7 +47,7 @@ export function createMcpServer(db: DatabaseSync, scope: ProjectScope): McpServe
 				tokens: z.number().int().positive().optional().describe('Default 3000')
 			})
 		},
-		(options) => toolResult(queryProjects(db, options, scope))
+		(options) => toolResult(agentQuery(db, options, scope))
 	);
 	server.registerTool(
 		'read',

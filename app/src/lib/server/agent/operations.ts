@@ -9,6 +9,7 @@ import {
 	selectSnippets,
 	type SnippetHit
 } from '../search/query';
+import { recordMissedQuery } from '../missed-queries';
 import instructions from './instructions.md?raw';
 
 /** How agents use grimoire; the same text for HTTP and as MCP server instructions. */
@@ -140,21 +141,41 @@ export interface QueryOptions {
 	tokens?: number;
 }
 
+/** The answer of `query`; `missed` when the search found nothing. */
+export interface QueryResult extends OperationResult {
+	missed: boolean;
+}
+
 /** Searches the visible projects, or one of them, and returns as many hits as fit the budget. */
 export function queryProjects(
 	db: DatabaseSync,
 	options: QueryOptions,
 	scope: ProjectScope
-): OperationResult {
+): QueryResult {
 	if (options.project !== undefined && !projectVisible(db, options.project, scope)) {
-		return projectNotFound(options.project);
+		return { ...projectNotFound(options.project), missed: false };
 	}
 	const markdown = searchSnippets(db, { ...options, allowedProjects: scope });
-	if (markdown) return { found: true, markdown };
+	if (markdown) return { found: true, markdown, missed: false };
 	return {
 		found: true,
-		markdown: `No results for "${options.query}". Try other terms, or look at a project's \`index\`.`
+		markdown: `No results for "${options.query}". Try other terms, or look at a project's \`index\`.`,
+		missed: true
 	};
+}
+
+/** `queryProjects` for an agent: a query that found nothing is recorded for the admins. */
+export function agentQuery(
+	db: DatabaseSync,
+	options: QueryOptions,
+	scope: ProjectScope,
+	now = new Date()
+): QueryResult {
+	const result = queryProjects(db, options, scope);
+	if (result.missed) {
+		recordMissedQuery(db, { question: options.query, project: options.project ?? null }, now);
+	}
+	return result;
 }
 
 /**

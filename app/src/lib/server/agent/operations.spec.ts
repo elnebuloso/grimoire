@@ -180,6 +180,7 @@ describe('queryProjects', () => {
 
 		expect(result).toEqual({
 			found: true,
+			missed: false,
 			markdown: [
 				'### billing › invoices › Invoices › Overview',
 				'Source: billing/invoices/index',
@@ -194,6 +195,7 @@ describe('queryProjects', () => {
 		const result = queryProjects(db, { query: 'kubernetes' }, 'all');
 
 		expect(result.found).toBe(true);
+		expect(result.missed).toBe(true);
 		expect(result.markdown).toContain('No results for "kubernetes"');
 	});
 
@@ -209,6 +211,7 @@ describe('queryProjects', () => {
 	it('answers an empty project name like an unknown project', () => {
 		expect(queryProjects(db, { query: 'rollback', project: '' }, 'all')).toEqual({
 			found: false,
+			missed: false,
 			markdown: expect.stringContaining('Project "" not found')
 		});
 	});

@@ -161,6 +161,17 @@ No API key is involved; every project is searched. Use it to check whether a pag
 words agents ask with, and how much of it fits the budget they send. The result has its own
 address, so a query can be shared as a link.
 
+## Queries without results
+
+**Queries without results** lists the questions agents asked with `query`, over HTTP or MCP, that
+found nothing: each question once per project, with how often and when it was last asked. Such a
+question means the documentation lacks the topic or calls it something else; full-text search
+knows no synonyms. A question opens in **Try a query**, to check it again after the docs changed.
+
+grimoire stores the question as the agent sent it, so it may contain whatever the agent put in it.
+Entries are deleted after 30 days, and beyond the newest 10,000. Queries from **Try a query** and
+requests for an unknown project are not recorded.
+
 ## Settings
 
 **Settings** in the management area hold what applies to the whole instance. They are stored in the
