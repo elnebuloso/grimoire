@@ -7,8 +7,10 @@ import { preprocessPage } from '../parsing/preprocess';
 import { indexPages } from '../sync/index-pages';
 import { changeProjectSlug, changeSourceSlug } from '../admin/projects';
 import { parseGrimoireId } from '../grimoire-id';
+import { listMissedQueries } from '../missed-queries';
 import {
 	agentInstructions,
+	agentQuery,
 	indexProject,
 	listProjects,
 	llmsTxt,
@@ -214,6 +216,19 @@ describe('queryProjects', () => {
 			missed: false,
 			markdown: expect.stringContaining('Project "" not found')
 		});
+	});
+});
+
+describe('agentQuery', () => {
+	it('cuts an over-long question before searching and recording it as missed', () => {
+		const question = 'kubernetes '.repeat(1000);
+
+		const result = agentQuery(db, { query: question }, 'all');
+
+		expect(result.missed).toBe(true);
+		const [missed] = listMissedQueries(db);
+		expect(missed.question).toHaveLength(500);
+		expect(question.startsWith(missed.question)).toBe(true);
 	});
 });
 

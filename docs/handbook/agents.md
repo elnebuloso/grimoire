@@ -8,7 +8,7 @@ an API key, sent as `Authorization: Bearer <key>`. Create keys in the management
 |---|---|
 | `projects` | The projects the key may read, with their short description. |
 | `index` | The pages and sections of one project, with their IDs. |
-| `query` | The snippets matching a search, from one project or all, within a token budget (default 3000). |
+| `query` | The snippets matching a search, from one project or all, within a token budget (default 3000). Only the first 500 characters of the search are used. |
 | `read` | A whole page, `project/source/page`, or one section, `project/source/page#anchor`. |
 
 Every snippet starts with its title path, a `Source:` line with its ID, to `read` more, and an

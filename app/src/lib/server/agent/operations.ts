@@ -164,16 +164,24 @@ export function queryProjects(
 	};
 }
 
-/** `queryProjects` for an agent: a query that found nothing is recorded for the admins. */
+// Every miss is stored, and every word becomes a search term: without a cap one key holder could
+// fill the database with request-sized questions. A real question is far shorter.
+export const MAX_QUESTION_LENGTH = 500;
+
+/**
+ * `queryProjects` for an agent: the question is cut to `MAX_QUESTION_LENGTH` characters, and a
+ * query that found nothing is recorded for the admins.
+ */
 export function agentQuery(
 	db: DatabaseSync,
 	options: QueryOptions,
 	scope: ProjectScope,
 	now = new Date()
 ): QueryResult {
-	const result = queryProjects(db, options, scope);
+	const query = options.query.slice(0, MAX_QUESTION_LENGTH);
+	const result = queryProjects(db, { ...options, query }, scope);
 	if (result.missed) {
-		recordMissedQuery(db, { question: options.query, project: options.project ?? null }, now);
+		recordMissedQuery(db, { question: query, project: options.project ?? null }, now);
 	}
 	return result;
 }
