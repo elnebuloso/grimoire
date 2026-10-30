@@ -10,7 +10,12 @@ let logged: () => string[];
 // sync; the handlers get an in-memory database instead.
 vi.mock('#lib/server/db/index.js', () => ({ database: () => db }));
 vi.mock('#lib/server/sync/index.js', () => ({ startSyncPolling: () => {} }));
-vi.mock('$app/env/private', () => ({ MIGRATE_ONLY: false, LOG_FORMAT: 'ecs', LOG_LEVEL: 'info' }));
+vi.mock('$app/env/private', () => ({
+	MIGRATE_ONLY: false,
+	LOG_FORMAT: 'ecs',
+	LOG_LEVEL: 'info',
+	TZ: 'UTC'
+}));
 
 const PASSWORD = 'correct horse battery';
 
@@ -61,9 +66,9 @@ async function load() {
 		setup: (await import('./setup/+page.server')).actions.default,
 		login: (await import('./login/+page.server')).actions.default,
 		logout: (await import('./logout/+server')).POST,
-		password: (await import('./password/+page.server')).actions.default,
-		hooks: await import('../../hooks.server'),
-		handleAdminAccess: (await import('../../hooks.server')).handleAdminAccess
+		password: (await import('./account/+page.server')).actions.default,
+		hooks: await import('../hooks.server'),
+		handleAccess: (await import('../hooks.server')).handleAccess
 	};
 }
 
@@ -81,7 +86,7 @@ async function setUpAdmin() {
 	const cookies = fakeCookies();
 	await thrown(() =>
 		admin.setup({
-			request: formRequest('/admin/setup', {
+			request: formRequest('/setup', {
 				token: setupToken(),
 				username: 'admin',
 				password: PASSWORD
@@ -101,11 +106,11 @@ beforeEach(async () => {
 const SESSION_OPTIONS = { path: '/', httpOnly: true, sameSite: 'strict' };
 
 describe('setup action', () => {
-	it('creates the account, sets the session cookie and redirects to the admin area', async () => {
+	it('creates the account, sets the session cookie and redirects to the management area', async () => {
 		const cookies = fakeCookies();
 		const result = await thrown(() =>
 			admin.setup({
-				request: formRequest('/admin/setup', {
+				request: formRequest('/setup', {
 					token: setupToken(),
 					username: 'admin',
 					password: PASSWORD
@@ -115,7 +120,7 @@ describe('setup action', () => {
 			} as never)
 		);
 
-		expect(isRedirect(result) && [result.status, result.location]).toEqual([303, '/admin']);
+		expect(isRedirect(result) && [result.status, result.location]).toEqual([303, '/manage']);
 		expect(cookies.calls).toEqual([
 			{ name: 'grimoire_session', value: expect.any(String), options: SESSION_OPTIONS }
 		]);
@@ -126,7 +131,7 @@ describe('setup action', () => {
 		setupToken();
 		const cookies = fakeCookies();
 		const result = await admin.setup({
-			request: formRequest('/admin/setup', {
+			request: formRequest('/setup', {
 				token: 'guess',
 				username: 'admin',
 				password: PASSWORD
@@ -143,6 +148,26 @@ describe('setup action', () => {
 	});
 });
 
+describe('header', () => {
+	it('links each user only to the pages they may open', async () => {
+		const adminSession = await setUpAdmin();
+		admin.auth.createUser(db, { username: 'editor', password: PASSWORD, roles: [] });
+		const login = admin.auth.login(db, 'editor-pc', { username: 'editor', password: PASSWORD });
+		if (!('session' in login)) throw new Error(login.error);
+		const { load } = await import('./+layout.server');
+		const header = (session?: string) =>
+			(
+				load({ cookies: fakeCookies(session ? { grimoire_session: session } : {}) } as never) as {
+					user: unknown;
+				}
+			).user;
+
+		expect(header(adminSession)).toEqual({ name: 'admin', mayManage: true });
+		expect(header(login.session)).toEqual({ name: 'editor', mayManage: false });
+		expect(header()).toBeUndefined();
+	});
+});
+
 describe('login action', () => {
 	beforeEach(setUpAdmin);
 
@@ -150,13 +175,13 @@ describe('login action', () => {
 		const cookies = fakeCookies();
 		const result = await thrown(() =>
 			admin.login({
-				request: formRequest('/admin/login', { username: 'admin', password: PASSWORD }),
+				request: formRequest('/login', { username: 'admin', password: PASSWORD }),
 				cookies,
 				getClientAddress: () => 'client'
 			} as never)
 		);
 
-		expect(isRedirect(result) && [result.status, result.location]).toEqual([303, '/admin']);
+		expect(isRedirect(result) && [result.status, result.location]).toEqual([303, '/manage']);
 		expect(cookies.calls).toEqual([
 			{ name: 'grimoire_session', value: expect.any(String), options: SESSION_OPTIONS }
 		]);
@@ -166,7 +191,7 @@ describe('login action', () => {
 		admin.auth.createUser(db, { username: 'editor', password: PASSWORD, roles: [] });
 		const result = await thrown(() =>
 			admin.login({
-				request: formRequest('/admin/login', { username: 'editor', password: PASSWORD }),
+				request: formRequest('/login', { username: 'editor', password: PASSWORD }),
 				cookies: fakeCookies(),
 				getClientAddress: () => 'client'
 			} as never)
@@ -178,7 +203,7 @@ describe('login action', () => {
 	it('answers wrong credentials with 400 and the username, without a cookie', async () => {
 		const cookies = fakeCookies();
 		const result = await admin.login({
-			request: formRequest('/admin/login', { username: 'admin', password: 'wrong' }),
+			request: formRequest('/login', { username: 'admin', password: 'wrong' }),
 			cookies,
 			getClientAddress: () => 'client'
 		} as never);
@@ -196,10 +221,10 @@ describe('logout', () => {
 		const session = await setUpAdmin();
 		const cookies = fakeCookies({ grimoire_session: session });
 		const result = await thrown(() =>
-			admin.logout({ request: formRequest('/admin/logout', {}), cookies } as never)
+			admin.logout({ request: formRequest('/logout', {}), cookies } as never)
 		);
 
-		expect(isRedirect(result) && [result.status, result.location]).toEqual([303, '/admin/login']);
+		expect(isRedirect(result) && [result.status, result.location]).toEqual([303, '/login']);
 		expect(admin.auth.sessionUser(db, session)).toBeUndefined();
 		expect(cookies.calls).toEqual([
 			{ name: 'grimoire_session', options: SESSION_OPTIONS, deleted: true }
@@ -211,7 +236,7 @@ describe('password action', () => {
 	it('changes the password for the session that sent it', async () => {
 		const session = await setUpAdmin();
 		const result = await admin.password({
-			request: formRequest('/admin/password', {
+			request: formRequest('/account', {
 				current: PASSWORD,
 				password: 'staple battery horse'
 			}),
@@ -230,7 +255,7 @@ describe('password action', () => {
 	it('answers a wrong current password with 400 and the message', async () => {
 		const session = await setUpAdmin();
 		const result = await admin.password({
-			request: formRequest('/admin/password', { current: 'wrong', password: 'x'.repeat(12) }),
+			request: formRequest('/account', { current: 'wrong', password: 'x'.repeat(12) }),
 			cookies: fakeCookies({ grimoire_session: session }),
 			getClientAddress: () => 'client'
 		} as never);
@@ -248,14 +273,14 @@ describe('admin access guard', () => {
 			url: new URL(`https://grimoire.example${path}`),
 			cookies: fakeCookies(session ? { grimoire_session: session } : {})
 		};
-		return { resolve, run: () => admin.handleAdminAccess({ event, resolve } as never) };
+		return { resolve, run: () => admin.handleAccess({ event, resolve } as never) };
 	}
 
 	it('sends every admin page to the setup while there is no admin', async () => {
-		const result = await thrown(request('/admin').run);
+		const result = await thrown(request('/manage').run);
 
-		expect(isRedirect(result) && [result.status, result.location]).toEqual([303, '/admin/setup']);
-		expect(await request('/admin/setup').run()).toBe(served);
+		expect(isRedirect(result) && [result.status, result.location]).toEqual([303, '/setup']);
+		expect(await request('/setup').run()).toBe(served);
 	});
 
 	it('answers 403 to a user without the role admin', async () => {
@@ -264,26 +289,26 @@ describe('admin access guard', () => {
 		const login = admin.auth.login(db, 'editor-pc', { username: 'editor', password: PASSWORD });
 		if (!('session' in login)) throw new Error(login.error);
 
-		const result = await thrown(request('/admin', login.session).run);
+		const result = await thrown(request('/manage', login.session).run);
 
 		expect(isHttpError(result) && result.status).toBe(403);
 	});
 
-	it('hides the setup once done and requires a session for the admin area', async () => {
+	it('hides the setup once done and requires a session for the management area', async () => {
 		const session = await setUpAdmin();
 
-		const setupAgain = await thrown(request('/admin/setup', session).run);
-		const withoutSession = await thrown(request('/admin').run);
-		const page = request('/admin', session);
+		const setupAgain = await thrown(request('/setup', session).run);
+		const withoutSession = await thrown(request('/manage').run);
+		const page = request('/manage', session);
 
 		expect(isHttpError(setupAgain) && setupAgain.status).toBe(404);
-		expect(isRedirect(withoutSession) && withoutSession.location).toBe('/admin/login');
+		expect(isRedirect(withoutSession) && withoutSession.location).toBe('/login');
 		expect(await page.run()).toBe(served);
 		expect(page.resolve).toHaveBeenCalledOnce();
 	});
 
-	it('leaves paths outside the admin area alone', async () => {
-		for (const path of ['/admin-tools', '/projects', '/mcp']) {
+	it('leaves paths outside the management area alone', async () => {
+		for (const path of ['/manage-tools', '/projects', '/mcp']) {
 			const outside = request(path);
 
 			expect(await outside.run()).toBe(served);
@@ -294,14 +319,14 @@ describe('admin access guard', () => {
 
 describe('handleError', () => {
 	const event = {
-		request: new Request('https://grimoire.example/admin/projects/1', { method: 'POST' }),
-		url: new URL('https://grimoire.example/admin/projects/1')
+		request: new Request('https://grimoire.example/manage/projects/1', { method: 'POST' }),
+		url: new URL('https://grimoire.example/manage/projects/1')
 	};
 
 	it('logs an unexpected error with its stack in one line', () => {
 		admin.hooks.handleError({ error: new TypeError('no route'), event, kind: 'unknown' } as never);
 
-		expect(logged()).toEqual(['POST /admin/projects/1 failed']);
+		expect(logged()).toEqual(['POST /manage/projects/1 failed']);
 	});
 
 	it('logs nothing for an expected error such as a missing page', () => {

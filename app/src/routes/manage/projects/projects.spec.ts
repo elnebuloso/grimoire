@@ -29,7 +29,7 @@ vi.mock('$app/env/private', () => ({
 const TOKEN = 'glpat-very-secret';
 
 function formRequest(fields: Record<string, string>) {
-	return new Request('https://grimoire.example/admin/projects', {
+	return new Request('https://grimoire.example/manage/projects', {
 		method: 'POST',
 		body: new URLSearchParams(fields)
 	});
@@ -63,7 +63,7 @@ async function saveSource(id: string, sourceId: string, fields: Record<string, s
 function loadSource(id: string, sourceId: string, search = '') {
 	return sourcePage.load({
 		params: { id, sourceId },
-		url: new URL(`https://grimoire.example/admin/projects/${id}/sources/${sourceId}${search}`)
+		url: new URL(`https://grimoire.example/manage/projects/${id}/sources/${sourceId}${search}`)
 	} as never);
 }
 
@@ -91,7 +91,7 @@ describe('project page', () => {
 
 		expect(isRedirect(result) && [result.status, result.location]).toEqual([
 			303,
-			'/admin/projects/1'
+			'/manage/projects/1'
 		]);
 		expect(projectPage.load({ params: { id: '1' } } as never)).toMatchObject({
 			project: { id: 1, slug: 'platform', name: 'Platform', description: 'P' },
@@ -152,7 +152,7 @@ describe('project page', () => {
 		await thrown(() => saveSource('1', 'new', SOURCE));
 		const result = await thrown(() => projectPage.actions.delete({ params: { id: '1' } } as never));
 
-		expect(isRedirect(result) && result.location).toBe('/admin');
+		expect(isRedirect(result) && result.location).toBe('/manage');
 		expect(db.prepare('SELECT count(*) AS n FROM sources').get()).toEqual({ n: 0 });
 	});
 });
@@ -167,7 +167,7 @@ describe('source page', () => {
 
 		expect(isRedirect(result) && [result.status, result.location]).toEqual([
 			303,
-			'/admin/projects/1/sources/1'
+			'/manage/projects/1/sources/1'
 		]);
 		expect(requestSync).toHaveBeenCalledExactlyOnceWith(1, { force: true });
 	});
@@ -378,7 +378,7 @@ describe('source page', () => {
 			sourcePage.actions.delete({ params: { id: '1', sourceId: '1' } } as never)
 		);
 
-		expect(isRedirect(result) && result.location).toBe('/admin/projects/1');
+		expect(isRedirect(result) && result.location).toBe('/manage/projects/1');
 		expect(db.prepare('SELECT count(*) AS n FROM sources').get()).toEqual({ n: 0 });
 	});
 });

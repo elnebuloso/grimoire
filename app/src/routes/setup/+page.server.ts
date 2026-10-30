@@ -20,6 +20,6 @@ export const actions = {
 		if (problem) return fail(400, { error: authMessage(problem), username: form.username });
 		const result = login(db, getClientAddress(), form);
 		if ('session' in result) cookies.set(SESSION_COOKIE, result.session, sessionCookieOptions);
-		redirect(303, '/admin');
+		redirect(303, '/manage');
 	}
 } satisfies Actions;

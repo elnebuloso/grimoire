@@ -129,7 +129,7 @@ export const actions = {
 				log.error({ err: error }, `sync of source ${result.id} failed`);
 			});
 		}
-		redirect(303, `/admin/projects/${project.id}/sources/${result.id}`);
+		redirect(303, `/manage/projects/${project.id}/sources/${result.id}`);
 	},
 	test: async ({ request, params }) => {
 		const { source } = pageFor(params);
@@ -162,6 +162,6 @@ export const actions = {
 	delete: ({ params }) => {
 		const { project, source } = pageFor(params);
 		if (source) deleteSource(database(), project.id, source.id);
-		redirect(303, `/admin/projects/${project.id}`);
+		redirect(303, `/manage/projects/${project.id}`);
 	}
 } satisfies Actions;

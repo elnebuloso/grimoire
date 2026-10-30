@@ -23,7 +23,7 @@ export interface SlugChangeForm {
 	confirmation: string;
 }
 
-/** A source as the admin area may show it: the access token is reduced to whether there is one. */
+/** A source as the management area may show it: the access token is reduced to whether there is one. */
 export interface SourceSettings {
 	id: number;
 	slug: string;
@@ -414,7 +414,7 @@ function checkGitUrl(gitUrl: string): string | undefined {
 }
 
 // The URL ends up in `href`: only web addresses pass, never `javascript:` or a relative path, and
-// no credentials, which the link would show to everyone in the admin area.
+// no credentials, which the link would show to everyone in the management area.
 function checkDocsUrl(docsUrl: string): string | undefined {
 	if (!docsUrl) return undefined;
 	let url: URL;

@@ -41,7 +41,7 @@ their own heading, very long ones lose their context in the second part.
 
 The ID of a snippet is `<project>/<source>/<file without .md>#<anchor>`, with the anchor built
 from the heading exactly as MkDocs and Zensical build it. Renaming a heading or moving a file
-changes the ID, and links to the old one become dead links, which the admin area lists.
+changes the ID, and links to the old one become dead links, which the management area lists.
 
 Link to other pages with relative links, as MkDocs expects them: `deploy.md#rollback`. grimoire
 turns them into IDs, so agents can follow them with `read`. A link that leaves the path of the

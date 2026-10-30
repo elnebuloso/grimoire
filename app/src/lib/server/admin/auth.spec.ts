@@ -193,15 +193,33 @@ describe('several users', () => {
 		);
 	});
 
-	it('keeps a user without the role admin out of the admin area, but lets them log out or in', () => {
+	it('keeps a user without the role admin out of the management area, but lets them log out or in', () => {
 		const editor = sessionOf(
 			auth.login(db, 'b', { username: 'editor', password: EDITOR_PASSWORD })
 		);
 
-		expect(auth.adminAccessRedirect(db, '/admin', editor)).toBe('forbidden');
-		expect(auth.adminAccessRedirect(db, '/admin/projects/1', editor)).toBe('forbidden');
-		expect(auth.adminAccessRedirect(db, '/admin/logout', editor)).toBeUndefined();
-		expect(auth.adminAccessRedirect(db, '/admin/login', editor)).toBeUndefined();
+		expect(auth.accessRedirect(db, '/manage', editor)).toBe('forbidden');
+		expect(auth.accessRedirect(db, '/manage/projects/1', editor)).toBe('forbidden');
+		expect(auth.accessRedirect(db, '/logout', editor)).toBeUndefined();
+		expect(auth.accessRedirect(db, '/login', editor)).toBeUndefined();
+		expect(auth.accessRedirect(db, '/account', editor)).toBeUndefined();
+	});
+
+	it('sends each user home to what they may open', () => {
+		const admin = auth.sessionUser(
+			db,
+			sessionOf(auth.login(db, 'a', { username: 'admin', password: PASSWORD }))
+		)!;
+		const editor = auth.sessionUser(
+			db,
+			sessionOf(auth.login(db, 'b', { username: 'editor', password: EDITOR_PASSWORD }))
+		)!;
+
+		expect([auth.homeOf(admin), auth.homeOf(editor)]).toEqual(['/manage', '/']);
+		expect([auth.mayOpen(editor, '/manage/api-keys'), auth.mayOpen(editor, '/account')]).toEqual([
+			false,
+			true
+		]);
 	});
 
 	it('offers the setup again while no user has the role admin, even with other users', () => {
@@ -209,7 +227,7 @@ describe('several users', () => {
 		expect(auth.resetAdmin(db, 'admin')).toBe(true);
 
 		expect(auth.checkAdminAccount(db)).toBe(false);
-		expect(auth.adminAccessRedirect(db, '/admin', undefined)).toBe('/admin/setup');
+		expect(auth.accessRedirect(db, '/manage', undefined)).toBe('/setup');
 		setUp('new-admin');
 		expect(auth.checkAdminAccount(db)).toBe(true);
 	});
@@ -270,23 +288,33 @@ describe('changePassword', () => {
 	});
 });
 
-describe('adminAccessRedirect', () => {
+describe('accessRedirect', () => {
 	it('sends everything to the setup while there is no admin', () => {
-		expect(auth.adminAccessRedirect(db, '/admin', undefined)).toBe('/admin/setup');
-		expect(auth.adminAccessRedirect(db, '/admin/login', undefined)).toBe('/admin/setup');
-		expect(auth.adminAccessRedirect(db, '/admin/setup', undefined)).toBeUndefined();
+		expect(auth.accessRedirect(db, '/manage', undefined)).toBe('/setup');
+		expect(auth.accessRedirect(db, '/login', undefined)).toBe('/setup');
+		expect(auth.accessRedirect(db, '/account', undefined)).toBe('/setup');
+		expect(auth.accessRedirect(db, '/setup', undefined)).toBeUndefined();
 	});
 
 	it('hides the setup once done and requires a session for everything but the login', () => {
 		setUp();
 		const session = sessionOf(auth.login(db, 'client', { username: 'admin', password: PASSWORD }));
 
-		expect(auth.adminAccessRedirect(db, '/admin/setup', session)).toBe('not-found');
-		expect(auth.adminAccessRedirect(db, '/admin', undefined)).toBe('/admin/login');
-		expect(auth.adminAccessRedirect(db, '/admin/logout', 'forged')).toBe('/admin/login');
-		expect(auth.adminAccessRedirect(db, '/admin/login', undefined)).toBeUndefined();
-		expect(auth.adminAccessRedirect(db, '/admin', session)).toBeUndefined();
-		expect(auth.adminAccessRedirect(db, '/admin/login', session)).toBe('/admin');
+		expect(auth.accessRedirect(db, '/setup', session)).toBe('not-found');
+		expect(auth.accessRedirect(db, '/manage', undefined)).toBe('/login');
+		expect(auth.accessRedirect(db, '/logout', 'forged')).toBe('/login');
+		expect(auth.accessRedirect(db, '/account', undefined)).toBe('/login');
+		expect(auth.accessRedirect(db, '/login', undefined)).toBeUndefined();
+		expect(auth.accessRedirect(db, '/manage', session)).toBeUndefined();
+		expect(auth.accessRedirect(db, '/login', session)).toBe('/manage');
+	});
+});
+
+describe('pages outside the account and management pages', () => {
+	it('are served whatever the state, even before the setup', () => {
+		for (const path of ['/', '/projects', '/p/platform/query', '/manage-tools', '/accounting']) {
+			expect(auth.accessRedirect(db, path, undefined)).toBeUndefined();
+		}
 	});
 });
 
@@ -305,7 +333,7 @@ describe('resetAdmin', () => {
 
 		expect(auth.resetAdmin(db, ' admin ')).toBe(true);
 		expect(auth.sessionUser(db, session)).toBeUndefined();
-		expect(auth.adminAccessRedirect(db, '/admin', session)).toBe('/admin/setup');
+		expect(auth.accessRedirect(db, '/manage', session)).toBe('/setup');
 		expect(logged()).toContain('Admin account was reset.');
 		expect(loggedToken()).not.toBe(firstToken?.split(' ').at(-1));
 		setUp('new-admin');

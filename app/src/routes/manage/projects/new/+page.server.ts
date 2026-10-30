@@ -143,6 +143,6 @@ export const actions = {
 				log.error({ err: error }, `sync of source ${result.sourceId} failed`);
 			});
 		}
-		redirect(303, `/admin/projects/${result.projectId}`);
+		redirect(303, `/manage/projects/${result.projectId}`);
 	}
 } satisfies Actions;

@@ -13,7 +13,7 @@
 	const values = $derived(form?.values ?? data.project);
 </script>
 
-<p><a href={resolve('/admin')}>{m.all_projects_link()}</a></p>
+<p><a href={resolve('/manage')}>{m.all_projects_link()}</a></p>
 <h1>{m.project_title({ name: data.project.name })}</h1>
 
 <form method="post" action="?/save">
@@ -37,7 +37,7 @@
 		{#each data.sources as source (source.id)}
 			<li>
 				<a
-					href={resolve('/admin/projects/[id]/sources/[sourceId]', {
+					href={resolve('/manage/projects/[id]/sources/[sourceId]', {
 						id: String(data.project.id),
 						sourceId: String(source.id)
 					})}>{source.name}</a
@@ -57,7 +57,7 @@
 {/if}
 <p>
 	<a
-		href={resolve('/admin/projects/[id]/sources/[sourceId]', {
+		href={resolve('/manage/projects/[id]/sources/[sourceId]', {
 			id: String(data.project.id),
 			sourceId: 'new'
 		})}>{m.project_new_source()}</a

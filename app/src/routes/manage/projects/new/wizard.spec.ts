@@ -36,7 +36,7 @@ const FIELDS = {
 type Action = keyof typeof wizard.actions;
 
 async function submit(action: Action, fields: Record<string, string>) {
-	const request = new Request('https://grimoire.example/admin/projects/new', {
+	const request = new Request('https://grimoire.example/manage/projects/new', {
 		method: 'POST',
 		body: new URLSearchParams(fields)
 	});
@@ -147,7 +147,7 @@ describe('project wizard', () => {
 
 		expect(isRedirect(result) && [result.status, result.location]).toEqual([
 			303,
-			'/admin/projects/1'
+			'/manage/projects/1'
 		]);
 		const source = db
 			.prepare('SELECT project_id, slug, username, encrypted_token FROM sources')

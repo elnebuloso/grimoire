@@ -4,6 +4,7 @@ import { database } from '#lib/server/db/index.js';
 import {
 	login,
 	SESSION_COOKIE,
+	homeOf,
 	sessionCookieOptions,
 	sessionUser
 } from '#lib/server/admin/auth.js';
@@ -24,8 +25,6 @@ export const actions = {
 		if ('error' in result)
 			return fail(400, { error: authMessage(result.error), username: form.username });
 		cookies.set(SESSION_COOKIE, result.session, sessionCookieOptions);
-		// The admin area would answer 403 to a user without the role; the start page shows them
-		// logged in, with the logout.
-		redirect(303, sessionUser(db, result.session)?.roles.includes('admin') ? '/admin' : '/');
+		redirect(303, homeOf(sessionUser(db, result.session)!));
 	}
 } satisfies Actions;

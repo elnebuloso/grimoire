@@ -9,7 +9,7 @@ let db: DatabaseSync;
 vi.mock('#lib/server/db/index.js', () => ({ database: () => db }));
 
 function formRequest(fields: [string, string][]) {
-	return new Request('https://grimoire.example/admin/api-keys', {
+	return new Request('https://grimoire.example/manage/api-keys', {
 		method: 'POST',
 		body: new URLSearchParams(fields)
 	});

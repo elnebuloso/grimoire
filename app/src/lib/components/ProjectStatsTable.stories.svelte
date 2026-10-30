@@ -82,13 +82,13 @@
 	play={async ({ canvas }) => {
 		await expect(canvas.getByRole('link', { name: 'platform' })).toHaveAttribute(
 			'href',
-			'/admin/projects/1'
+			'/manage/projects/1'
 		);
 	}}
 >
 	{#snippet template(args)}
 		<ProjectStatsTable {...args}>
-			{#snippet name(project)}<a href={resolve('/admin/projects/[id]', { id: String(project.id) })}
+			{#snippet name(project)}<a href={resolve('/manage/projects/[id]', { id: String(project.id) })}
 					>{project.slug}</a
 				>{/snippet}
 		</ProjectStatsTable>

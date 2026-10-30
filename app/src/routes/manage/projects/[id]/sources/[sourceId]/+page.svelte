@@ -33,7 +33,7 @@
 </script>
 
 <p>
-	<a href={resolve('/admin/projects/[id]', { id: String(data.project.id) })}
+	<a href={resolve('/manage/projects/[id]', { id: String(data.project.id) })}
 		>{m.project_title({ name: data.project.name })}</a
 	>
 </p>
@@ -43,7 +43,7 @@
 {/if}
 
 {#if data.source && data.status}
-	{@const sourcePage = resolve('/admin/projects/[id]/sources/[sourceId]', {
+	{@const sourcePage = resolve('/manage/projects/[id]/sources/[sourceId]', {
 		id: String(data.project.id),
 		sourceId: String(data.source.id)
 	})}

@@ -12,14 +12,14 @@ projects, sources and API keys exist only in this file.
 | `MIGRATE_ONLY` | With `true`, the server brings the schema up to date and exits without serving requests. |
 | `TOKEN_ENCRYPTION_KEY` | Key encrypting the Git access tokens of all sources: 32 random bytes, base64-encoded. Required; the server does not start without it, also with `MIGRATE_ONLY`. |
 | `SYNC_SCHEDULE` | When sources without their own schedule are checked for new commits: a cron expression with the five standard fields (minute, hour, day of month, month, day of week), in the time zone `TZ`. Default `*/5 * * * *`. An invalid expression stops the start. |
-| `TZ` | Time zone of the instance, an IANA name such as `Europe/Berlin`. Schedules run in it, and the admin area and the start page show every date and time in it, whatever time zone the browser is in. Default `UTC`. An unknown time zone stops the start. Stored timestamps stay UTC. |
+| `TZ` | Time zone of the instance, an IANA name such as `Europe/Berlin`. Schedules run in it, and the management area and the start page show every date and time in it, whatever time zone the browser is in. Default `UTC`. An unknown time zone stops the start. Stored timestamps stay UTC. |
 | `INCLUDE_URL_ALLOW` | Origins pages may include files from by URL (`--8<-- "https://…"` with `url_download: true`), separated by commas, e.g. `https://docs.example.com,https://raw.githubusercontent.com`; `https://` only, nothing after host and port. grimoire requests nothing else for an include and follows no redirect. Default empty: no URL includes. An invalid entry stops the start. |
 | `LOG_FORMAT` | `ecs` writes one JSON object per line in the Elastic Common Schema, for a log collector; `pretty` writes readable text, for local development. Default `ecs`. Any other value stops the start. |
 | `LOG_LEVEL` | Lowest level that is written: `error`, `warn`, `info` or `debug`. Default `info`. Any other value stops the start. |
 
 ## Sync schedule
 
-Every source is checked by its own cron expression, set in the admin area, or by `SYNC_SCHEDULE`
+Every source is checked by its own cron expression, set in the management area, or by `SYNC_SCHEDULE`
 when it has none — for example `0 * * * *` for a Git server that allows few requests, or
 `0 6 * * 1-5` for a source that changes rarely. A check only asks the Git server for the branch
 head; a source is cloned only when the branch moved.

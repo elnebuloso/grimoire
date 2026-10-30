@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { resolve } from '$app/paths';
 	import FormError from '#lib/components/FormError.svelte';
 	import TextField from '#lib/components/TextField.svelte';
 	import { m } from '#lib/paraglide/messages.js';
@@ -8,7 +7,6 @@
 	let { data, form }: PageProps = $props();
 </script>
 
-<p><a href={resolve('/admin')}>{m.all_projects_link()}</a></p>
 <h1>{m.password_title()}</h1>
 
 {#if form?.changed}

@@ -10,7 +10,7 @@ export const sessionCookieOptions = { path: '/', httpOnly: true, sameSite: 'stri
 
 export const MIN_PASSWORD_LENGTH = 12;
 
-/** What a user may do; `admin` manages everything in the admin area. */
+/** What a user may do; `admin` manages everything in the management area. */
 export const ROLES = ['admin'] as const;
 export type Role = (typeof ROLES)[number];
 
@@ -117,9 +117,7 @@ export function checkAdminAccount(db: DatabaseSync): boolean {
 	}
 	if (!setupTokenValue) {
 		setupTokenValue = randomBytes(24).toString('base64url');
-		logAlways(
-			`No admin account yet. Set it up at /admin/setup with the setup token ${setupTokenValue}`
-		);
+		logAlways(`No admin account yet. Set it up at /setup with the setup token ${setupTokenValue}`);
 	}
 	return false;
 }
@@ -249,7 +247,7 @@ export function deleteSession(db: DatabaseSync, token: string) {
 /**
  * Deletes a user with the role `admin` and their sessions, but only when `username` names one, so
  * a reset needs to know whose account it removes. Returns whether it did. Without another admin,
- * the admin area offers the setup again.
+ * the management area offers the setup again.
  */
 export function resetAdmin(db: DatabaseSync, username: string): boolean {
 	const admin = db
@@ -274,23 +272,47 @@ export function resetAdmin(db: DatabaseSync, username: string): boolean {
 	return true;
 }
 
+// The role each page needs, the first matching prefix decides; pages under no prefix need none.
+// Today the whole management area needs `admin`; a page another role may open gets its own,
+// longer prefix before that line.
+const PAGE_ROLES: [prefix: string, role: Role][] = [['/manage', 'admin']];
+
+// Pages of the accounts themselves: they guide through setup and login whatever the roles.
+const ACCOUNT_PAGES = ['/setup', '/login', '/logout', '/account'];
+
+function isUnder(pathname: string, prefix: string): boolean {
+	return pathname === prefix || pathname.startsWith(`${prefix}/`);
+}
+
+/** Whether the user has the role `pathname` needs. */
+export function mayOpen(user: SessionUser, pathname: string): boolean {
+	const role = PAGE_ROLES.find(([prefix]) => isUnder(pathname, prefix))?.[1];
+	return role === undefined || user.roles.includes(role);
+}
+
+/** Where a user goes after logging in: the management area when they may open it. */
+export function homeOf(user: SessionUser): string {
+	return mayOpen(user, '/manage') ? '/manage' : '/';
+}
+
 /**
- * Where a request for an admin path must go instead: the setup while there is no admin, the
- * login without a valid session, `'not-found'` for the setup once it is done, `'forbidden'` for a
- * user without the role `admin`; undefined to serve it. Login and logout stay open to every user,
- * so one without the role can leave and log in as someone else.
+ * Where a request must go instead: the setup while there is no admin, the login without a valid
+ * session, `'not-found'` for the setup once it is done, `'forbidden'` for a page whose role the
+ * user lacks; undefined to serve it. Pages that are neither account pages nor guarded by a role
+ * are always served. Login, logout and the own account stay open to every user, so one without
+ * a role can leave and log in as someone else.
  */
-export function adminAccessRedirect(
+export function accessRedirect(
 	db: DatabaseSync,
 	pathname: string,
 	session: string | undefined
 ): string | 'not-found' | 'forbidden' | undefined {
-	if (!checkAdminAccount(db)) return pathname === '/admin/setup' ? undefined : '/admin/setup';
-	if (pathname === '/admin/setup') return 'not-found';
+	const guarded = PAGE_ROLES.some(([prefix]) => isUnder(pathname, prefix));
+	if (!guarded && !ACCOUNT_PAGES.some((page) => isUnder(pathname, page))) return undefined;
+	if (!checkAdminAccount(db)) return pathname === '/setup' ? undefined : '/setup';
+	if (pathname === '/setup') return 'not-found';
 	const user = sessionUser(db, session);
-	const isAdmin = user?.roles.includes('admin') ?? false;
-	if (pathname === '/admin/login') return isAdmin ? '/admin' : undefined;
-	if (!user) return '/admin/login';
-	if (pathname === '/admin/logout') return undefined;
-	return isAdmin ? undefined : 'forbidden';
+	if (pathname === '/login') return user && mayOpen(user, '/manage') ? '/manage' : undefined;
+	if (!user) return '/login';
+	return mayOpen(user, pathname) ? undefined : 'forbidden';
 }

@@ -11,14 +11,14 @@
 <h1>{m.admin_title()}</h1>
 
 <p>
-	<a href={resolve('/admin/api-keys')}>{m.api_keys()}</a>
-	<a href={resolve('/admin/password')}>{m.password_title()}</a>
-	<a href={resolve('/admin/settings')}>{m.settings_title()}</a>
+	<a href={resolve('/manage/api-keys')}>{m.api_keys()}</a>
+	<a href={resolve('/account')}>{m.password_title()}</a>
+	<a href={resolve('/manage/settings')}>{m.settings_title()}</a>
 </p>
 
 {#if data.syncsPaused}
 	<p role="status">
-		{m.syncs_paused_notice()} <a href={resolve('/admin/settings')}>{m.settings_title()}</a>
+		{m.syncs_paused_notice()} <a href={resolve('/manage/settings')}>{m.settings_title()}</a>
 	</p>
 {/if}
 
@@ -43,7 +43,7 @@
 		{#each data.attention as item (item.sourceId)}
 			<li>
 				<a
-					href={resolve('/admin/projects/[id]/sources/[sourceId]', {
+					href={resolve('/manage/projects/[id]/sources/[sourceId]', {
 						id: String(item.projectId),
 						sourceId: String(item.sourceId)
 					})}>{item.project}/{item.source}</a
@@ -69,8 +69,8 @@
 {:else}
 	<ProjectStatsTable projects={data.projects} timeZone={data.timeZone}>
 		{#snippet name(project)}
-			<a href={resolve('/admin/projects/[id]', { id: String(project.id) })}>{project.name}</a>
+			<a href={resolve('/manage/projects/[id]', { id: String(project.id) })}>{project.name}</a>
 		{/snippet}
 	</ProjectStatsTable>
 {/if}
-<p><a href={resolve('/admin/projects/[id]', { id: 'new' })}>{m.admin_new_project()}</a></p>
+<p><a href={resolve('/manage/projects/[id]', { id: 'new' })}>{m.admin_new_project()}</a></p>

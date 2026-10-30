@@ -34,8 +34,8 @@ test('keeps a language picked with the switch over the browser language', async 
 		'aria-pressed',
 		'true'
 	);
-	// Another page, wherever the admin area sends a visitor at this point of the run.
-	await page.goto('/admin');
+	// Another page, wherever the management area sends a visitor at this point of the run.
+	await page.goto('/manage');
 	await expect(page.locator('html')).toHaveAttribute('lang', 'en');
 	await page.goto('/');
 

@@ -25,5 +25,5 @@ if (!reset) {
 	console.error('That is not the admin username; nothing was changed.');
 	process.exit(1);
 }
-console.log('Admin account and sessions deleted. Open /admin to set it up again;');
+console.log('Admin account and sessions deleted. Open /setup to set it up again;');
 console.log('the new setup token is in the server log.');

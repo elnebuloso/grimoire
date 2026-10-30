@@ -99,7 +99,7 @@
 	<input type="hidden" name="encryptedToken" value={values.encryptedToken} />
 {/snippet}
 
-<p><a href={resolve('/admin')}>{m.all_projects_link()}</a></p>
+<p><a href={resolve('/manage')}>{m.all_projects_link()}</a></p>
 <h1>{m.admin_new_project()}</h1>
 <ol>
 	{#each Object.entries(STEPS) as [key, label] (key)}

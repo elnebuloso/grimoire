@@ -13,7 +13,7 @@ import {
 	type Project
 } from '#lib/server/admin/projects.js';
 
-// `/admin/projects/new` is the wizard's own route.
+// `/manage/projects/new` is the wizard's own route.
 function projectFor(param: string): Project {
 	const id = parseIdParam(param);
 	const project = typeof id === 'number' ? findProject(database(), id) : undefined;
@@ -35,7 +35,7 @@ export const actions = {
 		};
 		const result = saveProject(database(), projectFor(params.id).id, form);
 		if ('error' in result) return fail(400, { error: result.error, values: form });
-		redirect(303, `/admin/projects/${result.id}`);
+		redirect(303, `/manage/projects/${result.id}`);
 	},
 	slug: async ({ request, params }) => {
 		const project = projectFor(params.id);
@@ -57,6 +57,6 @@ export const actions = {
 	},
 	delete: ({ params }) => {
 		deleteProject(database(), projectFor(params.id).id);
-		redirect(303, '/admin');
+		redirect(303, '/manage');
 	}
 } satisfies Actions;

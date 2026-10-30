@@ -9,7 +9,7 @@ vi.mock('#lib/server/db/index.js', () => ({ database: () => db }));
 
 function save(fields: Record<string, string>) {
 	return settingsPage.actions.default({
-		request: new Request('https://grimoire.example/admin/settings', {
+		request: new Request('https://grimoire.example/manage/settings', {
 			method: 'POST',
 			body: new URLSearchParams(fields)
 		})

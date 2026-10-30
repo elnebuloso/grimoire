@@ -3,7 +3,7 @@
 grimoire runs as one container: the server, `git` for syncing, and a volume for the SQLite file.
 It expects a reverse proxy in front of it that terminates TLS or at least passes on the original
 protocol; served directly over plain `http`, every admin form is rejected (see
-[Admin area](admin.md#logging-in)).
+[Management area](admin.md#logging-in)).
 
 ## Image
 
@@ -56,8 +56,8 @@ docker compose up --detach
 docker compose logs grimoire   # shows the setup token
 ```
 
-Open `http://localhost:8080/admin`, set up the admin account with the setup token, add a project
-with a source and create an API key (see [Admin area](admin.md)).
+Open `http://localhost:8080/manage`, set up the admin account with the setup token, add a project
+with a source and create an API key (see [Management area](admin.md)).
 
 Keep the `.env` file: the same key has to be passed on every start, or the access tokens of all
 sources can no longer be read (see [Database](database.md#access-tokens)). The container refuses
@@ -133,7 +133,7 @@ quota, and syncs take correspondingly longer.
 | `LOG_LEVEL` | not set (`info`) | Lowest level that is written: `error`, `warn`, `info` or `debug`. |
 | `MIGRATE_ONLY` | `false` | With `true`, update the schema and exit, e.g. in an init container. |
 | `PORT` | `3000` | Port the server listens on. |
-| `PROTOCOL_HEADER`, `ADDRESS_HEADER` | not set | Behind a reverse proxy, the headers carrying the original protocol and client address (see [Admin area](admin.md#logging-in)). |
+| `PROTOCOL_HEADER`, `ADDRESS_HEADER` | not set | Behind a reverse proxy, the headers carrying the original protocol and client address (see [Management area](admin.md#logging-in)). |
 
 The variables are described in detail in [Database](database.md#configuration).
 
@@ -147,7 +147,7 @@ trace never splits into several entries. Git access tokens and credentials in Gi
 from messages before they are logged.
 
 `LOG_LEVEL` sets how much is written; at `error` only failures remain, except the line with the
-setup token (see [Admin area](admin.md#first-start)), which is always written.
+setup token (see [Management area](admin.md#first-start)), which is always written.
 
 ## Volume
 
@@ -159,7 +159,7 @@ replaced at any time, for example for a new version.
 ## Inside the container
 
 The working directory is `/grimoire`. Besides the server, the image contains
-`scripts/reset-admin.ts` for a lost admin password (see [Admin area](admin.md#lost-password)):
+`scripts/reset-admin.ts` for a lost admin password (see [Management area](admin.md#lost-password)):
 
 ```bash
 docker exec -it grimoire node scripts/reset-admin.ts

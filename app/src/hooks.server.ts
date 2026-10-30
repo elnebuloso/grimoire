@@ -9,7 +9,7 @@ import { LOG_FORMAT, LOG_LEVEL, MIGRATE_ONLY } from '$app/env/private';
 import { database } from '#lib/server/db/index.js';
 import { configureLog, log, routeConsoleToLog } from '#lib/server/log.js';
 import { startSyncPolling } from '#lib/server/sync/index.js';
-import { adminAccessRedirect, checkAdminAccount, SESSION_COOKIE } from '#lib/server/admin/auth.js';
+import { accessRedirect, checkAdminAccount, SESSION_COOKIE } from '#lib/server/admin/auth.js';
 import { getTextDirection } from '#lib/paraglide/runtime.js';
 import { paraglideMiddleware } from '#lib/paraglide/server.js';
 
@@ -34,10 +34,8 @@ export const handleError: HandleServerError = ({ error, event, kind }) => {
 	log.error({ err: error }, `${event.request.method} ${event.url.pathname} failed`);
 };
 
-export const handleAdminAccess: Handle = ({ event, resolve }) => {
-	const { pathname } = event.url;
-	if (pathname !== '/admin' && !pathname.startsWith('/admin/')) return resolve(event);
-	const target = adminAccessRedirect(database(), pathname, event.cookies.get(SESSION_COOKIE));
+export const handleAccess: Handle = ({ event, resolve }) => {
+	const target = accessRedirect(database(), event.url.pathname, event.cookies.get(SESSION_COOKIE));
 	if (target === 'not-found') error(404);
 	if (target === 'forbidden') error(403);
 	if (target) redirect(303, target);
@@ -58,4 +56,4 @@ const handleLanguage: Handle = ({ event, resolve }) =>
 		)
 	);
 
-export const handle = sequence(handleAdminAccess, handleLanguage);
+export const handle = sequence(handleAccess, handleLanguage);

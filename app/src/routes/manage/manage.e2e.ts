@@ -19,7 +19,7 @@ function setupToken(): string {
 }
 
 async function logIn(page: Page, password = PASSWORD) {
-	await page.goto('/admin/login');
+	await page.goto('/login');
 	await page.getByLabel('Username').fill(USERNAME);
 	await page.getByLabel('Password').fill(password);
 	await page.getByRole('button', { name: 'Log in' }).click();
@@ -35,12 +35,12 @@ test('leads from the login action to the setup while there is no admin account',
 }) => {
 	await page.goto('/');
 	await page.getByRole('link', { name: 'Log in' }).click();
-	await expect(page).toHaveURL('/admin/setup');
+	await expect(page).toHaveURL('/setup');
 });
 
 test('sets up the admin account with the token from the server log', async ({ page }) => {
-	await page.goto('/admin');
-	await expect(page).toHaveURL('/admin/setup');
+	await page.goto('/manage');
+	await expect(page).toHaveURL('/setup');
 	// Without these tokens a password manager offers to save nothing, or files it under no user.
 	await expect(page.getByLabel('Username')).toHaveAttribute('autocomplete', 'username');
 	await expect(page.getByLabel('Password')).toHaveAttribute('autocomplete', 'new-password');
@@ -50,18 +50,18 @@ test('sets up the admin account with the token from the server log', async ({ pa
 	await page.getByLabel('Password').fill(PASSWORD);
 	await page.getByRole('button', { name: 'Create admin account' }).click();
 
-	await expect(page).toHaveURL('/admin');
-	await expect(page.getByRole('heading', { name: 'grimoire admin' })).toBeVisible();
+	await expect(page).toHaveURL('/manage');
+	await expect(page.getByRole('heading', { name: 'Manage grimoire' })).toBeVisible();
 });
 
 test('logs out and back in, and rejects a wrong password', async ({ page }) => {
 	await logIn(page);
-	await expect(page).toHaveURL('/admin');
+	await expect(page).toHaveURL('/manage');
 
 	await page.getByRole('button', { name: 'Log out' }).click();
-	await expect(page).toHaveURL('/admin/login');
-	await page.goto('/admin');
-	await expect(page).toHaveURL('/admin/login');
+	await expect(page).toHaveURL('/login');
+	await page.goto('/manage');
+	await expect(page).toHaveURL('/login');
 
 	await expect(page.getByLabel('Username')).toHaveAttribute('autocomplete', 'username');
 	await expect(page.getByLabel('Password')).toHaveAttribute('autocomplete', 'current-password');
@@ -71,22 +71,24 @@ test('logs out and back in, and rejects a wrong password', async ({ page }) => {
 	await expect(page.getByLabel('Username')).toHaveValue(USERNAME);
 
 	await logIn(page);
-	await expect(page).toHaveURL('/admin');
+	await expect(page).toHaveURL('/manage');
 });
 
-test('offers the login action while logged out and shows the admin once logged in', async ({
+test('offers the login action while logged out, and the account and management once logged in', async ({
 	page
 }) => {
 	await page.goto('/');
 	await page.getByRole('link', { name: 'Log in' }).click();
-	await expect(page).toHaveURL('/admin/login');
+	await expect(page).toHaveURL('/login');
 
 	await logIn(page);
 	await page.goto('/');
 	await expect(page.getByText(`Logged in as ${USERNAME}`)).toBeVisible();
 	await expect(page.getByRole('link', { name: 'Log in' })).toHaveCount(0);
 	await page.getByRole('link', { name: USERNAME, exact: true }).click();
-	await expect(page).toHaveURL('/admin');
+	await expect(page).toHaveURL('/account');
+	await page.getByRole('link', { name: 'Manage', exact: true }).click();
+	await expect(page).toHaveURL('/manage');
 
 	await page.goto('/');
 	await page.getByRole('button', { name: 'Log out' }).click();
@@ -150,7 +152,7 @@ test('creates a project with a source in the wizard and never shows its token', 
 	await expect(page.getByText('stored; leave empty to keep it')).toBeVisible();
 	expect(await page.content()).not.toContain(TOKEN);
 
-	await page.goto('/admin');
+	await page.goto('/manage');
 	await expect(page.getByRole('link', { name: 'Platform', exact: true })).toBeVisible();
 });
 
@@ -167,7 +169,7 @@ test('syncs a source now and shows why it failed', async ({ page }) => {
 	await expect(page.getByRole('alert')).toContainText('source path "docs" does not exist');
 	expect(await page.content()).not.toContain(TOKEN);
 
-	await page.goto('/admin');
+	await page.goto('/manage');
 	const attention = page.getByRole('listitem').filter({ hasText: 'platform/auth-service' });
 	await expect(attention).toContainText('sync error: source path "docs" does not exist');
 	await attention.getByRole('link').click();
@@ -239,7 +241,7 @@ test('creates an API key that works for its project until it is revoked', async 
 	const projects = () => request.get('/projects', { headers: { Authorization: `Bearer ${key}` } });
 	expect(await (await projects()).text()).toBe('- platform: Login and billing');
 
-	await page.goto('/admin/api-keys');
+	await page.goto('/manage/api-keys');
 	expect(await page.content()).not.toContain(key!);
 	await expect(page.getByText('ci – platform')).toBeVisible();
 
@@ -267,10 +269,10 @@ test('changes the password and logs in with the new one', async ({ page }) => {
 	await page.getByRole('button', { name: 'Change password' }).click();
 	await expect(page.getByRole('status')).toContainText('Password changed.');
 
-	await page.goto('/admin');
+	await page.goto('/manage');
 	await page.getByRole('button', { name: 'Log out' }).click();
 	await logIn(page);
 	await expect(page.getByRole('alert')).toHaveText('Wrong username or password.');
 	await logIn(page, newPassword);
-	await expect(page).toHaveURL('/admin');
+	await expect(page).toHaveURL('/manage');
 });

@@ -7,5 +7,5 @@ export const POST: RequestHandler = ({ cookies }) => {
 	const session = cookies.get(SESSION_COOKIE);
 	if (session) deleteSession(database(), session);
 	cookies.delete(SESSION_COOKIE, sessionCookieOptions);
-	redirect(303, '/admin/login');
+	redirect(303, '/login');
 };

@@ -19,14 +19,17 @@
 
 <header>
 	{#if data.user}
-		<p>{m.header_logged_in_as()} <a href={resolve('/admin')}>{data.user}</a></p>
-		<form method="post" action="/admin/logout">
+		<p>
+			{m.header_logged_in_as()} <a href={resolve('/account')}>{data.user.name}</a>
+			{#if data.user.mayManage}<a href={resolve('/manage')}>{m.header_manage()}</a>{/if}
+		</p>
+		<form method="post" action="/logout">
 			<button>{m.header_log_out()}</button>
 		</form>
 	{:else}
 		<!-- A full request: the login page loads no data, so a client-side navigation would never
 		reach the server hook that sends a first visit on to the setup. -->
-		<p><a href={resolve('/admin/login')} data-sveltekit-reload>{m.header_log_in()}</a></p>
+		<p><a href={resolve('/login')} data-sveltekit-reload>{m.header_log_in()}</a></p>
 	{/if}
 	<form method="post" action="/language" aria-label={m.header_language()}>
 		<input type="hidden" name="redirectTo" value={page.url.pathname + page.url.search} />

@@ -1,8 +1,8 @@
 # Connecting agents
 
 Agents reach grimoire over MCP or plain HTTP. Both offer the same four operations and both need
-an API key, sent as `Authorization: Bearer <key>`. Create keys in the admin area under
-**API keys**; a key sees all projects or a selection of them (see [Admin area](admin.md#api-keys)).
+an API key, sent as `Authorization: Bearer <key>`. Create keys in the management area under
+**API keys**; a key sees all projects or a selection of them (see [Management area](admin.md#api-keys)).
 
 | Operation | What it returns |
 |---|---|

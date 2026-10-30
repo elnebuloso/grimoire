@@ -32,12 +32,12 @@ how to use them.
 
 ## Status
 
-Before `1.0.0`. Sync, search, the HTTP API, the MCP server, the admin area and the Docker image
+Before `1.0.0`. Sync, search, the HTTP API, the MCP server, the management area and the Docker image
 work. Every release publishes its Docker image as `elnebuloso/grimoire:<version>`.
 
 ## Connecting agents
 
-Every request needs an API key: `Authorization: Bearer <key>`. Keys are created in the admin area
+Every request needs an API key: `Authorization: Bearer <key>`. Keys are created in the management area
 under **API keys**; a key sees all projects or a selection of them.
 
 ### MCP
@@ -87,7 +87,7 @@ make setup   # creates app/.env with a new TOKEN_ENCRYPTION_KEY, installs the de
 make dev     # or: make build, then in app/: node --env-file=.env build
 ```
 
-Open `/admin`, set up the admin account with the setup token from the log, add a project with a
+Open `/manage`, set up the admin account with the setup token from the log, add a project with a
 source and create an API key under **API keys**.
 
 The container is described in [docs/handbook/docker.md](docs/handbook/docker.md); the environment
@@ -97,7 +97,7 @@ variables, the volume for the SQLite file, the sync schedule and backups in
 ## Development
 
 `make help` lists all targets; `make test` runs the unit tests and the component stories,
-`make e2e` the browser tests of the admin area against the production build (both download
+`make e2e` the browser tests of the management area against the production build (both download
 Chromium on first use), `make lint` checks formatting, lint rules and types. `make storybook`
 opens the component catalog; [.claude/rules/ui-components.md](.claude/rules/ui-components.md) says
 how components and their stories are written.

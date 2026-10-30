@@ -1,40 +1,42 @@
-# Admin area
+# Management area
 
-The admin area at `/admin` manages projects, sources, API keys and the settings of the instance.
+The management area at `/manage` holds projects, sources, API keys and the settings of the instance.
 
 ## Users and roles
 
 Everyone who logs in is a user with a username and a password of their own. What a user may do
 follows from their roles; a user can hold several. Today there is one role, `admin`, which may use
-the whole admin area. A logged-in user without it gets `403` there, but can still log out and log
-in as someone else. The first user, with the role `admin`, is created in the browser on first
-start; adding further users comes in a later version.
+the whole management area. A logged-in user without it gets `403` there, but can still open their
+account page, log out and log in as someone else. The first user, with the role `admin`, is
+created in the browser on first start; adding further users comes in a later version.
 
 ## First start
 
-While no user has the role `admin`, every page of the admin area leads to `/admin/setup` instead of
+While no user has the role `admin`, every page of the management area leads to `/setup` instead of
 the login. Setting up needs a one-time setup token, which grimoire writes to its log on start:
 
 ```text
-No admin account yet. Set it up at /admin/setup with the setup token 7GQm…
+No admin account yet. Set it up at /setup with the setup token 7GQm…
 ```
 
 This line is written whatever `LOG_LEVEL` says. With `LOG_FORMAT=ecs`, the default, it is the
 `message` of a JSON line:
 
 ```json
-{"log.level":"warn","@timestamp":"2026-10-29T21:38:02.587Z","service.name":"grimoire","message":"No admin account yet. Set it up at /admin/setup with the setup token 7GQm…", …}
+{"log.level":"warn","@timestamp":"2026-10-29T21:38:02.587Z","service.name":"grimoire","message":"No admin account yet. Set it up at /setup with the setup token 7GQm…", …}
 ```
 
 Enter the token, a username and a password of at least 12 characters. Only someone who can read
 the server log can set up the account, even if the URL is reachable before you get to it. The
 token exists only in memory: a restart before the setup logs a new one, and once the account
-exists `/admin/setup` is gone.
+exists `/setup` is gone.
 
 ## Logging in
 
-Every page offers **Log in** while nobody is logged in; once logged in, the same place shows
-which admin it is, linked to the admin area, and **Log out**. Next to it, a button per language
+Every page offers **Log in** (`/login`) while nobody is logged in; once logged in, the same place
+shows the user's name, linked to their account page, **Manage** for a user who may open the
+management area, and **Log out**. A user lands where they may work after logging in: in the
+management area, or on the start page without a role for it. Next to it, a button per language
 switches the interface between English and German. Without a choice, grimoire uses the language
 the browser asks for, and English when it asks for neither; a choice is kept in a cookie and wins
 over the browser. Sync errors and warnings stay in English, as Git and the parser report them. A login lasts 12 hours. The
@@ -52,7 +54,8 @@ browser sends no such header. To try grimoire locally, put a proxy in front, as 
 
 ## Changing the password
 
-**Change the password** in the admin area asks for the current password and a new one of at least
+The account page `/account`, behind the own name in the header, changes the password of every
+user, whatever their roles. It asks for the current password and a new one of at least
 12 characters. A wrong current password counts as a failed login. After the change, every other
 session of that user is logged out; the browser that made the change stays logged in. Other
 users stay logged in.
@@ -122,7 +125,7 @@ not, so links between pages carry the new IDs.
 
 ## Status and sync
 
-The start page of the admin area adds up projects, sources, pages, snippets, tokens, dead links
+The start page of the management area adds up projects, sources, pages, snippets, tokens, dead links
 and API keys, and lists under "Needs attention" every source with a sync error, sync warnings or
 no sync yet, linked to its page. Below that, each project shows the same figures as the public
 start page.
@@ -146,7 +149,7 @@ The page of the source and the source list of the project show that it is paused
 
 ## Settings
 
-**Settings** in the admin area hold what applies to the whole instance. They are stored in the
+**Settings** in the management area hold what applies to the whole instance. They are stored in the
 database and survive a restart.
 
 **Pause all syncs** stops polling for every source at once, for example while a Git server is under
@@ -169,7 +172,7 @@ nothing once all of them are gone.
 
 ## Lost password
 
-Without the current password, the password cannot be changed in the admin area. Delete the admin
+Without the current password, the password cannot be changed on the account page. Delete the admin
 account with the script in the container:
 
 ```bash
@@ -179,7 +182,7 @@ docker exec -it grimoire node scripts/reset-admin.ts
 It asks for the username of a user with the role `admin` and deletes that user, together with
 their sessions, only when the name matches; without a terminal (no `-it`) it refuses to run.
 grimoire keeps running. When no other user has the role `admin`, it logs `Admin account was reset.`
-and a new setup token, and the admin area offers the setup again.
+and a new setup token, and the management area offers the setup again.
 
 The script cannot be protected by a password of its own: whoever can run commands in the
 container can read the database anyway. What protects the admin account is who may use
