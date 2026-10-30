@@ -1,4 +1,4 @@
-.PHONY: help setup dev mail-catcher build test e2e storybook lint format image admin-reset handbook agent-start agent-stop agent-reset
+.PHONY: help setup dev mail-catcher build test e2e storybook lint format image image-smoke admin-reset handbook agent-start agent-stop agent-reset
 
 help: ## List all targets
 	@grep -E '^[a-z0-9-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "} {printf "  %-12s %s\n", $$1, $$2}'
@@ -34,6 +34,9 @@ format: ## Format the source code with Prettier
 
 image: ## Build the Docker image grimoire:latest
 	docker build --tag grimoire:latest .
+
+image-smoke: ## Run the indexing worker and the reset script inside grimoire:latest (after make image)
+	scripts/image-smoke.sh grimoire:latest
 
 admin-reset: ## Delete the admin account after a lost password; asks for its email address
 	cd app && node --env-file=.env ../scripts/reset-admin.ts

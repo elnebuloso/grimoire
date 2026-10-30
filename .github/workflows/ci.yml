@@ -29,6 +29,10 @@ jobs:
         working-directory: app
       - run: make test
       - run: make e2e
+      # Tests and e2e run in the full checkout; only the image shows whether the indexing worker
+      # and the reset script find everything they load from source.
+      - run: make image
+      - run: make image-smoke
 
   release:
     needs: check
