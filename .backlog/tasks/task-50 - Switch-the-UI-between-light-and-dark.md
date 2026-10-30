@@ -4,14 +4,14 @@ title: Switch the UI between light and dark
 status: To Do
 assignee: []
 created_date: '2026-10-29T06:46:00Z'
-updated_date: '2026-10-30 17:41'
+updated_date: '2026-10-30 18:36'
 labels:
   - admin
 milestone: m-0
 dependencies:
-  - TASK-37
-references:
-  - .claude/rules/until-v1.md
+  - TASK-179
+documentation:
+  - docs/design.md
 priority: low
 type: feature
 ordinal: 112000
@@ -22,9 +22,7 @@ ordinal: 112000
 <!-- SECTION:DESCRIPTION:BEGIN -->
 Users want the UI to match their surroundings and the rest of their desktop: light or dark, following the operating system unless they pick one themselves.
 
-Waits for TASK-37: until the visual design is agreed, the frontend carries no theming at all (`.claude/rules/until-v1.md`, section "Frontend: function first"), and a dark variant is part of that design.
-
-The colours of both variants and the switching behaviour come from the agreed design of TASK-53 (`docs/design.md`), whose mockups already try out the switch.
+The colours of both variants come from `docs/design.md`, which TASK-178 already turns into tokens: they follow `prefers-color-scheme` and honour `data-theme="light"` / `data-theme="dark"` on `<html>`. The switch belongs in the header next to the language switch, which TASK-179 styles as a segmented track; the theme switch with "System", "Light" and "Dark" is the second such track, and with it the track becomes a component in `app/src/lib/components/` with stories (`.claude/rules/ui-components.md`). The mockup e/6 already tries out the behaviour: `cd docs/mockups && python3 -m http.server 8765`, then `http://127.0.0.1:8765/e/6/`.
 <!-- SECTION:DESCRIPTION:END -->
 
 ## Acceptance Criteria

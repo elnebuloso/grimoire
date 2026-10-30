@@ -4,12 +4,14 @@ title: Fail the build on accessibility violations in stories
 status: To Do
 assignee: []
 created_date: '2026-10-29 18:52'
-updated_date: '2026-10-29 23:44'
+updated_date: '2026-10-30 18:36'
 labels:
   - admin
 milestone: m-0
 dependencies:
-  - TASK-37
+  - TASK-180
+  - TASK-181
+  - TASK-182
 references:
   - app/.storybook/preview.ts
   - .claude/rules/ui-components.md
@@ -38,4 +40,6 @@ When this task was created, the five `ProjectStatsTable` stories passed with `te
 
 <!-- SECTION:NOTES:BEGIN -->
 Decided with the user: this task starts only after TASK-37 (Finalize the frontend design). Only the agreed design brings colours, contrast and focus styles, which the strict check then judges as well.
+
+Order changed with the user: this task now starts after the design tasks TASK-178 to TASK-182 (all colours, contrast and focus styles are in place by then) and before the final acceptance in TASK-37, which depends on it.
 <!-- SECTION:NOTES:END -->
