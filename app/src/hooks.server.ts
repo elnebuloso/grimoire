@@ -34,8 +34,12 @@ export const handleError: HandleServerError = ({ error, event, kind }) => {
 	log.error({ err: error }, `${event.request.method} ${event.url.pathname} failed`);
 };
 
+// Decides on the route the router matched, not on `event.url.pathname`: the router decodes the
+// path, so `/m%61nage` runs the `/manage` page while its raw pathname matches no guarded prefix.
+// A path without a route has nothing to guard and ends in a 404.
 export const handleAccess: Handle = ({ event, resolve }) => {
-	const target = accessRedirect(database(), event.url.pathname, event.cookies.get(SESSION_COOKIE));
+	if (event.route.id === null) return resolve(event);
+	const target = accessRedirect(database(), event.route.id, event.cookies.get(SESSION_COOKIE));
 	if (target === 'not-found') error(404);
 	if (target === 'forbidden') error(403);
 	if (target) redirect(303, target);

@@ -300,7 +300,8 @@ export function homeOf(user: SessionUser): string {
  * session, `'not-found'` for the setup once it is done, `'forbidden'` for a page whose role the
  * user lacks; undefined to serve it. Pages that are neither account pages nor guarded by a role
  * are always served. Login, logout and the own account stay open to every user, so one without
- * a role can leave and log in as someone else.
+ * a role can leave and log in as someone else. `pathname` is the matched route ID (such as
+ * `/manage/projects/[id]`), never the raw request path, whose percent-escapes the router decodes.
  */
 export function accessRedirect(
 	db: DatabaseSync,

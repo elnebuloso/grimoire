@@ -1,10 +1,11 @@
 ---
 id: TASK-69
 title: Management area reachable without login via a percent-encoded path
-status: To Do
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-30 00:14'
+updated_date: '2026-10-30 00:17'
 labels:
   - admin
 milestone: m-0
@@ -34,7 +35,26 @@ Review suggestion: decide access on what the router matched (`event.route.id`, n
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 A request to a percent-encoded variant of any `/manage` or `/account` path (e.g. `/m%61nage/api-keys`) without a session gets the same answer as the plain path: redirect to login, no page data, no action run
-- [ ] #2 Role checks also hold for encoded paths
-- [ ] #3 A regression test with an encoded path fails before the fix and passes after
+- [x] #1 A request to a percent-encoded variant of any `/manage` or `/account` path (e.g. `/m%61nage/api-keys`) without a session gets the same answer as the plain path: redirect to login, no page data, no action run
+- [x] #2 Role checks also hold for encoded paths
+- [x] #3 A regression test with an encoded path fails before the fix and passes after
 <!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. Pass event.route.id (the route the router matched after decoding) to accessRedirect instead of event.url.pathname; serve unmatched paths (route.id null), which end in 404.
+2. Regression test in access.spec.ts with an encoded path; verify in the agent environment with curl.
+<!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Reproduced before the fix in the agent environment: GET /m%61nage and /m%61nage/api-keys answered 200 without a session, and POST /m%61nage/api-keys?/create ran the action (it only failed on form validation). After the fix all of them answer a redirect to /login, also /m%61nage/__data.json. Role checks run on the same route ID, so AC 2 holds by the same code path; route IDs keep static prefixes like /manage, so PAGE_ROLES needs no change. The new test fails with the old hooks.server.ts and passes with the new one.
+<!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+handleAccess now decides login and role on event.route.id, the route SvelteKit matched on the decoded path, instead of the raw event.url.pathname. Percent-encoded variants such as /m%61nage/api-keys were served and their actions ran without a session; they now redirect to /login like the plain path. Unmatched paths (route.id null) are served and end in 404. Verified with a regression test (fails before, passes after), curl against the agent environment, make lint and make test (454 passed).
+<!-- SECTION:FINAL_SUMMARY:END -->

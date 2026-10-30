@@ -267,10 +267,11 @@ describe('password action', () => {
 describe('admin access guard', () => {
 	const served = new Response('served');
 
-	function request(path: string, session?: string) {
+	function request(path: string, session?: string, routeId: string | null = path) {
 		const resolve = vi.fn(async () => served);
 		const event = {
 			url: new URL(`https://grimoire.example${path}`),
+			route: { id: routeId },
 			cookies: fakeCookies(session ? { grimoire_session: session } : {})
 		};
 		return { resolve, run: () => admin.handleAccess({ event, resolve } as never) };
@@ -305,6 +306,20 @@ describe('admin access guard', () => {
 		expect(isRedirect(withoutSession) && withoutSession.location).toBe('/login');
 		expect(await page.run()).toBe(served);
 		expect(page.resolve).toHaveBeenCalledOnce();
+	});
+
+	it('guards a percent-encoded path by the route the router matched', async () => {
+		await setUpAdmin();
+
+		const encoded = await thrown(request('/m%61nage/api-keys', undefined, '/manage/api-keys').run);
+
+		expect(isRedirect(encoded) && encoded.location).toBe('/login');
+	});
+
+	it('serves a path without a route, which ends in a 404', async () => {
+		await setUpAdmin();
+
+		expect(await request('/m%61nage-nothing', undefined, null).run()).toBe(served);
 	});
 
 	it('leaves paths outside the management area alone', async () => {
