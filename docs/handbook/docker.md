@@ -1,29 +1,30 @@
-# Running with Docker
+# Running grimoire
 
-grimoire runs as one container: the server, `git` for syncing, and a volume for the SQLite file.
-It expects a reverse proxy in front of it that terminates TLS. Plain `http` works only on
-`localhost`, with a proxy that passes on the original protocol: served directly, every admin form
-is rejected, and under any other host name the browser drops the login cookie (see
-[Management area](admin.md#logging-in)).
+!!! info "Prerequisites"
+    - Reader: operator.
+    - Required access: the Docker host, or the Kubernetes namespace grimoire runs in.
+    - Version: images exist from release `0.4.0`; releases before `1.0.0` are previews (see
+      [Updating from a 0.x release](database.md#updating-from-a-0x-release)).
+
+    New to grimoire? Read [Concepts](index.md) first.
+
+grimoire runs as one container with a volume at `/data` and needs a reverse proxy in front of it
+that terminates TLS.
 
 ## Image
 
-Every release is published on Docker Hub as `elnebuloso/grimoire`, tagged with the version of
-the release without its `v`: release `v1.2.0` is the image `elnebuloso/grimoire:1.2.0`. There is
-no `latest` tag: replace `<version>` below with the release you want, and change it to update.
-Releases up to `0.3.0` have no image. Releases before `1.0.0` are previews whose databases a later
-release need not read; see [Schema updates](database.md#schema-updates).
+The image is `elnebuloso/grimoire:<version>`, the release version without its `v`: release
+`v1.2.0` is `elnebuloso/grimoire:1.2.0`. There is no `latest` tag; change the version to update.
 
-To build the image from the repository instead, for example to try unreleased changes:
+To build the image from a checkout of the repository, for example to try unreleased changes:
 
 ```bash
-make image   # docker build --tag grimoire:latest .
+make image   # builds grimoire:latest
 ```
 
 ## Docker Compose
 
-The quickest complete setup: grimoire and Caddy as reverse proxy, which sets the
-`X-Forwarded-Proto` and `X-Forwarded-For` headers grimoire reads. Save it as `compose.yaml`:
+grimoire with Caddy as reverse proxy. Save as `compose.yaml`:
 
 ```yaml
 services:
@@ -50,65 +51,56 @@ volumes:
   grimoire-data:
 ```
 
-Put the key into a `.env` file next to it, which Compose reads on its own, and start:
+Generate the encryption key into `.env` next to it, start, and read the setup token:
 
 ```bash
 echo "TOKEN_ENCRYPTION_KEY=$(openssl rand -base64 32)" > .env
 docker compose up --detach
-docker compose logs grimoire   # shows the setup token
+docker compose logs grimoire
 ```
 
-Open `http://localhost:8080/manage`, set up the admin account with the setup token, add a project
-with a source and create an API key (see [Management area](admin.md)).
+Then open `http://localhost:8080/manage` (see [Management area](admin.md#first-start)).
 
-Keep the `.env` file: the same key has to be passed on every start, or the access tokens of all
-sources can no longer be read (see [Database](database.md#access-tokens)). The container refuses
-to start without it.
+Keep `.env`: every start needs the same key (see [Encryption key](database.md#encryption-key)).
 
-On a server with a public domain, replace `:8080` with the domain, for example
-`--from grimoire.example.com`, and publish the ports `80` and `443` instead of `8080`: Caddy then
-obtains a TLS certificate on its own. Mount a volume at `/data` of the proxy as well, so it keeps
-the certificate across restarts.
+For a public domain, replace `:8080` with the domain, such as `--from grimoire.example.com`,
+publish ports `80` and `443` instead of `8080`, and mount a volume at `/data` of the proxy:
+Caddy then obtains and keeps a TLS certificate.
 
-## Without Compose
+## Docker without Compose
 
-The same container with `docker run`, for a host where a reverse proxy already runs and forwards
-to port `3000`. Generate the key once and keep it with your other secrets:
+For a host where a reverse proxy already forwards to port `3000`:
 
 ```bash
-openssl rand -base64 32
-
 docker run --detach --name grimoire \
   --publish 3000:3000 \
   --volume grimoire-data:/data \
-  --env TOKEN_ENCRYPTION_KEY="<key>" \
+  --env TOKEN_ENCRYPTION_KEY="<KEY_FROM_OPENSSL_RAND_BASE64_32>" \
   --env PROTOCOL_HEADER=x-forwarded-proto \
   --env ADDRESS_HEADER=x-forwarded-for \
   elnebuloso/grimoire:<version>
 ```
 
-The setup token is in `docker logs grimoire`. Set the two header variables only when the proxy
-really sends those headers: once `ADDRESS_HEADER` is set, a request without it fails.
+The setup token is in `docker logs grimoire`.
 
 ## Kubernetes
 
-Nothing in the image is specific to Docker; a Deployment needs the same pieces:
+A Deployment needs:
 
-- the image, with the variables below as `env`, and `TOKEN_ENCRYPTION_KEY` from a Secret;
-- a PersistentVolumeClaim mounted at `/data`, writable for uid 1000 (`fsGroup: 1000`);
-- exactly one replica with `strategy: Recreate` (see [Database](database.md#one-instance));
-- a Service on port `3000` and an Ingress whose controller sends the headers named in
+- the image, with the variables below as `env` and `TOKEN_ENCRYPTION_KEY` from a Secret;
+- a PersistentVolumeClaim at `/data`, writable for uid 1000 (`fsGroup: 1000`);
+- exactly one replica with `strategy: Recreate` (see [One instance](database.md#one-instance));
+- a Service on port `3000`, and an Ingress whose controller sends the headers named in
   `PROTOCOL_HEADER` and `ADDRESS_HEADER`.
 
-The setup token is in the log of the pod (`kubectl logs`). To update the schema before the new
-version serves requests, run the same image with `MIGRATE_ONLY=true` as an init container.
+The setup token is in `kubectl logs`. To update the schema before the new version serves, run the
+same image with `MIGRATE_ONLY=true` as an init container.
 
-### Resources
+### Memory and CPU limits
 
-Memory and CPU are spent mostly while a source syncs: the clone, and turning the pages into
-snippets in a second process. Sources sync one after another, so a large one sets the need, not
-the number of sources. Measured with the Kubernetes documentation as one source (1722 pages,
-13,160 snippets), from the first sync to its end, while agents searched every 25 ms:
+Syncs set the need: sources sync one at a time, so the largest source counts, not the number of
+sources. Measured with the Kubernetes documentation as one source (1722 pages, 13,160 snippets),
+while agents searched every 25 ms:
 
 | Limits | Sync | Searches, 99 % / slowest | Memory, peak |
 |---|---|---|---|
@@ -116,62 +108,116 @@ the number of sources. Measured with the Kubernetes documentation as one source 
 | 1 CPU, 512 MiB | 160 s | 46 ms / 411 ms | 392 MiB |
 | 0.5 CPU, 256 MiB | 383 s | 77 ms / 1.3 s | 256 MiB, at the limit |
 
-Node sizes its memory to the limit of the container, so a lower limit means more garbage
-collection, not a crash, down to where the data of one sync no longer fits. Then only the
-second process ends: the sync fails with `indexing ended with … before it finished, out of memory
-for example`, the source keeps its previous index, and grimoire keeps answering. For documentation of
-that size, `limits: { cpu: "1", memory: 512Mi }` with `requests: { cpu: 250m, memory: 512Mi }` is
-enough; smaller documentation needs less. Below one CPU, searches during a sync wait on the CPU
-quota, and syncs take correspondingly longer.
+For documentation of that size, use `limits: { cpu: "1", memory: 512Mi }` with
+`requests: { cpu: 250m, memory: 512Mi }`. A lower memory limit makes syncs slower until one no
+longer fits; then that sync fails with
+`indexing ended with … before it finished, out of memory for example`, the source keeps its
+previous index, and grimoire keeps answering. Below one CPU, searches during a sync wait for CPU
+time.
 
-## Environment
+## Setup token
 
-| Variable | In the image | Meaning |
+While no admin account exists, grimoire logs a setup token on every start, whatever `LOG_LEVEL`
+says:
+
+```text
+No admin account yet. Set it up at /setup with the setup token 7GQm…
+```
+
+With `LOG_FORMAT=ecs` it is the `message` of a JSON line. Pass the token to whoever sets up the
+admin account. A restart before the setup logs a new token and voids the old one. Only someone who
+can read the log can set up the account, even when `/setup` is reachable from outside.
+
+## Reverse proxy
+
+Pass on the original protocol, client address and `Host` header, and set `PROTOCOL_HEADER` and
+`ADDRESS_HEADER` to the headers the proxy sends. Set them only when the proxy really sends them:
+once `ADDRESS_HEADER` is set, a request without that header fails. Without `ADDRESS_HEADER`, all
+failed logins count for the proxy's address, and one client's typos lock everybody out.
+
+Outside `localhost`, serve grimoire over `https`. Plain `http` works only on `localhost`, behind a
+proxy that sends the protocol header.
+
+### Every form fails with `Cross-site POST form submissions are forbidden`
+
+grimoire compares the origin of every form with its own, built from the protocol and the host of
+the request. Check, in order:
+
+1. Served directly over `http`, without a proxy: put a proxy in front, as in
+   [Docker Compose](#docker-compose).
+2. `PROTOCOL_HEADER` not set: grimoire assumes `https`. Set it to the header carrying the
+   original protocol, such as `x-forwarded-proto`.
+3. The proxy replaces `Host` with the name of the upstream (nginx does unless configured with
+   `proxy_set_header Host $host;`): keep `Host`, or set `HOST_HEADER` to the header carrying the
+   original host, such as `x-forwarded-host`.
+
+There is no `ORIGIN` variable; setting one changes nothing. `BASE_URL` does not take part either.
+
+### The login is accepted, and the next page asks for it again
+
+The browser dropped the login cookie: it is sent only over `https` on every host but `localhost`.
+Serve grimoire over `https`, for example `https://grimoire.lan` instead of
+`http://grimoire.lan:8080`.
+
+## Mail
+
+Mail is needed only for **Forgot your password?** on the login page; without it that link is not
+offered and `/login/forgot` answers `404`. Set `SMTP_HOST`, `SMTP_FROM` and `BASE_URL`; the server
+does not start with `SMTP_HOST` but without the other two.
+
+On ports other than `465`, the SMTP server must offer STARTTLS, or no mail is sent: otherwise anyone
+between grimoire and the mail server could read `SMTP_PASSWORD` and every reset link. For a mail
+server on the same host that offers no TLS, such as a local mail catcher, set
+`SMTP_ALLOW_PLAINTEXT=true`. A failed mail is logged with its subject and the error, never with the
+recipient address.
+
+## Environment variables
+
+| Variable | Default in the image | Meaning |
 |---|---|---|
-| `TOKEN_ENCRYPTION_KEY` | not set, required | Key encrypting the Git access tokens. |
-| `DATABASE_PATH` | `/data/grimoire.db` | Path of the SQLite file, on the volume. |
-| `SYNC_SCHEDULE` | `*/5 * * * *` | When sources without their own schedule are checked. |
-| `TZ` | not set (UTC) | Time zone of the schedules and of the times the UI shows. |
-| `INCLUDE_URL_ALLOW` | not set (none) | Origins pages may include files from by URL. |
-| `LOG_FORMAT` | not set (`ecs`) | `ecs` for one JSON object per line, `pretty` for readable text. |
-| `LOG_LEVEL` | not set (`info`) | Lowest level that is written: `error`, `warn`, `info` or `debug`. |
-| `SMTP_HOST` | not set (no mail) | SMTP server grimoire sends mail through. Not set: no mail is sent, and what needs it is not offered. |
-| `SMTP_PORT` | not set (`587`) | Port of the SMTP server; `465` uses TLS from the start, other ports STARTTLS. A server that offers no STARTTLS gets no mail: someone between grimoire and the server could otherwise remove the offer and read the SMTP password and every password reset link. |
-| `SMTP_ALLOW_PLAINTEXT` | not set | `true`: send without TLS when the server offers no STARTTLS. Only for a server nobody can listen in between, such as a mail catcher on the same host. |
-| `SMTP_USER`, `SMTP_PASSWORD` | not set | Login at the SMTP server; without `SMTP_USER` grimoire sends without logging in. |
-| `BASE_URL` | not set | Where grimoire is reached, such as `https://grimoire.example.com`. Links in mails, the `claude mcp add` command on the start page and the links in `llms.txt` point there; not set, the last two use the address the request arrived at. A request arriving at another address is logged once as a warning. Required with `SMTP_HOST`. |
-| `SMTP_FROM` | not set | Sender address of the mails, such as `grimoire <grimoire@example.com>`; required with `SMTP_HOST`, the server does not start without it. |
-| `MIGRATE_ONLY` | `false` | With `true`, update the schema and exit, e.g. in an init container. |
+| `TOKEN_ENCRYPTION_KEY` | none, required | Key encrypting the Git access tokens of all sources: 32 random bytes, base64. The server does not start without it, also with `MIGRATE_ONLY`. See [Encryption key](database.md#encryption-key). |
+| `DATABASE_PATH` | `/data/grimoire.db` | Path of the database file; created with its schema on first start. Keep it in a directory of its own (see [Volume](database.md#volume)). |
+| `SYNC_SCHEDULE` | `*/5 * * * *` | When sources without their own schedule are checked: cron with five fields (minute, hour, day of month, month, day of week), in `TZ`. For a Git server that allows few requests, `0 * * * *`. |
+| `TZ` | UTC | IANA time zone, such as `Europe/Berlin`. Schedules run in it, including summer time, and the UI shows every time in it, whatever the browser's time zone. API key expiry dates end at midnight in it. |
+| `INCLUDE_URL_ALLOW` | none | Origins pages may include files from by URL, separated by commas, such as `https://docs.example.com,https://raw.githubusercontent.com`. `https://` only, nothing after host and port. Nothing else is requested for an include, and no redirect is followed. |
+| `LOG_FORMAT` | `ecs` | `ecs`: one JSON object per line (see [Logs](#logs)). `pretty`: readable text for local use. |
+| `LOG_LEVEL` | `info` | Lowest level written: `error`, `warn`, `info` or `debug`. |
+| `PROTOCOL_HEADER` | none | Header carrying the original protocol, such as `x-forwarded-proto`. Without it, grimoire assumes `https`. |
+| `ADDRESS_HEADER` | none | Header carrying the client address, such as `x-forwarded-for`. Requests without it fail. |
+| `HOST_HEADER` | `Host` | Header carrying the host the browser asked for, for a proxy that rewrites `Host`. |
+| `BASE_URL` | none | Where grimoire is reached, such as `https://grimoire.example.com`. Reset links, the `claude mcp add` command on the start page and the links in `llms.txt` use it; without it the last two use the address of the request. A request to another address is logged once as a warning. |
+| `SMTP_HOST` | none | SMTP server for mail. Without it no mail is sent. |
+| `SMTP_PORT` | `587` | `465` uses TLS from the start, other ports STARTTLS. |
+| `SMTP_ALLOW_PLAINTEXT` | none | `true`: send without TLS when the server offers no STARTTLS. |
+| `SMTP_USER`, `SMTP_PASSWORD` | none | Login at the SMTP server; without `SMTP_USER` grimoire sends without one. |
+| `SMTP_FROM` | none | Sender, such as `grimoire <grimoire@example.com>`. |
+| `MIGRATE_ONLY` | `false` | `true`: update the schema and exit, such as in an init container. |
 | `PORT` | `3000` | Port the server listens on. |
-| `PROTOCOL_HEADER`, `ADDRESS_HEADER` | not set | Behind a reverse proxy, the headers carrying the original protocol and client address (see [Management area](admin.md#logging-in)). |
-| `HOST_HEADER` | not set (`Host`) | Header carrying the host the browser asked for, for a proxy that does not pass on `Host` unchanged (see [Management area](admin.md#logging-in)). There is no `ORIGIN` variable. |
 
-The variables are described in detail in [Database](database.md#configuration).
+An invalid value of `SYNC_SCHEDULE`, `TZ`, `INCLUDE_URL_ALLOW`, `LOG_FORMAT` or `LOG_LEVEL` stops
+the start with an error naming the variable.
 
 ## Logs
 
-grimoire writes its log to standard output. With `LOG_FORMAT=ecs`, the default, every entry is one
-JSON object in the Elastic Common Schema, so a log collector needs no parsing rules for it:
-`@timestamp`, `log.level`, `message`, `ecs.version`, `service.name` (`grimoire`), and
-for an error `error.type`, `error.message` and `error.stack_trace` in the same line, so a stack
-trace never splits into several entries. Git access tokens and credentials in Git URLs are removed
-from messages before they are logged.
+grimoire logs to standard output. With `LOG_FORMAT=ecs` every entry is one JSON line in the
+Elastic Common Schema, so a log collector needs no parsing rules: `@timestamp`, `log.level`,
+`message`, `ecs.version`, `service.name` (`grimoire`), and for errors `error.type`,
+`error.message` and `error.stack_trace` in the same line. Git access tokens and credentials in Git
+URLs are removed before logging.
 
-`LOG_LEVEL` sets how much is written; at `error` only failures remain, except the line with the
-setup token (see [Management area](admin.md#first-start)), which is always written.
+At `LOG_LEVEL=error` only failures remain, and the setup token line.
 
-## Volume
+## Lost admin password
 
-Mount a volume or a directory at `/data`. The server runs as the user `node` (uid 1000), which
-owns `/data` in the image; a named volume inherits that, a bind-mounted host directory has to be
-writable for uid 1000. Everything grimoire keeps lives there; the container itself can be
-replaced at any time, for example for a new version.
-
-## Inside the container
-
-The working directory is `/grimoire`. Besides the server, the image contains
-`scripts/reset-admin.ts` for a lost admin password (see [Management area](admin.md#lost-password)):
+When mail is not set up, or the last admin cannot receive it, delete the admin account and set it
+up again:
 
 ```bash
 docker exec -it grimoire node scripts/reset-admin.ts
 ```
+
+The script asks for the email address of an admin and deletes that user and their sessions only
+when the address matches; without a terminal (`-it`) it refuses. grimoire keeps running. When no
+other admin is left, it logs `Admin account was reset.` and a new setup token.
+
+Anyone who can run `docker exec` or `kubectl exec` in the container can do this; restrict who may.

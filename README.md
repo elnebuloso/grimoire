@@ -91,9 +91,9 @@ make dev     # or: make build, then in app/: node --env-file=.env build
 Open `/manage`, set up the admin account with the setup token from the log, add a project with a
 source and create an API key under **API keys**.
 
-The container is described in [docs/handbook/docker.md](docs/handbook/docker.md); the environment
-variables, the volume for the SQLite file, the sync schedule and backups in
-[docs/handbook/database.md](docs/handbook/database.md).
+The container, its environment variables and the reverse proxy are described in
+[docs/handbook/docker.md](docs/handbook/docker.md); the volume for the SQLite file, the encryption
+key and backups in [docs/handbook/database.md](docs/handbook/database.md).
 
 ## Development
 
