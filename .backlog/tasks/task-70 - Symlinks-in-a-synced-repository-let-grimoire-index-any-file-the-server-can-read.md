@@ -3,10 +3,11 @@ id: TASK-70
 title: >-
   Symlinks in a synced repository let grimoire index any file the server can
   read
-status: To Do
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-30 00:14'
+updated_date: '2026-10-30 00:21'
 labels:
   - sync
 milestone: m-0
@@ -38,8 +39,28 @@ Review suggestion: guard the single place where checkout files are read (`readFi
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 A symlinked page pointing outside the checkout is not indexed
-- [ ] #2 A symlinked include target pointing outside the checkout is not read; the include is treated like a missing file
-- [ ] #3 Symlinks that stay inside the checkout either keep working or are skipped, and the behaviour is documented in the handbook
-- [ ] #4 Tests cover a symlinked page and a symlinked include pointing outside the checkout
+- [x] #1 A symlinked page pointing outside the checkout is not indexed
+- [x] #2 A symlinked include target pointing outside the checkout is not read; the include is treated like a missing file
+- [x] #3 Symlinks that stay inside the checkout either keep working or are skipped, and the behaviour is documented in the handbook
+- [x] #4 Tests cover a symlinked page and a symlinked include pointing outside the checkout
 <!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. Replace readFile in index-source.ts with readInside: resolve realpath and read only when it lies inside the realpath of the checkout. All page, include and site-config reads go through it.
+2. Pages that cannot be read that way are skipped with a source warning instead of being indexed empty.
+3. Tests for an outside page, an outside include and an inside symlink; handbook row in writing.md.
+<!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Symlinks that stay inside the checkout keep working (realpath inside the checkout), documented in docs/handbook/writing.md. The same guard also stops include paths with ../ that leave the checkout, since every checkout read goes through readInside. The two outside tests fail with the old readFile and pass with the fix.
+<!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Checkout files are now read only where their real path lies inside the checkout. A committed symlink to /proc/self/environ or the database no longer becomes a snippet: such a page is skipped with a source warning, such an include is treated as missing. Symlinks within the repository still work. Handbook (writing.md) says so. Verified by three new tests in index-source.spec.ts (two fail before the fix), make lint, make test (457 passed) and make handbook.
+<!-- SECTION:FINAL_SUMMARY:END -->

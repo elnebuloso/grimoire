@@ -1,5 +1,5 @@
-import { readdirSync, readFileSync } from 'node:fs';
-import { join, matchesGlob, posix } from 'node:path';
+import { readdirSync, readFileSync, realpathSync } from 'node:fs';
+import { isAbsolute, join, matchesGlob, posix, relative } from 'node:path';
 import { resolveIncludes, type IncludeResult, type UrlContent } from '../parsing/include';
 import {
 	extensionSettings,
@@ -37,11 +37,18 @@ export async function prepareCheckout(
 	fetchUrl: FetchUrl
 ): Promise<PreparedSource & { sourcePath: string }> {
 	const sourcePath = posix.normalize(source.path || '.').replace(/\/$/, '');
-	const files = listPages(checkout, sourcePath, source.exclusions);
-	const read = (path: string) => readFile(join(checkout, path));
-	const raw = new Map(files.map((file) => [file, read(posix.join(sourcePath, file)) ?? '']));
-
+	const root = realpathSync(checkout);
+	const read = (path: string) => readInside(root, path);
 	const warnings: string[] = [];
+	const raw = new Map<string, string>();
+	for (const file of listPages(checkout, sourcePath, source.exclusions)) {
+		const content = read(posix.join(sourcePath, file));
+		if (content === undefined)
+			warnings.push(`${posix.join(sourcePath, file)}: not readable inside the repository, skipped`);
+		else raw.set(file, content);
+	}
+	const files = [...raw.keys()];
+
 	let config: SiteConfig | undefined;
 	try {
 		config = findSiteConfig(sourcePath, read);
@@ -110,9 +117,15 @@ function listPages(checkout: string, sourcePath: string, exclusions: string[]): 
 		.sort();
 }
 
-function readFile(path: string): string | undefined {
+// Anyone who can push to a docs branch could commit a symlink to `/proc/self/environ` or the
+// database; its content would become a snippet every API key holder can read. So a file counts
+// only where it really lies inside the checkout, symlinks within the repository included.
+function readInside(root: string, path: string): string | undefined {
 	try {
-		return readFileSync(path, 'utf8');
+		const real = realpathSync(join(root, path));
+		const inside = relative(root, real);
+		if (inside.startsWith('..') || isAbsolute(inside)) return undefined;
+		return readFileSync(real, 'utf8');
 	} catch {
 		return undefined;
 	}

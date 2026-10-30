@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { indexPages } from './index-pages';
@@ -76,5 +76,54 @@ describe('indexCheckout with URL includes', () => {
 		expect(index.warnings).toEqual([
 			`docs/index.md: include "${URL}" not fetched, https://docs.example.com is not listed in INCLUDE_URL_ALLOW`
 		]);
+	});
+});
+
+describe('indexCheckout with symlinks', () => {
+	let outside: string;
+
+	beforeEach(() => {
+		outside = mkdtempSync(join(tmpdir(), 'grimoire-outside-'));
+		writeFileSync(join(outside, 'secret.md'), 'TOKEN_ENCRYPTION_KEY=secret\n');
+	});
+
+	afterEach(() => rmSync(outside, { recursive: true, force: true }));
+
+	const noUrls: FetchUrl = async () => ({ content: '' });
+
+	it('skips a page that links outside the checkout', async () => {
+		write({ 'docs/index.md': '# Start\n' });
+		symlinkSync(join(outside, 'secret.md'), join(checkout, 'docs/secrets.md'));
+
+		const index = await indexCheckout(noUrls);
+
+		expect(index.pages.map((page) => page.file)).toEqual(['index.md']);
+		expect(index.warnings).toEqual([
+			'docs/secrets.md: not readable inside the repository, skipped'
+		]);
+	});
+
+	it('treats an include that links outside the checkout as missing', async () => {
+		write({ 'docs/index.md': '# Start\n\n--8<-- "docs/db.md"\n' });
+		symlinkSync(join(outside, 'secret.md'), join(checkout, 'docs/db.md'));
+
+		const index = await indexCheckout(noUrls);
+
+		expect(index.pages.map((page) => page.file)).toEqual(['index.md']);
+		expect(pageText(index)).not.toContain('TOKEN_ENCRYPTION_KEY');
+		expect(index.warnings).toContain('docs/index.md: include "docs/db.md" not found');
+	});
+
+	it('follows a symlink that stays inside the checkout', async () => {
+		write({
+			'shared/note.md': 'Shared note.\n',
+			'docs/index.md': '# Start\n\n--8<-- "docs/note.md"\n'
+		});
+		symlinkSync(join(checkout, 'shared/note.md'), join(checkout, 'docs/note.md'));
+
+		const index = await indexCheckout(noUrls);
+
+		expect(pageText(index)).toContain('Shared note.');
+		expect(index.warnings).toEqual([]);
 	});
 });
