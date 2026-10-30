@@ -10,12 +10,8 @@ const preview: Preview = {
 			}
 		},
 
-		a11y: {
-			// 'todo' - show a11y violations in the test UI only
-			// 'error' - fail CI on a11y violations
-			// 'off' - skip a11y checks entirely
-			test: 'todo'
-		}
+		// An accessibility violation fails the story's test, in `make test` and in CI.
+		a11y: { test: 'error' }
 	},
 
 	// Sets the scheme as the product does: `data-theme` on <html>, none to follow the system.
