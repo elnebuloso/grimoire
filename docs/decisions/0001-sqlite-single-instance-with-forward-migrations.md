@@ -25,8 +25,7 @@ node.
 ## Decision
 
 - **SQLite**, one file on the volume, with FTS5 for search.
-- **Accessed through the SQLite module built into Node**, with plain SQL. All SQL lives in the
-  database module of the server code; nothing outside it writes queries.
+- **Accessed through the SQLite module built into Node**, with plain SQL.
 - **One instance.** One pod, `replicas: 1`, `strategy: Recreate`, a `ReadWriteOnce` or
   `ReadWriteOncePod` volume.
 - **Forward-only migrations.** Schema changes are numbered SQL files, applied in order and recorded
@@ -44,8 +43,8 @@ node.
 - A migration may drop and recreate pages, snippets, links and the search index instead of
   converting them — the next sync fills them again. Only sources and API keys must be
   carried over.
-- Moving to another database later means a new database module, a fresh set of migrations for that
-  engine, and copying sources and API keys. The search query is the part that needs real
+- Moving to another database later means rewriting the queries for that engine, a fresh set of
+  migrations, and copying sources and API keys. The search query is the part that needs real
   work, because ranking differs between engines.
 
 ## Rejected alternatives
@@ -55,7 +54,7 @@ only one here that allows two pods at once. Rejected for version 1: every operat
 run and back up a second component for a tool whose load one process handles; the built-in full-text
 search of PostgreSQL does not rank with BM25, so matching today's ranking needs an extension; and an
 internal knowledge base that is back within minutes after a node failure meets its availability
-need. Keeping all SQL in one module keeps this door open.
+need.
 
 **Several replicas sharing the SQLite file on a `ReadWriteMany` volume.** Shared volumes are served
 over NFS (Longhorn runs an NFS server per volume for this mode). SQLite's file locking is not
