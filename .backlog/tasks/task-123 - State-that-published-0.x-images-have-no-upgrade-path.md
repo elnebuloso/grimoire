@@ -1,10 +1,11 @@
 ---
 id: TASK-123
 title: State that published 0.x images have no upgrade path
-status: To Do
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-30 09:45'
+updated_date: '2026-10-30 10:01'
 labels:
   - ops
 milestone: m-0
@@ -22,7 +23,19 @@ Found in the whole-project code review of 2026-10-30. Releases v0.1 to v0.9 are 
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 The handbook says that 0.x releases are previews, that a database from one 0.x release is not guaranteed to work with a later one, and that the way forward is a fresh database
+- [x] #1 The handbook says that 0.x releases are previews, that a database from one 0.x release is not guaranteed to work with a later one, and that the way forward is a fresh database
 - [ ] #2 The same statement is reachable from where an operator starts (the README or the handbook page on running the image)
 - [ ] #3 `make handbook` builds without warnings
 <!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+Paragraph at the top of 'Schema updates' in docs/handbook/database.md; pointer from the image section of docker.md; one sentence in the README status.
+<!-- SECTION:PLAN:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+database.md 'Schema updates' says 0.x releases are previews: a database from one 0.x release may not work with a later one, and the way forward is a fresh database. docker.md's image section and the README status link to or repeat it. make handbook builds with no issues. As decided with the user, migration 0017 and TASK-29 stay unchanged.
+<!-- SECTION:FINAL_SUMMARY:END -->

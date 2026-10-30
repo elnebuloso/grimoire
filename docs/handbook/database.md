@@ -63,6 +63,11 @@ and concurrent writers can corrupt the file.
 
 ## Schema updates
 
+Releases before `1.0.0` are previews. A database written by one `0.x` release is not guaranteed
+to work with a later one, and no update path between them is kept: when updating a `0.x`
+installation, start the new release with a fresh database and enter projects, sources and API
+keys again. The rest of this section applies from `1.0.0` on.
+
 A new grimoire version updates the schema itself when it starts. Updates only go forward; each one
 runs in its own transaction, and a failed update is rolled back and stops the start with an error
 naming the migration.

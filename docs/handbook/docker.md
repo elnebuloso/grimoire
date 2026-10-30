@@ -11,7 +11,8 @@ is rejected, and under any other host name the browser drops the login cookie (s
 Every release is published on Docker Hub as `elnebuloso/grimoire`, tagged with the version of
 the release without its `v`: release `v1.2.0` is the image `elnebuloso/grimoire:1.2.0`. There is
 no `latest` tag: replace `<version>` below with the release you want, and change it to update.
-Releases up to `0.3.0` have no image.
+Releases up to `0.3.0` have no image. Releases before `1.0.0` are previews whose databases a later
+release need not read; see [Schema updates](database.md#schema-updates).
 
 To build the image from the repository instead, for example to try unreleased changes:
 

@@ -33,7 +33,8 @@ how to use them.
 ## Status
 
 Before `1.0.0`. Sync, search, the HTTP API, the MCP server, the management area and the Docker image
-work. Every release publishes its Docker image as `elnebuloso/grimoire:<version>`.
+work. Every release publishes its Docker image as `elnebuloso/grimoire:<version>`. `0.x` releases are
+previews without an upgrade path: a later release may need a fresh database.
 
 ## Connecting agents
 
