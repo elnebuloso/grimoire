@@ -85,6 +85,9 @@ async function checkAndSync(
 
 		const latest = await lanes.check(() => {
 			checkedAt = new Date();
+			// Recorded now, not only at the end: a process that dies in the sync stage (out of memory,
+			// say) would otherwise find the source due again on restart and die again, every start.
+			recordCheck(db, sourceId, checkedAt);
 			return remoteCommit(remote, source.branch);
 		});
 		if (latest === source.lastCommit && !options.force) {

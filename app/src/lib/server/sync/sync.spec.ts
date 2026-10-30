@@ -5,9 +5,10 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import type { DatabaseSync } from 'node:sqlite';
 import { openDatabase } from '../db/schema';
-import { splitCode } from '../db/sources';
+import { listSchedules, splitCode } from '../db/sources';
 import { encryptToken } from '../token-encryption';
 import { createSyncQueue, type SyncLanes } from './queue';
+import { isDue } from './schedule';
 import { syncSource } from './sync';
 
 const key = Buffer.alloc(32, 7);
@@ -234,6 +235,26 @@ describe('syncSource', () => {
 		await expectCheckedDuring(() => syncSource(db, source, { key, workDirectory: work }));
 		rmSync(bare, { recursive: true });
 		await expectCheckedDuring(() => syncSource(db, source, { key, workDirectory: work }));
+	});
+
+	it('records the check before the sync stage, so a process dying in it is not due again on restart', async () => {
+		let syncStageReached!: () => void;
+		const reached = new Promise<void>((resolve) => (syncStageReached = resolve));
+		// The sync stage never finishes, as when the process dies in it.
+		const lanes: SyncLanes = {
+			check: (work) => work(),
+			sync: () => {
+				syncStageReached();
+				return new Promise(() => {});
+			}
+		};
+
+		void syncSource(db, source, { key, workDirectory: work, lanes });
+		await reached;
+
+		const [schedule] = listSchedules(db);
+		expect(schedule.lastCheckedAt).not.toBeNull();
+		expect(isDue('0 * * * *', schedule.lastCheckedAt, schedule.lastCheckedAt!, 'UTC')).toBe(false);
 	});
 
 	it('records every run in the history of the source', async () => {
