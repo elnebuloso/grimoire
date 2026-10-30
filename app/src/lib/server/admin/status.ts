@@ -1,7 +1,6 @@
 import type { DatabaseSync } from 'node:sqlite';
-import { readSnippets } from '../agent/operations';
 import { grimoireId } from '../grimoire-id';
-import { renderSnippet } from '../search/query';
+import { readSnippets, renderSnippet } from '../search/query';
 import { projectStats, type ProjectStats } from '../stats';
 
 export interface PageSummary {

@@ -3,11 +3,10 @@ import type { ProjectScope } from '../api-keys';
 import { grimoireId, type SectionLocation } from '../grimoire-id';
 import {
 	IN_SCOPE,
+	readSnippets,
 	renderSnippet,
 	scopeParameter,
-	searchSnippets,
-	selectSnippets,
-	type SnippetHit
+	searchSnippets
 } from '../search/query';
 import { recordMissedQuery } from '../missed-queries';
 import instructions from './instructions.md?raw';
@@ -199,27 +198,6 @@ export function readById(
 	const hits = readSnippets(db, location, scope);
 	if (hits.length === 0) return idNotFound(grimoireId(location, location.anchor || null));
 	return { found: true, markdown: hits.map(renderSnippet).join('\n\n') };
-}
-
-/** The snippets `readById` renders, in page order; empty for an unknown page or section. */
-export function readSnippets(
-	db: DatabaseSync,
-	location: SectionLocation,
-	scope: ProjectScope
-): SnippetHit[] {
-	// An empty anchor names no section, so `?section=` and an ID ending in `#` read the page.
-	const anchor = location.anchor || null;
-	return selectSnippets(
-		db,
-		{
-			where: `projects.slug = :project AND sources.slug = :source AND pages.file = :file
-				AND (:anchor IS NULL OR snippets.anchor = :anchor
-					OR :anchor IN (SELECT value FROM json_each(snippets.aliases)))`,
-			orderBy: 'snippets.position'
-		},
-		{ project: location.project, source: location.source, file: location.file, anchor },
-		scope
-	);
 }
 
 // A `]` in a title would end the link text early, and llms.txt is parsed by other tools.

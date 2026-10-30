@@ -3,7 +3,7 @@ import type { DatabaseSync, SQLInputValue } from 'node:sqlite';
 import { estimateTokens } from '../parsing/chunk';
 import { redactUrl } from '../sync/git';
 import type { ProjectScope } from '../api-keys';
-import { grimoireId, withSlugs } from '../grimoire-id';
+import { grimoireId, withSlugs, type SectionLocation } from '../grimoire-id';
 
 export interface SearchOptions {
 	query: string;
@@ -81,6 +81,27 @@ export function selectSnippets(
 		)
 		.all({ ...parameters, scope: scopeParameter(scope) }) as unknown as SnippetRow[];
 	return rows.map(toSnippetHit);
+}
+
+/** The snippets of a page or one section, in page order; empty for an unknown page or section. */
+export function readSnippets(
+	db: DatabaseSync,
+	location: SectionLocation,
+	scope: ProjectScope
+): SnippetHit[] {
+	// An empty anchor names no section, so `?section=` and an ID ending in `#` read the page.
+	const anchor = location.anchor || null;
+	return selectSnippets(
+		db,
+		{
+			where: `projects.slug = :project AND sources.slug = :source AND pages.file = :file
+				AND (:anchor IS NULL OR snippets.anchor = :anchor
+					OR :anchor IN (SELECT value FROM json_each(snippets.aliases)))`,
+			orderBy: 'snippets.position'
+		},
+		{ project: location.project, source: location.source, file: location.file, anchor },
+		scope
+	);
 }
 
 export const DEFAULT_TOKENS = 3000;
