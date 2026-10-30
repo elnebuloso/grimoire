@@ -26,7 +26,7 @@ Facts learned while building grimoire.
 ## Dependencies
 
 - A new or updated dependency is at least two weeks old and pinned to an exact version; security
-  fixes are the exception. The same holds for base images and images in examples.
+  fixes are the exception. The same holds for base images, images in examples and GitHub Actions.
 
 ## Trying things by hand
 
