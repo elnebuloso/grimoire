@@ -407,6 +407,10 @@ td.num {
 .sheet.flush > :not(.table-scroll) {
 	padding: var(--s5) var(--s5) var(--s4);
 }
+.sheet.flush > * + :not(.table-scroll) {
+	padding-top: 0;
+	padding-bottom: var(--s5);
+}
 .sheet.flush thead th {
 	background: var(--well);
 }

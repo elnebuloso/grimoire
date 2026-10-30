@@ -13,5 +13,14 @@
 	);
 </script>
 
-<h1>{title}</h1>
-<p><a href={resolve('/')}>{m.error_start_page()}</a></p>
+<section class="sheet" aria-labelledby="error-title">
+	<h1 id="error-title">{title}</h1>
+	<p><a href={resolve('/')}>{m.error_start_page()}</a></p>
+</section>
+
+<style>
+	section {
+		gap: var(--s5);
+		padding-block: var(--s6);
+	}
+</style>

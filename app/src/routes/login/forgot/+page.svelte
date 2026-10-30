@@ -1,5 +1,6 @@
 <script lang="ts">
 	import FormError from '#lib/components/FormError.svelte';
+	import PageHead from '#lib/components/PageHead.svelte';
 	import TextField from '#lib/components/TextField.svelte';
 	import { m } from '#lib/paraglide/messages.js';
 	import type { PageProps } from './$types';
@@ -7,22 +8,23 @@
 	let { form }: PageProps = $props();
 </script>
 
-<h1>{m.forgot_title()}</h1>
-
 {#if form?.sent}
-	<p role="status">{m.forgot_sent()}</p>
+	<PageHead title={m.forgot_title()} />
+	<p class="notice" role="status">{m.forgot_sent()}</p>
 {:else}
-	<p>{m.forgot_intro()}</p>
-	<form method="post">
-		<FormError message={form?.error} />
-		<TextField
-			label={m.field_email()}
-			name="email"
-			type="email"
-			required
-			autocomplete="username"
-			value={form?.email ?? ''}
-		/>
-		<button>{m.forgot_submit()}</button>
-	</form>
+	<PageHead title={m.forgot_title()}><p>{m.forgot_intro()}</p></PageHead>
+	<section class="sheet">
+		<form method="post">
+			<FormError message={form?.error} />
+			<TextField
+				label={m.field_email()}
+				name="email"
+				type="email"
+				required
+				autocomplete="username"
+				value={form?.email ?? ''}
+			/>
+			<button class="primary">{m.forgot_submit()}</button>
+		</form>
+	</section>
 {/if}
