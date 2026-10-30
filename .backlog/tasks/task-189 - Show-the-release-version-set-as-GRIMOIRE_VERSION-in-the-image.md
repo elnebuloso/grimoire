@@ -1,9 +1,11 @@
 ---
 id: TASK-189
 title: 'Show the release version, set as GRIMOIRE_VERSION in the image'
-status: To Do
-assignee: []
+status: Done
+assignee:
+  - '@claude'
 created_date: '2026-10-30 22:30'
+updated_date: '2026-10-30 23:09'
 labels:
   - ops
 milestone: m-0
@@ -29,12 +31,36 @@ Agreed with the user:
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Without `GRIMOIRE_VERSION` the app runs with `0.0.0`, and the footer shows "grimoire 0.0.0" without a link
-- [ ] #2 An image built by `make image GRIMOIRE_VERSION=1.2.3` has `GRIMOIRE_VERSION=1.2.3` in its environment, shows "grimoire 1.2.3" in the footer linking to the release notes of `v1.2.3`, and reports `1.2.3` as MCP `serverInfo.version`
-- [ ] #3 The release builds the image with the version semantic-release computes
-- [ ] #4 No code reads the version from `app/package.json` any more
-- [ ] #5 `make image-smoke` checks the version of the image
-- [ ] #6 Tests cover the default, a set version in the footer link and the MCP server version
-- [ ] #7 `docs/handbook/docker.md` says the image sets `GRIMOIRE_VERSION` and operators leave it alone; `docs/DESIGN.md` describes the version in the footer
-- [ ] #8 `make lint`, `make test` and `make e2e` pass
+- [x] #1 Without `GRIMOIRE_VERSION` the app runs with `0.0.0`, and the footer shows "grimoire 0.0.0" without a link
+- [x] #2 An image built by `make image GRIMOIRE_VERSION=1.2.3` has `GRIMOIRE_VERSION=1.2.3` in its environment, shows "grimoire 1.2.3" in the footer linking to the release notes of `v1.2.3`, and reports `1.2.3` as MCP `serverInfo.version`
+- [x] #3 The release builds the image with the version semantic-release computes
+- [x] #4 No code reads the version from `app/package.json` any more
+- [x] #5 `make image-smoke` checks the version of the image
+- [x] #6 Tests cover the default, a set version in the footer link and the MCP server version
+- [x] #7 `docs/handbook/docker.md` says the image sets `GRIMOIRE_VERSION` and operators leave it alone; `docs/DESIGN.md` describes the version in the footer
+- [x] #8 `make lint`, `make test` and `make e2e` pass
 <!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. GRIMOIRE_VERSION in env.ts, default 0.0.0
+2. Dockerfile ARG/ENV, make image --build-arg, .releaserc.json passes nextRelease.version to image and image-smoke
+3. MCP serverInfo.version from GRIMOIRE_VERSION, package.json import removed
+4. Footer: version next to grimoire, releaseNotesUrl() links releases, none for 0.0.0
+5. Tests (release.spec, agent-api.spec, e2e with 1.2.3), smoke check, docs
+<!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+- The e2e server runs as GRIMOIRE_VERSION=1.2.3 (playwright.config.ts), so e2e checks the linked state; the 0.0.0 state is covered by release.spec.ts and the agent environment.
+- Checked by hand: make image GRIMOIRE_VERSION=1.2.3, docker inspect shows the variable, make image-smoke passes with 1.2.3 and fails with 9.9.9; the running container renders the footer link to releases/tag/v1.2.3.
+- The local grimoire:latest is left built as 1.2.3.
+<!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+GRIMOIRE_VERSION (default 0.0.0) is set in the image by the release (ARG/ENV, make image, .releaserc.json), reported as MCP serverInfo.version instead of package.json, and shown in the footer as "grimoire <version>", linked to the GitHub release notes except for 0.0.0. make image-smoke checks the version. Verified: release.spec, agent-api.spec, e2e footer link, image build and smoke with 1.2.3 (and a failing 9.9.9), container footer; make lint, make test (699), make e2e (23). The release path itself runs only in CI on the next release.
+<!-- SECTION:FINAL_SUMMARY:END -->
