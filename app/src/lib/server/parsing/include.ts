@@ -191,7 +191,6 @@ function findBlockEnd(lines: string[], start: number): number {
 	return -1;
 }
 
-/** Ranges like `:4:6,-2:` – 1-based and inclusive, negative counts from the end, `0` means 1. */
 /**
  * Splits an include name into file and selection like pymdownx.snippets' pattern
  * `(.*?)(?:(ranges)|:(section))?$`: the file is the shortest start whose rest is a selection.
@@ -221,6 +220,7 @@ function splitSelection(name: string): { file: string; ranges?: string; section?
 	return { file: name };
 }
 
+/** Ranges like `:4:6,-2:` – 1-based and inclusive, negative counts from the end, `0` means 1. */
 function selectLines(lines: string[], ranges: string): string[] {
 	const total = lines.length;
 	return ranges
