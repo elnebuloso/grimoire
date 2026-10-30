@@ -1,3 +1,4 @@
 site/
 .playwright-mcp/
-docs/reviews/
+docs/audit/
+docs/private/
