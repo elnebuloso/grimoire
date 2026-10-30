@@ -1,6 +1,7 @@
 import type { DatabaseSync } from 'node:sqlite';
 import { redactUrl } from '../sync/git';
 import { parseSchedule } from '../sync/schedule';
+import type { SourceFields } from '#lib/source-fields.js';
 import { encryptToken } from '../token-encryption';
 import { m } from '#lib/paraglide/messages.js';
 import { isSlug, MAX_NAME_LENGTH, MAX_SLUG_LENGTH, slugify } from '../../slug';
@@ -40,18 +41,7 @@ export interface SourceSettings {
 	hasToken: boolean;
 }
 
-export interface SourceForm {
-	name: string;
-	gitUrl: string;
-	/** Empty for none. */
-	docsUrl: string;
-	branch: string;
-	path: string;
-	/** One glob pattern per line. */
-	exclusions: string;
-	schedule: string;
-	paused: boolean;
-	username: string;
+export interface SourceForm extends SourceFields {
 	/** Empty keeps the stored token. */
 	token: string;
 	removeToken: boolean;

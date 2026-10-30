@@ -6,6 +6,7 @@ import { requestSyncInBackground } from '#lib/server/sync/index.js';
 import { redactUrl } from '#lib/server/sync/git.js';
 import { checkSourceAccess } from '#lib/server/admin/source-access.js';
 import { readFormSecret, SOURCE_TOKEN_FIELDS } from '#lib/server/admin/form-secret.js';
+import { readSourceFields, type SourceFields } from '#lib/source-fields.js';
 import { m } from '#lib/paraglide/messages.js';
 import { syncsAutomatically } from '#lib/server/settings.js';
 import {
@@ -21,7 +22,7 @@ export type Step = 'project' | 'source' | 'summary';
 /** Everything entered so far; the token only encrypted, so the page never holds it in plain text. */
 export interface WizardValues {
 	project: ProjectForm;
-	source: Omit<SourceForm, 'token' | 'removeToken'>;
+	source: SourceFields;
 	encryptedToken: string;
 }
 
@@ -40,17 +41,7 @@ function readInput(data: FormData): WizardInput {
 	const token = readFormSecret(data, TOKEN_ENCRYPTION_KEY, SOURCE_TOKEN_FIELDS);
 	const values: WizardValues = {
 		project: { name: field('projectName'), description: field('description') },
-		source: {
-			name: field('sourceName'),
-			gitUrl: field('gitUrl'),
-			docsUrl: field('docsUrl'),
-			branch: field('branch'),
-			path: field('path'),
-			exclusions: field('exclusions'),
-			schedule: field('schedule'),
-			paused: data.get('paused') === 'on',
-			username: field('username')
-		},
+		source: readSourceFields(data),
 		encryptedToken: token.sealed
 	};
 	return { values, token: token.value, damaged: token.damaged };

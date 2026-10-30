@@ -23,7 +23,7 @@ vi.mock('$app/env/private', () => ({ TOKEN_ENCRYPTION_KEY: KEY, SYNC_SCHEDULE: '
 const FIELDS = {
 	projectName: 'Platform',
 	description: 'Login and billing',
-	sourceName: 'Auth Service',
+	name: 'Auth Service',
 	gitUrl: 'https://gitlab.example.com/platform/auth.git',
 	branch: 'main',
 	path: 'docs/',

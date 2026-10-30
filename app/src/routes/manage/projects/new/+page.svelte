@@ -8,6 +8,7 @@
 	import TextField from '#lib/components/TextField.svelte';
 	import { m } from '#lib/paraglide/messages.js';
 	import { slugify } from '#lib/slug.js';
+	import { hiddenSourceFields, NEW_SOURCE_FIELDS } from '#lib/source-fields.js';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
@@ -15,17 +16,7 @@
 	const values = $derived(
 		form?.values ?? {
 			project: { name: '', description: '' },
-			source: {
-				name: '',
-				gitUrl: '',
-				docsUrl: '',
-				branch: 'main',
-				path: 'docs/',
-				exclusions: '',
-				schedule: '',
-				paused: false,
-				username: ''
-			},
+			source: NEW_SOURCE_FIELDS,
 			encryptedToken: ''
 		}
 	);
@@ -53,7 +44,7 @@
 
 {#snippet sourceFields(visible: boolean)}
 	{#if visible}
-		<NameField label={m.field_name()} name="sourceName" value={values.source.name} />
+		<NameField label={m.field_name()} name="name" value={values.source.name} />
 		<TextField
 			label={m.field_git_url()}
 			name="gitUrl"
@@ -86,15 +77,9 @@
 			<ChoiceField name="discardToken" label={m.field_remove_entered_token()} />
 		{/if}
 	{:else}
-		<input type="hidden" name="sourceName" value={values.source.name} />
-		<input type="hidden" name="gitUrl" value={values.source.gitUrl} />
-		<input type="hidden" name="docsUrl" value={values.source.docsUrl} />
-		<input type="hidden" name="branch" value={values.source.branch} />
-		<input type="hidden" name="path" value={values.source.path} />
-		<input type="hidden" name="exclusions" value={values.source.exclusions} />
-		<input type="hidden" name="schedule" value={values.source.schedule} />
-		{#if values.source.paused}<input type="hidden" name="paused" value="on" />{/if}
-		<input type="hidden" name="username" value={values.source.username} />
+		{#each hiddenSourceFields(values.source) as [name, value] (name)}
+			<input type="hidden" {name} {value} />
+		{/each}
 	{/if}
 	<input type="hidden" name="encryptedToken" value={values.encryptedToken} />
 {/snippet}

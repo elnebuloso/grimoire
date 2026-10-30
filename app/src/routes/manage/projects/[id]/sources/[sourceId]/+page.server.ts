@@ -8,6 +8,7 @@ import { redactUrl } from '#lib/server/sync/git.js';
 import { nextRun } from '#lib/server/sync/schedule.js';
 import { accessChanged, checkSourceAccess } from '#lib/server/admin/source-access.js';
 import { readFormSecret, SOURCE_TOKEN_FIELDS } from '#lib/server/admin/form-secret.js';
+import { readSourceFields } from '#lib/source-fields.js';
 import { m } from '#lib/paraglide/messages.js';
 import {
 	changeSourceSlug,
@@ -68,32 +69,13 @@ export const load: PageServerLoad = ({ params, url }) => {
  * encrypted, so a test or a rejected save keeps it without the page ever holding it in plain text.
  */
 function readSourceForm(data: FormData) {
-	const field = (name: string) => String(data.get(name) ?? '');
+	const fields = readSourceFields(data);
 	const token = readFormSecret(data, TOKEN_ENCRYPTION_KEY, SOURCE_TOKEN_FIELDS);
-	const form: SourceForm = {
-		name: field('name'),
-		gitUrl: field('gitUrl'),
-		docsUrl: field('docsUrl'),
-		branch: field('branch'),
-		path: field('path'),
-		exclusions: field('exclusions'),
-		schedule: field('schedule'),
-		paused: data.get('paused') === 'on',
-		username: field('username'),
-		token: token.value,
-		removeToken: token.remove
-	};
+	const form: SourceForm = { ...fields, token: token.value, removeToken: token.remove };
 	const values = {
-		name: form.name,
-		gitUrl: redactUrl(form.gitUrl),
-		docsUrl: form.docsUrl,
-		branch: form.branch,
-		path: form.path,
-		exclusions: form.exclusions,
-		schedule: form.schedule,
-		paused: form.paused,
-		username: form.username,
-		removeToken: form.removeToken,
+		...fields,
+		gitUrl: redactUrl(fields.gitUrl),
+		removeToken: token.remove,
 		encryptedToken: token.sealed
 	};
 	return { form, values, damaged: token.damaged ? m.error_token_damaged() : undefined };
