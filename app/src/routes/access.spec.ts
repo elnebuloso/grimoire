@@ -339,6 +339,24 @@ describe('admin access guard', () => {
 		}
 		expect(logged()).toEqual([]);
 	});
+
+	it('requires a login for every route of the management area and the account', async () => {
+		await setUpAdmin();
+		// Read from the files, so a new route, or one moved into a route group, is checked too.
+		const routeIds = Object.keys(import.meta.glob('./**/+{page.svelte,page.server.ts,server.ts}'))
+			.map((file) => file.slice(1, file.lastIndexOf('/')) || '/')
+			.filter((id) => {
+				const path = id.replace(/\/\([^)]*\)/g, '');
+				return ['/manage', '/account'].some((area) => path === area || path.startsWith(`${area}/`));
+			});
+
+		expect(routeIds.length).toBeGreaterThan(10);
+		for (const id of new Set(routeIds)) {
+			const result = await thrown(request(id, undefined, id).run).catch(() => 'served');
+
+			expect([id, isRedirect(result) && result.location]).toEqual([id, '/login']);
+		}
+	});
 });
 
 describe('handleError', () => {
