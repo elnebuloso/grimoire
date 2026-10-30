@@ -56,8 +56,8 @@ try {
 	);
 
 	const insertSource = db.prepare(
-		`INSERT INTO sources (slug, name, description, git_url, branch, path, paused)
-		 VALUES (?, ?, ?, ?, 'main', ?, ?)`
+		`INSERT INTO sources (slug, name, description, git_url, branch, path, paused, public)
+		 VALUES (?, ?, ?, ?, 'main', ?, ?, ?)`
 	);
 	insertSource.run(
 		'platform-docs',
@@ -65,20 +65,24 @@ try {
 		'Platform team handbook',
 		FIXTURE_REPOSITORY,
 		'zensical/docs',
+		0,
 		0
 	);
+	// Public, so keyless MCP and HTTP and the query form on the start page can be tried without
+	// changing a source by hand; platform-docs stays private to check the boundary against.
 	insertSource.run(
 		'billing-docs',
 		'Billing docs',
 		'Billing team documentation',
 		FIXTURE_REPOSITORY,
 		'mkdocs/docs',
-		0
+		0,
+		1
 	);
 	// The path does not exist in the repository, so every sync fails.
-	insertSource.run('billing-archive', 'Billing archive', '', FIXTURE_REPOSITORY, 'archive/docs', 0);
+	insertSource.run('billing-archive', 'Billing archive', '', FIXTURE_REPOSITORY, 'archive/docs', 0, 0);
 	// Paused before its first check: polling never syncs it, only "sync now" does.
-	insertSource.run('platform-next', 'Platform next', '', FIXTURE_REPOSITORY, 'zensical/docs', 1);
+	insertSource.run('platform-next', 'Platform next', '', FIXTURE_REPOSITORY, 'zensical/docs', 1, 0);
 	db.exec('COMMIT');
 } catch (error) {
 	if (db.isTransaction) db.exec('ROLLBACK');

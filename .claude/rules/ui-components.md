@@ -14,9 +14,9 @@ next to it.
 - **Only building blocks become components:** a group of elements with a structure or behaviour of
   its own. A single element, such as a back link or an empty-state sentence, stays where it is; a
   component around it adds nothing.
-- **Share the parts when the wholes differ.** Two forms with the same fields under different names
-  or rules (the source form and the source step of the project wizard) share the field
-  components, not one component for the whole set.
+- **Share the parts when the wholes differ.** Two forms with the same fields under different rules
+  (the setup form and the login form) share the field components, not one component for the whole
+  set.
 
 ## Stories
 
