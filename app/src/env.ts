@@ -71,7 +71,7 @@ export const variables = defineEnvVars({
 	},
 	BASE_URL: {
 		description:
-			'Where grimoire is reached, such as `https://grimoire.example.com`; links in mails point there; required with `SMTP_HOST`',
+			'Where grimoire is reached, such as `https://grimoire.example.com`; absolute links (mails, start page, `llms.txt`) point there, else to the address of the request; required with `SMTP_HOST`',
 		schema: parseBaseUrl
 	},
 	LOG_LEVEL: {
