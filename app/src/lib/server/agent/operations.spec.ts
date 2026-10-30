@@ -205,9 +205,24 @@ describe('queryProjects', () => {
 			false
 		);
 	});
+
+	it('answers an empty project name like an unknown project', () => {
+		expect(queryProjects(db, { query: 'rollback', project: '' }, 'all')).toEqual({
+			found: false,
+			markdown: expect.stringContaining('Project "" not found')
+		});
+	});
 });
 
 describe('llmsTxt', () => {
+	it('escapes brackets in a title, so its link stays a link', () => {
+		addSource(addProject('ops'), 'ops', 'runbooks', { 'index.md': '# The [old] way \\ back' });
+
+		expect(llmsTxt(db, 'ops', 'all', 'https://grimoire.example').markdown).toContain(
+			'- [The \\[old\\] way \\\\ back](https://grimoire.example/p/ops/runbooks/index)'
+		);
+	});
+
 	it('links every page of the project to its HTTP route, sections left out', () => {
 		addSource(addProject('ops'), 'ops', 'runbooks', { 'On Call/first day.md': '# First day' });
 

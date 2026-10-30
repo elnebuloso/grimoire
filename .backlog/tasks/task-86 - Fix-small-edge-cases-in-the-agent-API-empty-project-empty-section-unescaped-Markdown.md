@@ -3,9 +3,11 @@ id: TASK-86
 title: >-
   Fix small edge cases in the agent API: empty project, empty section, unescaped
   Markdown
-status: To Do
-assignee: []
+status: Done
+assignee:
+  - '@claude'
 created_date: '2026-10-30 01:34'
+updated_date: '2026-10-30 01:55'
 labels:
   - agent-api
 milestone: m-0
@@ -32,8 +34,28 @@ Found by a code review on 2026-10-30.
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 MCP `search` with `project: ""` is rejected or answered like an unknown project, never with an unscoped-looking "No results"
-- [ ] #2 An empty section is treated the same over HTTP and MCP
-- [ ] #3 A page title containing `[` or `]` yields a valid link in `llms.txt` (and in the index)
-- [ ] #4 Each case has a test that fails on the old code
+- [x] #1 MCP `search` with `project: ""` is rejected or answered like an unknown project, never with an unscoped-looking "No results"
+- [x] #2 An empty section is treated the same over HTTP and MCP
+- [x] #3 A page title containing `[` or `]` yields a valid link in `llms.txt` (and in the index)
+- [x] #4 Each case has a test that fails on the old code
 <!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. Empty project: fix in `queryProjects` (shared by MCP and HTTP), checking `project !== undefined` instead of truthiness, so "" gets "Project \"\" not found".
+2. Empty section: already settled in TASK-82 (`readById` treats an empty anchor as none; test "reads the whole page for an empty anchor").
+3. Escape `\`, `[` and `]` in llms.txt link text.
+<!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+The index lists titles as plain text after the ID, not as links, so a `]` breaks nothing there and it is left unescaped; only llms.txt has link text. The empty project is fixed in `queryProjects` rather than in the MCP schema, so every caller gets it. New tests for 1 and 3 failed on the old code; the test for 2 came with TASK-82 and failed on the code before it. 445 server tests and make lint pass; agent environment: MCP `query` with `project: ""` answers `Project "" not found`.
+<!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+An empty `project` in a search is now answered like an unknown project instead of an empty result. Brackets and backslashes in page titles are escaped in llms.txt link text, so the link stays valid. An empty section reads the whole page over HTTP and MCP alike (done with TASK-82). Covered by tests that fail on the old code, the full server suite, make lint and an MCP request against the agent environment.
+<!-- SECTION:FINAL_SUMMARY:END -->

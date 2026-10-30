@@ -128,7 +128,7 @@ export function llmsTxt(
 			.split('/')
 			.map(encodeURIComponent)
 			.join('/');
-		lines.push(`- [${row.title}](${origin}/p/${path})`);
+		lines.push(`- [${linkText(row.title!)}](${origin}/p/${path})`);
 	}
 	return { found: true, markdown: lines.join('\n') };
 }
@@ -145,7 +145,7 @@ export function queryProjects(
 	options: QueryOptions,
 	scope: ProjectScope
 ): OperationResult {
-	if (options.project && !projectVisible(db, options.project, scope)) {
+	if (options.project !== undefined && !projectVisible(db, options.project, scope)) {
 		return projectNotFound(options.project);
 	}
 	const markdown = searchSnippets(db, { ...options, allowedProjects: scope });
@@ -182,6 +182,11 @@ export function readById(
 
 	if (hits.length === 0) return idNotFound(grimoireId(location, anchor));
 	return { found: true, markdown: hits.map(renderSnippet).join('\n\n') };
+}
+
+// A `]` in a title would end the link text early, and llms.txt is parsed by other tools.
+function linkText(text: string): string {
+	return text.replace(/[\\[\]]/g, '\\$&');
 }
 
 function findProject(
