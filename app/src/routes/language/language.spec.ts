@@ -24,7 +24,10 @@ describe('POST /language', () => {
 		'//evil.example',
 		'/\\evil.example',
 		'https://evil.example/',
-		'javascript:alert(1)'
+		'javascript:alert(1)',
+		'/.//evil.example',
+		'/a/..//evil.example',
+		'http://[x'
 	])('goes to the start page instead of another site: %j', async (target) => {
 		expect(await redirectFor(target)).toBe('/');
 	});

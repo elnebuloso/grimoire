@@ -19,8 +19,10 @@ export const POST: RequestHandler = async ({ request, cookies, url }) => {
 };
 
 // Only a path on this site: anything else would make the switch an open redirect. Resolved the
-// way a browser does, which reads `/\host` and `/<tab>/host` like `//host`.
+// way a browser does, which reads `/\host` and `/<tab>/host` like `//host`; a resolved path can
+// itself start with `//` (from `/.//host`), which a browser reads as another host again.
 function pathOnThisSite(target: string, url: URL): string {
-	const resolved = new URL(target, url);
-	return resolved.origin === url.origin ? resolved.pathname + resolved.search + resolved.hash : '/';
+	const resolved = URL.parse(target, url);
+	if (resolved?.origin !== url.origin || resolved.pathname.startsWith('//')) return '/';
+	return resolved.pathname + resolved.search + resolved.hash;
 }
