@@ -56,8 +56,8 @@ function addSource(
 	const sourceId = Number(
 		db
 			.prepare(
-				`INSERT INTO sources (slug, description, git_url, branch, path)
-				VALUES (?, ?, 'https://git.example/x.git', 'main', 'docs/')`
+				`INSERT INTO sources (slug, name, description, git_url, branch, path)
+				VALUES (?, 'Docs', ?, 'https://git.example/x.git', 'main', 'docs/')`
 			)
 			.run(slug, description).lastInsertRowid
 	);
@@ -348,8 +348,8 @@ describe('after a slug change', () => {
 		const sourceId = Number(
 			db
 				.prepare(
-					`INSERT INTO sources (slug, git_url, branch, path)
-					VALUES ('wiki', 'https://git.example/x.git', 'main', 'docs/')`
+					`INSERT INTO sources (slug, name, git_url, branch, path)
+					VALUES ('wiki', 'Wiki', 'https://git.example/x.git', 'main', 'docs/')`
 				)
 				.run().lastInsertRowid
 		);

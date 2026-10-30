@@ -3,6 +3,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { DatabaseSync } from 'node:sqlite';
+import { isSlug } from '../../slug';
 import { openDatabase } from './schema';
 
 function insert(db: DatabaseSync, sql: string, ...values: (string | number | null)[]): number {
@@ -12,7 +13,7 @@ function insert(db: DatabaseSync, sql: string, ...values: (string | number | nul
 function addSource(db: DatabaseSync, slug: string): number {
 	return insert(
 		db,
-		`INSERT INTO sources (slug, git_url, branch, path) VALUES (?, 'https://git.example/x.git', 'main', 'docs/')`,
+		`INSERT INTO sources (slug, name, git_url, branch, path) VALUES (?, 'Docs', 'https://git.example/x.git', 'main', 'docs/')`,
 		slug
 	);
 }
@@ -136,6 +137,41 @@ describe('openDatabase', () => {
 			/CHECK constraint failed/
 		);
 		expect(() => db.prepare(`UPDATE ${table} SET ${column} = '["closed"]'`).run()).not.toThrow();
+	});
+
+	it.each([
+		'auth-service',
+		'a',
+		'v2',
+		'a'.repeat(40),
+		'a'.repeat(41),
+		'',
+		'Auth',
+		'auth_service',
+		'auth service',
+		'-auth',
+		'auth-',
+		'auth--service',
+		'prüfung'
+	])('accepts the slug %j exactly when isSlug does', (slug) => {
+		const db = openDatabase(':memory:');
+		const stored = () => addSource(db, slug);
+
+		if (isSlug(slug)) expect(stored).not.toThrow();
+		else expect(stored).toThrow(/CHECK constraint failed/);
+	});
+
+	it.each(['', '   '])('refuses the source name %j', (name) => {
+		const db = openDatabase(':memory:');
+
+		expect(() =>
+			db
+				.prepare(
+					`INSERT INTO sources (slug, name, git_url, branch, path)
+					VALUES ('docs', ?, 'https://git.example/x.git', 'main', 'docs/')`
+				)
+				.run(name)
+		).toThrow(/CHECK constraint failed/);
 	});
 
 	it('removes the scope entries of API keys with their source', () => {

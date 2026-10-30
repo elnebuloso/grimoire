@@ -28,7 +28,7 @@ beforeEach(() => {
 	db = openDatabase(':memory:');
 	for (const slug of ['billing-docs', 'platform-docs', 'search-docs']) {
 		db.prepare(
-			"INSERT INTO sources (slug, git_url, branch, path) VALUES (?, 'https://git.example/x.git', 'main', 'docs/')"
+			"INSERT INTO sources (slug, name, git_url, branch, path) VALUES (?, 'Docs', 'https://git.example/x.git', 'main', 'docs/')"
 		).run(slug);
 	}
 });

@@ -45,9 +45,9 @@ function insertLink(pageId: number, anchor: string | null, target: string, dead:
 beforeEach(() => {
 	db = openDatabase(':memory:');
 	db.exec(`
-		INSERT INTO sources (id, slug, git_url, branch, path)
-		VALUES (1, 'auth', 'https://git.example.com/auth.git', 'main', 'docs/'),
-			(2, 'billing', 'https://git.example.com/billing.git', 'main', 'docs/');
+		INSERT INTO sources (id, slug, name, git_url, branch, path)
+		VALUES (1, 'auth', 'Auth', 'https://git.example.com/auth.git', 'main', 'docs/'),
+			(2, 'billing', 'Billing', 'https://git.example.com/billing.git', 'main', 'docs/');
 	`);
 });
 
@@ -195,13 +195,13 @@ describe('previewPage', () => {
 describe('dashboard', () => {
 	beforeEach(() => {
 		db.exec(`
-			INSERT INTO sources (id, slug, git_url, branch, path, last_synced_at, error, warnings)
+			INSERT INTO sources (id, slug, name, git_url, branch, path, last_synced_at, error, warnings)
 			VALUES
-				(3, 'broken', 'https://git.example.com/b.git', 'main', '', '2026-10-28T10:00:00Z',
+				(3, 'broken', 'Broken', 'https://git.example.com/b.git', 'main', '', '2026-10-28T10:00:00Z',
 					'git ls-remote failed', '[]'),
-				(4, 'noisy', 'https://git.example.com/n.git', 'main', '', '2026-10-28T10:00:00Z',
+				(4, 'noisy', 'Noisy', 'https://git.example.com/n.git', 'main', '', '2026-10-28T10:00:00Z',
 					NULL, '["docs/a.md: skipped, bad front matter"]'),
-				(5, 'fine', 'https://git.example.com/f.git', 'main', '', '2026-10-28T10:00:00Z',
+				(5, 'fine', 'Fine', 'https://git.example.com/f.git', 'main', '', '2026-10-28T10:00:00Z',
 					NULL, '[]');
 			INSERT INTO api_keys (name, key_hash, all_sources) VALUES ('ci', 'hash-1', 1), ('bot', 'hash-2', 0);
 		`);

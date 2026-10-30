@@ -20,9 +20,9 @@ function addDeadLink(sourceId: number, file: string, target: string) {
 beforeEach(() => {
 	db = openDatabase(':memory:');
 	db.exec(`
-		INSERT INTO sources (id, slug, git_url, branch, path)
-		VALUES (1, 'platform-auth', 'https://git.example.com/a.git', 'main', ''),
-			(2, 'billing-docs', 'https://git.example.com/d.git', 'main', '');
+		INSERT INTO sources (id, slug, name, git_url, branch, path)
+		VALUES (1, 'platform-auth', 'Platform auth', 'https://git.example.com/a.git', 'main', ''),
+			(2, 'billing-docs', 'Billing docs', 'https://git.example.com/d.git', 'main', '');
 	`);
 });
 

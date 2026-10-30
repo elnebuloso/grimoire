@@ -26,7 +26,7 @@ import { fork } from 'node:child_process';
 import { DatabaseSync } from 'node:sqlite';
 import { fileURLToPath } from 'node:url';
 const db = new DatabaseSync(process.env.DATABASE_PATH);
-db.exec(\"INSERT INTO sources (id, slug, git_url, branch, path) VALUES (1, 'smoke', 'file:///tmp/fixture', 'main', 'docs/')\");
+db.exec(\"INSERT INTO sources (id, slug, name, git_url, branch, path) VALUES (1, 'smoke', 'Smoke', 'file:///tmp/fixture', 'main', 'docs/')\");
 // Not --input-type from this eval, which a process started from a file refuses.
 const child = fork(fileURLToPath(import.meta.resolve('#lib/server/sync/index-worker.ts')), {
 	execArgv: []

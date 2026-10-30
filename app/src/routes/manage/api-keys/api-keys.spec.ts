@@ -27,9 +27,9 @@ beforeEach(() => {
 	vi.useFakeTimers({ toFake: ['Date'] });
 	vi.setSystemTime(CLOCK.now);
 	db = openDatabase(':memory:');
-	db.exec(`INSERT INTO sources (slug, git_url, branch, path) VALUES
-		('billing-docs', 'https://git.example/x.git', 'main', 'docs/'),
-		('platform-docs', 'https://git.example/x.git', 'main', 'docs/')`);
+	db.exec(`INSERT INTO sources (slug, name, git_url, branch, path) VALUES
+		('billing-docs', 'Billing docs', 'https://git.example/x.git', 'main', 'docs/'),
+		('platform-docs', 'Platform docs', 'https://git.example/x.git', 'main', 'docs/')`);
 });
 
 afterEach(() => {

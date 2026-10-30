@@ -84,8 +84,8 @@ function addSource(url: string, options: { exclusions?: string[]; token?: string
 	return Number(
 		db
 			.prepare(
-				`INSERT INTO sources (slug, git_url, branch, path, exclusions, username, encrypted_token)
-				VALUES (?, ?, 'main', 'docs/', ?, 'deploy', ?)`
+				`INSERT INTO sources (slug, name, git_url, branch, path, exclusions, username, encrypted_token)
+				VALUES (?, 'Docs', ?, 'main', 'docs/', ?, 'deploy', ?)`
 			)
 			.run(
 				`auth-${Math.random().toString(36).slice(2)}`,

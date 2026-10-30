@@ -5,8 +5,13 @@
 -- address agents use, the first part of every ID.
 CREATE TABLE sources (
 	id INTEGER PRIMARY KEY,
-	slug TEXT NOT NULL UNIQUE,
-	name TEXT NOT NULL DEFAULT '',
+	-- The rule of `isSlug` in the application: lowercase letters, digits and single hyphens.
+	slug TEXT NOT NULL UNIQUE CHECK (
+		length(slug) BETWEEN 1 AND 40
+		AND slug NOT GLOB '*[^a-z0-9-]*'
+		AND slug NOT GLOB '-*' AND slug NOT GLOB '*-' AND slug NOT GLOB '*--*'
+	),
+	name TEXT NOT NULL CHECK (trim(name) <> ''),
 	description TEXT NOT NULL DEFAULT '',
 	git_url TEXT NOT NULL,
 	branch TEXT NOT NULL,

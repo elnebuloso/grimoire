@@ -36,8 +36,8 @@ const NEW = {
 
 beforeEach(() => {
 	db = openDatabase(':memory:');
-	db.exec(`INSERT INTO sources (id, slug, git_url, branch, path)
-		VALUES (1, 'docs', 'https://git.example/docs.git', 'main', 'docs/');`);
+	db.exec(`INSERT INTO sources (id, slug, name, git_url, branch, path)
+		VALUES (1, 'docs', 'Docs', 'https://git.example/docs.git', 'main', 'docs/');`);
 	replaceSourceIndex(db, 1, sourceIndex('old', OLD));
 });
 

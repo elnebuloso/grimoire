@@ -11,7 +11,7 @@ function insert(sql: string, ...values: (string | number | null)[]): number {
 
 function addSource(slug: string, gitUrl = 'https://git.example/x.git'): number {
 	return insert(
-		`INSERT INTO sources (slug, git_url, branch, path) VALUES (?, ?, 'main', 'docs/')`,
+		`INSERT INTO sources (slug, name, git_url, branch, path) VALUES (?, 'Docs', ?, 'main', 'docs/')`,
 		slug,
 		gitUrl
 	);
