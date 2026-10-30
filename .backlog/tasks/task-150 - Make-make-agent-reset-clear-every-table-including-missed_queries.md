@@ -1,10 +1,11 @@
 ---
 id: TASK-150
 title: 'Make make agent-reset clear every table, including missed_queries'
-status: To Do
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-30 13:41'
+updated_date: '2026-10-30 13:56'
 labels:
   - ops
 milestone: m-0
@@ -24,7 +25,27 @@ The comment above the imports in `scripts/agent-seed.ts` also still says an impo
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 After `make agent-reset`, `missed_queries` is empty
-- [ ] #2 A table added by a future migration is cleared by the reset without editing `scripts/agent-seed.ts` (FTS shadow tables and the migration bookkeeping excepted, `settings` reset to defaults as today)
-- [ ] #3 The import comment in `scripts/agent-seed.ts` states the actual rule, as in `scripts/reset-admin.ts`
+- [x] #1 After `make agent-reset`, `missed_queries` is empty
+- [x] #2 A table added by a future migration is cleared by the reset without editing `scripts/agent-seed.ts` (FTS shadow tables and the migration bookkeeping excepted, `settings` reset to defaults as today)
+- [x] #3 The import comment in `scripts/agent-seed.ts` states the actual rule, as in `scripts/reset-admin.ts`
 <!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. Replace the hand-kept table list in `scripts/agent-seed.ts` with every `table`/`virtual` entry of `pragma_table_list` (shadow tables and `sqlite_*` excluded, `settings` reset separately as before); `PRAGMA defer_foreign_keys = ON` because the order is arbitrary.
+2. Copy the corrected import comment from `scripts/reset-admin.ts`.
+3. Verify by hand in the agent environment: a missed query and a table created by hand are gone after `make agent-reset`.
+<!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Verified in the agent environment: inserted a `missed_queries` row, `make agent-reset`, count 0; created `future_table` with a row, reset, count 0 (then dropped it); `PRAGMA foreign_key_check` empty, fixture sources sync again (25 snippets). No unit test: the script is development tooling run by plain node against a file; the check above is the evidence. `make lint` passes.
+<!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+`make agent-reset` now clears every table the migrations created (read from `pragma_table_list`, FTS shadow tables and `sqlite_*` excluded, `settings` reset to defaults), so `missed_queries` and any later table no longer survive a reset. The import comment in `scripts/agent-seed.ts` states the real rule. Verified by hand in the agent environment.
+<!-- SECTION:FINAL_SUMMARY:END -->

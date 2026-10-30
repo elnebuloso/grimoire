@@ -4,8 +4,9 @@
 import { mkdirSync, readdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
-// Plain node runs this, without Vite: an imported `.ts` file needs its extension and may itself
-// import only `node:` modules.
+// Plain node runs this, without Vite: no `import.meta.glob`, so the migrations are read here, and
+// an imported `.ts` file needs its extension and may import npm packages and `node:` modules, but
+// nothing that needs Vite (`#lib`, `$app`).
 import { migrate } from '../app/src/lib/server/db/migrate.ts';
 import { hashPassword } from '../app/src/lib/server/admin/auth.ts';
 import { hashKey } from '../app/src/lib/server/api-keys.ts';
@@ -31,20 +32,18 @@ const agentPasswordHash = await hashPassword('agent-password');
 
 db.exec('BEGIN IMMEDIATE');
 try {
-	for (const table of [
-		'api_key_projects',
-		'api_keys',
-		'sessions',
-		'user_roles',
-		'users',
-		'links',
-		'snippets',
-		'snippets_fts',
-		'pages',
-		'sources',
-		'projects'
-	]) {
-		db.exec(`DELETE FROM ${table}`);
+	// Every table the migrations created, so a new one needs no entry here; FTS shadow tables
+	// follow their virtual table. Deferred, because the deletes run in no particular order.
+	db.exec('PRAGMA defer_foreign_keys = ON');
+	const tables = db
+		.prepare(
+			`SELECT name FROM pragma_table_list
+			WHERE schema = 'main' AND type IN ('table', 'virtual')
+				AND name NOT LIKE 'sqlite\\_%' ESCAPE '\\' AND name != 'settings'`
+		)
+		.all() as { name: string }[];
+	for (const { name } of tables) {
+		db.exec(`DELETE FROM "${name}"`);
 	}
 	// Back to the defaults of every setting, including ones added later.
 	db.exec('DELETE FROM settings; INSERT INTO settings (id) VALUES (1)');
