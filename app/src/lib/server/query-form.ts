@@ -43,7 +43,7 @@ export function answerQueryForm(
 	const result = querySources(
 		db,
 		{
-			query: question.trim(),
+			query: question,
 			sources: values.sources.length > 0 ? values.sources : undefined,
 			tokens
 		},

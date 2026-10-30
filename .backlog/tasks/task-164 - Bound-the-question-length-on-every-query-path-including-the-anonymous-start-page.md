@@ -3,9 +3,11 @@ id: TASK-164
 title: >-
   Bound the question length on every query path, including the anonymous start
   page
-status: To Do
-assignee: []
+status: Done
+assignee:
+  - '@claude'
 created_date: '2026-10-30 16:13'
+updated_date: '2026-10-30 16:19'
 labels:
   - search
 milestone: m-0
@@ -23,7 +25,21 @@ Questions are capped at 500 characters because every word becomes an FTS5 `OR` t
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Every caller of `querySources` gets the same trimming and the same 500-character cut
-- [ ] #2 A question over 500 characters on the start page searches only its first 500 characters, as over MCP and HTTP
-- [ ] #3 A test sends a question over 500 characters through the start page form and checks that only the first 500 are searched
+- [x] #1 Every caller of `querySources` gets the same trimming and the same 500-character cut
+- [x] #2 A question over 500 characters on the start page searches only its first 500 characters, as over MCP and HTTP
+- [x] #3 A test sends a question over 500 characters through the start page form and checks that only the first 500 are searched
 <!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. Move trimming and the 500-character cut from `agentQuery` into `querySources`, so every caller gets them
+2. `answerQueryForm` passes the question unchanged
+3. Start page test with a question over 500 characters
+<!-- SECTION:PLAN:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Trimming and the cut to `MAX_QUESTION_LENGTH` (500) now happen in `querySources` (`app/src/lib/server/agent/operations.ts`), so **Try a query** on `/` and on `/manage/query` searches only the first 500 characters, as MCP and HTTP already did. `agentQuery` only records misses. Verified: new start page test fails without the change and passes with it; query, agent API and operations tests green.
+<!-- SECTION:FINAL_SUMMARY:END -->

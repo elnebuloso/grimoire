@@ -126,31 +126,39 @@ export interface QueryResult extends OperationResult {
 	missed: boolean;
 }
 
-/** Searches the visible sources, or the given ones, and returns as many hits as fit the budget. */
+// Every word becomes a search term, and the search runs synchronously on the server thread: without
+// a cap one request could hold it for seconds, and one key holder could fill the missed queries
+// with request-sized questions. A real question is far shorter.
+export const MAX_QUESTION_LENGTH = 500;
+
+function normalizeQueryOptions(options: QueryOptions): QueryOptions {
+	return { ...options, query: options.query.trim().slice(0, MAX_QUESTION_LENGTH) };
+}
+
+/**
+ * Searches the visible sources, or the given ones, and returns as many hits as fit the budget.
+ * The question is trimmed and cut to `MAX_QUESTION_LENGTH` characters.
+ */
 export function querySources(
 	db: DatabaseSync,
 	options: QueryOptions,
 	scope: SourceScope
 ): QueryResult {
-	const hidden = options.sources?.find((source) => !findSource(db, source, scope));
+	const normalized = normalizeQueryOptions(options);
+	const hidden = normalized.sources?.find((source) => !findSource(db, source, scope));
 	if (hidden !== undefined) return { ...sourceNotFound(hidden), missed: false };
-	const markdown = searchSnippets(db, { ...options, allowedSources: scope });
+	const markdown = searchSnippets(db, { ...normalized, allowedSources: scope });
 	if (markdown) return { found: true, markdown, missed: false };
 	return {
 		found: true,
-		markdown: `No results for "${options.query}". Try other terms, or look at a source's \`index\`.`,
+		markdown: `No results for "${normalized.query}". Try other terms, or look at a source's \`index\`.`,
 		missed: true
 	};
 }
 
-// Every miss is stored, and every word becomes a search term: without a cap one key holder could
-// fill the database with request-sized questions. A real question is far shorter.
-export const MAX_QUESTION_LENGTH = 500;
-
 /**
- * `querySources` for an agent: the question is trimmed and cut to `MAX_QUESTION_LENGTH`
- * characters, and a query that found nothing is recorded for the admins. Queries without an API
- * key are not recorded: anyone could fill the list with them.
+ * `querySources` for an agent: a query that found nothing is recorded for the admins. Queries
+ * without an API key are not recorded: anyone could fill the list with them.
  */
 export function agentQuery(
 	db: DatabaseSync,
@@ -158,10 +166,10 @@ export function agentQuery(
 	scope: SourceScope,
 	now = new Date()
 ): QueryResult {
-	const query = options.query.trim().slice(0, MAX_QUESTION_LENGTH);
-	const result = querySources(db, { ...options, query }, scope);
+	const { query, sources } = normalizeQueryOptions(options);
+	const result = querySources(db, options, scope);
 	if (result.missed && query && scope !== 'public') {
-		recordMissedQuery(db, { question: query, sources: options.sources ?? null }, now);
+		recordMissedQuery(db, { question: query, sources: sources ?? null }, now);
 	}
 	return result;
 }

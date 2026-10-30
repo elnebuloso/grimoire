@@ -74,6 +74,14 @@ describe('start page', () => {
 			);
 		});
 
+		it('searches only the first 500 characters of an over-long question', () => {
+			// The first 500 characters hold no word of the page; "rollback" only follows them.
+			const question = `${'kubernetes '.repeat(50)}rollback`;
+
+			expect(load(`?q=${encodeURIComponent(question)}`).query?.answer).toMatch(/^No results for/);
+			expect(load('?q=rollback').query?.answer).toContain('Source: billing-docs/index');
+		});
+
 		it('does not record a query that found nothing', () => {
 			load('?q=kubernetes');
 
