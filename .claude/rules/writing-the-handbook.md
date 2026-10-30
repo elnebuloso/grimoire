@@ -4,6 +4,15 @@ The docs are a functional manual for the people who use the product, not a recor
 
 ---
 
+## Prerequisites & Availability
+
+At the top of every feature or section page, explicitly state any operational barriers:
+- **Plan / Tier Requirements:** (e.g., `Requires Enterprise Plan`)
+- **Version / Feature Flags:** (e.g., `Available in v2.4+`)
+- **Required Permissions:** (e.g., `Role: Admin or Workspace Owner`)
+
+---
+
 ## Focus on what the reader cannot see
 
 The reader has the product in front of them. Do not describe what is self-evident in the interface: no visual descriptions, no button-by-button walkthroughs, and no explanations of obvious UI state. If an action requires a paragraph of UI description to be found, treat it as a product design flaw.
@@ -38,6 +47,7 @@ A sentence is justified **only** if it covers one of the following:
 
 - **Lead with the Point:** Start directly with the rule, error, or warning. 
 - **Style:** Use short, imperative sentences and active voice. Limit each paragraph to a single core idea.
+- **Exact UI String Matching:** Always spell UI elements, buttons, and labels **exactly** as they appear in the product (including casing). Never adapt labels for grammatical harmony.
 - **No Filler:** Omit introductory fluff, welcome notes, and summaries. If removing unneeded text leaves a section empty, delete the section header.
 
 ---
@@ -45,10 +55,11 @@ A sentence is justified **only** if it covers one of the following:
 ## Code & Visual Assets
 
 - **Self-Contained Code:** Code blocks must be copy-paste ready and syntactically valid. Clearly highlight variables that the user *must* replace (e.g., `<YOUR_API_KEY>`).
-- **Screenshots as Exception, Not Default:**
+- **Screenshots & Motion as Exception:**
   - *Forbidden:* Screenshots of standard forms, single buttons, or static UI text.
-  - *Allowed:* Annotations/Hotspots for complex multi-pane layouts (e.g., node editors, canvas views).
+  - *Allowed:* Annotations/Hotspots for complex multi-pane layouts (e.g., node editors) or short (< 5s) UI micro-animations for non-standard UI flows.
 - **Zero Text in Images:** Never bake instructions, paths, or labels into image files. Images must only illustrate, never instruct.
+- **Accessibility:** All visual assets must include descriptive alt text explaining the structural layout or action.
 
 ---
 
@@ -65,8 +76,11 @@ To keep reference documentation lean without blocking new users, separate conten
 
 ## Maintainability & Product Feedback
 
-- **No Duplication (DRY):** Never repeat non-trivial rules, paths, or limits across multiple pages. Link to the single source of truth instead.
-- **UI Flaw Protocol:** If documenting a feature requires explaining a confusing UI workaround, write the minimal workaround step for the user and **immediately open a UX/Product issue** to fix the interface. Documentation is a patch, not a substitute for product design.
+- **Single Source of Truth (Smart DRY):** Never repeat non-trivial rules, paths, or limits. Prefer documentation transclusion / re-usable content snippets over forcing the user to click away via links.
+- **UI Flaw Protocol:** If documenting a feature requires explaining a confusing UI workaround:
+  1. Write the minimal workaround step to unblock the user immediately.
+  2. **Open a high-priority UX/Product issue** referencing the doc section.
+  3. *Temporary Rule:* Keep the workaround documented **only** until the product fix is deployed, then trim it in the same PR that updates the product.
 
 ---
 
@@ -82,3 +96,4 @@ To keep reference documentation lean without blocking new users, separate conten
 When reviewing any sentence, ask:
 1. *Who is the target reader for this page?* (If it's another role, move it).
 2. *What will the reader do differently after reading this?* (If nothing, delete it).
+3. *Is this feature accessible to this reader right now?* (If conditional, add prerequisite headers).
