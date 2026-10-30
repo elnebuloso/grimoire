@@ -7,8 +7,9 @@ without a restart. It runs beside `make dev` (5173) and `make e2e` (4173).
 
 - `make agent-start` starts it in the background at `http://localhost:5174`, log in
   `app/.agent/server.log`. `make agent-stop` stops it.
-- `make agent-reset` resets its database to the fixture data below, running or not. Reset after
-  anything that changed the data, before the next check starts from an assumed state.
+- `make agent-reset` rebuilds its database from the migrations and fills in the fixture data below,
+  running or not. Reset after anything that changed the data or the schema, before the next check
+  starts from an assumed state.
 - Sources sync from `https://github.com/elnebuloso/grimoire-fixture-docs` and need network. Its
   `README.md` lists the pages, snippet IDs and dead links each source path produces.
 

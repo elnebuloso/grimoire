@@ -104,6 +104,11 @@ opens the component catalog; [.claude/rules/ui-components.md](.claude/rules/ui-c
 how components and their stories are written. `make mail-catcher` receives the mails of `make dev`
 (see `app/.env.example`); `make e2e` starts its own. Both need Docker.
 
+Until `1.0.0` the schema changes in place in `app/src/lib/server/db/migrations/0001-initial.sql`,
+without new migration files. After pulling a schema change, delete `app/data/`: grimoire refuses a
+database with `database schema is at version …, this grimoire knows only 1`, and a database at
+version 1 silently keeps the old schema.
+
 Commits follow [Conventional Commits](https://www.conventionalcommits.org). Releases are cut from
 them by the `CI` workflow on every push to `main`, once lint, unit and browser tests passed:
 `feat` raises the minor version, `fix` the patch version, other types release nothing. Pull
