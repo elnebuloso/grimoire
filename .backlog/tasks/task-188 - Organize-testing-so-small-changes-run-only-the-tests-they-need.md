@@ -4,7 +4,9 @@ title: Organize testing so small changes run only the tests they need
 status: To Do
 assignee: []
 created_date: '2026-10-30 22:27'
+updated_date: '2026-10-30 22:27'
 labels: []
+milestone: m-0
 dependencies: []
 priority: medium
 type: task
