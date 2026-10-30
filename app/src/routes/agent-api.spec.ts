@@ -13,7 +13,7 @@ import { GET as projectIndex } from './p/[project]/index/+server';
 import { GET as llmsTxt } from './p/[project]/llms.txt/+server';
 import { GET as projectQuery } from './p/[project]/query/+server';
 import { GET as page } from './p/[project]/[source]/[...page]/+server';
-import { fallback as mcp } from './mcp/+server';
+import { POST as mcp, fallback as mcpOtherMethod } from './mcp/+server';
 
 // Each route types its own event; `never` lets one helper call all of them.
 type RouteHandler = (event: never) => Response | Promise<Response>;
@@ -300,4 +300,22 @@ describe('POST /mcp', () => {
 		expect(hidden).toEqual({ ...unknown, text: unknown.text.replace('nope', 'platform') });
 		expect((await tool('read', { id: 'platform/auth/nope' })).error).toBe(true);
 	});
+});
+
+describe('other methods on /mcp', () => {
+	it.each(['GET', 'DELETE'])(
+		'answers %s with 405, so no event stream is left open',
+		async (method) => {
+			const request = new Request('https://grimoire.example/mcp', {
+				method,
+				headers: { Accept: 'text/event-stream', Authorization: `Bearer ${allKey}` }
+			});
+
+			const response = await mcpOtherMethod({ request } as never);
+
+			expect(response.status).toBe(405);
+			expect(response.headers.get('Allow')).toBe('POST');
+			expect(response.headers.get('Content-Type')).not.toContain('text/event-stream');
+		}
+	);
 });
