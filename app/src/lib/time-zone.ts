@@ -34,3 +34,21 @@ export function formatDateTime(iso: string, locale: string, timeZone: string): s
 		timeZoneName: 'short'
 	}).format(new Date(iso));
 }
+
+/** The calendar date, `YYYY-MM-DD`, of an instant in a time zone. */
+export function dateIn(timeZone: string, instant: Date): string {
+	// en-CA writes dates as YYYY-MM-DD.
+	return new Intl.DateTimeFormat('en-CA', {
+		timeZone,
+		year: 'numeric',
+		month: '2-digit',
+		day: '2-digit'
+	}).format(instant);
+}
+
+/** A stored calendar date, `YYYY-MM-DD`, as the UI shows it; the date has no time zone. */
+export function formatDate(date: string, locale: string): string {
+	return new Intl.DateTimeFormat(locale, { timeZone: 'UTC', dateStyle: 'medium' }).format(
+		new Date(`${date}T00:00:00Z`)
+	);
+}

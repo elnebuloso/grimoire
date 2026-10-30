@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatDateTime, parseTimeZone } from './time-zone';
+import { dateIn, formatDate, formatDateTime, parseTimeZone } from './time-zone';
 
 describe('parseTimeZone', () => {
 	it('is UTC when not set', () => {
@@ -28,5 +28,21 @@ describe('formatDateTime', () => {
 		expect(formatDateTime('2026-07-01T12:00:00Z', 'de', 'Europe/Berlin')).toBe(
 			'1. Juli 2026, 14:00 MESZ'
 		);
+	});
+});
+
+describe('dateIn', () => {
+	it('gives the date of an instant in the time zone, not in UTC', () => {
+		const instant = new Date('2026-10-30T23:30:00Z');
+		expect(dateIn('UTC', instant)).toBe('2026-10-30');
+		expect(dateIn('Europe/Berlin', instant)).toBe('2026-10-31');
+		expect(dateIn('America/New_York', new Date('2026-01-01T03:00:00Z'))).toBe('2025-12-31');
+	});
+});
+
+describe('formatDate', () => {
+	it('shows a date the same in every time zone', () => {
+		expect(formatDate('2026-11-30', 'en')).toBe('Nov 30, 2026');
+		expect(formatDate('2026-11-30', 'de')).toBe('30.11.2026');
 	});
 });

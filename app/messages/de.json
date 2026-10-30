@@ -190,5 +190,15 @@
 	"query_error_question": "Gib eine Frage ein.",
 	"query_error_tokens": "Das Token-Budget muss eine positive ganze Zahl sein.",
 	"source_preview_no_snippets": "Diese Seite hat keine Snippets: Sie enthält keinen Text, den grimoire indexiert.",
-	"source_preview_snippet_tokens": "{tokens} Tokens"
+	"source_preview_snippet_tokens": "{tokens} Tokens",
+	"apikeys_last_used": "zuletzt genutzt",
+	"apikeys_never_used": "nie genutzt",
+	"apikeys_valid_until": "Gültig bis (optional, der Key gilt bis einschließlich diesem Tag)",
+	"apikeys_valid_until_date": "gültig bis {date}",
+	"apikeys_expired": "abgelaufen nach dem {date}",
+	"apikeys_change_named": "{name} ändern",
+	"apikeys_change_submit": "Änderungen speichern",
+	"apikeys_updated": "{name} geändert. Der Key selbst bleibt gleich.",
+	"apikeys_error_valid_until": "Gib das Datum als JJJJ-MM-TT ein.",
+	"apikeys_error_valid_until_past": "Das Datum muss heute oder später sein."
 }

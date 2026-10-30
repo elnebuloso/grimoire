@@ -1,4 +1,6 @@
 import type { DatabaseSync } from 'node:sqlite';
+import { TZ } from '$app/env/private';
+import { dateIn } from '#lib/time-zone.js';
 import { scopeForKey, type ProjectScope } from '../api-keys';
 import { database } from '../db';
 import { log } from '../log';
@@ -14,14 +16,16 @@ export function markdownResponse(markdown: string, status = 200, headers: Header
 
 /**
  * The scope of the `Authorization: Bearer <key>` of a request, or undefined when the key is
- * missing or unknown.
+ * missing, unknown or expired.
  */
 export function scopeForRequest(
 	db: DatabaseSync,
 	request: Request
 ): { scope: ProjectScope } | undefined {
 	const key = request.headers.get('Authorization')?.match(/^Bearer (.+)$/i)?.[1];
-	return key ? scopeForKey(db, key) : undefined;
+	if (!key) return undefined;
+	const now = new Date();
+	return scopeForKey(db, key, { now, today: dateIn(TZ, now) });
 }
 
 /** The 401 for a request without a valid API key. */

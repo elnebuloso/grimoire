@@ -184,6 +184,16 @@ lost key cannot be recovered: revoke it and create a new one. Revoking takes eff
 request. A key limited to a selection loses a project when the project is deleted, and sees
 nothing once all of them are gone.
 
+The list shows when each key last authenticated a request, to the minute, or that it was never
+used: a key unused for long is a candidate for revoking. **Change** next to a key edits the
+projects it may read and how long it is valid without replacing the key, so the agents using it
+need no new one.
+
+A key can be valid until a date, for a trial or a contractor. It works through that day in the
+time zone of the instance (`TZ`) and is rejected from the next day on, like an unknown key; the
+list shows it as expired until it is revoked or given a later date. Without a date a key never
+expires.
+
 ## Lost password
 
 Without the current password, the password cannot be changed on the account page. Delete the admin

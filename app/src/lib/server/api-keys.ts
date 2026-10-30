@@ -12,7 +12,26 @@ export interface ApiKey {
 	id: number;
 	name: string;
 	createdAt: string;
+	/** Null for a key that never authenticated a request. */
+	lastUsedAt: string | null;
+	/** The last day, `YYYY-MM-DD` in the time zone of the instance, the key is accepted; null for no expiry. */
+	validUntil: string | null;
 	projects: ProjectScope;
+}
+
+/** The moment of a request, and its calendar date in the time zone of the instance. */
+export interface Clock {
+	now: Date;
+	/** `YYYY-MM-DD` */
+	today: string;
+}
+
+// A burst of agent requests writes the last use once, not once per request.
+const LAST_USE_PRECISION_MS = 60_000;
+
+/** Whether a key valid until `validUntil` is rejected on `today`; both are `YYYY-MM-DD`. */
+export function isExpired(validUntil: string | null, today: string): boolean {
+	return validUntil !== null && validUntil < today;
 }
 
 // A slow hash protects passwords people choose; a random 256-bit key cannot be guessed, so
@@ -22,35 +41,71 @@ export function hashKey(key: string): string {
 }
 
 /**
- * Creates a key for all projects or a selection of project slugs. The returned key is the only
- * copy: the database keeps just its hash. Throws for an unknown project and stores nothing.
+ * Creates a key for all projects or a selection of project slugs, accepted through `validUntil`
+ * when given. The returned key is the only copy: the database keeps just its hash. Throws for an
+ * unknown project and stores nothing.
  */
 export function createApiKey(
 	db: DatabaseSync,
 	name: string,
-	projects: ProjectScope
+	projects: ProjectScope,
+	validUntil: string | null = null
 ): { id: number; key: string } {
 	const key = KEY_PREFIX + randomBytes(KEY_BYTES).toString('base64url');
-	db.exec('BEGIN IMMEDIATE');
-	try {
+	const id = inTransaction(db, () => {
 		const id = Number(
 			db
-				.prepare('INSERT INTO api_keys (name, key_hash, all_projects) VALUES (?, ?, ?)')
-				.run(name, hashKey(key), projects === 'all' ? 1 : 0).lastInsertRowid
+				.prepare(
+					'INSERT INTO api_keys (name, key_hash, all_projects, valid_until) VALUES (?, ?, ?, ?)'
+				)
+				.run(name, hashKey(key), projects === 'all' ? 1 : 0, validUntil).lastInsertRowid
 		);
-		if (projects !== 'all') {
-			const findProject = db.prepare('SELECT id FROM projects WHERE slug = ?');
-			const insertProject = db.prepare(
-				'INSERT OR IGNORE INTO api_key_projects (api_key_id, project_id) VALUES (?, ?)'
-			);
-			for (const slug of projects) {
-				const project = findProject.get(slug) as { id: number } | undefined;
-				if (!project) throw new Error(`project "${slug}" does not exist`);
-				insertProject.run(id, project.id);
-			}
-		}
+		insertScope(db, id, projects);
+		return id;
+	});
+	return { id, key };
+}
+
+/**
+ * Changes the projects a key sees and how long it is accepted; the key itself stays the same.
+ * Throws for an unknown project and changes nothing.
+ */
+export function updateApiKey(
+	db: DatabaseSync,
+	id: number,
+	projects: ProjectScope,
+	validUntil: string | null
+) {
+	inTransaction(db, () => {
+		db.prepare('UPDATE api_keys SET all_projects = ?, valid_until = ? WHERE id = ?').run(
+			projects === 'all' ? 1 : 0,
+			validUntil,
+			id
+		);
+		db.prepare('DELETE FROM api_key_projects WHERE api_key_id = ?').run(id);
+		insertScope(db, id, projects);
+	});
+}
+
+function insertScope(db: DatabaseSync, id: number, projects: ProjectScope) {
+	if (projects === 'all') return;
+	const findProject = db.prepare('SELECT id FROM projects WHERE slug = ?');
+	const insertProject = db.prepare(
+		'INSERT OR IGNORE INTO api_key_projects (api_key_id, project_id) VALUES (?, ?)'
+	);
+	for (const slug of projects) {
+		const project = findProject.get(slug) as { id: number } | undefined;
+		if (!project) throw new Error(`project "${slug}" does not exist`);
+		insertProject.run(id, project.id);
+	}
+}
+
+function inTransaction<T>(db: DatabaseSync, work: () => T): T {
+	db.exec('BEGIN IMMEDIATE');
+	try {
+		const result = work();
 		db.exec('COMMIT');
-		return { id, key };
+		return result;
 	} catch (error) {
 		if (db.isTransaction) db.exec('ROLLBACK');
 		throw error;
@@ -63,7 +118,9 @@ export function listApiKeys(db: DatabaseSync): ApiKey[] {
 		.prepare(
 			// CURRENT_TIMESTAMP is UTC but has no zone, which a Date would read as local time.
 			`SELECT api_keys.id, api_keys.name,
-				strftime('%Y-%m-%dT%H:%M:%fZ', api_keys.created_at) AS createdAt, api_keys.all_projects,
+				strftime('%Y-%m-%dT%H:%M:%fZ', api_keys.created_at) AS createdAt,
+				api_keys.last_used_at AS lastUsedAt, api_keys.valid_until AS validUntil,
+				api_keys.all_projects,
 				json_group_array(projects.slug) FILTER (WHERE projects.slug IS NOT NULL) AS slugs
 			FROM api_keys
 			LEFT JOIN api_key_projects ON api_key_projects.api_key_id = api_keys.id
@@ -75,6 +132,8 @@ export function listApiKeys(db: DatabaseSync): ApiKey[] {
 		id: number;
 		name: string;
 		createdAt: string;
+		lastUsedAt: string | null;
+		validUntil: string | null;
 		all_projects: number;
 		slugs: string;
 	}[];
@@ -82,6 +141,8 @@ export function listApiKeys(db: DatabaseSync): ApiKey[] {
 		id: row.id,
 		name: row.name,
 		createdAt: row.createdAt,
+		lastUsedAt: row.lastUsedAt,
+		validUntil: row.validUntil,
 		projects: row.all_projects === 1 ? 'all' : (JSON.parse(row.slugs) as string[]).sort()
 	}));
 }
@@ -91,12 +152,32 @@ export function revokeApiKey(db: DatabaseSync, id: number) {
 	db.prepare('DELETE FROM api_keys WHERE id = ?').run(id);
 }
 
-/** The projects a key may see, or undefined when the key is unknown and must be rejected. */
-export function scopeForKey(db: DatabaseSync, key: string): { scope: ProjectScope } | undefined {
+/**
+ * The projects a key may see, or undefined when the key is unknown or expired and must be
+ * rejected. Records the use of an accepted key, at most once a minute.
+ */
+export function scopeForKey(
+	db: DatabaseSync,
+	key: string,
+	clock: Clock
+): { scope: ProjectScope } | undefined {
 	const row = db
-		.prepare('SELECT id, all_projects FROM api_keys WHERE key_hash = ?')
-		.get(hashKey(key)) as { id: number; all_projects: number } | undefined;
-	if (!row) return undefined;
+		.prepare(`SELECT id, all_projects, last_used_at, valid_until FROM api_keys WHERE key_hash = ?`)
+		.get(hashKey(key)) as
+		| { id: number; all_projects: number; last_used_at: string | null; valid_until: string | null }
+		| undefined;
+	if (!row || isExpired(row.valid_until, clock.today)) return undefined;
+	// Decided here, not in the UPDATE's WHERE: an UPDATE takes the write lock even when it
+	// changes no row.
+	if (
+		row.last_used_at === null ||
+		clock.now.getTime() - Date.parse(row.last_used_at) >= LAST_USE_PRECISION_MS
+	) {
+		db.prepare('UPDATE api_keys SET last_used_at = ? WHERE id = ?').run(
+			clock.now.toISOString(),
+			row.id
+		);
+	}
 	if (row.all_projects === 1) return { scope: 'all' };
 	const slugs = db
 		.prepare(

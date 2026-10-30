@@ -190,5 +190,15 @@
 	"query_error_question": "Enter a question.",
 	"query_error_tokens": "The token budget must be a positive whole number.",
 	"source_preview_no_snippets": "This page has no snippets: it holds no text grimoire indexes.",
-	"source_preview_snippet_tokens": "{tokens} tokens"
+	"source_preview_snippet_tokens": "{tokens} tokens",
+	"apikeys_last_used": "last used",
+	"apikeys_never_used": "never used",
+	"apikeys_valid_until": "Valid until (optional, the key works through this day)",
+	"apikeys_valid_until_date": "valid until {date}",
+	"apikeys_expired": "expired after {date}",
+	"apikeys_change_named": "Change {name}",
+	"apikeys_change_submit": "Save changes",
+	"apikeys_updated": "{name} changed. The key itself stays the same.",
+	"apikeys_error_valid_until": "Enter the date as YYYY-MM-DD.",
+	"apikeys_error_valid_until_past": "The date must be today or later."
 }

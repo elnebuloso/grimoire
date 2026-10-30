@@ -1,33 +1,85 @@
 import { fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
+import { TZ } from '$app/env/private';
 import { database } from '#lib/server/db/index.js';
-import { createApiKey, listApiKeys, revokeApiKey } from '#lib/server/api-keys.js';
+import {
+	createApiKey,
+	isExpired,
+	listApiKeys,
+	revokeApiKey,
+	updateApiKey
+} from '#lib/server/api-keys.js';
 import { listProjects } from '#lib/server/admin/projects.js';
 import { m } from '#lib/paraglide/messages.js';
+import { dateIn } from '#lib/time-zone.js';
 
-export const load: PageServerLoad = () => ({
-	keys: listApiKeys(database()),
-	projects: listProjects(database()).map((project) => project.slug)
-});
+export const load: PageServerLoad = () => {
+	const today = dateIn(TZ, new Date());
+	return {
+		keys: listApiKeys(database()).map((key) => ({
+			...key,
+			expired: isExpired(key.validUntil, today)
+		})),
+		projects: listProjects(database()).map((project) => project.slug),
+		today
+	};
+};
+
+/** Scope and expiry as both forms send them, or the message saying what is wrong. */
+function readAccess(data: FormData) {
+	const allProjects = data.get('scope') === 'all';
+	const projects = data.getAll('projects').map(String);
+	const validUntil = String(data.get('validUntil') ?? '').trim();
+	const values = { allProjects, projects, validUntil };
+	if (!allProjects && projects.length === 0) return { values, error: m.apikeys_error_scope() };
+	if (validUntil && !isDate(validUntil)) return { values, error: m.apikeys_error_valid_until() };
+	if (validUntil && isExpired(validUntil, dateIn(TZ, new Date()))) {
+		return { values, error: m.apikeys_error_valid_until_past() };
+	}
+	return { values };
+}
+
+function isDate(value: string): boolean {
+	return /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(`${value}T00:00:00Z`));
+}
 
 export const actions = {
 	create: async ({ request }) => {
 		const data = await request.formData();
 		const name = String(data.get('name') ?? '').trim();
-		const allProjects = data.get('scope') === 'all';
-		const projects = data.getAll('projects').map(String);
-		const values = { name, allProjects, projects };
+		const access = readAccess(data);
+		const values = { name, ...access.values };
 
 		if (!name) return fail(400, { error: m.apikeys_error_name(), values });
-		if (!allProjects && projects.length === 0) {
-			return fail(400, { error: m.apikeys_error_scope(), values });
-		}
+		if (access.error) return fail(400, { error: access.error, values });
 		try {
-			const { key } = createApiKey(database(), name, allProjects ? 'all' : projects);
+			const { key } = createApiKey(
+				database(),
+				name,
+				values.allProjects ? 'all' : values.projects,
+				values.validUntil || null
+			);
 			return { created: { name, key } };
 		} catch {
 			// A project deleted while the form was open.
 			return fail(400, { error: m.apikeys_error_project_gone(), values });
+		}
+	},
+	update: async ({ request }) => {
+		const data = await request.formData();
+		const id = Number(data.get('id'));
+		const { values, error } = readAccess(data);
+		if (error) return fail(400, { update: { id, error, values } });
+		try {
+			updateApiKey(
+				database(),
+				id,
+				values.allProjects ? 'all' : values.projects,
+				values.validUntil || null
+			);
+			return { updated: id };
+		} catch {
+			return fail(400, { update: { id, error: m.apikeys_error_project_gone(), values } });
 		}
 	},
 	revoke: async ({ request }) => {
