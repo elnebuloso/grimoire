@@ -9,11 +9,7 @@
 	 * The pages of a source, each linked to its preview on the source page. The filter needs
 	 * JavaScript and appears only with it; without, the whole list shows.
 	 */
-	let {
-		pages,
-		projectId,
-		sourceId
-	}: { pages: PageSummary[]; projectId: number; sourceId: number } = $props();
+	let { pages, sourceId }: { pages: PageSummary[]; sourceId: number } = $props();
 
 	let filterable = $state(false);
 	let filter = $state('');
@@ -44,9 +40,8 @@
 		{#each shown as page (page.file)}
 			<li>
 				<a
-					href="{resolve('/manage/projects/[id]/sources/[sourceId]', {
-						id: String(projectId),
-						sourceId: String(sourceId)
+					href="{resolve('/manage/sources/[id]', {
+						id: String(sourceId)
 					})}?preview={encodeURIComponent(page.file)}">{page.file}</a
 				>
 				– {m.source_page_line({ title: page.title, snippets: page.snippets, tokens: page.tokens })}

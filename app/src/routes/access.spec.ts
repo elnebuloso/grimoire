@@ -332,7 +332,7 @@ describe('admin access guard', () => {
 	});
 
 	it('leaves paths outside the management area alone', async () => {
-		for (const path of ['/manage-tools', '/projects', '/mcp']) {
+		for (const path of ['/manage-tools', '/sources', '/mcp']) {
 			const outside = request(path);
 
 			expect(await outside.run()).toBe(served);
@@ -361,14 +361,14 @@ describe('admin access guard', () => {
 
 describe('handleError', () => {
 	const event = {
-		request: new Request('https://grimoire.example/manage/projects/1', { method: 'POST' }),
-		url: new URL('https://grimoire.example/manage/projects/1')
+		request: new Request('https://grimoire.example/manage/sources/1', { method: 'POST' }),
+		url: new URL('https://grimoire.example/manage/sources/1')
 	};
 
 	it('logs an unexpected error with its stack in one line', async () => {
 		admin.hooks.handleError({ error: new TypeError('no route'), event, kind: 'unknown' } as never);
 
-		expect(logged()).toEqual(['POST /manage/projects/1 failed']);
+		expect(logged()).toEqual(['POST /manage/sources/1 failed']);
 	});
 
 	it('logs nothing for an expected error such as a missing page', async () => {

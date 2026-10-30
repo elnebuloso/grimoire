@@ -4,8 +4,10 @@ title: 'Start page: public sources, links and agent test'
 status: To Do
 assignee: []
 created_date: '2026-10-30 14:51'
+updated_date: '2026-10-30 14:54'
 labels:
   - admin
+milestone: m-0
 dependencies:
   - TASK-156
 priority: medium

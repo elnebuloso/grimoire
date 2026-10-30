@@ -24,9 +24,9 @@ An agent may see nothing but one section. Give each:
 2. one sentence on what it covers and when it applies;
 3. then the specifics: commands, values, steps.
 
-Never point at earlier sections ("as above", "this service"). Project, source and parent headings
-are in the snippet's title path, such as `platform › auth-service › Deployment › Rollback`; do not
-repeat them in the text.
+Never point at earlier sections ("as above", "this service"). Source and parent headings are in
+the snippet's title path, such as `auth-service › Deployment › Rollback`; do not repeat them in
+the text.
 
 ## How a page is split
 
@@ -42,7 +42,7 @@ own heading, long ones lose their context in the second part.
 
 ## IDs and links
 
-A snippet's ID is `<project>/<source>/<file without .md>#<anchor>`; the anchor is built from the
+A snippet's ID is `<source>/<file without .md>#<anchor>`; the anchor is built from the
 heading as MkDocs and Zensical build it. Renaming a heading or moving a file changes the ID, and
 links to the old one become dead links.
 

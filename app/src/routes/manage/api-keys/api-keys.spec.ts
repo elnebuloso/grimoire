@@ -27,7 +27,9 @@ beforeEach(() => {
 	vi.useFakeTimers({ toFake: ['Date'] });
 	vi.setSystemTime(CLOCK.now);
 	db = openDatabase(':memory:');
-	db.exec(`INSERT INTO projects (slug) VALUES ('billing'), ('platform')`);
+	db.exec(`INSERT INTO sources (slug, git_url, branch, path) VALUES
+		('billing-docs', 'https://git.example/x.git', 'main', 'docs/'),
+		('platform-docs', 'https://git.example/x.git', 'main', 'docs/')`);
 });
 
 afterEach(() => {
@@ -35,28 +37,28 @@ afterEach(() => {
 });
 
 describe('create', () => {
-	it('returns the key once, scoped to the selected projects, and lists it without the key', async () => {
+	it('returns the key once, scoped to the selected sources, and lists it without the key', async () => {
 		const result = (await create([
 			['name', ' ci '],
 			['scope', 'selected'],
-			['projects', 'platform']
+			['sources', 'platform-docs']
 		])) as { created: { name: string; key: string } };
 
 		expect(result.created.name).toBe('ci');
-		expect(scopeForKey(db, result.created.key, CLOCK)).toEqual({ scope: ['platform'] });
+		expect(scopeForKey(db, result.created.key, CLOCK)).toEqual({ scope: ['platform-docs'] });
 		const data = page.load({} as never);
 		expect(data).toMatchObject({
-			keys: [{ name: 'ci', projects: ['platform'] }],
-			projects: ['billing', 'platform']
+			keys: [{ name: 'ci', sources: ['platform-docs'] }],
+			sources: ['billing-docs', 'platform-docs']
 		});
 		expect(JSON.stringify(data)).not.toContain(result.created.key);
 	});
 
-	it('creates a key for all projects', async () => {
+	it('creates a key for all sources', async () => {
 		const result = (await create([
 			['name', 'agent'],
 			['scope', 'all'],
-			['projects', 'platform']
+			['sources', 'platform-docs']
 		])) as { created: { key: string } };
 
 		expect(scopeForKey(db, result.created.key, CLOCK)).toEqual({ scope: 'all' });
@@ -100,15 +102,15 @@ describe('create', () => {
 				['name', 'ci'],
 				['scope', 'selected']
 			],
-			'Choose all projects or at least one.'
+			'Choose all sources or at least one.'
 		],
 		[
 			[
 				['name', 'ci'],
 				['scope', 'selected'],
-				['projects', 'gone']
+				['sources', 'gone']
 			],
-			'A selected project no longer exists.'
+			'A selected source no longer exists.'
 		],
 		[
 			[
@@ -190,12 +192,12 @@ describe('update', () => {
 			await update([
 				['id', String(id)],
 				['scope', 'selected'],
-				['projects', 'billing'],
+				['sources', 'billing-docs'],
 				['validUntil', '2026-12-31']
 			])
 		).toEqual({ updated: id });
 
-		expect(scopeForKey(db, created.key, CLOCK)).toEqual({ scope: ['billing'] });
+		expect(scopeForKey(db, created.key, CLOCK)).toEqual({ scope: ['billing-docs'] });
 		expect(listApiKeys(db)[0].validUntil).toBe('2026-12-31');
 
 		await update([
@@ -203,7 +205,7 @@ describe('update', () => {
 			['scope', 'all'],
 			['validUntil', '']
 		]);
-		expect(listApiKeys(db)[0]).toMatchObject({ projects: 'all', validUntil: null });
+		expect(listApiKeys(db)[0]).toMatchObject({ sources: 'all', validUntil: null });
 	});
 
 	it('rejects an invalid change for that key and keeps what the form sent', async () => {
@@ -223,8 +225,8 @@ describe('update', () => {
 			data: {
 				update: {
 					id,
-					error: 'Choose all projects or at least one.',
-					values: { allProjects: false, projects: [], validUntil: '' }
+					error: 'Choose all sources or at least one.',
+					values: { allSources: false, sources: [], validUntil: '' }
 				}
 			}
 		});
@@ -232,13 +234,13 @@ describe('update', () => {
 			await update([
 				['id', String(id)],
 				['scope', 'selected'],
-				['projects', 'gone']
+				['sources', 'gone']
 			])
 		).toMatchObject({
 			status: 400,
-			data: { update: { error: 'A selected project no longer exists.' } }
+			data: { update: { error: 'A selected source no longer exists.' } }
 		});
-		expect(listApiKeys(db)[0].projects).toBe('all');
+		expect(listApiKeys(db)[0].sources).toBe('all');
 	});
 
 	it('answers 404 for a key that no longer exists, and changes nothing', async () => {
@@ -254,16 +256,16 @@ describe('update', () => {
 			const thrown = await update([
 				...idFields,
 				['scope', 'selected'],
-				['projects', 'billing']
+				['sources', 'billing-docs']
 			]).catch((error: unknown) => error);
 			expect(isHttpError(thrown, 404)).toBe(true);
 		}
-		expect(db.prepare('SELECT count(*) AS n FROM api_key_projects').get()).toEqual({ n: 0 });
+		expect(db.prepare('SELECT count(*) AS n FROM api_key_sources').get()).toEqual({ n: 0 });
 	});
 });
 
 describe('a broken database', () => {
-	it('is not reported as a deleted project', async () => {
+	it('is not reported as a deleted source', async () => {
 		db.close();
 
 		await expect(

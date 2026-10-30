@@ -45,16 +45,15 @@ function insertLink(pageId: number, anchor: string | null, target: string, dead:
 beforeEach(() => {
 	db = openDatabase(':memory:');
 	db.exec(`
-		INSERT INTO projects (id, slug) VALUES (1, 'platform');
-		INSERT INTO sources (id, project_id, slug, git_url, branch, path)
-		VALUES (1, 1, 'auth', 'https://git.example.com/auth.git', 'main', 'docs/'),
-			(2, 1, 'billing', 'https://git.example.com/billing.git', 'main', 'docs/');
+		INSERT INTO sources (id, slug, git_url, branch, path)
+		VALUES (1, 'auth', 'https://git.example.com/auth.git', 'main', 'docs/'),
+			(2, 'billing', 'https://git.example.com/billing.git', 'main', 'docs/');
 	`);
 });
 
 describe('sourceStatus', () => {
 	it('reports a source that was never synced', () => {
-		expect(sourceStatus(db, 1, 1)!).toEqual({
+		expect(sourceStatus(db, 1)!).toEqual({
 			lastCheckedAt: null,
 			lastSyncedAt: null,
 			lastCommit: null,
@@ -74,16 +73,16 @@ describe('sourceStatus', () => {
 		]);
 		const index = insertPage(1, 'index.md', [{ anchor: null, tokens: 5 }]);
 		insertPage(2, 'other.md', [{ anchor: null, tokens: 1000 }]);
-		insertLink(deploy, 'rollback', 'platform/auth/missing', true);
-		insertLink(index, null, 'platform/auth/deploy#nope', true);
-		insertLink(index, null, 'platform/auth/deploy', false);
+		insertLink(deploy, 'rollback', 'auth/missing', true);
+		insertLink(index, null, 'auth/deploy#nope', true);
+		insertLink(index, null, 'auth/deploy', false);
 		db.prepare(
 			`UPDATE sources SET last_commit = 'abc', last_synced_at = '2026-10-01T10:00:00.000Z',
 				error = 'git ls-remote failed', warnings = '["broken.md: unclosed include"]'
 			WHERE id = 1`
 		).run();
 
-		expect(sourceStatus(db, 1, 1)!).toMatchObject({
+		expect(sourceStatus(db, 1)!).toMatchObject({
 			lastCommit: 'abc',
 			lastSyncedAt: '2026-10-01T10:00:00.000Z',
 			error: 'git ls-remote failed',
@@ -94,44 +93,40 @@ describe('sourceStatus', () => {
 			],
 			totals: { pages: 2, snippets: 3, tokens: 40 },
 			deadLinks: [
-				{ file: 'deploy.md', anchor: 'rollback', target: 'platform/auth/missing' },
-				{ file: 'index.md', anchor: null, target: 'platform/auth/deploy#nope' }
+				{ file: 'deploy.md', anchor: 'rollback', target: 'auth/missing' },
+				{ file: 'index.md', anchor: null, target: 'auth/deploy#nope' }
 			]
 		});
 	});
 });
 
 describe('deadLinks', () => {
-	it('lists the dead links of all sources with their project and source, or of one source', () => {
+	it('lists the dead links of all sources with their source, or of one source', () => {
 		const auth = insertPage(1, 'deploy.md', [{ anchor: null, tokens: 1 }]);
 		const billing = insertPage(2, 'index.md', [{ anchor: null, tokens: 1 }]);
-		insertLink(auth, 'rollback', 'platform/auth/gone', true);
-		insertLink(auth, null, 'platform/auth/index', false);
-		insertLink(billing, null, 'platform/billing/old', true);
+		insertLink(auth, 'rollback', 'auth/gone', true);
+		insertLink(auth, null, 'auth/index', false);
+		insertLink(billing, null, 'billing/old', true);
 
 		expect(deadLinks(db)).toEqual([
 			{
-				projectId: 1,
-				project: 'platform',
 				sourceId: 1,
 				source: 'auth',
 				file: 'deploy.md',
 				anchor: 'rollback',
-				target: 'platform/auth/gone'
+				target: 'auth/gone'
 			},
 			{
-				projectId: 1,
-				project: 'platform',
 				sourceId: 2,
 				source: 'billing',
 				file: 'index.md',
 				anchor: null,
-				target: 'platform/billing/old'
+				target: 'billing/old'
 			}
 		]);
-		expect(deadLinks(db, 2).map((link) => link.target)).toEqual(['platform/billing/old']);
-		expect(sourceStatus(db, 1, 1)!.deadLinks).toEqual([
-			{ file: 'deploy.md', anchor: 'rollback', target: 'platform/auth/gone' }
+		expect(deadLinks(db, 2).map((link) => link.target)).toEqual(['billing/old']);
+		expect(sourceStatus(db, 1)!.deadLinks).toEqual([
+			{ file: 'deploy.md', anchor: 'rollback', target: 'auth/gone' }
 		]);
 	});
 });
@@ -143,7 +138,7 @@ describe('sync history', () => {
 				(1, '2026-10-30T10:05:00.000Z', '2026-10-30T11:00:00.000Z', 'failed', NULL, 'denied', 12),
 				(2, '2026-10-30T10:00:00.000Z', '2026-10-30T10:01:00.000Z', 'synced', 'def', NULL, 1)`);
 
-		expect(sourceStatus(db, 1, 1)!.history).toEqual([
+		expect(sourceStatus(db, 1)!.history).toEqual([
 			{
 				startedAt: '2026-10-30T10:05:00.000Z',
 				finishedAt: '2026-10-30T11:00:00.000Z',
@@ -171,18 +166,14 @@ describe('previewPage', () => {
 			{ anchor: 'rollback', tokens: 25 }
 		]);
 
-		const preview = previewPage(db, 'platform', 'auth', 'guides/deploy.md');
+		const preview = previewPage(db, 'auth', 'guides/deploy.md');
 
 		expect(preview?.map(({ id, titlePath, tokens }) => ({ id, titlePath, tokens }))).toEqual([
-			{ id: 'platform/auth/guides/deploy', titlePath: ['platform', 'auth', 'Title'], tokens: 10 },
-			{
-				id: 'platform/auth/guides/deploy#rollback',
-				titlePath: ['platform', 'auth', 'Title'],
-				tokens: 25
-			}
+			{ id: 'auth/guides/deploy', titlePath: ['auth', 'Title'], tokens: 10 },
+			{ id: 'auth/guides/deploy#rollback', titlePath: ['auth', 'Title'], tokens: 25 }
 		]);
 		expect(preview?.map((snippet) => snippet.markdown).join('\n\n')).toBe(
-			readById(db, parseGrimoireId('platform/auth/guides/deploy')!, 'all').markdown
+			readById(db, parseGrimoireId('auth/guides/deploy')!, 'all').markdown
 		);
 		expect(preview?.[1].markdown).toContain('Content of guides/deploy.md 1');
 	});
@@ -190,43 +181,41 @@ describe('previewPage', () => {
 	it('returns no snippets for a page without any, telling it apart from a missing page', () => {
 		insertPage(1, 'empty.md', []);
 
-		expect(previewPage(db, 'platform', 'auth', 'empty.md')).toEqual([]);
+		expect(previewPage(db, 'auth', 'empty.md')).toEqual([]);
 	});
 
 	it('returns undefined for a page the source does not have', () => {
 		insertPage(2, 'other.md', [{ anchor: null, tokens: 1 }]);
 
-		expect(previewPage(db, 'platform', 'auth', 'other.md')).toBeUndefined();
-		expect(previewPage(db, 'platform', 'auth', 'other')).toBeUndefined();
+		expect(previewPage(db, 'auth', 'other.md')).toBeUndefined();
+		expect(previewPage(db, 'auth', 'other')).toBeUndefined();
 	});
 });
 
 describe('dashboard', () => {
 	beforeEach(() => {
 		db.exec(`
-			INSERT INTO projects (id, slug) VALUES (2, 'docs');
-			INSERT INTO sources (id, project_id, slug, git_url, branch, path, last_synced_at, error, warnings)
+			INSERT INTO sources (id, slug, git_url, branch, path, last_synced_at, error, warnings)
 			VALUES
-				(3, 2, 'broken', 'https://git.example.com/b.git', 'main', '', '2026-10-28T10:00:00Z',
+				(3, 'broken', 'https://git.example.com/b.git', 'main', '', '2026-10-28T10:00:00Z',
 					'git ls-remote failed', '[]'),
-				(4, 2, 'noisy', 'https://git.example.com/n.git', 'main', '', '2026-10-28T10:00:00Z',
+				(4, 'noisy', 'https://git.example.com/n.git', 'main', '', '2026-10-28T10:00:00Z',
 					NULL, '["docs/a.md: skipped, bad front matter"]'),
-				(5, 2, 'fine', 'https://git.example.com/f.git', 'main', '', '2026-10-28T10:00:00Z',
+				(5, 'fine', 'https://git.example.com/f.git', 'main', '', '2026-10-28T10:00:00Z',
 					NULL, '[]');
-			INSERT INTO api_keys (name, key_hash, all_projects) VALUES ('ci', 'hash-1', 1), ('bot', 'hash-2', 0);
+			INSERT INTO api_keys (name, key_hash, all_sources) VALUES ('ci', 'hash-1', 1), ('bot', 'hash-2', 0);
 		`);
 		const deploy = insertPage(5, 'deploy.md', [
 			{ anchor: null, tokens: 30 },
 			{ anchor: 'rollback', tokens: 70 }
 		]);
 		insertPage(1, 'index.md', [{ anchor: null, tokens: 5 }]);
-		insertLink(deploy, null, 'docs/fine/gone', true);
-		insertLink(deploy, null, 'docs/fine/index', false);
+		insertLink(deploy, null, 'fine/gone', true);
+		insertLink(deploy, null, 'fine/index', false);
 	});
 
-	it('adds up the figures of all projects and counts the API keys', () => {
+	it('adds up the figures of all sources and counts the API keys', () => {
 		expect(dashboard(db).totals).toEqual({
-			projects: 2,
 			sources: 5,
 			pages: 2,
 			snippets: 3,
@@ -239,28 +228,6 @@ describe('dashboard', () => {
 	it('lists the sources with an error, with warnings or never synced, but not one in sync', () => {
 		expect(dashboard(db).attention).toEqual([
 			{
-				projectId: 2,
-				project: 'docs',
-				sourceId: 3,
-				source: 'broken',
-				lastSyncedAt: '2026-10-28T10:00:00Z',
-				neverSynced: false,
-				error: 'git ls-remote failed',
-				warnings: []
-			},
-			{
-				projectId: 2,
-				project: 'docs',
-				sourceId: 4,
-				source: 'noisy',
-				lastSyncedAt: '2026-10-28T10:00:00Z',
-				neverSynced: false,
-				error: null,
-				warnings: ['docs/a.md: skipped, bad front matter']
-			},
-			{
-				projectId: 1,
-				project: 'platform',
 				sourceId: 1,
 				source: 'auth',
 				lastSyncedAt: null,
@@ -269,27 +236,43 @@ describe('dashboard', () => {
 				warnings: []
 			},
 			{
-				projectId: 1,
-				project: 'platform',
 				sourceId: 2,
 				source: 'billing',
 				lastSyncedAt: null,
 				neverSynced: true,
 				error: null,
 				warnings: []
+			},
+			{
+				sourceId: 3,
+				source: 'broken',
+				lastSyncedAt: '2026-10-28T10:00:00Z',
+				neverSynced: false,
+				error: 'git ls-remote failed',
+				warnings: []
+			},
+			{
+				sourceId: 4,
+				source: 'noisy',
+				lastSyncedAt: '2026-10-28T10:00:00Z',
+				neverSynced: false,
+				error: null,
+				warnings: ['docs/a.md: skipped, bad front matter']
 			}
 		]);
 	});
 
-	it('gives the sync state of every source of one project, healthy ones included', () => {
+	it('gives the sync state of every source, healthy ones included', () => {
 		expect(
-			sourceHealth(db, 2).map(({ source, neverSynced, error, warnings }) => ({
+			sourceHealth(db).map(({ source, neverSynced, error, warnings }) => ({
 				source,
 				neverSynced,
 				error,
 				warnings: warnings.length
 			}))
 		).toEqual([
+			{ source: 'auth', neverSynced: true, error: null, warnings: 0 },
+			{ source: 'billing', neverSynced: true, error: null, warnings: 0 },
 			{ source: 'broken', neverSynced: false, error: 'git ls-remote failed', warnings: 0 },
 			{ source: 'fine', neverSynced: false, error: null, warnings: 0 },
 			{ source: 'noisy', neverSynced: false, error: null, warnings: 1 }
@@ -297,10 +280,13 @@ describe('dashboard', () => {
 		expect(sourceHealth(db).filter(needsAttention)).toEqual(dashboard(db).attention);
 	});
 
-	it('lists the projects with the figures of the public start page', () => {
-		expect(dashboard(db).projects.map((project) => [project.slug, project.pages])).toEqual([
-			['docs', 1],
-			['platform', 1]
+	it('lists the sources with the figures of the public start page', () => {
+		expect(dashboard(db).sources.map((source) => [source.slug, source.pages])).toEqual([
+			['auth', 1],
+			['billing', 0],
+			['broken', 0],
+			['fine', 1],
+			['noisy', 0]
 		]);
 	});
 });

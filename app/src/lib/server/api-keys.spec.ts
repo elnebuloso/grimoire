@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { createHash } from 'node:crypto';
 import type { DatabaseSync } from 'node:sqlite';
 import { openDatabase } from './db/schema';
-import { listVisibleProjects } from './agent/operations';
+import { listVisibleSources } from './agent/operations';
 import {
 	createApiKey,
 	isExpired,
@@ -26,8 +26,10 @@ function lastUsed(id: number) {
 
 beforeEach(() => {
 	db = openDatabase(':memory:');
-	for (const slug of ['billing', 'platform', 'search']) {
-		db.prepare('INSERT INTO projects (slug) VALUES (?)').run(slug);
+	for (const slug of ['billing-docs', 'platform-docs', 'search-docs']) {
+		db.prepare(
+			"INSERT INTO sources (slug, git_url, branch, path) VALUES (?, 'https://git.example/x.git', 'main', 'docs/')"
+		).run(slug);
 	}
 });
 
@@ -51,26 +53,26 @@ describe('createApiKey', () => {
 		expect(newKey(db, 'a', 'all').key).not.toBe(newKey(db, 'b', 'all').key);
 	});
 
-	it('stores nothing when a project does not exist', () => {
-		expect(createApiKey(db, 'ci', ['platform', 'nope'])).toEqual({ error: 'unknown-project' });
+	it('stores nothing when a source does not exist', () => {
+		expect(createApiKey(db, 'ci', ['platform-docs', 'nope'])).toEqual({ error: 'unknown-source' });
 		expect(listApiKeys(db)).toEqual([]);
-		expect(db.prepare('SELECT count(*) AS n FROM api_key_projects').get()).toEqual({ n: 0 });
+		expect(db.prepare('SELECT count(*) AS n FROM api_key_sources').get()).toEqual({ n: 0 });
 	});
 });
 
 describe('scopeForKey', () => {
-	it('gives an all-projects key every project', () => {
+	it('gives an all-sources key every source', () => {
 		const { key } = newKey(db, 'ci', 'all');
 
 		expect(scopeForKey(db, key, CLOCK)).toEqual({ scope: 'all' });
 	});
 
-	it('gives a key with a selection only those projects', () => {
-		const { key } = newKey(db, 'ci', ['search', 'billing']);
+	it('gives a key with a selection only those sources', () => {
+		const { key } = newKey(db, 'ci', ['search-docs', 'billing-docs']);
 		const { scope } = scopeForKey(db, key, CLOCK)!;
 
-		expect(scope).toEqual(['billing', 'search']);
-		expect(listVisibleProjects(db, scope).markdown).toBe('- billing\n- search');
+		expect(scope).toEqual(['billing-docs', 'search-docs']);
+		expect(listVisibleSources(db, scope).markdown).toBe('- billing-docs\n- search-docs');
 	});
 
 	it('rejects unknown keys', () => {
@@ -80,33 +82,33 @@ describe('scopeForKey', () => {
 		expect(scopeForKey(db, '', CLOCK)).toBeUndefined();
 	});
 
-	it('drops a deleted project from the selection', () => {
-		const { key } = newKey(db, 'ci', ['billing', 'platform']);
-		db.prepare("DELETE FROM projects WHERE slug = 'platform'").run();
+	it('drops a deleted source from the selection', () => {
+		const { key } = newKey(db, 'ci', ['billing-docs', 'platform-docs']);
+		db.prepare("DELETE FROM sources WHERE slug = 'platform-docs'").run();
 
-		expect(scopeForKey(db, key, CLOCK)).toEqual({ scope: ['billing'] });
+		expect(scopeForKey(db, key, CLOCK)).toEqual({ scope: ['billing-docs'] });
 	});
 });
 
 describe('listApiKeys', () => {
 	it('lists name and scope, never the key', () => {
 		newKey(db, 'ci', 'all');
-		newKey(db, 'agent', ['platform', 'billing']);
+		newKey(db, 'agent', ['platform-docs', 'billing-docs']);
 		newKey(db, 'empty', []);
 
 		const keys = listApiKeys(db);
 
-		expect(keys.map(({ name, projects }) => ({ name, projects }))).toEqual([
-			{ name: 'agent', projects: ['billing', 'platform'] },
-			{ name: 'ci', projects: 'all' },
-			{ name: 'empty', projects: [] }
+		expect(keys.map(({ name, sources }) => ({ name, sources }))).toEqual([
+			{ name: 'agent', sources: ['billing-docs', 'platform-docs'] },
+			{ name: 'ci', sources: 'all' },
+			{ name: 'empty', sources: [] }
 		]);
 		expect(Object.keys(keys[0]).sort()).toEqual([
 			'createdAt',
 			'id',
 			'lastUsedAt',
 			'name',
-			'projects',
+			'sources',
 			'validUntil'
 		]);
 	});
@@ -121,14 +123,14 @@ describe('listApiKeys', () => {
 
 describe('revokeApiKey', () => {
 	it('stops the key from working at once and leaves other keys alone', () => {
-		const revoked = newKey(db, 'old', ['platform']);
+		const revoked = newKey(db, 'old', ['platform-docs']);
 		const kept = newKey(db, 'new', 'all');
 
 		revokeApiKey(db, revoked.id);
 
 		expect(scopeForKey(db, revoked.key, CLOCK)).toBeUndefined();
 		expect(scopeForKey(db, kept.key, CLOCK)).toEqual({ scope: 'all' });
-		expect(db.prepare('SELECT count(*) AS n FROM api_key_projects').get()).toEqual({ n: 0 });
+		expect(db.prepare('SELECT count(*) AS n FROM api_key_sources').get()).toEqual({ n: 0 });
 	});
 });
 
@@ -178,23 +180,23 @@ describe('expiry', () => {
 
 describe('updateApiKey', () => {
 	it('changes scope and expiry while the same key keeps working', () => {
-		const { id, key } = newKey(db, 'ci', ['billing'], '2026-10-31');
+		const { id, key } = newKey(db, 'ci', ['billing-docs'], '2026-10-31');
 
-		updateApiKey(db, id, ['platform', 'search'], null);
-		expect(scopeForKey(db, key, CLOCK)).toEqual({ scope: ['platform', 'search'] });
+		updateApiKey(db, id, ['platform-docs', 'search-docs'], null);
+		expect(scopeForKey(db, key, CLOCK)).toEqual({ scope: ['platform-docs', 'search-docs'] });
 		expect(listApiKeys(db)[0].validUntil).toBeNull();
 
 		updateApiKey(db, id, 'all', '2026-10-29');
-		expect(listApiKeys(db)[0].projects).toBe('all');
+		expect(listApiKeys(db)[0].sources).toBe('all');
 		expect(scopeForKey(db, key, CLOCK)).toBeUndefined();
-		expect(db.prepare('SELECT count(*) AS n FROM api_key_projects').get()).toEqual({ n: 0 });
+		expect(db.prepare('SELECT count(*) AS n FROM api_key_sources').get()).toEqual({ n: 0 });
 	});
 
-	it('changes nothing when a project does not exist', () => {
-		const { id, key } = newKey(db, 'ci', ['billing']);
+	it('changes nothing when a source does not exist', () => {
+		const { id, key } = newKey(db, 'ci', ['billing-docs']);
 
-		expect(updateApiKey(db, id, ['nope'], '2026-12-31')).toEqual({ error: 'unknown-project' });
-		expect(scopeForKey(db, key, CLOCK)).toEqual({ scope: ['billing'] });
+		expect(updateApiKey(db, id, ['nope'], '2026-12-31')).toEqual({ error: 'unknown-source' });
+		expect(scopeForKey(db, key, CLOCK)).toEqual({ scope: ['billing-docs'] });
 		expect(listApiKeys(db)[0].validUntil).toBeNull();
 	});
 
@@ -202,7 +204,7 @@ describe('updateApiKey', () => {
 		const { id } = newKey(db, 'ci', 'all');
 		revokeApiKey(db, id);
 
-		expect(updateApiKey(db, id, ['billing'], null)).toEqual({ error: 'unknown-key' });
-		expect(db.prepare('SELECT count(*) AS n FROM api_key_projects').get()).toEqual({ n: 0 });
+		expect(updateApiKey(db, id, ['billing-docs'], null)).toEqual({ error: 'unknown-key' });
+		expect(db.prepare('SELECT count(*) AS n FROM api_key_sources').get()).toEqual({ n: 0 });
 	});
 });

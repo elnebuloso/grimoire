@@ -1,19 +1,13 @@
--- Projects and sources are state that exists nowhere else. Pages, snippets, links and the search
--- index are derived from Git and rebuilt by every sync of a source.
+-- Sources are state that exists nowhere else. Pages, snippets, links and the search index are
+-- derived from Git and rebuilt by every sync of a source.
 
--- The name people read; the slug is the address agents use.
-CREATE TABLE projects (
+-- The name and description are for people and agents choosing what to search; the slug is the
+-- address agents use, the first part of every ID.
+CREATE TABLE sources (
 	id INTEGER PRIMARY KEY,
 	slug TEXT NOT NULL UNIQUE,
 	name TEXT NOT NULL DEFAULT '',
-	description TEXT NOT NULL DEFAULT ''
-) STRICT;
-
-CREATE TABLE sources (
-	id INTEGER PRIMARY KEY,
-	project_id INTEGER NOT NULL REFERENCES projects (id) ON DELETE CASCADE,
-	slug TEXT NOT NULL,
-	name TEXT NOT NULL DEFAULT '',
+	description TEXT NOT NULL DEFAULT '',
 	git_url TEXT NOT NULL,
 	branch TEXT NOT NULL,
 	path TEXT NOT NULL,
@@ -36,13 +30,9 @@ CREATE TABLE sources (
 	error TEXT,
 	-- The commit whose indexing failed, so it is not indexed again on every check until it changes.
 	failed_commit TEXT,
-	warnings TEXT NOT NULL DEFAULT '[]',
-	UNIQUE (project_id, slug)
+	warnings TEXT NOT NULL DEFAULT '[]'
 ) STRICT;
 
--- A sync writes the new index of a source in short transactions under the next generation and
--- switches to it by updating the source, so it never holds the write lock for long and readers
--- see either the old index or the new one.
 CREATE TABLE pages (
 	id INTEGER PRIMARY KEY,
 	source_id INTEGER NOT NULL REFERENCES sources (id) ON DELETE CASCADE,
@@ -64,8 +54,8 @@ CREATE VIEW live_pages AS
 	JOIN sources ON sources.id = pages.source_id AND sources.index_generation = pages.generation;
 
 -- No unique (page_id, anchor): parts of a split section share an anchor, the overview has none.
--- Title paths and links between pages hold IDs relative to the source; project and source slugs
--- are added when the index is read, so a changed slug takes effect at once.
+-- Title paths and links between pages hold IDs relative to the source; the source slug is added
+-- when the index is read, so a changed slug takes effect at once.
 CREATE TABLE snippets (
 	id INTEGER PRIMARY KEY,
 	page_id INTEGER NOT NULL REFERENCES pages (id) ON DELETE CASCADE,
@@ -122,7 +112,7 @@ CREATE TABLE api_keys (
 	id INTEGER PRIMARY KEY,
 	name TEXT NOT NULL,
 	key_hash TEXT NOT NULL UNIQUE,
-	all_projects INTEGER NOT NULL CHECK (all_projects IN (0, 1)),
+	all_sources INTEGER NOT NULL CHECK (all_sources IN (0, 1)),
 	created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	-- When the key last authenticated a request, so unused keys can be found and revoked. Written
 	-- at most once a minute per key, not on every request.
@@ -132,10 +122,10 @@ CREATE TABLE api_keys (
 	valid_until TEXT CHECK (valid_until GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]')
 ) STRICT;
 
-CREATE TABLE api_key_projects (
+CREATE TABLE api_key_sources (
 	api_key_id INTEGER NOT NULL REFERENCES api_keys (id) ON DELETE CASCADE,
-	project_id INTEGER NOT NULL REFERENCES projects (id) ON DELETE CASCADE,
-	PRIMARY KEY (api_key_id, project_id)
+	source_id INTEGER NOT NULL REFERENCES sources (id) ON DELETE CASCADE,
+	PRIMARY KEY (api_key_id, source_id)
 ) STRICT;
 
 -- Accounts, any number of them; what a user may do follows from their roles. Users log in with
@@ -172,12 +162,12 @@ CREATE TABLE password_resets (
 CREATE INDEX password_resets_user ON password_resets (user_id);
 
 -- Agent queries that found nothing: what the documentation is missing, or words it does not use.
--- The project is kept as the slug that was asked for, like a log line, so it outlives a rename.
+-- The sources are kept as the slugs that were asked for, like a log line, so they outlive a rename.
 CREATE TABLE missed_queries (
 	id INTEGER PRIMARY KEY,
 	question TEXT NOT NULL,
-	-- NULL for a query across all projects.
-	project TEXT,
+	-- The slugs, comma-separated; NULL for a query across all sources.
+	sources TEXT,
 	asked_at TEXT NOT NULL
 ) STRICT;
 CREATE INDEX missed_queries_asked_at ON missed_queries (asked_at);

@@ -326,7 +326,7 @@ describe('several users', () => {
 		);
 
 		expect(access.accessRedirect(db, '/manage', editor)).toBe('forbidden');
-		expect(access.accessRedirect(db, '/manage/projects/1', editor)).toBe('forbidden');
+		expect(access.accessRedirect(db, '/manage/sources/1', editor)).toBe('forbidden');
 		expect(access.accessRedirect(db, '/logout', editor)).toBeUndefined();
 		expect(access.accessRedirect(db, '/login', editor)).toBeUndefined();
 		expect(access.accessRedirect(db, '/account', editor)).toBeUndefined();
@@ -497,7 +497,7 @@ describe('accessRedirect', () => {
 
 describe('pages outside the account and management pages', () => {
 	it('are served whatever the state, even before the setup', async () => {
-		for (const path of ['/', '/projects', '/p/platform/query', '/manage-tools', '/accounting']) {
+		for (const path of ['/', '/sources', '/query', '/manage-tools', '/accounting']) {
 			expect(access.accessRedirect(db, path, undefined)).toBeUndefined();
 		}
 	});

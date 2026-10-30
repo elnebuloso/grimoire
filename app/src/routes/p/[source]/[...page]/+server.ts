@@ -6,7 +6,6 @@ import { readById } from '#lib/server/agent/operations.js';
 export const GET: RequestHandler = ({ request, params, url }) =>
 	agentResponse(request, (db, scope) => {
 		const section = {
-			project: params.project,
 			source: params.source,
 			file: `${params.page}.md`,
 			anchor: url.searchParams.get('section')

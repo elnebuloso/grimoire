@@ -6,7 +6,7 @@
 
     New to grimoire? Read [Concepts](index.md) first.
 
-grimoire keeps everything in one SQLite file. Projects, sources, users, settings and API keys exist
+grimoire keeps everything in one SQLite file. Sources, users, settings and API keys exist
 only there; pages, snippets and links are read again from Git by the next sync of each source.
 
 ## Volume
@@ -44,7 +44,7 @@ Run exactly one grimoire process per database file. On Kubernetes: `replicas: 1`
 
 Releases before `1.0.0` are previews with no update path between them: a database written by one
 `0.x` release may not work with a later one. Start the new release with an empty volume and enter
-projects, sources and API keys again.
+sources and API keys again.
 
 ## Schema updates
 

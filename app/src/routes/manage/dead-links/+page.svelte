@@ -13,12 +13,7 @@
 {:else}
 	{#each data.groups as group (group.sourceId)}
 		<h2>
-			<a
-				href={resolve('/manage/projects/[id]/sources/[sourceId]', {
-					id: String(group.projectId),
-					sourceId: String(group.sourceId)
-				})}>{group.project}/{group.source}</a
-			>
+			<a href={resolve('/manage/sources/[id]', { id: String(group.sourceId) })}>{group.source}</a>
 		</h2>
 		<ul>
 			{#each group.links as link, index (index)}

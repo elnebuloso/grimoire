@@ -11,7 +11,7 @@
 		{ file: 'runbooks/rollback.md', title: 'Rolling back a release', snippets: 3, tokens: 240 },
 		{ file: 'services/auth.md', title: 'Auth service', snippets: 5, tokens: 410 }
 	];
-	const args = { pages, projectId: 1, sourceId: 1 };
+	const args = { pages, sourceId: 1 };
 </script>
 
 <Story
@@ -21,7 +21,7 @@
 		await expect(canvas.getAllByRole('listitem')).toHaveLength(3);
 		await expect(canvas.getByRole('link', { name: 'runbooks/rollback.md' })).toHaveAttribute(
 			'href',
-			'/manage/projects/1/sources/1?preview=runbooks%2Frollback.md'
+			'/manage/sources/1?preview=runbooks%2Frollback.md'
 		);
 	}}
 />

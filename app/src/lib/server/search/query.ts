@@ -2,21 +2,20 @@ import { posix } from 'node:path';
 import type { DatabaseSync, SQLInputValue } from 'node:sqlite';
 import { estimateTokens } from '../parsing/chunk';
 import { redactUrl } from '../sync/git';
-import type { ProjectScope } from '../api-keys';
-import { grimoireId, withSlugs, type SectionLocation } from '../grimoire-id';
+import type { SourceScope } from '../api-keys';
+import { grimoireId, withSlug, type SectionLocation } from '../grimoire-id';
 
 export interface SearchOptions {
 	query: string;
-	/** Slug of the project to search; all projects when undefined. */
-	project?: string;
-	/** The projects the caller may see. */
-	allowedProjects: ProjectScope;
+	/** Slugs of the sources to search; all sources when undefined. */
+	sources?: string[];
+	/** The sources the caller may see. */
+	allowedSources: SourceScope;
 	tokens?: number;
 }
 
 /** A snippet with everything needed to render it on its own. */
 export interface SnippetHit {
-	project: string;
 	source: string;
 	gitUrl: string;
 	branch: string;
@@ -30,8 +29,8 @@ export interface SnippetHit {
 }
 
 /**
- * A database row with the columns of `SnippetHit` as stored: the title path as JSON, without
- * project and source and without the part label, links in the content without them either.
+ * A database row with the columns of `SnippetHit` as stored: the title path as JSON, without the
+ * source and without the part label, links in the content without the source either.
  */
 interface SnippetRow extends Omit<SnippetHit, 'titlePath'> {
 	title_path: string;
@@ -39,11 +38,10 @@ interface SnippetRow extends Omit<SnippetHit, 'titlePath'> {
 	parts: number;
 }
 
-/** Matches the rows of `projects` in a scope, bound as `:scope` with `scopeParameter`. */
-export const IN_SCOPE =
-	'(:scope IS NULL OR projects.slug IN (SELECT value FROM json_each(:scope)))';
+/** Matches the rows of `sources` in a scope, bound as `:scope` with `scopeParameter`. */
+export const IN_SCOPE = '(:scope IS NULL OR sources.slug IN (SELECT value FROM json_each(:scope)))';
 
-export function scopeParameter(scope: ProjectScope): string | null {
+export function scopeParameter(scope: SourceScope): string | null {
 	return scope === 'all' ? null : JSON.stringify(scope);
 }
 
@@ -57,24 +55,23 @@ interface SnippetQuery {
 
 /**
  * The snippets in scope that match `query`, ready to render. Its clauses may use `snippets`,
- * `pages`, `sources` and `projects`, and the named parameters given in `parameters`.
+ * `pages` and `sources`, and the named parameters given in `parameters`.
  */
 export function selectSnippets(
 	db: DatabaseSync,
 	query: SnippetQuery,
 	parameters: Record<string, SQLInputValue>,
-	scope: ProjectScope
+	scope: SourceScope
 ): SnippetHit[] {
 	const rows = db
 		.prepare(
-			`SELECT projects.slug AS project, sources.slug AS source, sources.git_url AS gitUrl,
+			`SELECT sources.slug AS source, sources.git_url AS gitUrl,
 				sources.branch, sources.path, pages.file, snippets.anchor, snippets.title_path,
 				snippets.part, snippets.parts, snippets.content, snippets.tokens
 			FROM snippets
 			${query.join ?? ''}
 			JOIN live_pages AS pages ON pages.id = snippets.page_id
 			JOIN sources ON sources.id = pages.source_id
-			JOIN projects ON projects.id = sources.project_id
 			WHERE (${query.where}) AND ${IN_SCOPE}
 			ORDER BY ${query.orderBy}
 			${query.limit === undefined ? '' : `LIMIT ${query.limit}`}`
@@ -87,19 +84,19 @@ export function selectSnippets(
 export function readSnippets(
 	db: DatabaseSync,
 	location: SectionLocation,
-	scope: ProjectScope
+	scope: SourceScope
 ): SnippetHit[] {
 	// An empty anchor names no section, so `?section=` and an ID ending in `#` read the page.
 	const anchor = location.anchor || null;
 	return selectSnippets(
 		db,
 		{
-			where: `projects.slug = :project AND sources.slug = :source AND pages.file = :file
+			where: `sources.slug = :source AND pages.file = :file
 				AND (:anchor IS NULL OR snippets.anchor = :anchor
 					OR :anchor IN (SELECT value FROM json_each(snippets.aliases)))`,
 			orderBy: 'snippets.position'
 		},
-		{ project: location.project, source: location.source, file: location.file, anchor },
+		{ source: location.source, file: location.file, anchor },
 		scope
 	);
 }
@@ -130,12 +127,13 @@ export function searchSnippets(db: DatabaseSync, options: SearchOptions): string
 		db,
 		{
 			join: 'JOIN snippets_fts ON snippets_fts.rowid = snippets.id',
-			where: 'snippets_fts MATCH :match AND (:project IS NULL OR projects.slug = :project)',
+			where: `snippets_fts MATCH :match
+				AND (:sources IS NULL OR sources.slug IN (SELECT value FROM json_each(:sources)))`,
 			orderBy: 'bm25(snippets_fts, 10, 1, 0.25)',
 			limit: MAX_HITS
 		},
-		{ match, project: options.project ?? null },
-		options.allowedProjects
+		{ match, sources: options.sources ? JSON.stringify(options.sources) : null },
+		options.allowedSources
 	);
 
 	return packIntoBudget(hits, options.tokens ?? DEFAULT_TOKENS);
@@ -146,8 +144,8 @@ function toSnippetHit({ title_path, part, parts, ...row }: SnippetRow): SnippetH
 	if (parts > 1) titlePath.push(`${titlePath.pop()} (${part}/${parts})`);
 	return {
 		...row,
-		titlePath: [row.project, row.source, ...titlePath],
-		content: withSlugs(row.content, row.project, row.source)
+		titlePath: [row.source, ...titlePath],
+		content: withSlug(row.content, row.source)
 	};
 }
 

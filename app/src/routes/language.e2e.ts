@@ -12,14 +12,14 @@ async function pageIn(browser: Browser, locale: string) {
 test('shows the UI in the language the browser asks for', async ({ browser }) => {
 	const page = await pageIn(browser, 'de-DE');
 	await page.goto('/');
-	await expect(page.getByRole('heading', { name: 'Projekte' })).toBeVisible();
+	await expect(page.getByRole('heading', { name: 'Quellen' })).toBeVisible();
 	await expect(page.locator('html')).toHaveAttribute('lang', 'de');
 });
 
 test('falls back to English for a language it does not have', async ({ browser }) => {
 	const page = await pageIn(browser, 'fr-FR');
 	await page.goto('/');
-	await expect(page.getByRole('heading', { name: 'Projects' })).toBeVisible();
+	await expect(page.getByRole('heading', { name: 'Sources' })).toBeVisible();
 	await expect(page.locator('html')).toHaveAttribute('lang', 'en');
 });
 
@@ -29,7 +29,7 @@ test('keeps a language picked with the switch over the browser language', async 
 	await page.getByRole('button', { name: 'English' }).click();
 
 	await expect(page).toHaveURL('/');
-	await expect(page.getByRole('heading', { name: 'Projects' })).toBeVisible();
+	await expect(page.getByRole('heading', { name: 'Sources' })).toBeVisible();
 	await expect(page.getByRole('button', { name: 'English' })).toHaveAttribute(
 		'aria-pressed',
 		'true'
@@ -41,7 +41,7 @@ test('keeps a language picked with the switch over the browser language', async 
 
 	await page.getByRole('button', { name: 'Deutsch' }).click();
 	await expect(page).toHaveURL('/');
-	await expect(page.getByRole('heading', { name: 'Projekte' })).toBeVisible();
+	await expect(page.getByRole('heading', { name: 'Quellen' })).toBeVisible();
 });
 
 test('answers an unknown path with a not-found page in the language of the browser', async ({

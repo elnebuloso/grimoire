@@ -65,33 +65,33 @@ describe('migrate', () => {
 		const db = new DatabaseSync(':memory:');
 		const schema = {
 			name: '0001-schema.sql',
-			sql: `CREATE TABLE projects (id INTEGER PRIMARY KEY, slug TEXT);
-				CREATE TABLE sources (id INTEGER PRIMARY KEY,
-					project_id INTEGER NOT NULL REFERENCES projects (id) ON DELETE CASCADE);`
+			sql: `CREATE TABLE sources (id INTEGER PRIMARY KEY, slug TEXT);
+				CREATE TABLE pages (id INTEGER PRIMARY KEY,
+					source_id INTEGER NOT NULL REFERENCES sources (id) ON DELETE CASCADE);`
 		};
 		const rebuild = {
 			name: '0002-rebuild.sql',
-			sql: `CREATE TABLE projects_new (id INTEGER PRIMARY KEY, slug TEXT NOT NULL);
-				INSERT INTO projects_new SELECT id, slug FROM projects;
-				DROP TABLE projects;
-				ALTER TABLE projects_new RENAME TO projects;`
+			sql: `CREATE TABLE sources_new (id INTEGER PRIMARY KEY, slug TEXT NOT NULL);
+				INSERT INTO sources_new SELECT id, slug FROM sources;
+				DROP TABLE sources;
+				ALTER TABLE sources_new RENAME TO sources;`
 		};
 		migrate(db, [schema]);
-		db.exec("INSERT INTO projects VALUES (1, 'platform'); INSERT INTO sources VALUES (1, 1);");
+		db.exec("INSERT INTO sources VALUES (1, 'platform'); INSERT INTO pages VALUES (1, 1);");
 		db.exec('PRAGMA foreign_keys = ON');
 
 		migrate(db, [schema, rebuild]);
-		expect(rows(db, 'SELECT * FROM sources')).toEqual([{ id: 1, project_id: 1 }]);
+		expect(rows(db, 'SELECT * FROM pages')).toEqual([{ id: 1, source_id: 1 }]);
 	});
 
 	it('rejects a migration that leaves rows with broken foreign keys', () => {
 		const db = new DatabaseSync(':memory:');
 		const schema = {
 			name: '0001-schema.sql',
-			sql: `CREATE TABLE projects (id INTEGER PRIMARY KEY);
-				CREATE TABLE sources (project_id INTEGER REFERENCES projects (id));`
+			sql: `CREATE TABLE sources (id INTEGER PRIMARY KEY);
+				CREATE TABLE pages (source_id INTEGER REFERENCES sources (id));`
 		};
-		const orphan = { name: '0002-orphan.sql', sql: 'INSERT INTO sources VALUES (42);' };
+		const orphan = { name: '0002-orphan.sql', sql: 'INSERT INTO pages VALUES (42);' };
 
 		expect(() => migrate(db, [schema, orphan])).toThrow(/0002-orphan.sql failed: 1 rows violate/);
 		expect(rows(db, 'SELECT * FROM sources')).toEqual([]);

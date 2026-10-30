@@ -39,11 +39,11 @@ previews without an upgrade path: a later release may need a fresh database.
 ## Connecting agents
 
 Every request needs an API key: `Authorization: Bearer <key>`. Keys are created in the management area
-under **API keys**; a key sees all projects or a selection of them.
+under **API keys**; a key sees all sources or a selection of them.
 
 ### MCP
 
-The MCP server lives at `/mcp` (Streamable HTTP) and offers the tools `projects`, `index`,
+The MCP server lives at `/mcp` (Streamable HTTP) and offers the tools `sources`, `index`,
 `query` and `read`. Its instructions tell the agent how to use them. Access is by API key only,
 so any client that can send the key as a header works, for example Claude Code:
 
@@ -59,12 +59,11 @@ For agents without MCP, the same operations answer in Markdown, so `curl` or `We
 | Route | Answer |
 |---|---|
 | `GET /instructions` | How agents use grimoire |
-| `GET /projects` | Projects with their short description |
-| `GET /query?q=<terms>&tokens=<budget>` | Matching snippets from all projects, default budget 3000 |
-| `GET /p/<project>/index` | Pages and sections of a project with their IDs |
-| `GET /p/<project>/llms.txt` | The pages of a project as [llms.txt](https://llmstxt.org) |
-| `GET /p/<project>/query?q=<terms>&tokens=<budget>` | Matching snippets from one project |
-| `GET /p/<project>/<source>/<page>` | A whole page; `?section=<anchor>` for one section |
+| `GET /sources` | Sources with their short description |
+| `GET /query?q=<terms>&tokens=<budget>` | Matching snippets from all sources, default budget 3000; `&source=<source>`, repeatable, to search only those |
+| `GET /sources/<source>` | Pages and sections of a source with their IDs |
+| `GET /sources/<source>/llms.txt` | The pages of a source as [llms.txt](https://llmstxt.org) |
+| `GET /p/<source>/<page>` | A whole page; `?section=<anchor>` for one section |
 
 An agent without MCP needs one line in its `CLAUDE.md` or `AGENTS.md`:
 
@@ -88,8 +87,8 @@ make setup   # creates app/.env with a new TOKEN_ENCRYPTION_KEY, installs the de
 make dev     # or: make build, then in app/: node --env-file=.env build
 ```
 
-Open `/manage`, set up the admin account with the setup token from the log, add a project with a
-source and create an API key under **API keys**.
+Open `/manage`, set up the admin account with the setup token from the log, add a source and
+create an API key under **API keys**.
 
 The container, its environment variables and the reverse proxy are described in
 [docs/handbook/docker.md](docs/handbook/docker.md); the volume for the SQLite file, the encryption

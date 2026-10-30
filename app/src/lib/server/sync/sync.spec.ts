@@ -81,21 +81,13 @@ function rows(sql: string, ...values: (string | number)[]) {
 }
 
 function addSource(url: string, options: { exclusions?: string[]; token?: string } = {}) {
-	const project = Number(
-		db
-			.prepare(
-				"INSERT INTO projects (slug) VALUES ('platform') ON CONFLICT DO UPDATE SET slug = slug RETURNING id"
-			)
-			.get()!.id
-	);
 	return Number(
 		db
 			.prepare(
-				`INSERT INTO sources (project_id, slug, git_url, branch, path, exclusions, username, encrypted_token)
-				VALUES (?, ?, ?, 'main', 'docs/', ?, 'deploy', ?)`
+				`INSERT INTO sources (slug, git_url, branch, path, exclusions, username, encrypted_token)
+				VALUES (?, ?, 'main', 'docs/', ?, 'deploy', ?)`
 			)
 			.run(
-				project,
 				`auth-${Math.random().toString(36).slice(2)}`,
 				url,
 				JSON.stringify(options.exclusions ?? []),
@@ -439,19 +431,21 @@ describe('deleting a source while it syncs', () => {
 	}
 
 	it.each([
-		['the source', 'check', `DELETE FROM sources`],
-		['the source', 'sync', `DELETE FROM sources`],
-		['its project', 'sync', `DELETE FROM projects`]
-	] as const)('leaves nothing behind when %s is deleted before the %s', async (_, when, sql) => {
-		const outcome = await syncSource(db, source, {
-			key,
-			workDirectory: work,
-			lanes: deletingBefore(when, sql)
-		});
+		['check', `DELETE FROM sources`],
+		['sync', `DELETE FROM sources`]
+	] as const)(
+		'leaves nothing behind when the source is deleted before the %s',
+		async (when, sql) => {
+			const outcome = await syncSource(db, source, {
+				key,
+				workDirectory: work,
+				lanes: deletingBefore(when, sql)
+			});
 
-		expect(outcome.status).toBe('failed');
-		expect(leftOver(source)).toEqual({ pages: 0, snippets: 0, links: 0, runs: 0 });
-	});
+			expect(outcome.status).toBe('failed');
+			expect(leftOver(source)).toEqual({ pages: 0, snippets: 0, links: 0, runs: 0 });
+		}
+	);
 
 	it('keeps the queue working after a source was deleted while queued', async () => {
 		const other = addSource(`file://${bare}`);

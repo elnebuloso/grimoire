@@ -5,22 +5,21 @@ import { replaceSourceIndex } from '#lib/server/db/sources.js';
 import { chunkPage } from '#lib/server/parsing/chunk.js';
 import { splitCode } from '#lib/server/parsing/markdown.js';
 import { preprocessPage } from '#lib/server/parsing/preprocess.js';
-import { queryProjects } from '#lib/server/agent/operations.js';
+import { querySources } from '#lib/server/agent/operations.js';
 import * as page from './+page.server';
 
 let db: DatabaseSync;
 
 vi.mock('#lib/server/db/index.js', () => ({ database: () => db }));
 
-function addProjectWithPage(slug: string, markdown: string) {
-	const projectId = db.prepare('INSERT INTO projects (slug) VALUES (?)').run(slug).lastInsertRowid;
+function addSourceWithPage(slug: string, markdown: string) {
 	const sourceId = Number(
 		db
 			.prepare(
-				`INSERT INTO sources (project_id, slug, git_url, branch, path)
-				VALUES (?, 'docs', 'https://git.example/x.git', 'main', 'docs/')`
+				`INSERT INTO sources (slug, git_url, branch, path)
+				VALUES (?, 'https://git.example/x.git', 'main', 'docs/')`
 			)
-			.run(projectId).lastInsertRowid
+			.run(slug).lastInsertRowid
 	);
 	const metadata = preprocessPage(markdown);
 	const chunked = chunkPage(metadata, 'index.md');
@@ -34,8 +33,8 @@ function addProjectWithPage(slug: string, markdown: string) {
 }
 
 interface QueryPage {
-	projects: string[];
-	values: { question: string; project: string; tokens: string };
+	sources: string[];
+	values: { question: string; sources: string[]; tokens: string };
 	error?: string;
 	answer?: string;
 }
@@ -47,31 +46,38 @@ function load(search: string): QueryPage {
 
 beforeEach(() => {
 	db = openDatabase(':memory:');
-	addProjectWithPage('platform', '# Rollback\n\nHow to roll back the platform.');
-	addProjectWithPage('billing', '# Invoices\n\nA rollback of an invoice.');
+	addSourceWithPage('platform-docs', '# Rollback\n\nHow to roll back the platform.');
+	addSourceWithPage('billing-docs', '# Invoices\n\nA rollback of an invoice.');
+	addSourceWithPage('billing-archive', '# Old invoices\n\nA rollback in 2019.');
 });
 
 describe('query page', () => {
-	it('searches nothing until the form is sent, and offers every project', () => {
+	it('searches nothing until the form is sent, and offers every source', () => {
 		expect(load('')).toEqual({
-			projects: ['billing', 'platform'],
-			values: { question: '', project: '', tokens: '3000' }
+			sources: ['billing-archive', 'billing-docs', 'platform-docs'],
+			values: { question: '', sources: [], tokens: '3000' }
 		});
 	});
 
-	it('answers with what query returns to an agent, across all projects', () => {
-		const result = load('?q=rollback&project=&tokens=3000');
-		const expected = queryProjects(db, { query: 'rollback', tokens: 3000 }, 'all').markdown;
+	it('answers with what query returns to an agent, across all sources', () => {
+		const result = load('?q=rollback&tokens=3000');
+		const expected = querySources(db, { query: 'rollback', tokens: 3000 }, 'all').markdown;
 		expect(result.answer).toBe(expected);
-		expect(result.answer).toContain('Source: platform/docs/index');
-		expect(result.answer).toContain('Source: billing/docs/index');
+		expect(result.answer).toContain('Source: platform-docs/index');
+		expect(result.answer).toContain('Source: billing-docs/index');
+		expect(result.answer).toContain('Source: billing-archive/index');
 	});
 
-	it('restricts the search to the chosen project and keeps the values in the form', () => {
-		const result = load('?q=rollback&project=billing&tokens=50');
-		expect(result.answer).toContain('Source: billing/docs/index');
-		expect(result.answer).not.toContain('platform/docs');
-		expect(result.values).toEqual({ question: 'rollback', project: 'billing', tokens: '50' });
+	it('restricts the search to the chosen sources and keeps the values in the form', () => {
+		const result = load('?q=rollback&source=billing-docs&source=billing-archive&tokens=500');
+		expect(result.answer).toContain('Source: billing-docs/index');
+		expect(result.answer).toContain('Source: billing-archive/index');
+		expect(result.answer).not.toContain('platform-docs');
+		expect(result.values).toEqual({
+			question: 'rollback',
+			sources: ['billing-docs', 'billing-archive'],
+			tokens: '500'
+		});
 	});
 
 	it('does not record a query without results: trying is not an agent asking', () => {

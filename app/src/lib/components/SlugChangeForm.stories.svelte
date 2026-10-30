@@ -5,7 +5,7 @@
 
 	const { Story } = defineMeta({ title: 'SlugChangeForm', component: SlugChangeForm });
 
-	const effects = 'The slug platform is part of the ID of every snippet of this project.';
+	const effects = 'The slug platform is part of the ID of every snippet of this source.';
 </script>
 
 <Story

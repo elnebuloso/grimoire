@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import DescriptionList from '#lib/components/DescriptionList.svelte';
-	import ProjectStatsTable from '#lib/components/ProjectStatsTable.svelte';
+	import SourceStatsTable from '#lib/components/SourceStatsTable.svelte';
 	import { m } from '#lib/paraglide/messages.js';
 	import type { PageProps } from './$types';
 
@@ -23,7 +23,6 @@
 <h2>{m.admin_overview()}</h2>
 <DescriptionList
 	items={[
-		[m.projects(), data.totals.projects],
 		[m.sources(), data.totals.sources],
 		[m.pages(), data.totals.pages],
 		[m.snippets(), data.totals.snippets],
@@ -40,12 +39,7 @@
 	<ul>
 		{#each data.attention as item (item.sourceId)}
 			<li>
-				<a
-					href={resolve('/manage/projects/[id]/sources/[sourceId]', {
-						id: String(item.projectId),
-						sourceId: String(item.sourceId)
-					})}>{item.project}/{item.source}</a
-				>
+				<a href={resolve('/manage/sources/[id]', { id: String(item.sourceId) })}>{item.source}</a>
 				{#if item.neverSynced}– {m.admin_never_synced()}{/if}
 				{#if item.error}– {m.admin_sync_error({ error: item.error })}{/if}
 				{#if item.warnings.length > 0}
@@ -61,14 +55,14 @@
 	</ul>
 {/if}
 
-<h2>{m.projects()}</h2>
-{#if data.projects.length === 0}
-	<p>{m.start_no_projects()}</p>
+<h2>{m.sources()}</h2>
+{#if data.sources.length === 0}
+	<p>{m.no_sources_yet()}</p>
 {:else}
-	<ProjectStatsTable projects={data.projects} timeZone={data.timeZone}>
-		{#snippet name(project)}
-			<a href={resolve('/manage/projects/[id]', { id: String(project.id) })}>{project.name}</a>
+	<SourceStatsTable sources={data.sources} timeZone={data.timeZone}>
+		{#snippet name(source)}
+			<a href={resolve('/manage/sources/[id]', { id: String(source.id) })}>{source.name}</a>
 		{/snippet}
-	</ProjectStatsTable>
+	</SourceStatsTable>
 {/if}
-<p><a href={resolve('/manage/projects/new')}>{m.admin_new_project()}</a></p>
+<p><a href={resolve('/manage/sources/[id]', { id: 'new' })}>{m.source_new()}</a></p>

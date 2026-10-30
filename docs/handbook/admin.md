@@ -50,24 +50,24 @@ sessions are logged out; the browser you changed it in stays logged in.
   beyond that are answered as usual but send nothing.
 - `This link is invalid, used or expired. Request a new one.`: use **Request a new link**.
 
-## Projects and sources
+## Sources
 
-Create a project with **New project** on `Manage > Overview`. Nothing is saved until
-**Create project** on the summary; leaving earlier leaves nothing behind. Add further sources with
-**New source** on the project's page.
+Create a source with **New source** on `Manage > Overview`.
 
 !!! note "Public"
-    The start page `/` shows every project's name, slug and short description without a
-    login, with its counts of sources, pages, snippets, tokens, sync errors and dead links and the
-    oldest sync. It shows nothing of the sources, neither Git URLs nor errors.
+    The start page `/` shows every source's name, slug and short description without a login,
+    with its counts of pages, snippets, tokens and dead links, its last sync and whether it has a
+    sync error. It shows neither Git URLs nor error texts.
 
-To serve two paths of one repository, add it twice, as two sources.
+To serve two paths of one repository, add it twice, as two sources, and name each for what it
+holds, such as `Billing API` and `Billing runbooks`.
 
 | Field | Rule |
 |---|---|
-| **Name** | At most 80 characters. Creating derives the slug from it: lowercase letters, digits and single hyphens, umlauts spelled out (`Prüfung & Abnahme` → `pruefung-abnahme`), at most 40 characters. Renaming keeps the slug. A project slug is unique, a source slug unique within its project. |
+| **Name** | At most 80 characters. Creating derives the slug from it: lowercase letters, digits and single hyphens, umlauts spelled out (`Prüfung & Abnahme` → `pruefung-abnahme`), at most 40 characters. Renaming keeps the slug. A slug is unique on the instance. |
+| **Short description** | Optional. Agents see it in `sources` and use it to choose where to search: name what the documentation covers, such as `Login, sessions and tokens of the auth service`. |
 | **Git URL (HTTPS)** | `https://` only. Username and token go in their own fields, never in the URL. |
-| **Documentation URL** | Optional. Linked on the source page and the project's source list; agents and the start page do not see it. |
+| **Documentation URL** | Optional. Linked on the source page; agents and the start page do not see it. |
 | **Path in the repository** | Relative to the repository root, such as `docs/`; empty for the whole repository; no `..`. |
 | **Exclusions** | Glob patterns relative to the repository root, one per line, such as `docs/drafts/**`. |
 | **Schedule** | Cron with five fields in the instance's time zone, such as `0 6 * * 1-5` for weekdays at 6:00; empty uses the global schedule the label shows. A schedule that never runs, such as `0 0 30 2 *`, is rejected. |
@@ -92,7 +92,7 @@ To serve two paths of one repository, add it twice, as two sources.
 
 **Test connection** checks that the Git server answers, accepts the username and token, and has
 the branch. Saving runs the same check whenever Git URL, branch, username or token changed, and a
-new project or source is saved only when it passes. Whether the path exists shows on the first
+new source is saved only when it passes. Whether the path exists shows on the first
 sync.
 
 | Message | Fix |
@@ -108,24 +108,23 @@ Saving a source starts a sync, so changed paths and exclusions apply without a n
 paused source, or any source while **Pause all syncs** is on, is saved without one.
 
 !!! danger "Irreversible"
-    Deleting a project deletes all its sources and their index; deleting a source
-    deletes its index. API keys limited to a deleted project lose it.
+    Deleting a source deletes its index. API keys limited to a deleted source lose it.
 
 ### Changing a slug
 
-`Change the slug`, at the bottom of a project or source page.
+`Change the slug`, at the bottom of a source page.
 
 !!! warning "Breaks references"
-    Every ID below the slug changes at once. IDs agents have kept and URLs
-    such as `/p/<slug>/query` in agent configurations stop working, for a project in all its
-    sources. Search, `read` and links between pages answer with the new IDs right away.
+    Every ID below the slug changes at once. IDs agents have kept and URLs such as
+    `/sources/<slug>` or `/query?source=<slug>` in agent configurations stop working. Search,
+    `read` and links between pages answer with the new IDs right away.
 
 Confirm by typing the current slug. The new slug must be free.
 
 ## Sync errors
 
 A failed sync keeps the index of the last successful one in use and shows its error on the source
-page, on the project's page and under **Needs attention**.
+page and under **Needs attention**.
 
 | Error | Fix |
 |---|---|
@@ -171,32 +170,32 @@ It keeps the newest 100 lines.
   snippets with ID and estimated tokens. Use it to find sections that came out too large, too small
   or under a misleading title.
 - `Manage > Try a query` answers exactly like the agent operation `query`, with a line naming the
-  hits that did not fit the budget. It searches every project, needs no API key and is not recorded.
+  hits that did not fit the budget. It searches every source, or the ones ticked, needs no API key and is not recorded.
   Its address can be shared as a link.
 
 ## Queries without results
 
 `Manage > Queries without results` lists questions agents asked with `query` that found nothing,
-once per project, with how often and when last. Search matches words, not synonyms: such a question
+once per set of sources asked for, with how often and when last. Search matches words, not synonyms: such a question
 means the documentation lacks the topic or names it differently. Open a question in
 **Try a query** to check it again after the docs changed.
 
 - Questions are stored as the agent sent them and may contain whatever the agent put in.
 - Entries are deleted after 30 days and beyond the newest 10,000.
-- Questions for an unknown project are not recorded.
+- Questions naming an unknown source are not recorded.
 
 ## API keys
 
-`Manage > API keys`. A key reads all projects, including future ones, or a selection.
+`Manage > API keys`. A key reads all sources, including future ones, or a selection.
 
 - The key is shown once, right after **Create key**; grimoire cannot show it again. A lost key
   cannot be recovered: revoke it and create a new one.
 - **Revoke** takes effect with the next request.
-- **Change** followed by the key's name edits projects and expiry without replacing the key;
+- **Change** followed by the key's name edits sources and expiry without replacing the key;
   agents keep using it.
 - **Valid until** is optional. The key works through that day in the instance's time zone and is
   rejected from the next day on; the list shows it as expired.
 - The list shows when a key last authenticated a request, to the minute. Revoke keys unused for a
   long time.
-- A key limited to a selection loses a project when it is deleted and sees nothing once all are
+- A key limited to a selection loses a source when it is deleted and sees nothing once all are
   gone.

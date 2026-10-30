@@ -9,13 +9,12 @@ import { createApiKey } from '#lib/server/api-keys.js';
 import { agentInstructions } from '#lib/server/agent/operations.js';
 import { log } from '#lib/server/log.js';
 import { listMissedQueries } from '#lib/server/missed-queries.js';
-import { GET as projects } from './projects/+server';
+import { GET as sources } from './sources/+server';
 import { GET as query } from './query/+server';
 import { GET as instructions } from './instructions/+server';
-import { GET as projectIndex } from './p/[project]/index/+server';
-import { GET as llmsTxt } from './p/[project]/llms.txt/+server';
-import { GET as projectQuery } from './p/[project]/query/+server';
-import { GET as page } from './p/[project]/[source]/[...page]/+server';
+import { GET as sourceIndex } from './sources/[source]/+server';
+import { GET as llmsTxt } from './sources/[source]/llms.txt/+server';
+import { GET as page } from './p/[source]/[...page]/+server';
 import { POST as mcp, fallback as mcpOtherMethod } from './mcp/+server';
 
 // Each route types its own event; `never` lets one helper call all of them.
@@ -29,30 +28,20 @@ let billingKey: string;
 vi.mock('#lib/server/db/index.js', () => ({ database: () => db }));
 vi.mock('$app/env/private', () => ({ TZ: 'UTC', BASE_URL: '' }));
 
-function newKey(name: string, projects: 'all' | string[]): string {
-	const created = createApiKey(db, name, projects);
+function newKey(name: string, sources: 'all' | string[]): string {
+	const created = createApiKey(db, name, sources);
 	if ('error' in created) throw new Error(created.error);
 	return created.key;
 }
 
-function addSource(
-	project: string,
-	description: string,
-	source: string,
-	file: string,
-	markdown: string
-) {
-	const projectId = Number(
-		db.prepare('INSERT INTO projects (slug, description) VALUES (?, ?)').run(project, description)
-			.lastInsertRowid
-	);
+function addSource(source: string, description: string, file: string, markdown: string) {
 	const sourceId = Number(
 		db
 			.prepare(
-				`INSERT INTO sources (project_id, slug, git_url, branch, path)
+				`INSERT INTO sources (slug, description, git_url, branch, path)
 				VALUES (?, ?, 'https://git.example/x.git', 'main', 'docs/')`
 			)
-			.run(projectId, source).lastInsertRowid
+			.run(source, description).lastInsertRowid
 	);
 	const metadata = preprocessPage(markdown);
 	const chunked = chunkPage(metadata, file);
@@ -70,15 +59,14 @@ const words = Array(60).fill('word').join(' ');
 beforeEach(() => {
 	db = openDatabase(':memory:');
 	addSource(
-		'platform',
+		'platform-docs',
 		'Login and gateway',
-		'auth',
 		'run books/deploy.md',
 		`# Deploy\n\nOverview.\n\n## Rollback\n\nRollback ${words}\n\n## Upgrade\n\nUpgrade ${words}\n`
 	);
-	addSource('billing', '', 'invoices', 'index.md', '# Invoices\n\nRollback of invoices.');
+	addSource('billing-docs', '', 'index.md', '# Invoices\n\nRollback of invoices.');
 	allKey = newKey('all', 'all');
-	billingKey = newKey('billing', ['billing']);
+	billingKey = newKey('billing', ['billing-docs']);
 });
 
 async function get(
@@ -99,16 +87,15 @@ async function get(
 
 describe('every route', () => {
 	const routes: [RouteHandler, string, Record<string, string>][] = [
-		[projects, '/projects', {}],
+		[sources, '/sources', {}],
 		[query, '/query?q=rollback', {}],
 		[instructions, '/instructions', {}],
-		[projectIndex, '/p/platform/index', { project: 'platform' }],
-		[llmsTxt, '/p/platform/llms.txt', { project: 'platform' }],
-		[projectQuery, '/p/platform/query?q=rollback', { project: 'platform' }],
+		[sourceIndex, '/sources/platform-docs', { source: 'platform-docs' }],
+		[llmsTxt, '/sources/platform-docs/llms.txt', { source: 'platform-docs' }],
 		[
 			page,
-			'/p/platform/auth/run%20books/deploy',
-			{ project: 'platform', source: 'auth', page: 'run books/deploy' }
+			'/p/platform-docs/run%20books/deploy',
+			{ source: 'platform-docs', page: 'run books/deploy' }
 		]
 	];
 
@@ -145,12 +132,12 @@ describe('every route', () => {
 	});
 });
 
-describe('GET /projects', () => {
-	it('lists only the projects in the key scope', async () => {
-		expect((await get(projects, '/projects')).body).toBe(
-			'- billing\n- platform: Login and gateway'
+describe('GET /sources', () => {
+	it('lists only the sources in the key scope', async () => {
+		expect((await get(sources, '/sources')).body).toBe(
+			'- billing-docs\n- platform-docs: Login and gateway'
 		);
-		expect((await get(projects, '/projects', {}, billingKey)).body).toBe('- billing');
+		expect((await get(sources, '/sources', {}, billingKey)).body).toBe('- billing-docs');
 	});
 });
 
@@ -161,9 +148,30 @@ describe('GET /instructions', () => {
 });
 
 describe('GET /query', () => {
-	it('searches all projects in scope', async () => {
-		expect((await get(query, '/query?q=rollback')).body).toContain('Source: platform/auth/');
-		expect((await get(query, '/query?q=rollback', {}, billingKey)).body).not.toContain('platform');
+	it('searches all sources in scope', async () => {
+		expect((await get(query, '/query?q=rollback')).body).toContain('Source: platform-docs/');
+		expect((await get(query, '/query?q=rollback', {}, billingKey)).body).not.toContain(
+			'platform-docs'
+		);
+	});
+
+	it('searches only the sources given with ?source=, repeated for several', async () => {
+		const one = await get(query, '/query?q=rollback&source=billing-docs');
+		const both = await get(query, '/query?q=rollback&source=billing-docs&source=platform-docs');
+
+		expect(one.body).toContain('Source: billing-docs/index');
+		expect(one.body).not.toContain('platform-docs');
+		expect(both.body).toContain('Source: billing-docs/index');
+		expect(both.body).toContain('Source: platform-docs/');
+	});
+
+	it('answers 404 when a given source is unknown or out of scope', async () => {
+		const unknown = await get(query, '/query?q=rollback&source=billing-docs&source=nope');
+		const hidden = await get(query, '/query?q=rollback&source=platform-docs', {}, billingKey);
+
+		expect(unknown.status).toBe(404);
+		expect(unknown.body).toContain('Source "nope" not found');
+		expect(hidden).toEqual({ ...unknown, body: unknown.body.replace('nope', 'platform-docs') });
 	});
 
 	it('keeps to the token budget', async () => {
@@ -176,17 +184,17 @@ describe('GET /query', () => {
 	it('records a query without results for the admins, and only such a query', async () => {
 		await get(query, '/query?q=rollback');
 		await get(query, '/query?q=release+process');
-		await get(projectQuery, '/p/billing/query?q=vpn', { project: 'billing' });
-		// An unknown project is a wrong request, not missing documentation.
-		await get(projectQuery, '/p/nope/query?q=vpn', { project: 'nope' });
+		await get(query, '/query?q=vpn&source=platform-docs&source=billing-docs');
+		// An unknown source is a wrong request, not missing documentation.
+		await get(query, '/query?q=vpn&source=nope');
 
-		const recorded = listMissedQueries(db).map(({ question, project }) => ({ question, project }));
+		const recorded = listMissedQueries(db).map(({ question, sources }) => ({ question, sources }));
 		// Both were asked within the same millisecond, so the order between them is not fixed.
 		expect(recorded).toHaveLength(2);
 		expect(recorded).toEqual(
 			expect.arrayContaining([
-				{ question: 'release process', project: null },
-				{ question: 'vpn', project: 'billing' }
+				{ question: 'release process', sources: null },
+				{ question: 'vpn', sources: 'billing-docs, platform-docs' }
 			])
 		);
 	});
@@ -202,67 +210,72 @@ describe('GET /query', () => {
 	);
 });
 
-describe('GET /p/<project>/…', () => {
-	it('treats a project out of scope like an unknown one', async () => {
-		const unknown = await get(projectIndex, '/p/nope/index', { project: 'nope' });
+describe('GET /sources/<source>', () => {
+	it('lists the pages and sections of the source', async () => {
+		const response = await get(sourceIndex, '/sources/platform-docs', { source: 'platform-docs' });
+
+		expect(response.status).toBe(200);
+		expect(response.body).toContain('platform-docs/run books/deploy#upgrade: Upgrade');
+	});
+
+	it('treats a source out of scope like an unknown one', async () => {
+		const unknown = await get(sourceIndex, '/sources/nope', { source: 'nope' });
 		const hidden = await get(
-			projectIndex,
-			'/p/platform/index',
-			{ project: 'platform' },
+			sourceIndex,
+			'/sources/platform-docs',
+			{ source: 'platform-docs' },
 			billingKey
 		);
 
 		expect(unknown.status).toBe(404);
-		expect(hidden).toEqual({ ...unknown, body: unknown.body.replace('nope', 'platform') });
+		expect(hidden).toEqual({ ...unknown, body: unknown.body.replace('nope', 'platform-docs') });
 		expect(
-			(await get(llmsTxt, '/p/platform/llms.txt', { project: 'platform' }, billingKey)).status
-		).toBe(404);
-		expect(
-			(await get(projectQuery, '/p/platform/query?q=rollback', { project: 'platform' }, billingKey))
-				.status
+			(
+				await get(
+					llmsTxt,
+					'/sources/platform-docs/llms.txt',
+					{ source: 'platform-docs' },
+					billingKey
+				)
+			).status
 		).toBe(404);
 	});
 
 	it('links llms.txt to the page routes of this server', async () => {
-		expect((await get(llmsTxt, '/p/platform/llms.txt', { project: 'platform' })).body).toContain(
-			'- [Deploy](https://grimoire.example/p/platform/auth/run%20books/deploy)'
-		);
-	});
-
-	it('searches one project only', async () => {
-		const response = await get(projectQuery, '/p/billing/query?q=rollback', { project: 'billing' });
-
-		expect(response.body).toContain('Source: billing/invoices/index');
-		expect(response.body).not.toContain('platform');
+		expect(
+			(await get(llmsTxt, '/sources/platform-docs/llms.txt', { source: 'platform-docs' })).body
+		).toContain('- [Deploy](https://grimoire.example/p/platform-docs/run%20books/deploy)');
 	});
 });
 
-describe('GET /p/<project>/<source>/<page>', () => {
-	const params = { project: 'platform', source: 'auth', page: 'run books/deploy' };
+describe('GET /p/<source>/<page>', () => {
+	const params = { source: 'platform-docs', page: 'run books/deploy' };
 
 	it('returns the whole page, or one section with ?section=', async () => {
-		const whole = await get(page, '/p/platform/auth/run%20books/deploy', params);
-		const section = await get(page, '/p/platform/auth/run%20books/deploy?section=upgrade', params);
+		const whole = await get(page, '/p/platform-docs/run%20books/deploy', params);
+		const section = await get(page, '/p/platform-docs/run%20books/deploy?section=upgrade', params);
 
 		expect(whole.body).toContain('Rollback');
 		expect(whole.body).toContain('Upgrade');
 		expect(section.status).toBe(200);
-		expect(section.body).toContain('Source: platform/auth/run books/deploy#upgrade');
+		expect(section.body).toContain('Source: platform-docs/run books/deploy#upgrade');
 		expect(section.body).not.toContain('Rollback');
 	});
 
-	it('returns 404 for an unknown page or section', async () => {
-		const unknownPage = await get(page, '/p/platform/auth/nope', { ...params, page: 'nope' });
+	it('returns 404 for an unknown page or section, and for a source out of scope', async () => {
+		const unknownPage = await get(page, '/p/platform-docs/nope', { ...params, page: 'nope' });
 		const unknownSection = await get(
 			page,
-			'/p/platform/auth/run%20books/deploy?section=nope',
+			'/p/platform-docs/run%20books/deploy?section=nope',
 			params
 		);
+		const hidden = await get(page, '/p/platform-docs/run%20books/deploy', params, billingKey);
 
 		expect(unknownPage.status).toBe(404);
-		expect(unknownPage.body).toContain('"platform/auth/nope" not found');
+		expect(unknownPage.body).toContain('"platform-docs/nope" not found');
 		expect(unknownSection.status).toBe(404);
 		expect(unknownSection.type).toBe('text/markdown; charset=utf-8');
+		expect(hidden.status).toBe(404);
 	});
 });
 
@@ -311,7 +324,7 @@ describe('POST /mcp', () => {
 		const { result } = await (await call('tools/list')).json();
 
 		expect(result.tools.map((entry: { name: string }) => entry.name)).toEqual([
-			'projects',
+			'sources',
 			'index',
 			'query',
 			'read'
@@ -319,39 +332,65 @@ describe('POST /mcp', () => {
 	});
 
 	it('answers each tool in Markdown within the key scope', async () => {
-		expect(await tool('projects', {}, billingKey)).toEqual({ error: false, text: '- billing' });
-		expect((await tool('index', { project: 'platform' })).text).toContain(
-			'platform/auth/run books/deploy#upgrade: Upgrade'
+		expect(await tool('sources', {}, billingKey)).toEqual({ error: false, text: '- billing-docs' });
+		expect((await tool('index', { source: 'platform-docs' })).text).toContain(
+			'platform-docs/run books/deploy#upgrade: Upgrade'
 		);
 		expect((await tool('query', { query: 'rollback', tokens: 3000 })).text).toContain(
-			'Source: platform/auth/'
+			'Source: platform-docs/'
 		);
-		expect((await tool('query', { query: 'rollback' }, billingKey)).text).not.toContain('platform');
+		expect((await tool('query', { query: 'rollback' }, billingKey)).text).not.toContain(
+			'platform-docs'
+		);
 		expect(listMissedQueries(db)).toEqual([]);
-		await tool('query', { query: 'release process', project: 'platform' });
+		await tool('query', { query: 'release process', sources: ['platform-docs'] });
 		expect(listMissedQueries(db)).toMatchObject([
-			{ question: 'release process', project: 'platform', count: 1 }
+			{ question: 'release process', sources: 'platform-docs', count: 1 }
 		]);
 	});
 
+	it('searches only the sources given as a list, and fails for one out of scope', async () => {
+		const both = await tool('query', {
+			query: 'rollback',
+			sources: ['billing-docs', 'platform-docs']
+		});
+		const one = await tool('query', { query: 'rollback', sources: ['billing-docs'] });
+		const hidden = await tool(
+			'query',
+			{ query: 'rollback', sources: ['platform-docs'] },
+			billingKey
+		);
+
+		expect(both.text).toContain('Source: billing-docs/index');
+		expect(both.text).toContain('Source: platform-docs/');
+		expect(one.text).not.toContain('platform-docs');
+		expect(hidden).toEqual({
+			error: true,
+			text: 'Source "platform-docs" not found. See `sources`.'
+		});
+	});
+
 	it('reads a section by an ID with #anchor', async () => {
-		const section = await tool('read', { id: 'platform/auth/run books/deploy#upgrade' });
+		const section = await tool('read', { id: 'platform-docs/run books/deploy#upgrade' });
 
 		expect(section.error).toBe(false);
-		expect(section.text).toContain('Source: platform/auth/run books/deploy#upgrade');
+		expect(section.text).toContain('Source: platform-docs/run books/deploy#upgrade');
 		expect(section.text).not.toContain('Rollback');
 	});
 
 	it('reports unknown and out-of-scope IDs alike as a tool error', async () => {
-		const unknown = await tool('index', { project: 'nope' });
-		const hidden = await tool('index', { project: 'platform' }, billingKey);
+		const unknown = await tool('index', { source: 'nope' });
+		const hidden = await tool('index', { source: 'platform-docs' }, billingKey);
 
 		expect(unknown.error).toBe(true);
-		expect(hidden).toEqual({ ...unknown, text: unknown.text.replace('nope', 'platform') });
-		expect((await tool('read', { id: 'platform/auth/nope' })).error).toBe(true);
-		expect(await tool('read', { id: 'platform/auth' })).toEqual({
+		expect(hidden).toEqual({ ...unknown, text: unknown.text.replace('nope', 'platform-docs') });
+		expect((await tool('read', { id: 'platform-docs/nope' })).error).toBe(true);
+		expect((await tool('read', { id: 'platform-docs/run books/deploy' }, billingKey)).error).toBe(
+			true
+		);
+		expect(await tool('read', { id: 'platform-docs' })).toEqual({
 			error: true,
-			text: expect.stringContaining('"platform/auth" not found')
+			text: expect.stringContaining('"platform-docs" not found')
 		});
 	});
 
@@ -385,11 +424,10 @@ describe('POST /mcp', () => {
 	});
 
 	it('reads the whole page for an empty anchor, like an empty section over HTTP', async () => {
-		const id = 'platform/auth/run books/deploy';
+		const id = 'platform-docs/run books/deploy';
 		const viaMcp = await tool('read', { id: `${id}#` });
-		const viaHttp = await get(page, '/p/platform/auth/run%20books/deploy?section=', {
-			project: 'platform',
-			source: 'auth',
+		const viaHttp = await get(page, '/p/platform-docs/run%20books/deploy?section=', {
+			source: 'platform-docs',
 			page: 'run books/deploy'
 		});
 

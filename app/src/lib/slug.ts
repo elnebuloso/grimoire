@@ -1,4 +1,4 @@
-// Slugs are part of agent IDs and URLs (`<project>/<source>/<page>`), so nothing that needs escaping.
+// Slugs are part of agent IDs and URLs (`<source>/<page>`), so nothing that needs escaping.
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 // A slug is repeated in every ID of every answer, so every character costs tokens there.

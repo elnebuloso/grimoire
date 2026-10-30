@@ -20,44 +20,58 @@ beforeEach(() => {
 });
 
 describe('missed queries', () => {
-	it('lists each question once per project with how often and when it was last asked', () => {
-		recordMissedQuery(db, { question: 'release process', project: null }, NOW);
-		recordMissedQuery(db, { question: 'release process', project: null }, daysLater(1));
-		recordMissedQuery(db, { question: 'release process', project: 'platform' }, NOW);
-		recordMissedQuery(db, { question: 'vpn', project: 'platform' }, daysLater(2));
+	it('lists each question once per set of sources with how often and when it was last asked', () => {
+		recordMissedQuery(db, { question: 'release process', sources: null }, NOW);
+		recordMissedQuery(db, { question: 'release process', sources: null }, daysLater(1));
+		recordMissedQuery(db, { question: 'release process', sources: ['platform-docs'] }, NOW);
+		recordMissedQuery(db, { question: 'vpn', sources: ['platform-docs'] }, daysLater(2));
 
 		expect(listMissedQueries(db)).toEqual([
-			{ question: 'vpn', project: 'platform', count: 1, lastAskedAt: '2026-11-01T12:00:00.000Z' },
+			{
+				question: 'vpn',
+				sources: 'platform-docs',
+				count: 1,
+				lastAskedAt: '2026-11-01T12:00:00.000Z'
+			},
 			{
 				question: 'release process',
-				project: null,
+				sources: null,
 				count: 2,
 				lastAskedAt: '2026-10-31T12:00:00.000Z'
 			},
 			{
 				question: 'release process',
-				project: 'platform',
+				sources: 'platform-docs',
 				count: 1,
 				lastAskedAt: '2026-10-30T12:00:00.000Z'
 			}
 		]);
 	});
 
+	it('records several sources sorted, so the same set in another order counts as one', () => {
+		recordMissedQuery(db, { question: 'vpn', sources: ['platform-docs', 'billing-docs'] }, NOW);
+		recordMissedQuery(db, { question: 'vpn', sources: ['billing-docs', 'platform-docs'] }, NOW);
+
+		expect(listMissedQueries(db)).toMatchObject([
+			{ question: 'vpn', sources: 'billing-docs, platform-docs', count: 2 }
+		]);
+	});
+
 	it('forgets questions older than 30 days', () => {
-		recordMissedQuery(db, { question: 'old', project: null }, NOW);
-		recordMissedQuery(db, { question: 'recent', project: null }, daysLater(30));
+		recordMissedQuery(db, { question: 'old', sources: null }, NOW);
+		recordMissedQuery(db, { question: 'recent', sources: null }, daysLater(30));
 		expect(count()).toBe(2);
 
-		recordMissedQuery(db, { question: 'new', project: null }, daysLater(30.001));
+		recordMissedQuery(db, { question: 'new', sources: null }, daysLater(30.001));
 		expect(listMissedQueries(db).map((query) => query.question)).toEqual(['new', 'recent']);
 	});
 
 	it('keeps at most 10,000 entries, dropping the oldest', () => {
 		db.exec(`WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n WHERE i < 10000)
-			INSERT INTO missed_queries (question, project, asked_at)
+			INSERT INTO missed_queries (question, sources, asked_at)
 			SELECT 'q' || i, NULL, '${NOW.toISOString()}' FROM n`);
 
-		recordMissedQuery(db, { question: 'one more', project: null }, NOW);
+		recordMissedQuery(db, { question: 'one more', sources: null }, NOW);
 
 		expect(count()).toBe(10_000);
 		expect(

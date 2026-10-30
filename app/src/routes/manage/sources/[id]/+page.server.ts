@@ -13,47 +13,39 @@ import { m } from '#lib/paraglide/messages.js';
 import {
 	changeSourceSlug,
 	deleteSource,
-	findProject,
 	findSource,
 	parseIdParam,
 	saveSource,
 	sourceProblem,
 	type SourceForm,
-	type Project,
 	type SourceSettings
-} from '#lib/server/admin/projects.js';
+} from '#lib/server/admin/sources.js';
 import { previewPage, sourceStatus } from '#lib/server/admin/status.js';
 import { readSettings, syncsAutomatically } from '#lib/server/settings.js';
 
-function pageFor(params: { id: string; sourceId: string }): {
-	project: Project;
-	source: SourceSettings | undefined;
-} {
-	const projectId = parseIdParam(params.id);
-	const project = typeof projectId === 'number' ? findProject(database(), projectId) : undefined;
-	if (!project) error(404);
-	const sourceId = parseIdParam(params.sourceId);
-	if (sourceId === 'new') return { project, source: undefined };
-	const source = sourceId && findSource(database(), project.id, sourceId);
+/** The source of the page; undefined for `/manage/sources/new`. */
+function sourceFor(params: { id: string }): SourceSettings | undefined {
+	const id = parseIdParam(params.id);
+	if (id === 'new') return undefined;
+	const source = id && findSource(database(), id);
 	if (!source) error(404);
-	return { project, source };
+	return source;
 }
 
 export const load: PageServerLoad = ({ params, url }) => {
-	const { project, source } = pageFor(params);
+	const source = sourceFor(params);
 	const schedule = source?.schedule ?? SYNC_SCHEDULE;
 	const previewFile = url.searchParams.get('preview');
 	const { syncsPaused } = readSettings(database());
 	return {
-		project,
 		source,
-		status: source && sourceStatus(database(), project.id, source.id),
+		status: source && sourceStatus(database(), source.id),
 		syncPending: source !== undefined && syncPending(source.id),
 		preview:
 			source && previewFile
 				? {
 						file: previewFile,
-						snippets: previewPage(database(), project.slug, source.slug, previewFile)
+						snippets: previewPage(database(), source.slug, previewFile)
 					}
 				: undefined,
 		globalSchedule: SYNC_SCHEDULE,
@@ -83,49 +75,40 @@ function readSourceForm(data: FormData) {
 
 async function accessProblem(
 	db: DatabaseSync,
-	projectId: number,
 	sourceId: number | undefined,
 	form: SourceForm
 ): Promise<string | undefined> {
-	const access = await checkSourceAccess(db, TOKEN_ENCRYPTION_KEY, projectId, sourceId, form);
+	const access = await checkSourceAccess(db, TOKEN_ENCRYPTION_KEY, sourceId, form);
 	return 'error' in access ? access.error : undefined;
 }
 
 export const actions = {
 	save: async ({ request, params }) => {
-		const { project, source } = pageFor(params);
+		const source = sourceFor(params);
 		const { form, values, damaged } = readSourceForm(await request.formData());
 		const db = database();
 		const problem =
 			damaged ??
-			sourceProblem(db, project.id, source?.id, form) ??
-			(accessChanged(db, project.id, source?.id, form)
-				? await accessProblem(db, project.id, source?.id, form)
-				: undefined);
+			sourceProblem(db, source?.id, form) ??
+			(accessChanged(db, source?.id, form) ? await accessProblem(db, source?.id, form) : undefined);
 		if (problem) return fail(400, { error: problem, values });
 
-		const result = saveSource(db, TOKEN_ENCRYPTION_KEY, project.id, source?.id, form);
+		const result = saveSource(db, TOKEN_ENCRYPTION_KEY, source?.id, form);
 		if ('error' in result) return fail(400, { error: result.error, values });
 
 		// Forced, so a changed path or exclusions take effect without waiting for a new commit.
 		if (syncsAutomatically(db, form)) requestSyncInBackground(result.id, { force: true });
-		redirect(303, `/manage/projects/${project.id}/sources/${result.id}`);
+		redirect(303, `/manage/sources/${result.id}`);
 	},
 	test: async ({ request, params }) => {
-		const { project, source } = pageFor(params);
+		const source = sourceFor(params);
 		const { form, values, damaged } = readSourceForm(await request.formData());
 		if (damaged) return fail(400, { error: damaged, values });
-		const access = await checkSourceAccess(
-			database(),
-			TOKEN_ENCRYPTION_KEY,
-			project.id,
-			source?.id,
-			form
-		);
+		const access = await checkSourceAccess(database(), TOKEN_ENCRYPTION_KEY, source?.id, form);
 		return { access, values };
 	},
 	sync: async ({ params, url }) => {
-		const { source } = pageFor(params);
+		const source = sourceFor(params);
 		if (!source) error(404);
 		// Not awaited: the sync waits for every one queued before it, longer than a reverse proxy
 		// keeps a request open. The page shows that it is pending, and its outcome in the status.
@@ -134,14 +117,14 @@ export const actions = {
 		redirect(303, url.pathname);
 	},
 	slug: async ({ request, params }) => {
-		const { project, source } = pageFor(params);
+		const source = sourceFor(params);
 		if (!source) error(404);
 		const data = await request.formData();
 		const form = {
 			slug: String(data.get('slug') ?? ''),
 			confirmation: String(data.get('confirmation') ?? '')
 		};
-		const changed = changeSourceSlug(database(), project.id, source.id, form);
+		const changed = changeSourceSlug(database(), source.id, form);
 		if (changed === 'not-found') error(404);
 		if ('error' in changed) {
 			return fail(400, { slugError: changed.error, slugValues: { slug: form.slug } });
@@ -149,8 +132,8 @@ export const actions = {
 		return { slugChanged: true };
 	},
 	delete: ({ params }) => {
-		const { project, source } = pageFor(params);
-		if (source) deleteSource(database(), project.id, source.id);
-		redirect(303, `/manage/projects/${project.id}`);
+		const source = sourceFor(params);
+		if (source) deleteSource(database(), source.id);
+		redirect(303, '/manage');
 	}
 } satisfies Actions;

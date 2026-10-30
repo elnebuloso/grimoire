@@ -1,43 +1,37 @@
 import type { DatabaseSync } from 'node:sqlite';
 
-/** Figures about a project that are safe to show without login: counts and times only. */
-export interface ProjectStats {
+/** Figures about a source that are safe to show without login: counts and times only. */
+export interface SourceStats {
 	id: number;
 	slug: string;
 	name: string;
 	description: string;
-	sources: number;
 	pages: number;
 	snippets: number;
 	tokens: number;
-	/** Oldest last sync over the sources; null when a source was never synced or there is none. */
-	oldestSync: string | null;
-	sourcesWithError: number;
+	/** Null while the source was never synced. */
+	lastSync: string | null;
+	error: boolean;
 	deadLinks: number;
 }
 
-export function projectStats(db: DatabaseSync): ProjectStats[] {
-	return db
+export function sourceStats(db: DatabaseSync): SourceStats[] {
+	const rows = db
 		.prepare(
-			`SELECT projects.id, projects.slug, projects.name, projects.description,
-				(SELECT count(*) FROM sources WHERE project_id = projects.id) AS sources,
-				(SELECT count(*) FROM live_pages AS pages JOIN sources ON sources.id = pages.source_id
-					WHERE sources.project_id = projects.id) AS pages,
+			`SELECT sources.id, sources.slug, sources.name, sources.description,
+				(SELECT count(*) FROM live_pages AS pages WHERE pages.source_id = sources.id) AS pages,
 				(SELECT count(*) FROM snippets JOIN live_pages AS pages ON pages.id = snippets.page_id
-					JOIN sources ON sources.id = pages.source_id
-					WHERE sources.project_id = projects.id) AS snippets,
-				(SELECT coalesce(sum(tokens), 0) FROM snippets JOIN live_pages AS pages ON pages.id = snippets.page_id
-					JOIN sources ON sources.id = pages.source_id
-					WHERE sources.project_id = projects.id) AS tokens,
-				(SELECT CASE WHEN count(*) = count(last_synced_at) THEN min(last_synced_at) END
-					FROM sources WHERE project_id = projects.id) AS oldestSync,
-				(SELECT count(*) FROM sources
-					WHERE project_id = projects.id AND error IS NOT NULL) AS sourcesWithError,
+					WHERE pages.source_id = sources.id) AS snippets,
+				(SELECT coalesce(sum(tokens), 0) FROM snippets
+					JOIN live_pages AS pages ON pages.id = snippets.page_id
+					WHERE pages.source_id = sources.id) AS tokens,
+				sources.last_synced_at AS lastSync,
+				sources.error IS NOT NULL AS error,
 				(SELECT count(*) FROM links JOIN live_pages AS pages ON pages.id = links.page_id
-					JOIN sources ON sources.id = pages.source_id
-					WHERE sources.project_id = projects.id AND links.dead = 1) AS deadLinks
-			FROM projects
-			ORDER BY projects.slug`
+					WHERE pages.source_id = sources.id AND links.dead = 1) AS deadLinks
+			FROM sources
+			ORDER BY sources.slug`
 		)
-		.all() as unknown as ProjectStats[];
+		.all() as unknown as (Omit<SourceStats, 'error'> & { error: number })[];
+	return rows.map((row) => ({ ...row, error: row.error === 1 }));
 }

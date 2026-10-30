@@ -20,10 +20,9 @@ function addDeadLink(sourceId: number, file: string, target: string) {
 beforeEach(() => {
 	db = openDatabase(':memory:');
 	db.exec(`
-		INSERT INTO projects (id, slug) VALUES (1, 'billing'), (2, 'platform');
-		INSERT INTO sources (id, project_id, slug, git_url, branch, path)
-		VALUES (1, 2, 'auth', 'https://git.example.com/a.git', 'main', ''),
-			(2, 1, 'docs', 'https://git.example.com/d.git', 'main', '');
+		INSERT INTO sources (id, slug, git_url, branch, path)
+		VALUES (1, 'platform-auth', 'https://git.example.com/a.git', 'main', ''),
+			(2, 'billing-docs', 'https://git.example.com/d.git', 'main', '');
 	`);
 });
 
@@ -32,26 +31,18 @@ describe('dead links page', () => {
 		expect(page.load({} as never)).toEqual({ groups: [] });
 	});
 
-	it('groups the dead links by project and source', () => {
-		addDeadLink(1, 'a.md', 'platform/auth/x');
-		addDeadLink(1, 'b.md', 'platform/auth/y');
-		addDeadLink(2, 'index.md', 'billing/docs/z');
+	it('groups the dead links by source', () => {
+		addDeadLink(1, 'a.md', 'platform-auth/x');
+		addDeadLink(1, 'b.md', 'platform-auth/y');
+		addDeadLink(2, 'index.md', 'billing-docs/z');
 
 		const { groups } = page.load({} as never) as {
-			groups: { project: string; source: string; sourceId: number; links: { target: string }[] }[];
+			groups: { source: string; sourceId: number; links: { target: string }[] }[];
 		};
-		expect(
-			groups.map((group) => [group.project, group.source, group.links.map((link) => link.target)])
-		).toEqual([
-			['billing', 'docs', ['billing/docs/z']],
-			['platform', 'auth', ['platform/auth/x', 'platform/auth/y']]
+		expect(groups.map((group) => [group.source, group.links.map((link) => link.target)])).toEqual([
+			['billing-docs', ['billing-docs/z']],
+			['platform-auth', ['platform-auth/x', 'platform-auth/y']]
 		]);
-		expect(Object.keys(groups[0]).sort()).toEqual([
-			'links',
-			'project',
-			'projectId',
-			'source',
-			'sourceId'
-		]);
+		expect(Object.keys(groups[0]).sort()).toEqual(['links', 'source', 'sourceId']);
 	});
 });

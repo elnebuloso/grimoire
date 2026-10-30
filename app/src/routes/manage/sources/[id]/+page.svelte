@@ -35,12 +35,8 @@
 	);
 </script>
 
-<p>
-	<a href={resolve('/manage/projects/[id]', { id: String(data.project.id) })}
-		>{m.project_title({ name: data.project.name })}</a
-	>
-</p>
-<h1>{data.source ? m.source_title({ name: data.source.name }) : m.project_new_source()}</h1>
+<p><a href={resolve('/manage')}>{m.all_sources_link()}</a></p>
+<h1>{data.source ? m.source_title({ name: data.source.name }) : m.source_new()}</h1>
 {#if data.source?.docsUrl}
 	<p><a href={data.source.docsUrl} rel="external">{m.source_docs_link()}</a></p>
 {/if}
@@ -152,7 +148,7 @@
 	{/if}
 	{#if data.status.pages.length > 0}
 		<h3>{m.pages()}</h3>
-		<PageList pages={data.status.pages} projectId={data.project.id} sourceId={data.source.id} />
+		<PageList pages={data.status.pages} sourceId={data.source.id} />
 	{/if}
 	{#if data.preview}
 		<h3>{m.source_preview_title({ file: data.preview.file })}</h3>
@@ -194,6 +190,7 @@
 	{:else}
 		<NameField label={m.field_name()} name="name" value={values.name} />
 	{/if}
+	<TextField label={m.field_description()} name="description" value={values.description} />
 	<TextField label={m.field_git_url()} name="gitUrl" type="url" required value={values.gitUrl} />
 	<TextField label={m.field_docs_url()} name="docsUrl" type="url" value={values.docsUrl} />
 	<TextField label={m.field_branch()} name="branch" required value={values.branch} />

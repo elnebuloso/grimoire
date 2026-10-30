@@ -1,7 +1,7 @@
 import type { DatabaseSync } from 'node:sqlite';
 import { TZ } from '$app/env/private';
 import { dateIn } from '#lib/time-zone.js';
-import { scopeForKey, type ProjectScope } from '../api-keys';
+import { scopeForKey, type SourceScope } from '../api-keys';
 import { database } from '../db';
 import { log } from '../log';
 import { parseTokenBudget } from '../search/query';
@@ -25,7 +25,7 @@ export function markdownResponse(markdown: string, status = 200, headers: Header
 export function scopeForRequest(
 	db: DatabaseSync,
 	request: Request
-): { scope: ProjectScope } | undefined {
+): { scope: SourceScope } | undefined {
 	const key = request.headers.get('Authorization')?.match(/^Bearer (.+)$/i)?.[1];
 	if (!key) return undefined;
 	const now = new Date();
@@ -49,7 +49,7 @@ export class InvalidRequestError extends Error {}
  */
 export function agentResponse(
 	request: Request,
-	operation: (db: DatabaseSync, scope: ProjectScope) => OperationResult
+	operation: (db: DatabaseSync, scope: SourceScope) => OperationResult
 ): Response {
 	try {
 		const db = database();
@@ -64,15 +64,20 @@ export function agentResponse(
 	}
 }
 
-/** The search options of `?q=&tokens=`; throws `InvalidRequestError` saying what is wrong. */
-export function queryOptions(url: URL, project?: string): QueryOptions {
+/**
+ * The search options of `?q=&source=&tokens=`, `source` repeated for several sources; throws
+ * `InvalidRequestError` saying what is wrong.
+ */
+export function queryOptions(url: URL): QueryOptions {
 	const query = url.searchParams.get('q')?.trim();
 	if (!query) throw new InvalidRequestError('Missing search terms. Send `?q=<terms>`.');
+	const named = url.searchParams.getAll('source');
+	const sources = named.length > 0 ? named : undefined;
 	const tokens = url.searchParams.get('tokens');
-	if (tokens === null) return { query, project };
+	if (tokens === null) return { query, sources };
 	const budget = parseTokenBudget(tokens);
 	if (budget === undefined) {
 		throw new InvalidRequestError('`tokens` must be a positive whole number.');
 	}
-	return { query, project, tokens: budget };
+	return { query, sources, tokens: budget };
 }

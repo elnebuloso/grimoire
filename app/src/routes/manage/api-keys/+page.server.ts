@@ -9,7 +9,7 @@ import {
 	revokeApiKey,
 	updateApiKey
 } from '#lib/server/api-keys.js';
-import { listProjects } from '#lib/server/admin/projects.js';
+import { listSources } from '#lib/server/admin/sources.js';
 import { m } from '#lib/paraglide/messages.js';
 import { dateIn } from '#lib/time-zone.js';
 
@@ -20,18 +20,18 @@ export const load: PageServerLoad = () => {
 			...key,
 			expired: isExpired(key.validUntil, today)
 		})),
-		projects: listProjects(database()).map((project) => project.slug),
+		sources: listSources(database()).map((source) => source.slug),
 		today
 	};
 };
 
 /** Scope and expiry as both forms send them, or the message saying what is wrong. */
 function readAccess(data: FormData) {
-	const allProjects = data.get('scope') === 'all';
-	const projects = data.getAll('projects').map(String);
+	const allSources = data.get('scope') === 'all';
+	const sources = data.getAll('sources').map(String);
 	const validUntil = String(data.get('validUntil') ?? '').trim();
-	const values = { allProjects, projects, validUntil };
-	if (!allProjects && projects.length === 0) return { values, error: m.apikeys_error_scope() };
+	const values = { allSources, sources, validUntil };
+	if (!allSources && sources.length === 0) return { values, error: m.apikeys_error_scope() };
 	if (validUntil && !isDate(validUntil)) return { values, error: m.apikeys_error_valid_until() };
 	if (validUntil && isExpired(validUntil, dateIn(TZ, new Date()))) {
 		return { values, error: m.apikeys_error_valid_until_past() };
@@ -61,11 +61,11 @@ export const actions = {
 		const created = createApiKey(
 			database(),
 			name,
-			values.allProjects ? 'all' : values.projects,
+			values.allSources ? 'all' : values.sources,
 			values.validUntil || null
 		);
-		// A project deleted while the form was open.
-		if ('error' in created) return fail(400, { error: m.apikeys_error_project_gone(), values });
+		// A source deleted while the form was open.
+		if ('error' in created) return fail(400, { error: m.apikeys_error_source_gone(), values });
 		return { created: { name, key: created.key } };
 	},
 	update: async ({ request }) => {
@@ -78,12 +78,12 @@ export const actions = {
 		const updated = updateApiKey(
 			database(),
 			id,
-			values.allProjects ? 'all' : values.projects,
+			values.allSources ? 'all' : values.sources,
 			values.validUntil || null
 		);
 		if ('error' in updated) {
 			if (updated.error === 'unknown-key') error(404);
-			return fail(400, { update: { id, error: m.apikeys_error_project_gone(), values } });
+			return fail(400, { update: { id, error: m.apikeys_error_source_gone(), values } });
 		}
 		return { updated: id };
 	},

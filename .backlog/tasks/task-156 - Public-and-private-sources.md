@@ -4,9 +4,11 @@ title: Public and private sources
 status: To Do
 assignee: []
 created_date: '2026-10-30 14:51'
+updated_date: '2026-10-30 14:54'
 labels:
   - agent-api
   - admin
+milestone: m-0
 dependencies:
   - TASK-155
 priority: high

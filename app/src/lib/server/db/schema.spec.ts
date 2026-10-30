@@ -9,11 +9,10 @@ function insert(db: DatabaseSync, sql: string, ...values: (string | number | nul
 	return Number(db.prepare(sql).run(...values).lastInsertRowid);
 }
 
-function addSource(db: DatabaseSync, projectId: number, slug: string): number {
+function addSource(db: DatabaseSync, slug: string): number {
 	return insert(
 		db,
-		`INSERT INTO sources (project_id, slug, git_url, branch, path) VALUES (?, ?, 'https://git.example/x.git', 'main', 'docs/')`,
-		projectId,
+		`INSERT INTO sources (slug, git_url, branch, path) VALUES (?, 'https://git.example/x.git', 'main', 'docs/')`,
 		slug
 	);
 }
@@ -63,11 +62,11 @@ describe('openDatabase', () => {
 		try {
 			const path = join(dir, 'data', 'grimoire.db');
 			const first = openDatabase(path);
-			insert(first, "INSERT INTO projects (slug) VALUES ('platform')");
+			addSource(first, 'platform-docs');
 			first.close();
 
 			const second = openDatabase(path);
-			expect(count(second, 'projects')).toBe(1);
+			expect(count(second, 'sources')).toBe(1);
 			second.close();
 		} finally {
 			rmSync(dir, { recursive: true });
@@ -83,13 +82,12 @@ describe('openDatabase', () => {
 			.all()
 			.map((row) => row.name);
 		expect(tables).toEqual([
-			'api_key_projects',
+			'api_key_sources',
 			'api_keys',
 			'links',
 			'missed_queries',
 			'pages',
 			'password_resets',
-			'projects',
 			'sessions',
 			'settings',
 			'snippets',
@@ -103,8 +101,7 @@ describe('openDatabase', () => {
 
 	it('ranks snippets with BM25 weighted per column', () => {
 		const db = openDatabase(':memory:');
-		const project = insert(db, "INSERT INTO projects (slug) VALUES ('platform')");
-		const page = addPage(db, addSource(db, project, 'auth'), 'deploy.md');
+		const page = addPage(db, addSource(db, 'auth'), 'deploy.md');
 		const inCode = addSnippet(db, page, 0, 'Deploy', 'Run the script.', 'make rollback');
 		const inTitle = addSnippet(db, page, 1, 'Rollback', 'Go back to the last version.');
 
@@ -117,20 +114,29 @@ describe('openDatabase', () => {
 		expect(ranked).toEqual([inTitle, inCode]);
 	});
 
-	it('rejects a second source with the same slug in a project, allows it in another', () => {
+	it('rejects a second source with the same slug', () => {
 		const db = openDatabase(':memory:');
-		const platform = insert(db, "INSERT INTO projects (slug) VALUES ('platform')");
-		const billing = insert(db, "INSERT INTO projects (slug) VALUES ('billing')");
-		addSource(db, platform, 'docs');
+		addSource(db, 'docs');
 
-		expect(() => addSource(db, platform, 'docs')).toThrow(/UNIQUE/);
-		expect(addSource(db, billing, 'docs')).toBeGreaterThan(0);
+		expect(() => addSource(db, 'docs')).toThrow(/UNIQUE/);
+	});
+
+	it('removes the scope entries of API keys with their source', () => {
+		const db = openDatabase(':memory:');
+		const source = addSource(db, 'auth');
+		const key = insert(
+			db,
+			"INSERT INTO api_keys (name, key_hash, all_sources) VALUES ('ci', 'hash', 0)"
+		);
+		insert(db, 'INSERT INTO api_key_sources (api_key_id, source_id) VALUES (?, ?)', key, source);
+
+		db.prepare('DELETE FROM sources WHERE id = ?').run(source);
+		expect([count(db, 'api_key_sources'), count(db, 'api_keys')]).toEqual([0, 1]);
 	});
 
 	it('removes pages, snippets, their search entries and links with their source', () => {
 		const db = openDatabase(':memory:');
-		const project = insert(db, "INSERT INTO projects (slug) VALUES ('platform')");
-		const source = addSource(db, project, 'auth');
+		const source = addSource(db, 'auth');
 		const page = addPage(db, source, 'deploy.md');
 		addSnippet(db, page, 0, 'Rollback', 'Go back.');
 		insert(db, "INSERT INTO links (page_id, anchor, target, dead) VALUES (?, NULL, 'x', 0)", page);

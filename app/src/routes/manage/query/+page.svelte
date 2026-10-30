@@ -1,4 +1,5 @@
 <script lang="ts">
+	import ChoiceField from '#lib/components/ChoiceField.svelte';
 	import FormError from '#lib/components/FormError.svelte';
 	import TextField from '#lib/components/TextField.svelte';
 	import { m } from '#lib/paraglide/messages.js';
@@ -13,17 +14,17 @@
 <form method="get">
 	<FormError message={data.error} />
 	<TextField label={m.query_question()} name="q" type="search" value={data.values.question} />
-	<p>
-		<label
-			>{m.query_project()}
-			<select name="project" value={data.values.project}>
-				<option value="">{m.query_all_projects()}</option>
-				{#each data.projects as project (project)}
-					<option value={project}>{project}</option>
-				{/each}
-			</select>
-		</label>
-	</p>
+	<fieldset>
+		<legend>{m.query_sources()}</legend>
+		{#each data.sources as source (source)}
+			<ChoiceField
+				name="source"
+				value={source}
+				checked={data.values.sources.includes(source)}
+				label={source}
+			/>
+		{/each}
+	</fieldset>
 	<TextField
 		label={m.query_tokens()}
 		name="tokens"

@@ -28,7 +28,7 @@
 <Story
 	name="Radio buttons"
 	play={async ({ canvas }) => {
-		const all = canvas.getByRole('radio', { name: 'All projects' });
+		const all = canvas.getByRole('radio', { name: 'All sources' });
 		const selected = canvas.getByRole('radio', { name: 'Only these' });
 		await expect(all).toBeChecked();
 		await userEvent.click(selected);
@@ -37,7 +37,7 @@
 	}}
 >
 	{#snippet template()}
-		<ChoiceField type="radio" name="scope" value="all" checked label="All projects" />
+		<ChoiceField type="radio" name="scope" value="all" checked label="All sources" />
 		<ChoiceField type="radio" name="scope" value="selected" label="Only these" />
 	{/snippet}
 </Story>

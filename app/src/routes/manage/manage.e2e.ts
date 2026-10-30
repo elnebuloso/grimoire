@@ -25,9 +25,9 @@ async function logIn(page: Page, password = PASSWORD) {
 	await page.getByRole('button', { name: 'Log in' }).click();
 }
 
-test('shows the public start page before any project exists', async ({ page }) => {
+test('shows the public start page before any source exists', async ({ page }) => {
 	await page.goto('/');
-	await expect(page.getByText('No projects yet.')).toBeVisible();
+	await expect(page.getByText('No sources yet.')).toBeVisible();
 });
 
 test('leads from the login action to the setup while there is no admin account', async ({
@@ -96,28 +96,24 @@ test('offers the login action while logged out, and the account and management o
 	await expect(page.getByRole('link', { name: 'Log in' })).toBeVisible();
 });
 
-test('creates a project with a source in the wizard and never shows its token', async ({
-	page
-}) => {
+test('creates a source and never shows its token', async ({ page }) => {
 	await logIn(page);
-	await page.getByRole('link', { name: 'New project' }).click();
+	await page.getByRole('link', { name: 'New source' }).click();
 	// Typed key by key: the slug next to the field follows every keystroke.
-	await page.getByLabel('Name', { exact: true }).pressSequentially('Platform');
-	await expect(page.getByRole('status')).toHaveText('Slug: platform');
-	await page.getByLabel('Short description').fill('Login and billing');
-	await page.getByRole('button', { name: 'Next' }).click();
-
-	await expect(page.getByRole('heading', { name: 'First source' })).toBeVisible();
 	await page.getByLabel('Name', { exact: true }).pressSequentially('Auth Service');
 	await expect(page.getByRole('status')).toHaveText('Slug: auth-service');
+	await page.getByLabel('Short description').fill('Login and billing');
 	await page.getByLabel('Git URL').fill(MISSING_GIT_URL);
 	await page.getByLabel('Username').fill('deploy');
 	await page.getByLabel('Access token').fill(TOKEN);
 	await page.getByRole('button', { name: 'Test connection' }).click();
 	await expect(page.getByRole('alert')).toContainText('Access refused, or there is no repository');
-	await page.getByRole('button', { name: 'Next' }).click();
-	await expect(page.getByRole('heading', { name: 'First source' })).toBeVisible();
+	await page.getByRole('button', { name: 'Create source' }).click();
 	await expect(page.getByRole('alert')).toContainText('Access refused, or there is no repository');
+	await expect(page.getByLabel('Name', { exact: true })).toHaveValue('Auth Service');
+	await expect(page.getByLabel('Access token')).toHaveValue('');
+	await expect(page.getByText('entered; leave empty to keep it')).toBeVisible();
+	expect(await page.content()).not.toContain(TOKEN);
 
 	// The repository has no `docs/`: the sync that creating starts fails, for the next test.
 	await page.getByLabel('Git URL').fill(GIT_URL);
@@ -125,41 +121,22 @@ test('creates a project with a source in the wizard and never shows its token', 
 	await expect(
 		page.getByRole('status').filter({ hasText: 'Reachable: branch main is at commit' })
 	).toBeVisible();
-	await expect(page.getByText('entered; leave empty to keep it')).toBeVisible();
-	await page.getByRole('button', { name: 'Next' }).click();
+	await page.getByRole('button', { name: 'Create source' }).click();
 
-	await expect(page.getByRole('heading', { name: 'Summary' })).toBeVisible();
-	await expect(page.getByText('Nothing is saved until you create the project.')).toBeVisible();
-	expect(await page.content()).not.toContain(TOKEN);
-
-	await page.getByRole('button', { name: 'Back' }).click();
-	await expect(page.getByLabel('Name', { exact: true })).toHaveValue('Auth Service');
-	await expect(page.getByLabel('Access token')).toHaveValue('');
-	await expect(page.getByText('entered; leave empty to keep it')).toBeVisible();
-	await page.getByRole('button', { name: 'Back' }).click();
-	await expect(page.getByLabel('Name', { exact: true })).toHaveValue('Platform');
-
-	await page.getByRole('button', { name: 'Next' }).click();
-	await expect(page.getByRole('heading', { name: 'First source' })).toBeVisible();
-	await page.getByRole('button', { name: 'Next' }).click();
-	await expect(page.getByRole('heading', { name: 'Summary' })).toBeVisible();
-	await page.getByRole('button', { name: 'Create project' }).click();
-
-	await expect(page.getByRole('heading', { name: 'Project Platform' })).toBeVisible();
-	await page.getByRole('link', { name: 'Auth Service' }).click();
+	await expect(page.getByRole('heading', { name: 'Source Auth Service' })).toBeVisible();
+	await expect(page.getByLabel('Short description')).toHaveValue('Login and billing');
 	await expect(page.getByLabel('Git URL')).toHaveValue(GIT_URL);
 	await expect(page.getByLabel('Access token')).toHaveValue('');
 	await expect(page.getByText('stored; leave empty to keep it')).toBeVisible();
 	expect(await page.content()).not.toContain(TOKEN);
 
 	await page.goto('/manage');
-	await expect(page.getByRole('link', { name: 'Platform', exact: true })).toBeVisible();
+	await expect(page.getByRole('link', { name: 'Auth Service', exact: true })).toBeVisible();
 });
 
 test('syncs a source now and shows why it failed', async ({ page }) => {
 	await logIn(page);
-	await page.getByRole('link', { name: 'Platform', exact: true }).click();
-	await page.getByRole('link', { name: 'Auth Service' }).click();
+	await page.getByRole('link', { name: 'Auth Service', exact: true }).click();
 
 	await page.getByRole('button', { name: 'Sync now' }).click();
 
@@ -172,21 +149,20 @@ test('syncs a source now and shows why it failed', async ({ page }) => {
 	expect(await page.content()).not.toContain(TOKEN);
 
 	await page.goto('/manage');
-	const attention = page.getByRole('listitem').filter({ hasText: 'platform/auth-service' });
+	const attention = page.getByRole('listitem').filter({ hasText: 'auth-service' });
 	await expect(attention).toContainText('sync error: source path "docs" does not exist');
 	await attention.getByRole('link').click();
 	await expect(page.getByRole('heading', { name: 'Source Auth Service' })).toBeVisible();
 });
 
-test('lists the projects on the public start page without any source detail', async ({ page }) => {
+test('lists the sources on the public start page without their settings', async ({ page }) => {
 	await page.goto('/');
-	const row = page.getByRole('row', { name: /platform/ });
+	const row = page.getByRole('row', { name: /auth-service/ });
 	await expect(row).toContainText('Login and billing');
-	// One source, synced once without success: counted as an error, its message stays hidden.
-	await expect(row.getByRole('cell').nth(0)).toHaveText('1');
-	await expect(row.getByRole('cell').nth(5)).toHaveText('1');
+	// Synced once without success: marked as an error, its message stays hidden.
+	await expect(row.getByRole('cell').nth(4)).toHaveText('yes');
 	const html = await page.content();
-	for (const detail of ['git.e2e.example', 'auth-service', 'deploy', 'does not exist', TOKEN]) {
+	for (const detail of ['git.e2e.example', 'deploy', 'does not exist', TOKEN]) {
 		expect(html).not.toContain(detail);
 	}
 });
@@ -194,16 +170,12 @@ test('lists the projects on the public start page without any source detail', as
 test('links the documentation of a source only once its URL is set', async ({ page }) => {
 	const docsUrl = 'https://docs.e2e.example/auth/';
 	await logIn(page);
-	await page.getByRole('link', { name: 'Platform', exact: true }).click();
-	await expect(page.getByRole('link', { name: 'Documentation' })).toHaveCount(0);
-	await page.getByRole('link', { name: 'Auth Service' }).click();
+	await page.getByRole('link', { name: 'Auth Service', exact: true }).click();
 	await expect(page.getByRole('link', { name: 'Documentation' })).toHaveCount(0);
 
 	await page.getByLabel('Documentation URL').fill(docsUrl);
 	await page.getByRole('button', { name: 'Save' }).click();
 
-	await expect(page.getByRole('link', { name: 'Documentation' })).toHaveAttribute('href', docsUrl);
-	await page.getByRole('link', { name: 'Project Platform' }).click();
 	await expect(page.getByRole('link', { name: 'Documentation' })).toHaveAttribute('href', docsUrl);
 
 	await page.goto('/');
@@ -250,7 +222,7 @@ test('leads through the management area with one navigation that marks the curre
 	await expect(page).toHaveURL('/manage/api-keys');
 });
 
-test('creates an API key that works for its project until it is revoked', async ({
+test('creates an API key that works for its source until it is revoked', async ({
 	page,
 	request
 }) => {
@@ -258,22 +230,22 @@ test('creates an API key that works for its project until it is revoked', async 
 	await page.getByRole('link', { name: 'API keys' }).click();
 	await page.getByLabel('Name').fill('ci');
 	await page.getByLabel('Only these:').check();
-	await page.getByLabel('platform').check();
+	await page.getByLabel('auth-service').check();
 	await page.getByRole('button', { name: 'Create key' }).click();
 
 	const key = await page.locator('output').textContent();
 	expect(key).toMatch(/^grimoire_/);
-	const projects = () => request.get('/projects', { headers: { Authorization: `Bearer ${key}` } });
-	expect(await (await projects()).text()).toBe('- platform: Login and billing');
+	const sources = () => request.get('/sources', { headers: { Authorization: `Bearer ${key}` } });
+	expect(await (await sources()).text()).toBe('- auth-service: Login and billing');
 
 	await page.goto('/manage/api-keys');
 	expect(await page.content()).not.toContain(key!);
-	await expect(page.getByText('ci – platform')).toBeVisible();
+	await expect(page.getByText('ci – auth-service')).toBeVisible();
 
 	page.once('dialog', (dialog) => dialog.accept());
 	await page.getByRole('button', { name: 'Revoke ci' }).click();
 	await expect(page.getByText('No API keys yet.')).toBeVisible();
-	expect((await projects()).status()).toBe(401);
+	expect((await sources()).status()).toBe(401);
 });
 
 // Near the end, because every test before it logs in with the old password.

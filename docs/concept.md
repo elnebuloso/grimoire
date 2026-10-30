@@ -36,43 +36,43 @@ Sync (polling, button) ──► grimoire
                             └─ updates the search index
    │
    ├─► humans: MkDocs/Zensical site
-   └─► agents: projects / index / query / read
+   └─► agents: sources / index / query / read
 ```
 
 ## Admin area
 
-A **project** has a name (slug), a short description and one or more **sources**. A source is a
-Git repo with a branch and exactly one path.
+A **source** is a Git repo with a branch and exactly one path, with a name, a slug and a short
+description. There is nothing above it.
 
 ```
-Project "platform"
-├── Source: auth-service     main   docs/
-├── Source: auth-handbook    main   handbook/      (same repo as auth-service)
-├── Source: billing-service  main   docs/
-└── Source: gateway          main   docs/
+Source: auth-service     main   docs/
+Source: auth-handbook    main   handbook/      (same repo as auth-service)
+Source: billing-service  main   docs/
+Source: gateway          main   docs/
 ```
 
-| Field | Level | Example |
-|---|---|---|
-| Slug | Project | `platform` |
-| Short description | Project | "Login, billing, gateway" – appears in `projects` |
-| Slug | Source | `auth-service` – unique within the project, part of the ID |
-| Git URL (HTTPS) | Source | `https://gitlab.thoemo.net/platform/auth-service.git` |
-| Branch | Source | `main` |
-| Path | Source | `docs/` |
-| Exclusions | Source | `docs/drafts/**` (optional) |
-| Schedule | Source | Cron expression, e.g. `0 * * * *` (optional, otherwise the global default) |
-| User + token | Source | The provider's read token (GitLab deploy token, GitHub fine-grained token, Forgejo/Gitea access token) |
+| Field | Example |
+|---|---|
+| Name | `Auth service` |
+| Slug | `auth-service` – unique on the instance, part of the ID |
+| Short description | "Login, sessions and tokens" – appears in `sources` |
+| Git URL (HTTPS) | `https://gitlab.thoemo.net/platform/auth-service.git` |
+| Branch | `main` |
+| Path | `docs/` |
+| Exclusions | `docs/drafts/**` (optional) |
+| Schedule | Cron expression, e.g. `0 * * * *` (optional, otherwise the global default) |
+| User + token | The provider's read token (GitLab deploy token, GitHub fine-grained token, Forgejo/Gitea access token) |
 
 Decisions:
 
 - **One path per source.** If several paths of a repo are needed, the repo is added several times
-  as a source, each with its own slug. A source thus corresponds to exactly one MkDocs site
-  (`docs_dir`), and files from different paths cannot end up with the same ID.
-- **Several repos can form one project.** Agents then search everything that belongs together
-  with one request. Whoever wants it simple adds one source per project.
+  as a source, each with its own slug and a name saying what it holds. A source thus corresponds
+  to exactly one MkDocs site (`docs_dir`), and files from different paths cannot end up with the
+  same ID.
+- **No grouping above sources.** Agents search everything, or name the sources they want; see
+  ADR 0003 for why there are no projects.
 
-Per project, the admin area shows: last sync, commit, number of pages, snippets and tokens, sync
+Per source, the admin area shows: last sync, commit, number of pages, snippets and tokens, sync
 errors and a preview of the snippets.
 
 **Secrets.** Access tokens are never output – not in the `Edit:` line, not in error messages,
@@ -82,12 +82,11 @@ logs or the API. Git URLs are always shown without credentials.
 
 | Object | Contents |
 |---|---|
-| Project | slug, short description |
-| Source | belongs to a project; slug (unique within the project), Git URL, branch, path, exclusions, user, token, last commit, last sync, errors/warnings |
+| Source | slug (unique), name, short description, Git URL, branch, path, exclusions, user, token, last commit, last sync, errors/warnings |
 | Page | belongs to a source; file path, title, description, tags, full text |
 | Snippet | belongs to a page; anchor, title path, content, estimated tokens – in the FTS5 index |
 | Link | from page/anchor to target ID; for backlinks and dead links |
-| API key | name, hash of the key, allowed projects (all or a selection) |
+| API key | name, hash of the key, allowed sources (all or a selection) |
 
 A source's pages, snippets and links are replaced completely on every sync (see Sync).
 
@@ -145,7 +144,7 @@ tiny subsections `### Port` and `### Timeout` becomes one snippet `Configuration
 effect, this yields backlinks and dead links for the admin area. A relative link that leaves the
 source's path is broken in MkDocs as well and counts as dead.
 
-**IDs.** `<project>/<source>/<file without .md>#<anchor>`. Anchors are derived from the heading
+**IDs.** `<source>/<file without .md>#<anchor>`. Anchors are derived from the heading
 exactly as in MkDocs (duplicates get `_1`, `_2`), so grimoire IDs and the rendered page match.
 Zensical uses the same `toc` extension of Python-Markdown as MkDocs for this. Version 1 only
 reproduces its default slugify; if a site changes `toc.slugify` (for instance to
@@ -158,8 +157,8 @@ reproduces its default slugify; if a site changes `toc.slugify` (for instance to
   links, whose structure differs per provider.
 
 ````
-### platform › auth-service › Deployment › Rollback
-Source: platform/auth-service/deploy#rollback
+### auth-service › Deployment › Rollback
+Source: auth-service/deploy#rollback
 Edit: https://gitlab.thoemo.net/platform/auth-service.git (main) docs/deploy.md
 
 On errors after a deploy, go back to the previous version:
@@ -184,8 +183,8 @@ embedding model needed. Weakness: synonyms ("deploy" does not find "release proc
 **Version 2: hybrid.** Full text and embeddings (`sqlite-vec`) in parallel, results merged by
 Reciprocal Rank Fusion. Comes once missing synonyms get in the way in practice.
 
-**Across everything without a project.** `query` without a project searches all projects; with a
-project, it is restricted.
+**Across everything without sources.** `query` without sources searches all sources; with a list
+of sources, it is restricted to them.
 
 **Token budget.** `query` fills the budget (`--tokens`, default 3,000) like this:
 
@@ -240,10 +239,10 @@ dead links in the admin area; redirects perhaps later.
 Four operations:
 
 ```
-projects                                   projects with short description
-index <project>                            pages and sections (from nav or the file tree)
-query [<project>] "<question>" --tokens 3000  matching snippets up to the budget, across all without a project
-read <project>/<page>[#section]            whole page or one section
+sources                                    sources with short description
+index <source>                             pages and sections (from nav or the file tree)
+query [<source>…] "<question>" --tokens 3000  matching snippets up to the budget, across all without sources
+read <source>/<page>[#section]             whole page or one section
 ```
 
 Offered through an **HTTP API and an MCP server in the same app**. A CLI comes later or not at
@@ -257,13 +256,13 @@ all.
   WebFetch:
 
 ```
-GET /projects
+GET /sources
 GET /query?q=rollback&tokens=3000
-GET /p/platform/index
-GET /p/platform/llms.txt
-GET /p/platform/query?q=rollback&tokens=3000
-GET /p/platform/auth-service/deploy
-GET /p/platform/auth-service/deploy?section=rollback
+GET /query?q=rollback&source=auth-service&source=gateway
+GET /sources/auth-service
+GET /sources/auth-service/llms.txt
+GET /p/auth-service/deploy
+GET /p/auth-service/deploy?section=rollback
 ```
 
 HTTP clients do not send the part after `#` to the server. That is why, over HTTP, the anchor of
@@ -272,7 +271,7 @@ section over HTTP instead of loading whole pages. Over MCP, the ID stays unchang
 
 ## Authentication
 
-- **Agents:** API keys, created in the admin area. Per key: all projects or a selection. grimoire
+- **Agents:** API keys, created in the admin area. Per key: all sources or a selection. grimoire
   only reads, so that is enough.
 - **Admin area:** to start, one local admin account. Login via OAuth (GitLab, GitHub …) is
   possible later.
@@ -304,11 +303,11 @@ processes work and how to use them.
 
 Reading
 - Before making assumptions about internal systems, call `query` with a concrete
-  question. Pass the project if known, otherwise search everything.
+  question. Pass the sources if known, otherwise search everything.
 - `query` returns matching sections within a token budget. For more context, `read`
   the ID from "Source:". Read whole pages only when needed. Over HTTP, `#anchor`
   becomes `?section=anchor`.
-- No results: try other terms, then look at the project's `index`.
+- No results: try other terms, then look at a source's `index`.
 
 Writing
 - grimoire is read-only. To change docs, edit the Markdown file in its source repo and

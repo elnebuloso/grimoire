@@ -2,7 +2,7 @@ import type { DatabaseSync } from 'node:sqlite';
 import { McpServer, WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/server';
 import { z } from 'zod';
 import { version } from '../../../../package.json';
-import type { ProjectScope } from '../api-keys';
+import type { SourceScope } from '../api-keys';
 import { database } from '../db';
 import { parseGrimoireId } from '../grimoire-id';
 import { log } from '../log';
@@ -11,8 +11,8 @@ import {
 	agentInstructions,
 	agentQuery,
 	idNotFound,
-	indexProject,
-	listVisibleProjects,
+	indexSource,
+	listVisibleSources,
 	readById,
 	type OperationResult
 } from './operations';
@@ -33,29 +33,29 @@ function toolResult(tool: string, operation: () => OperationResult) {
 }
 
 /** An MCP server offering the agent operations within one API key's scope. */
-export function createMcpServer(db: DatabaseSync, scope: ProjectScope): McpServer {
+export function createMcpServer(db: DatabaseSync, scope: SourceScope): McpServer {
 	const server = new McpServer({ name: 'grimoire', version }, { instructions: agentInstructions });
 	server.registerTool(
-		'projects',
-		{ description: 'Lists the projects with their short description.' },
-		() => toolResult('projects', () => listVisibleProjects(db, scope))
+		'sources',
+		{ description: 'Lists the documentation sources with their short description.' },
+		() => toolResult('sources', () => listVisibleSources(db, scope))
 	);
 	server.registerTool(
 		'index',
 		{
-			description: 'Lists the pages and sections of a project with their IDs.',
-			inputSchema: z.object({ project: z.string() })
+			description: 'Lists the pages and sections of a source with their IDs.',
+			inputSchema: z.object({ source: z.string() })
 		},
-		({ project }) => toolResult('index', () => indexProject(db, project, scope))
+		({ source }) => toolResult('index', () => indexSource(db, source, scope))
 	);
 	server.registerTool(
 		'query',
 		{
 			description:
-				'Searches all projects, or one, and returns matching sections within a token budget.',
+				'Searches all sources, or the given ones, and returns matching sections within a token budget.',
 			inputSchema: z.object({
 				query: z.string().min(1),
-				project: z.string().optional(),
+				sources: z.array(z.string()).optional(),
 				tokens: z.number().int().positive().optional().describe('Default 3000')
 			})
 		},
@@ -64,7 +64,7 @@ export function createMcpServer(db: DatabaseSync, scope: ProjectScope): McpServe
 	server.registerTool(
 		'read',
 		{
-			description: 'Returns a page (`project/source/page`) or one section (`…#anchor`).',
+			description: 'Returns a page (`source/page`) or one section (`…#anchor`).',
 			inputSchema: z.object({ id: z.string() })
 		},
 		({ id }) =>

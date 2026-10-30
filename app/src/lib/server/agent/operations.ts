@@ -1,5 +1,5 @@
 import type { DatabaseSync } from 'node:sqlite';
-import type { ProjectScope } from '../api-keys';
+import type { SourceScope } from '../api-keys';
 import { grimoireId, type SectionLocation } from '../grimoire-id';
 import {
 	IN_SCOPE,
@@ -14,7 +14,7 @@ import instructions from './instructions.md?raw';
 /** How agents use grimoire; the same text for HTTP and as MCP server instructions. */
 export const agentInstructions = instructions;
 
-/** The answer of an operation; `found` is false for an unknown or hidden project or ID. */
+/** The answer of an operation; `found` is false for an unknown or hidden source or ID. */
 export interface OperationResult {
 	found: boolean;
 	markdown: string;
@@ -23,12 +23,12 @@ export interface OperationResult {
 // Pages in the site's `nav` first, in its order, then the rest by file path.
 const PAGE_ORDER = 'pages.nav_position IS NULL, pages.nav_position, pages.file';
 
-/** Lists the visible projects with their short description. */
-export function listVisibleProjects(db: DatabaseSync, scope: ProjectScope): OperationResult {
+/** Lists the visible sources with their short description. */
+export function listVisibleSources(db: DatabaseSync, scope: SourceScope): OperationResult {
 	const rows = db
-		.prepare(`SELECT slug, description FROM projects WHERE ${IN_SCOPE} ORDER BY slug`)
+		.prepare(`SELECT slug, description FROM sources WHERE ${IN_SCOPE} ORDER BY slug`)
 		.all({ scope: scopeParameter(scope) }) as { slug: string; description: string }[];
-	if (rows.length === 0) return { found: true, markdown: 'No projects.' };
+	if (rows.length === 0) return { found: true, markdown: 'No sources.' };
 	const lines = rows.map((row) =>
 		row.description ? `- ${row.slug}: ${row.description}` : `- ${row.slug}`
 	);
@@ -36,51 +36,38 @@ export function listVisibleProjects(db: DatabaseSync, scope: ProjectScope): Oper
 }
 
 interface IndexRow {
-	source: string;
-	file: string | null;
-	title: string | null;
+	file: string;
+	title: string;
 	anchor: string | null;
 	title_path: string | null;
 }
 
-/** Lists the pages of a project, source by source, each with its sections and their IDs. */
-export function indexProject(
-	db: DatabaseSync,
-	project: string,
-	scope: ProjectScope
-): OperationResult {
-	const projectRow = findProject(db, project, scope);
-	if (!projectRow) return projectNotFound(project);
+/** Lists the pages of a source, each with its sections and their IDs. */
+export function indexSource(db: DatabaseSync, source: string, scope: SourceScope): OperationResult {
+	const sourceRow = findSource(db, source, scope);
+	if (!sourceRow) return sourceNotFound(source);
 
 	const rows = db
 		.prepare(
-			`SELECT sources.slug AS source, pages.file, pages.title, snippets.anchor, snippets.title_path
-			FROM sources
-			LEFT JOIN live_pages AS pages ON pages.source_id = sources.id
+			`SELECT pages.file, pages.title, snippets.anchor, snippets.title_path
+			FROM live_pages AS pages
 			LEFT JOIN snippets ON snippets.page_id = pages.id
-			WHERE sources.project_id = ?
-			ORDER BY sources.slug, ${PAGE_ORDER}, snippets.position`
+			WHERE pages.source_id = ?
+			ORDER BY ${PAGE_ORDER}, snippets.position`
 		)
-		.all(projectRow.id) as unknown as IndexRow[];
+		.all(sourceRow.id) as unknown as IndexRow[];
 
-	const lines = [`# ${project}`];
-	if (projectRow.description) lines.push('', projectRow.description);
-	let source: string | undefined;
-	let file: string | null | undefined;
+	const lines = [`# ${source}`];
+	if (sourceRow.description) lines.push('', sourceRow.description);
+	lines.push('');
+	let file: string | undefined;
 	let anchor: string | null | undefined;
 	for (const row of rows) {
-		if (row.source !== source) {
-			source = row.source;
-			file = undefined;
-			lines.push('', `## ${source}`, '');
-		}
-		if (row.file === null) continue;
-		const page = { project, source: row.source, file: row.file };
-		const pageId = grimoireId(page);
+		const page = { source, file: row.file };
 		if (row.file !== file) {
 			file = row.file;
 			anchor = undefined;
-			lines.push(`- ${pageId}: ${row.title}`);
+			lines.push(`- ${grimoireId(page)}: ${row.title}`);
 		}
 		// The overview has no anchor, and the parts of a split section share one.
 		if (row.anchor === null || row.anchor === anchor) continue;
@@ -94,49 +81,43 @@ export function indexProject(
 }
 
 /**
- * Lists the pages of a project as an llms.txt file, each linked to its HTTP route under
- * `origin`. Sections are left out: agents follow the links, not the IDs.
+ * Lists the pages of a source as an llms.txt file, each linked to its HTTP route under `origin`.
+ * Sections are left out: agents follow the links, not the IDs.
  */
 export function llmsTxt(
 	db: DatabaseSync,
-	project: string,
-	scope: ProjectScope,
+	source: string,
+	scope: SourceScope,
 	origin: string
 ): OperationResult {
-	const projectRow = findProject(db, project, scope);
-	if (!projectRow) return projectNotFound(project);
+	const sourceRow = findSource(db, source, scope);
+	if (!sourceRow) return sourceNotFound(source);
 
 	const rows = db
 		.prepare(
-			`SELECT sources.slug AS source, pages.file, pages.title
-			FROM sources
-			LEFT JOIN live_pages AS pages ON pages.source_id = sources.id
-			WHERE sources.project_id = ?
-			ORDER BY sources.slug, ${PAGE_ORDER}`
+			`SELECT pages.file, pages.title FROM live_pages AS pages
+			WHERE pages.source_id = ?
+			ORDER BY ${PAGE_ORDER}`
 		)
-		.all(projectRow.id) as { source: string; file: string | null; title: string | null }[];
+		.all(sourceRow.id) as { file: string; title: string }[];
 
-	const lines = [`# ${project}`];
-	if (projectRow.description) lines.push('', `> ${projectRow.description}`);
-	let source: string | undefined;
+	const lines = [`# ${source}`];
+	if (sourceRow.description) lines.push('', `> ${sourceRow.description}`);
+	lines.push('');
 	for (const row of rows) {
-		if (row.source !== source) {
-			source = row.source;
-			lines.push('', `## ${source}`, '');
-		}
-		if (row.file === null) continue;
-		const path = grimoireId({ project, source: row.source, file: row.file })
+		const path = grimoireId({ source, file: row.file })
 			.split('/')
 			.map(encodeURIComponent)
 			.join('/');
-		lines.push(`- [${linkText(row.title!)}](${origin}/p/${path})`);
+		lines.push(`- [${linkText(row.title)}](${origin}/p/${path})`);
 	}
 	return { found: true, markdown: lines.join('\n') };
 }
 
 export interface QueryOptions {
 	query: string;
-	project?: string;
+	/** Slugs of the sources to search; all visible sources when undefined. */
+	sources?: string[];
 	tokens?: number;
 }
 
@@ -145,20 +126,19 @@ export interface QueryResult extends OperationResult {
 	missed: boolean;
 }
 
-/** Searches the visible projects, or one of them, and returns as many hits as fit the budget. */
-export function queryProjects(
+/** Searches the visible sources, or the given ones, and returns as many hits as fit the budget. */
+export function querySources(
 	db: DatabaseSync,
 	options: QueryOptions,
-	scope: ProjectScope
+	scope: SourceScope
 ): QueryResult {
-	if (options.project !== undefined && !projectVisible(db, options.project, scope)) {
-		return { ...projectNotFound(options.project), missed: false };
-	}
-	const markdown = searchSnippets(db, { ...options, allowedProjects: scope });
+	const hidden = options.sources?.find((source) => !findSource(db, source, scope));
+	if (hidden !== undefined) return { ...sourceNotFound(hidden), missed: false };
+	const markdown = searchSnippets(db, { ...options, allowedSources: scope });
 	if (markdown) return { found: true, markdown, missed: false };
 	return {
 		found: true,
-		markdown: `No results for "${options.query}". Try other terms, or look at a project's \`index\`.`,
+		markdown: `No results for "${options.query}". Try other terms, or look at a source's \`index\`.`,
 		missed: true
 	};
 }
@@ -168,19 +148,19 @@ export function queryProjects(
 export const MAX_QUESTION_LENGTH = 500;
 
 /**
- * `queryProjects` for an agent: the question is trimmed and cut to `MAX_QUESTION_LENGTH`
+ * `querySources` for an agent: the question is trimmed and cut to `MAX_QUESTION_LENGTH`
  * characters, and a query that found nothing is recorded for the admins.
  */
 export function agentQuery(
 	db: DatabaseSync,
 	options: QueryOptions,
-	scope: ProjectScope,
+	scope: SourceScope,
 	now = new Date()
 ): QueryResult {
 	const query = options.query.trim().slice(0, MAX_QUESTION_LENGTH);
-	const result = queryProjects(db, { ...options, query }, scope);
+	const result = querySources(db, { ...options, query }, scope);
 	if (result.missed && query) {
-		recordMissedQuery(db, { question: query, project: options.project ?? null }, now);
+		recordMissedQuery(db, { question: query, sources: options.sources ?? null }, now);
 	}
 	return result;
 }
@@ -193,7 +173,7 @@ export function agentQuery(
 export function readById(
 	db: DatabaseSync,
 	location: SectionLocation,
-	scope: ProjectScope
+	scope: SourceScope
 ): OperationResult {
 	const hits = readSnippets(db, location, scope);
 	if (hits.length === 0) return idNotFound(grimoireId(location, location.anchor || null));
@@ -205,26 +185,22 @@ function linkText(text: string): string {
 	return text.replace(/[\\[\]]/g, '\\$&');
 }
 
-function findProject(
+function findSource(
 	db: DatabaseSync,
-	project: string,
-	scope: ProjectScope
+	source: string,
+	scope: SourceScope
 ): { id: number; description: string } | undefined {
 	return db
-		.prepare(`SELECT id, description FROM projects WHERE slug = :project AND ${IN_SCOPE}`)
-		.get({ project, scope: scopeParameter(scope) }) as
+		.prepare(`SELECT id, description FROM sources WHERE slug = :source AND ${IN_SCOPE}`)
+		.get({ source, scope: scopeParameter(scope) }) as
 		{ id: number; description: string } | undefined;
 }
 
-function projectVisible(db: DatabaseSync, project: string, scope: ProjectScope): boolean {
-	return findProject(db, project, scope) !== undefined;
-}
-
-function projectNotFound(project: string): OperationResult {
-	return { found: false, markdown: `Project "${project}" not found. See \`projects\`.` };
+function sourceNotFound(source: string): OperationResult {
+	return { found: false, markdown: `Source "${source}" not found. See \`sources\`.` };
 }
 
 /** The answer for an ID that names no visible page or section. */
 export function idNotFound(id: string): OperationResult {
-	return { found: false, markdown: `"${id}" not found. The project's \`index\` lists all IDs.` };
+	return { found: false, markdown: `"${id}" not found. The source's \`index\` lists all IDs.` };
 }

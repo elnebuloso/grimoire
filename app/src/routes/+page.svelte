@@ -1,5 +1,5 @@
 <script lang="ts">
-	import ProjectStatsTable from '#lib/components/ProjectStatsTable.svelte';
+	import SourceStatsTable from '#lib/components/SourceStatsTable.svelte';
 	import { m } from '#lib/paraglide/messages.js';
 	import type { PageProps } from './$types';
 
@@ -10,11 +10,11 @@
 
 <p><a href="https://github.com/elnebuloso/grimoire">{m.start_github_link()}</a></p>
 
-<h2>{m.projects()}</h2>
-{#if data.projects.length === 0}
-	<p>{m.start_no_projects()}</p>
+<h2>{m.sources()}</h2>
+{#if data.sources.length === 0}
+	<p>{m.no_sources_yet()}</p>
 {:else}
-	<ProjectStatsTable projects={data.projects} timeZone={data.timeZone} />
+	<SourceStatsTable sources={data.sources} timeZone={data.timeZone} />
 {/if}
 
 <h2>{m.start_connect_heading()}</h2>

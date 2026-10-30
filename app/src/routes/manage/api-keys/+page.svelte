@@ -13,13 +13,13 @@
 	let { data, form }: PageProps = $props();
 
 	interface Access {
-		allProjects: boolean;
-		projects: string[];
+		allSources: boolean;
+		sources: string[];
 		validUntil: string;
 	}
 
 	const values = $derived(
-		form?.values ?? { name: '', allProjects: true, projects: [] as string[], validUntil: '' }
+		form?.values ?? { name: '', allSources: true, sources: [] as string[], validUntil: '' }
 	);
 </script>
 
@@ -30,22 +30,22 @@
 			type="radio"
 			name="scope"
 			value="all"
-			checked={access.allProjects}
+			checked={access.allSources}
 			label={m.apikeys_scope_all()}
 		/>
 		<ChoiceField
 			type="radio"
 			name="scope"
 			value="selected"
-			checked={!access.allProjects}
+			checked={!access.allSources}
 			label={m.apikeys_scope_selected()}
 		/>
-		{#each data.projects as project (project)}
+		{#each data.sources as source (source)}
 			<ChoiceField
-				name="projects"
-				value={project}
-				checked={access.projects.includes(project)}
-				label={project}
+				name="sources"
+				value={source}
+				checked={access.sources.includes(source)}
+				label={source}
 			/>
 		{/each}
 	</fieldset>
@@ -74,9 +74,9 @@
 	<ul>
 		{#each data.keys as key (key.id)}
 			<li>
-				{key.name} – {key.projects === 'all'
-					? m.apikeys_all_projects()
-					: key.projects.join(', ') || m.apikeys_no_projects()}, {m.apikeys_created_at()}
+				{key.name} – {key.sources === 'all'
+					? m.apikeys_all_sources()
+					: key.sources.join(', ') || m.apikeys_no_sources()}, {m.apikeys_created_at()}
 				<DateTime value={key.createdAt} timeZone={data.timeZone} />,
 				{#if key.lastUsedAt}
 					{m.apikeys_last_used()} <DateTime value={key.lastUsedAt} timeZone={data.timeZone} />
@@ -100,8 +100,8 @@
 							form?.update?.id === key.id
 								? form.update.values
 								: {
-										allProjects: key.projects === 'all',
-										projects: key.projects === 'all' ? [] : key.projects,
+										allSources: key.sources === 'all',
+										sources: key.sources === 'all' ? [] : key.sources,
 										validUntil: key.validUntil ?? ''
 									}
 						)}

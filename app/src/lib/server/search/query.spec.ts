@@ -9,15 +9,9 @@ function insert(sql: string, ...values: (string | number | null)[]): number {
 	return Number(db.prepare(sql).run(...values).lastInsertRowid);
 }
 
-function addSource(project: string, slug: string, gitUrl = 'https://git.example/x.git'): number {
-	const projectId =
-		(
-			db.prepare('SELECT id FROM projects WHERE slug = ?').get(project) as
-				{ id: number } | undefined
-		)?.id ?? insert('INSERT INTO projects (slug) VALUES (?)', project);
+function addSource(slug: string, gitUrl = 'https://git.example/x.git'): number {
 	return insert(
-		`INSERT INTO sources (project_id, slug, git_url, branch, path) VALUES (?, ?, ?, 'main', 'docs/')`,
-		projectId,
+		`INSERT INTO sources (slug, git_url, branch, path) VALUES (?, ?, 'main', 'docs/')`,
 		slug,
 		gitUrl
 	);
@@ -76,7 +70,7 @@ describe('parseTokenBudget', () => {
 
 describe('searchSnippets', () => {
 	it('ranks a match in the title path above one in the text, and that above one in code', () => {
-		const source = addSource('platform', 'auth');
+		const source = addSource('auth');
 		addPage(
 			source,
 			'deploy.md',
@@ -85,15 +79,15 @@ describe('searchSnippets', () => {
 			{ anchor: 'in-title', title: 'Rollback', text: 'Run the script.' }
 		);
 
-		expect(sourceIds(searchSnippets(db, { query: 'rollback', allowedProjects: 'all' }))).toEqual([
-			'platform/auth/deploy#in-title',
-			'platform/auth/deploy#in-text',
-			'platform/auth/deploy#in-code'
+		expect(sourceIds(searchSnippets(db, { query: 'rollback', allowedSources: 'all' }))).toEqual([
+			'auth/deploy#in-title',
+			'auth/deploy#in-text',
+			'auth/deploy#in-code'
 		]);
 	});
 
 	it('renders the title path, the ID and where to edit, without credentials', () => {
-		const source = addSource('platform', 'auth', 'https://bot:secret@git.example/auth.git');
+		const source = addSource('auth', 'https://bot:secret@git.example/auth.git');
 		addPage(source, 'guide/deploy.md', {
 			anchor: 'rollback',
 			title: 'Rollback',
@@ -101,16 +95,16 @@ describe('searchSnippets', () => {
 		});
 		addPage(source, 'index.md', { title: 'Overview', text: 'Rollback basics.' });
 
-		expect(searchSnippets(db, { query: 'rollback', allowedProjects: 'all' })).toBe(
+		expect(searchSnippets(db, { query: 'rollback', allowedSources: 'all' })).toBe(
 			[
-				'### platform › auth › Rollback',
-				'Source: platform/auth/guide/deploy#rollback',
+				'### auth › Rollback',
+				'Source: auth/guide/deploy#rollback',
 				'Edit: https://git.example/auth.git (main) docs/guide/deploy.md',
 				'',
 				'Run it.',
 				'',
-				'### platform › auth › Overview',
-				'Source: platform/auth/index',
+				'### auth › Overview',
+				'Source: auth/index',
 				'Edit: https://git.example/auth.git (main) docs/index.md',
 				'',
 				'Rollback basics.'
@@ -118,35 +112,49 @@ describe('searchSnippets', () => {
 		);
 	});
 
-	it('searches all projects, or only the given one', () => {
-		addPage(addSource('platform', 'auth'), 'a.md', { title: 'Rollback' });
-		addPage(addSource('billing', 'invoices'), 'b.md', { title: 'Rollback' });
+	it('searches all sources, or only the given ones', () => {
+		addPage(addSource('platform-docs'), 'a.md', { title: 'Rollback' });
+		addPage(addSource('billing-docs'), 'b.md', { title: 'Rollback' });
+		addPage(addSource('billing-archive'), 'c.md', { title: 'Rollback' });
 
 		expect(
-			sourceIds(searchSnippets(db, { query: 'rollback', allowedProjects: 'all' })).sort()
-		).toEqual(['billing/invoices/b', 'platform/auth/a']);
+			sourceIds(searchSnippets(db, { query: 'rollback', allowedSources: 'all' })).sort()
+		).toEqual(['billing-archive/c', 'billing-docs/b', 'platform-docs/a']);
 		expect(
 			sourceIds(
-				searchSnippets(db, { query: 'rollback', project: 'billing', allowedProjects: 'all' })
+				searchSnippets(db, { query: 'rollback', sources: ['billing-docs'], allowedSources: 'all' })
 			)
-		).toEqual(['billing/invoices/b']);
+		).toEqual(['billing-docs/b']);
+		expect(
+			sourceIds(
+				searchSnippets(db, {
+					query: 'rollback',
+					sources: ['billing-docs', 'platform-docs'],
+					allowedSources: 'all'
+				})
+			).sort()
+		).toEqual(['billing-docs/b', 'platform-docs/a']);
 	});
 
-	it('leaves out projects the caller may not see', () => {
-		addPage(addSource('platform', 'auth'), 'a.md', { title: 'Rollback' });
-		addPage(addSource('billing', 'invoices'), 'b.md', { title: 'Rollback' });
+	it('leaves out sources the caller may not see', () => {
+		addPage(addSource('platform-docs'), 'a.md', { title: 'Rollback' });
+		addPage(addSource('billing-docs'), 'b.md', { title: 'Rollback' });
 
 		expect(
-			sourceIds(searchSnippets(db, { query: 'rollback', allowedProjects: ['platform'] }))
-		).toEqual(['platform/auth/a']);
+			sourceIds(searchSnippets(db, { query: 'rollback', allowedSources: ['platform-docs'] }))
+		).toEqual(['platform-docs/a']);
 		expect(
-			searchSnippets(db, { query: 'rollback', project: 'billing', allowedProjects: ['platform'] })
+			searchSnippets(db, {
+				query: 'rollback',
+				sources: ['billing-docs'],
+				allowedSources: ['platform-docs']
+			})
 		).toBe('');
-		expect(searchSnippets(db, { query: 'rollback', allowedProjects: [] })).toBe('');
+		expect(searchSnippets(db, { query: 'rollback', allowedSources: [] })).toBe('');
 	});
 
 	it('skips a hit that does not fit, takes a later one that does, and lists the skipped IDs', () => {
-		const source = addSource('platform', 'auth');
+		const source = addSource('auth');
 		addPage(
 			source,
 			'deploy.md',
@@ -155,34 +163,34 @@ describe('searchSnippets', () => {
 			{ anchor: 'last', title: 'Steps', text: 'Rollback later.' }
 		);
 
-		const result = searchSnippets(db, { query: 'rollback', tokens: 200, allowedProjects: 'all' });
+		const result = searchSnippets(db, { query: 'rollback', tokens: 200, allowedSources: 'all' });
 
-		expect(sourceIds(result)).toEqual(['platform/auth/deploy#first', 'platform/auth/deploy#last']);
-		expect(result.endsWith('\n\nDid not fit: platform/auth/deploy#large')).toBe(true);
+		expect(sourceIds(result)).toEqual(['auth/deploy#first', 'auth/deploy#last']);
+		expect(result.endsWith('\n\nDid not fit: auth/deploy#large')).toBe(true);
 	});
 
 	it('has no line about skipped hits when everything fits', () => {
-		addPage(addSource('platform', 'auth'), 'a.md', { title: 'Rollback' });
+		addPage(addSource('auth'), 'a.md', { title: 'Rollback' });
 
-		expect(searchSnippets(db, { query: 'rollback', allowedProjects: 'all' })).not.toContain(
+		expect(searchSnippets(db, { query: 'rollback', allowedSources: 'all' })).not.toContain(
 			'Did not fit'
 		);
 	});
 
 	it('accepts questions with characters that are FTS5 syntax', () => {
-		addPage(addSource('platform', 'auth-service'), 'a.md', {
+		addPage(addSource('auth-service'), 'a.md', {
 			title: 'Deploy',
 			text: 'auth-service uses ENV=prod'
 		});
 
 		expect(
-			sourceIds(searchSnippets(db, { query: 'auth-service?', allowedProjects: 'all' }))
-		).toEqual(['platform/auth-service/a']);
+			sourceIds(searchSnippets(db, { query: 'auth-service?', allowedSources: 'all' }))
+		).toEqual(['auth-service/a']);
 		expect(
 			sourceIds(
-				searchSnippets(db, { query: 'how to set ENV=prod "quoted"', allowedProjects: 'all' })
+				searchSnippets(db, { query: 'how to set ENV=prod "quoted"', allowedSources: 'all' })
 			)
-		).toEqual(['platform/auth-service/a']);
-		expect(searchSnippets(db, { query: '?!', allowedProjects: 'all' })).toBe('');
+		).toEqual(['auth-service/a']);
+		expect(searchSnippets(db, { query: '?!', allowedSources: 'all' })).toBe('');
 	});
 });

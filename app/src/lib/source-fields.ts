@@ -1,6 +1,7 @@
-/** The settings of a source as the source page and the project wizard send them. */
+/** The settings of a source as the source page sends them. */
 export interface SourceFields {
 	name: string;
+	description: string;
 	gitUrl: string;
 	/** Empty for none. */
 	docsUrl: string;
@@ -15,6 +16,7 @@ export interface SourceFields {
 
 export const NEW_SOURCE_FIELDS: SourceFields = {
 	name: '',
+	description: '',
 	gitUrl: '',
 	docsUrl: '',
 	branch: 'main',
@@ -28,6 +30,7 @@ export const NEW_SOURCE_FIELDS: SourceFields = {
 /** The same settings as stored: optional ones are null rather than empty, exclusions a list. */
 export interface StoredSourceFields {
 	name: string;
+	description: string;
 	gitUrl: string;
 	/** Where the documentation is published as a site; null when not given. */
 	docsUrl: string | null;
@@ -43,6 +46,7 @@ export interface StoredSourceFields {
 export function toSourceFields(source: StoredSourceFields): SourceFields {
 	return {
 		name: source.name,
+		description: source.description,
 		gitUrl: source.gitUrl,
 		docsUrl: source.docsUrl ?? '',
 		branch: source.branch,
@@ -58,6 +62,7 @@ export function readSourceFields(data: FormData): SourceFields {
 	const field = (name: string) => String(data.get(name) ?? '');
 	return {
 		name: field('name'),
+		description: field('description'),
 		gitUrl: field('gitUrl'),
 		docsUrl: field('docsUrl'),
 		branch: field('branch'),
@@ -67,14 +72,4 @@ export function readSourceFields(data: FormData): SourceFields {
 		paused: data.get('paused') === 'on',
 		username: field('username')
 	};
-}
-
-/**
- * The fields as name and value of hidden inputs, for a form step that carries them without
- * showing them; an unchecked checkbox sends nothing.
- */
-export function hiddenSourceFields(fields: SourceFields): [name: string, value: string][] {
-	return Object.entries(fields)
-		.filter(([, value]) => value !== false)
-		.map(([name, value]) => [name, value === true ? 'on' : String(value)]);
 }

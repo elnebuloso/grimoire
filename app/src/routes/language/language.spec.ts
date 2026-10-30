@@ -16,7 +16,7 @@ async function redirectFor(redirectTo: string): Promise<string> {
 
 describe('POST /language', () => {
 	it('goes back to a path on this site, with its query and anchor', async () => {
-		expect(await redirectFor('/manage/projects?page=2#top')).toBe('/manage/projects?page=2#top');
+		expect(await redirectFor('/manage/sources?page=2#top')).toBe('/manage/sources?page=2#top');
 	});
 
 	it.each([

@@ -6,8 +6,11 @@
 
 	let { data }: PageProps = $props();
 
-	const tryQuery = (question: string, project: string | null) =>
-		new URLSearchParams({ q: question, project: project ?? '' }).toString();
+	const tryQuery = (question: string, sources: string | null) =>
+		new URLSearchParams([
+			['q', question],
+			...(sources?.split(', ') ?? []).map((source) => ['source', source])
+		]).toString();
 </script>
 
 <h1>{m.missed_title()}</h1>
@@ -20,20 +23,20 @@
 		<thead>
 			<tr>
 				<th>{m.query_question()}</th>
-				<th>{m.query_project()}</th>
+				<th>{m.query_sources()}</th>
 				<th>{m.missed_count()}</th>
 				<th>{m.missed_last_asked()}</th>
 			</tr>
 		</thead>
 		<tbody>
-			{#each data.queries as query (`${query.project}\n${query.question}`)}
+			{#each data.queries as query (`${query.sources}\n${query.question}`)}
 				<tr>
 					<td>
-						<a href="{resolve('/manage/query')}?{tryQuery(query.question, query.project)}"
+						<a href="{resolve('/manage/query')}?{tryQuery(query.question, query.sources)}"
 							>{query.question}</a
 						>
 					</td>
-					<td>{query.project ?? m.query_all_projects()}</td>
+					<td>{query.sources ?? m.query_all_sources()}</td>
 					<td>{query.count}</td>
 					<td><DateTime value={query.lastAskedAt} timeZone={data.timeZone} /></td>
 				</tr>

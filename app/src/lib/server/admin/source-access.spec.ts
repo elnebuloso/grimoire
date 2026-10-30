@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import type { DatabaseSync } from 'node:sqlite';
 import { openDatabase } from '../db/schema';
 import * as git from '../sync/git';
-import { saveProject, saveSource, type SourceForm } from './projects';
+import { saveSource, type SourceForm } from './sources';
 import { accessChanged, checkSourceAccess } from './source-access';
 
 const repositories = vi.hoisted(() => ({ directory: '' }));
@@ -36,6 +36,7 @@ let db: DatabaseSync;
 function form(changes: Partial<SourceForm> = {}): SourceForm {
 	return {
 		name: 'Docs',
+		description: '',
 		gitUrl: url,
 		docsUrl: '',
 		branch: 'main',
@@ -70,17 +71,15 @@ beforeEach(() => {
 });
 
 /** A stored source as saving would leave it; `saveSource` itself never asks the Git server. */
-function storedSource(token = 'glpat-stored', projectName = 'Platform') {
-	const project = saveProject(db, undefined, { name: projectName, description: '' });
-	if ('error' in project) throw new Error(project.error);
-	const source = saveSource(db, KEY, project.id, undefined, form({ token }));
+function storedSource(token = 'glpat-stored') {
+	const source = saveSource(db, KEY, undefined, form({ token }));
 	if ('error' in source) throw new Error(source.error);
-	return { projectId: project.id, id: source.id };
+	return source.id;
 }
 
 describe('checkSourceAccess', () => {
 	it('reports the branch and its commit when the repository can be read', async () => {
-		expect(await checkSourceAccess(db, KEY, undefined, undefined, form())).toEqual({
+		expect(await checkSourceAccess(db, KEY, undefined, form())).toEqual({
 			message: expect.stringMatching(/^Reachable: branch main is at commit [0-9a-f]{12}\.$/)
 		});
 	});
@@ -89,20 +88,20 @@ describe('checkSourceAccess', () => {
 		[{ branch: 'develop' }, 'The repository has no branch develop.'],
 		[{ gitUrl: 'https://git.example/nowhere.git' }, 'Access refused, or there is no repository']
 	])('says why it cannot read %j', async (changes, message) => {
-		const result = await checkSourceAccess(db, KEY, undefined, undefined, form(changes));
+		const result = await checkSourceAccess(db, KEY, undefined, form(changes));
 
 		expect(result).toEqual({ error: expect.stringContaining(message) });
 	});
 
 	it('uses the stored token unless a new one is entered or its removal is asked for', async () => {
-		const { projectId, id } = storedSource();
+		const id = storedSource();
 		const tokenUsed = () => vi.mocked(git.checkRemote).mock.lastCall?.[0].token;
 
-		await checkSourceAccess(db, KEY, projectId, id, form());
+		await checkSourceAccess(db, KEY, id, form());
 		expect(tokenUsed()).toBe('glpat-stored');
-		await checkSourceAccess(db, KEY, projectId, id, form({ token: 'glpat-new' }));
+		await checkSourceAccess(db, KEY, id, form({ token: 'glpat-new' }));
 		expect(tokenUsed()).toBe('glpat-new');
-		await checkSourceAccess(db, KEY, projectId, id, form({ removeToken: true }));
+		await checkSourceAccess(db, KEY, id, form({ removeToken: true }));
 		expect(tokenUsed()).toBeUndefined();
 	});
 
@@ -112,19 +111,18 @@ describe('checkSourceAccess', () => {
 		['https://deploy:secret@git.example/docs.git', 'own fields'],
 		['--upload-pack=touch /tmp/pwned', 'Enter the Git URL']
 	])('contacts no server for %s, which could not be saved', async (gitUrl, message) => {
-		const result = await checkSourceAccess(db, KEY, undefined, undefined, form({ gitUrl }));
+		const result = await checkSourceAccess(db, KEY, undefined, form({ gitUrl }));
 
 		expect(result).toEqual({ error: expect.stringContaining(message) });
 		expect(git.checkRemote).not.toHaveBeenCalled();
 	});
 
 	it('does not send the stored token to another server', async () => {
-		const { projectId, id } = storedSource();
+		const id = storedSource();
 
 		const result = await checkSourceAccess(
 			db,
 			KEY,
-			projectId,
 			id,
 			form({ gitUrl: 'https://attacker.example/x' })
 		);
@@ -134,30 +132,17 @@ describe('checkSourceAccess', () => {
 	});
 });
 
-describe('a source of another project', () => {
-	it('lends neither its stored token nor its settings', async () => {
-		const { id } = storedSource();
-		const other = storedSource('glpat-other', 'Billing');
-
-		await checkSourceAccess(db, KEY, other.projectId, id, form({ token: '' }));
-
-		expect(vi.mocked(git.checkRemote).mock.lastCall?.[0].token).toBeUndefined();
-		expect(accessChanged(db, other.projectId, id, form())).toBe(true);
-	});
-});
-
 describe('accessChanged', () => {
 	it('is true for a new source', () => {
-		expect(accessChanged(db, 1, undefined, form())).toBe(true);
+		expect(accessChanged(db, undefined, form())).toBe(true);
 	});
 
 	it('ignores everything but URL, branch, username and token', () => {
-		const { projectId, id } = storedSource();
+		const id = storedSource();
 
 		expect(
 			accessChanged(
 				db,
-				projectId,
 				id,
 				form({ name: 'Other', path: 'site/', schedule: '0 2 * * *', paused: true })
 			)
@@ -171,8 +156,8 @@ describe('accessChanged', () => {
 		{ token: 'glpat-new' },
 		{ removeToken: true }
 	])('is true when %j changes', (changes) => {
-		const { projectId, id } = storedSource();
+		const id = storedSource();
 
-		expect(accessChanged(db, projectId, id, form(changes))).toBe(true);
+		expect(accessChanged(db, id, form(changes))).toBe(true);
 	});
 });
