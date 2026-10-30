@@ -10,12 +10,6 @@
 
 <h1>{m.admin_title()}</h1>
 
-<p>
-	<a href={resolve('/manage/api-keys')}>{m.api_keys()}</a>
-	<a href={resolve('/account')}>{m.password_title()}</a>
-	<a href={resolve('/manage/settings')}>{m.settings_title()}</a>
-</p>
-
 {#if data.syncsPaused}
 	<p role="status">
 		{m.syncs_paused_notice()} <a href={resolve('/manage/settings')}>{m.settings_title()}</a>

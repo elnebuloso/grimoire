@@ -177,5 +177,6 @@
 	"source_docs_link": "Dokumentation",
 	"wizard_docs_url": "Dokumentations-URL",
 	"error_docs_url": "Gib die Dokumentations-URL als Webadresse mit https:// oder http:// ein, z. B. https://docs.example.com/platform/.",
-	"error_docs_url_credentials": "Die Dokumentations-URL darf keinen Benutzernamen und kein Passwort enthalten."
+	"error_docs_url_credentials": "Die Dokumentations-URL darf keinen Benutzernamen und kein Passwort enthalten.",
+	"manage_nav": "Verwaltung"
 }

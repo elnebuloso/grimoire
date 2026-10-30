@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { resolve } from '$app/paths';
 	import ChoiceField from '#lib/components/ChoiceField.svelte';
 	import { m } from '#lib/paraglide/messages.js';
 	import type { PageProps } from './$types';
@@ -7,7 +6,6 @@
 	let { data, form }: PageProps = $props();
 </script>
 
-<p><a href={resolve('/manage')}>{m.all_projects_link()}</a></p>
 <h1>{m.settings_title()}</h1>
 
 {#if form?.saved}

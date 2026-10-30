@@ -227,6 +227,29 @@ test('shows how to connect Claude Code to this instance', async ({ page }) => {
 	);
 });
 
+test('leads through the management area with one navigation that marks the current page', async ({
+	page
+}) => {
+	await logIn(page);
+	const navigation = page.getByRole('navigation', { name: 'Management' });
+	await expect(navigation.getByRole('link', { name: 'Overview' })).toHaveAttribute(
+		'aria-current',
+		'page'
+	);
+
+	await navigation.getByRole('link', { name: 'Settings' }).click();
+	await expect(page).toHaveURL('/manage/settings');
+	await expect(navigation.getByRole('link', { name: 'Settings' })).toHaveAttribute(
+		'aria-current',
+		'page'
+	);
+	await expect(navigation.getByRole('link', { name: 'Overview' })).not.toHaveAttribute(
+		'aria-current'
+	);
+	await navigation.getByRole('link', { name: 'API keys' }).click();
+	await expect(page).toHaveURL('/manage/api-keys');
+});
+
 test('creates an API key that works for its project until it is revoked', async ({
 	page,
 	request
