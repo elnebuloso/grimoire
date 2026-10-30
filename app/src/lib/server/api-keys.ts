@@ -124,9 +124,7 @@ function insertScope(db: DatabaseSync, id: number, sourceIds: number[]) {
 export function listApiKeys(db: DatabaseSync): ApiKey[] {
 	const rows = db
 		.prepare(
-			// CURRENT_TIMESTAMP is UTC but has no zone, which a Date would read as local time.
-			`SELECT api_keys.id, api_keys.name,
-				strftime('%Y-%m-%dT%H:%M:%fZ', api_keys.created_at) AS createdAt,
+			`SELECT api_keys.id, api_keys.name, api_keys.created_at AS createdAt,
 				api_keys.last_used_at AS lastUsedAt, api_keys.valid_until AS validUntil,
 				api_keys.all_sources,
 				json_group_array(sources.slug) FILTER (WHERE sources.slug IS NOT NULL) AS slugs

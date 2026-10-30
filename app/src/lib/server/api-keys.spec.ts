@@ -113,11 +113,12 @@ describe('listApiKeys', () => {
 		]);
 	});
 
-	it('gives the creation time as a UTC instant, which SQLite stores without a zone', () => {
-		const { id } = newKey(db, 'ci', 'all');
-		db.prepare("UPDATE api_keys SET created_at = '2026-10-29 20:24:12' WHERE id = ?").run(id);
+	it('stores the creation time as ISO 8601 in UTC with milliseconds and Z', () => {
+		newKey(db, 'ci', 'all');
 
-		expect(listApiKeys(db)[0].createdAt).toBe('2026-10-29T20:24:12.000Z');
+		const { createdAt } = listApiKeys(db)[0];
+		expect(createdAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
+		expect(new Date(createdAt).toISOString()).toBe(createdAt);
 	});
 });
 

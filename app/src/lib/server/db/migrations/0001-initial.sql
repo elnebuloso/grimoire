@@ -115,7 +115,8 @@ CREATE TABLE api_keys (
 	name TEXT NOT NULL,
 	key_hash TEXT NOT NULL UNIQUE,
 	all_sources INTEGER NOT NULL CHECK (all_sources IN (0, 1)),
-	created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	-- ISO 8601 in UTC with `Z`, like every timestamp the application writes.
+	created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
 	-- When the key last authenticated a request, so unused keys can be found and revoked. Written
 	-- at most once a minute per key, not on every request.
 	last_used_at TEXT,
