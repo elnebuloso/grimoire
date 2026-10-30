@@ -377,7 +377,13 @@ describe('after a slug change', () => {
 
 describe('agentInstructions', () => {
 	it('stays under 250 tokens, since it sits in agent context permanently', () => {
-		expect(agentInstructions).toContain('grimoire');
-		expect(estimateTokens(agentInstructions)).toBeLessThan(250);
+		expect(agentInstructions('grimoire')).toContain('grimoire');
+		expect(estimateTokens(agentInstructions('grimoire'))).toBeLessThan(250);
+	});
+
+	it('names the instance by its own name', () => {
+		const text = agentInstructions('Acme Docs');
+		expect(text).toContain('Acme Docs is the organization');
+		expect(text).not.toContain('grimoire');
 	});
 });

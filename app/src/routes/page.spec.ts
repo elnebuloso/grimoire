@@ -12,7 +12,7 @@ import * as page from './+page.server';
 let db: DatabaseSync;
 
 vi.mock('#lib/server/db/index.js', () => ({ database: () => db }));
-vi.mock('$app/env/private', () => ({ TZ: 'UTC', BASE_URL: '' }));
+vi.mock('$app/env/private', () => ({ TZ: 'UTC', BASE_URL: '', INSTANCE_NAME: 'Acme Docs' }));
 
 function addSourceWithPage(slug: string, markdown: string, isPublic: boolean) {
 	const sourceId = Number(
@@ -36,7 +36,7 @@ function addSourceWithPage(slug: string, markdown: string, isPublic: boolean) {
 
 function load(search: string) {
 	const url = new URL(`https://grimoire.example/${search}`);
-	return page.load({ url } as never) as { query?: QueryFormState };
+	return page.load({ url } as never) as { query?: QueryFormState; mcpName: string };
 }
 
 beforeEach(() => {
@@ -45,6 +45,10 @@ beforeEach(() => {
 });
 
 describe('start page', () => {
+	it('names the MCP server in the connect example after the instance, as one word', () => {
+		expect(load('').mcpName).toBe('acme-docs');
+	});
+
 	it('offers no query while no source is public', () => {
 		expect(load('?q=rollback').query).toBeUndefined();
 	});

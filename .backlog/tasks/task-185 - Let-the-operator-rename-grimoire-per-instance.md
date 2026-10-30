@@ -1,9 +1,11 @@
 ---
 id: TASK-185
 title: Let the operator rename grimoire per instance
-status: To Do
-assignee: []
+status: In Progress
+assignee:
+  - '@claude'
 created_date: '2026-10-30 21:29'
+updated_date: '2026-10-30 22:11'
 labels:
   - ops
   - admin
@@ -41,3 +43,21 @@ The name is plain text everywhere: escaped in HTML, never interpreted as markup.
 - [ ] #7 `INSTANCE_NAME` is documented in `app/.env.example` and in the environment variables table of `docs/handbook/docker.md`
 - [ ] #8 `make lint`, `make test` and `make e2e` pass
 <!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. INSTANCE_NAME in env.ts (trimmed, default grimoire); root layout passes it as instanceName in page data
+2. Messages naming grimoire take {name}; PageHead suffixes with the name, namesInstance replaces the includes('grimoire') check
+3. Start page title, header wordmark, reset mail, MCP server name, agentInstructions(name); claude mcp add uses slugify(name)
+4. Specs, stories, .env.example, docker.md
+<!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+- PageHead reads the name from page.data ($app/state); Storybook gets it through sveltekit_experimental.state.page in preview.ts.
+- agentInstructions is now a function of the name: replaces 'grimoire' in instructions.md.
+- Footer link names (footer_github) stay grimoire: they point at the product (TASK-186).
+- Checked by hand with INSTANCE_NAME="<b>Acme</b> Docs": escaped in title and header, plain text in MCP serverInfo and instructions, example server name b-acme-b-docs.
+<!-- SECTION:NOTES:END -->

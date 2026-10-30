@@ -1,5 +1,5 @@
 import type { LayoutServerLoad } from './$types';
-import { TZ } from '$app/env/private';
+import { INSTANCE_NAME, TZ } from '$app/env/private';
 import { database } from '#lib/server/db/index.js';
 import { mayOpen } from '#lib/server/admin/access.js';
 import { SESSION_COOKIE, sessionUser } from '#lib/server/admin/auth.js';
@@ -14,6 +14,7 @@ export const load: LayoutServerLoad = ({ cookies }) => {
 		// Every page formats times in it, also after hydration in a browser in another zone.
 		timeZone: TZ,
 		// What the theme switch shows as picked; the page itself gets it from the server hook.
-		theme: isTheme(theme) ? theme : 'system'
+		theme: isTheme(theme) ? theme : 'system',
+		instanceName: INSTANCE_NAME
 	};
 };

@@ -17,10 +17,21 @@
 />
 
 <Story
-	name="Title naming grimoire"
-	args={{ title: 'Log in to grimoire' }}
+	name="Title naming the instance"
+	args={{ title: 'Log in to grimoire', namesInstance: true }}
 	play={async () => {
 		await expect(document.title).toBe('Log in to grimoire');
+	}}
+/>
+
+<Story
+	name="Instance with a name of its own"
+	args={{ title: 'API keys' }}
+	parameters={{
+		sveltekit_experimental: { state: { page: { data: { instanceName: 'Acme Docs' } } } }
+	}}
+	play={async () => {
+		await expect(document.title).toBe('API keys – Acme Docs');
 	}}
 />
 

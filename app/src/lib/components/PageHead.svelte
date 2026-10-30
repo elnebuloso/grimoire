@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
+	import { page } from '$app/state';
 	import { m } from '#lib/paraglide/messages.js';
 
 	/**
@@ -9,12 +10,15 @@
 	let {
 		title,
 		documentTitle = title,
+		namesInstance = false,
 		back,
 		children
 	}: {
 		title: string;
 		/** What the browser tab names, where it differs from the heading. */
 		documentTitle?: string;
+		/** The title names the instance already, such as "Log in to grimoire": the tab shows it as is. */
+		namesInstance?: boolean;
 		/** A link back to where the page belongs, e.g. the list it is part of. */
 		back?: { href: string; label: string };
 		/** The lead: what the page is for, or links that belong to its subject. */
@@ -23,11 +27,10 @@
 </script>
 
 <svelte:head>
-	<!-- A title that names grimoire already, such as "Log in to grimoire", stays as it is. -->
 	<title
-		>{documentTitle.includes('grimoire')
+		>{namesInstance
 			? documentTitle
-			: m.document_title({ page: documentTitle })}</title
+			: m.document_title({ page: documentTitle, name: page.data.instanceName })}</title
 	>
 </svelte:head>
 

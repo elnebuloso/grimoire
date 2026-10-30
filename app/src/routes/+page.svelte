@@ -8,7 +8,7 @@
 </script>
 
 <!-- The one page without a PageHead: no title on the canvas, so the tab gets its own. -->
-<svelte:head><title>grimoire</title></svelte:head>
+<svelte:head><title>{data.instanceName}</title></svelte:head>
 
 <section class="sheet flush" aria-labelledby="sources">
 	<div class="sheet-head"><h1 id="sources">{m.sources()}</h1></div>
@@ -32,7 +32,7 @@
 		<h2 id="connect">{m.start_connect_heading()}</h2>
 		<p>{m.start_connect_intro()}</p>
 		<pre><code
-				>claude mcp add --transport http --scope user grimoire {data.origin}/mcp \
+				>claude mcp add --transport http --scope user {data.mcpName} {data.origin}/mcp \
   --header "Authorization: Bearer &lt;key&gt;"</code
 			></pre>
 		<p>

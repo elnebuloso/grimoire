@@ -26,7 +26,7 @@ let billingKey: string;
 
 // The real accessor opens the file from the environment; the routes get an in-memory database.
 vi.mock('#lib/server/db/index.js', () => ({ database: () => db }));
-vi.mock('$app/env/private', () => ({ TZ: 'UTC', BASE_URL: '' }));
+vi.mock('$app/env/private', () => ({ TZ: 'UTC', BASE_URL: '', INSTANCE_NAME: 'Acme Docs' }));
 
 function newKey(name: string, sources: 'all' | string[]): string {
 	const created = createApiKey(db, name, sources);
@@ -190,7 +190,7 @@ describe('GET /sources', () => {
 
 describe('GET /instructions', () => {
 	it('returns the agent instructions', async () => {
-		expect((await get(instructions, '/instructions')).body).toBe(agentInstructions);
+		expect((await get(instructions, '/instructions')).body).toBe(agentInstructions('Acme Docs'));
 	});
 });
 
@@ -370,7 +370,9 @@ describe('POST /mcp', () => {
 			clientInfo: { name: 'test', version: '1' }
 		});
 
-		expect((await response.json()).result.instructions).toBe(agentInstructions);
+		const { result } = await response.json();
+		expect(result.instructions).toBe(agentInstructions('Acme Docs'));
+		expect(result.serverInfo.name).toBe('Acme Docs');
 	});
 
 	it('offers the four operations as tools', async () => {

@@ -90,7 +90,7 @@
 					<DateTime value={data.nextCheck} timeZone={data.timeZone} />
 				</p>
 			{/if}
-			<ChoiceField name="public" checked={values.public} label={m.field_public()} />
+			<ChoiceField name="public" checked={values.public} label={m.field_public({ name: data.instanceName })} />
 			<ChoiceField name="paused" checked={values.paused} label={m.field_paused()} />
 			<div class="fields">
 				<TextField label={m.field_username()} name="username" value={values.username} />
@@ -262,7 +262,7 @@
 				<div class="part">
 					<h3>{m.source_preview_title({ file: data.preview.file })}</h3>
 					{#if data.preview.snippets?.length === 0}
-						<p class="notice warn">{m.source_preview_no_snippets()}</p>
+						<p class="notice warn">{m.source_preview_no_snippets({ name: data.instanceName })}</p>
 					{:else if data.preview.snippets}
 						<p>
 							{m.source_preview_intro_before()} <code>read</code>

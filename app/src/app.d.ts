@@ -7,7 +7,10 @@ declare global {
 			/** Set by the access hook for a page the request may not open; its load throws it. */
 			accessDenied?: 403 | 404;
 		}
-		// interface PageData {}
+		interface PageData {
+			/** The name of the instance, from `INSTANCE_NAME`; the root layout provides it. */
+			instanceName: string;
+		}
 		// interface PageState {}
 		// interface Platform {}
 	}

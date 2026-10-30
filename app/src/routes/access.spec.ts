@@ -14,7 +14,8 @@ vi.mock('$app/env/private', () => ({
 	MIGRATE_ONLY: false,
 	LOG_FORMAT: 'ecs',
 	LOG_LEVEL: 'info',
-	TZ: 'UTC'
+	TZ: 'UTC',
+	INSTANCE_NAME: 'grimoire'
 }));
 
 const PASSWORD = 'correct horse battery';

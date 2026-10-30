@@ -25,7 +25,7 @@
 </svelte:head>
 
 <header>
-	<a class="wordmark" href={resolve('/')}>grimoire</a>
+	<a class="wordmark" href={resolve('/')}>{data.instanceName}</a>
 	<div class="session">
 		{#if data.user}
 			<span class="muted"

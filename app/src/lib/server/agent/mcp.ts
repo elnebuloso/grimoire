@@ -1,6 +1,7 @@
 import type { DatabaseSync } from 'node:sqlite';
 import { McpServer, WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/server';
 import { z } from 'zod';
+import { INSTANCE_NAME } from '$app/env/private';
 import { version } from '../../../../package.json';
 import type { SourceScope } from '../api-keys';
 import { database } from '../db';
@@ -33,8 +34,8 @@ function toolResult(tool: string, operation: () => OperationResult) {
 }
 
 /** An MCP server offering the agent operations within one API key's scope. */
-export function createMcpServer(db: DatabaseSync, scope: SourceScope): McpServer {
-	const server = new McpServer({ name: 'grimoire', version }, { instructions: agentInstructions });
+export function createMcpServer(db: DatabaseSync, scope: SourceScope, name: string): McpServer {
+	const server = new McpServer({ name, version }, { instructions: agentInstructions(name) });
 	server.registerTool(
 		'sources',
 		{ description: 'Lists the documentation sources with their short description.' },
@@ -89,7 +90,7 @@ export async function mcpResponse(request: Request): Promise<Response> {
 			sessionIdGenerator: undefined,
 			enableJsonResponse: true
 		});
-		await createMcpServer(db, result.scope).connect(transport);
+		await createMcpServer(db, result.scope, INSTANCE_NAME).connect(transport);
 		return await transport.handleRequest(request);
 	} catch (error) {
 		log.error({ err: error }, `${request.method} ${new URL(request.url).pathname} failed`);

@@ -11,6 +11,7 @@ const send = vi.fn(async () => true);
 vi.mock('#lib/server/db/index.js', () => ({ database: () => db }));
 // The SMTP server is outside the test; whether a mailer exists is what the pages depend on.
 vi.mock('#lib/server/mail/index.js', () => ({ mailer: () => mail }));
+vi.mock('$app/env/private', () => ({ INSTANCE_NAME: 'Acme Docs' }));
 
 const EMAIL = 'admin@example.com';
 const PASSWORD = 'correct horse battery';
@@ -96,7 +97,7 @@ describe('with SMTP', () => {
 		expect(known).toEqual(unknown);
 		expect(send).toHaveBeenCalledWith({
 			to: EMAIL,
-			subject: 'Set a new password for grimoire',
+			subject: 'Set a new password for Acme Docs',
 			text: expect.stringContaining('https://grimoire.example.com/login/reset/')
 		});
 	});

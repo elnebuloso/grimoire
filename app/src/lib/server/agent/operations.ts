@@ -11,8 +11,10 @@ import {
 import { recordMissedQuery } from '../missed-queries';
 import instructions from './instructions.md?raw';
 
-/** How agents use grimoire; the same text for HTTP and as MCP server instructions. */
-export const agentInstructions = instructions;
+/** How agents use the instance `name`; the same text for HTTP and as MCP server instructions. */
+export function agentInstructions(name: string): string {
+	return instructions.replaceAll('grimoire', name);
+}
 
 /** The answer of an operation; `found` is false for an unknown or hidden source or ID. */
 export interface OperationResult {

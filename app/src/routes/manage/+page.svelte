@@ -9,7 +9,7 @@
 	let { data }: PageProps = $props();
 </script>
 
-<PageHead title={m.admin_title()} />
+<PageHead title={m.admin_title({ name: data.instanceName })} namesInstance />
 
 {#if data.syncsPaused}
 	<p class="notice warn" role="status">

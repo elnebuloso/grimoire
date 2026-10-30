@@ -9,7 +9,7 @@
 	let { data, form }: PageProps = $props();
 </script>
 
-<PageHead title={m.login_title()} />
+<PageHead title={m.login_title({ name: data.instanceName })} namesInstance />
 
 <section class="sheet">
 	<form method="post">
