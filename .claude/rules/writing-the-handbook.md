@@ -1,50 +1,59 @@
-## User documentation
+# User Documentation Guidelines
 
-The docs are a manual for the people who use the product, not a record of
-how it was built. Write for the reader named at the top of each page and
-for nobody else. Content for another reader goes on that reader's page.
+The docs are a functional manual for the people who use the product, not a record of how it was built. Write strictly for the single reader role named at the top of each page. Content for another role belongs on that role's page.
 
-### Document only what the reader cannot see
+---
 
-The reader has the product in front of them. Do not describe the
-interface: no "click X", no "the menu shows", no walking through screens
-or where an action leads. If the interface needs a sentence to be
-understood, that is a bug in the interface, not a gap in the docs.
+## Focus on what the reader cannot see
 
-A sentence earns its place only if it is one of:
+The reader has the product in front of them. Do not describe what is self-evident in the interface: no visual descriptions, no button-by-button walkthroughs, and no explanations of obvious UI state. If an action requires a paragraph of UI description to be found, treat it as a product design flaw.
 
-1. A rule or limit the reader cannot see — durations, lockouts, minimum
-   lengths, quotas, what is shown only once.
-2. An error the reader will actually get — its exact text and what to do
-   about it.
-3. A warning before an irreversible or far-reaching action — what breaks,
-   and for whom.
-4. A decision the reader must make and the information needed to make it.
+> **Rule of Thumb:** A sentence earns its place only if it passes the Actionability Test: *Will the reader do or decide anything differently knowing this?* If not, delete it.
 
-The test for every sentence: would the reader do anything differently
-knowing this? If not, delete it.
+### Permitted Content
 
-### Never in user docs
+A sentence is justified **only** if it covers one of the following:
 
-- How it works: algorithms, hashing, cookies, storage, in-memory vs.
-  persisted state, request handling, framework names, comparisons with
-  other software.
-- Why it was built this way, what it used to do, or what was considered.
-- Reassurances ("this is safe because…"). State the rule, not its proof.
-- Variables, files, or paths the reader never touches. A setting appears
-  only on the page of the reader who sets it, and only when they must.
+1. **Invisible Rules & Limits:** Durations, rate limits, lockouts, quotas, validation criteria, data retention, or elements displayed only once.
+2. **Navigation Anchors:** Direct, minimal path hints (e.g., `Settings > Team > Roles`) when an item is nested or hard to locate.
+3. **Actionable Errors:** Exact error texts, why they occur, and the explicit step to resolve them.
+4. **Irreversible Warnings:** Critical risks, data loss, or system-wide side effects before an action is taken.
+5. **Decisions & Outcomes:** Necessary context required to choose between options and what happens after a selection is made.
 
-If a detail matters to maintainers, put it in a code comment or in a
-separate internals document — never in the user docs.
+---
 
-### Form
+## Never in user docs
 
-Lead with the rule, the error, or the warning. Short, imperative
-sentences; one idea per paragraph. No introductions, no summaries.
-A section with nothing left in it is removed, not padded.
+* **Implementation Details:** Algorithms, encryption internals, database architecture, storage types, framework names, or tech stack comparisons.
+* **Product History & Design Rationale:** Why a feature was built this way, legacy behavior, discarded alternatives, or roadmap promises.
+* **Vague Reassurances:** Avoid empty phrases like *"Don't worry, this is safe"*. State the exact technical guarantee or boundary instead.
+* **Inaccessible Paths & Variables:** Settings, environment variables, or config files the current reader role cannot access or modify.
 
-### Reviewing docs
+*Note: If a detail matters to maintainers or developers, move it to code comments or internal architecture docs.*
 
-Go through every sentence and ask who the reader is and what they would
-do differently knowing it. Delete every sentence without an answer.
-Move every sentence written for a different reader to their page.
+---
+
+## Structure & Form
+
+* **Lead with the Point:** Start directly with the rule, error, or warning. 
+* **Style:** Use short, imperative sentences and active voice. Limit each paragraph to a single core idea.
+* **No Filler:** Omit introductory fluff, welcome notes, and summaries. If removing unneeded text leaves a section empty, delete the section header.
+
+---
+
+## Document Types & Intent
+
+To keep reference documentation lean without blocking new users, separate content by intent:
+
+| Doc Type | Purpose | Allowed Content |
+| :--- | :--- | :--- |
+| **Reference Docs** | Day-to-day operation & lookup | Strict adherence to the rules above. Zero narrative. |
+| **Getting Started / Concepts** | Mental models & onboarding | High-level workflows, key concepts, and architecture overviews. |
+
+---
+
+## Reviewing docs
+
+When reviewing any sentence, ask:
+1. *Who is the target reader for this page?* (If it's another role, move it).
+2. *What will the reader do differently after reading this?* (If nothing, delete it).
