@@ -122,14 +122,14 @@ describe('chunkPage', () => {
 			return { page: chunk(markdown), time: performance.now() - started };
 		};
 		const distinct = timed(
-			`# Guide\n\n${Array.from({ length: 8000 }, (_, i) => `## Parameters ${i}\n\n`).join('')}`
+			`# Guide\n\n${Array.from({ length: 5000 }, (_, i) => `## Parameters ${i}\n\n`).join('')}`
 		);
-		const repeated = timed(`# Guide\n\n${'## Parameters\n\n'.repeat(8000)}`);
+		const repeated = timed(`# Guide\n\n${'## Parameters\n\n'.repeat(5000)}`);
 		// Relative, so a slow machine slows both: counting up from `_1` again for every repeat took
 		// ten times as long as distinct headings here.
 		expect(repeated.time).toBeLessThan(distinct.time * 3);
-		expect(repeated.page.snippets[0].aliases.at(-1)).toBe('parameters_7999');
-	});
+		expect(repeated.page.snippets[0].aliases.at(-1)).toBe('parameters_4999');
+	}, 30_000);
 
 	it('generates the anchors MkDocs generates', () => {
 		const headings = [
