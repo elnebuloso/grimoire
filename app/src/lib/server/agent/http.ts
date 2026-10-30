@@ -79,8 +79,7 @@ export function agentResponse(
 export function queryOptions(url: URL): QueryOptions {
 	const query = url.searchParams.get('q')?.trim();
 	if (!query) throw new InvalidRequestError('Missing search terms. Send `?q=<terms>`.');
-	const named = url.searchParams.getAll('source');
-	const sources = named.length > 0 ? named : undefined;
+	const sources = url.searchParams.getAll('source');
 	const tokens = url.searchParams.get('tokens');
 	if (tokens === null) return { query, sources };
 	const budget = parseTokenBudget(tokens);

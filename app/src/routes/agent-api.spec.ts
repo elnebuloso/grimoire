@@ -402,6 +402,15 @@ describe('POST /mcp', () => {
 		]);
 	});
 
+	it('searches every visible source for an empty list of sources', async () => {
+		const all = await tool('query', { query: 'rollback' });
+		const empty = await tool('query', { query: 'rollback', sources: [] });
+
+		expect(empty).toEqual(all);
+		expect(empty.text).toContain('Source: billing-docs/index');
+		expect(listMissedQueries(db)).toEqual([]);
+	});
+
 	it('searches only the sources given as a list, and fails for one out of scope', async () => {
 		const both = await tool('query', {
 			query: 'rollback',

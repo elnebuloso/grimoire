@@ -116,7 +116,7 @@ export function llmsTxt(
 
 export interface QueryOptions {
 	query: string;
-	/** Slugs of the sources to search; all visible sources when undefined. */
+	/** Slugs of the sources to search; all visible sources when undefined or empty. */
 	sources?: string[];
 	tokens?: number;
 }
@@ -131,8 +131,13 @@ export interface QueryResult extends OperationResult {
 // with request-sized questions. A real question is far shorter.
 export const MAX_QUESTION_LENGTH = 500;
 
+// Agents often send an optional list as `[]`; read literally it would search nothing.
 function normalizeQueryOptions(options: QueryOptions): QueryOptions {
-	return { ...options, query: options.query.trim().slice(0, MAX_QUESTION_LENGTH) };
+	return {
+		...options,
+		query: options.query.trim().slice(0, MAX_QUESTION_LENGTH),
+		sources: options.sources?.length ? options.sources : undefined
+	};
 }
 
 /**

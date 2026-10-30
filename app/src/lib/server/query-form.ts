@@ -44,7 +44,7 @@ export function answerQueryForm(
 		db,
 		{
 			query: question,
-			sources: values.sources.length > 0 ? values.sources : undefined,
+			sources: values.sources,
 			tokens
 		},
 		scope
