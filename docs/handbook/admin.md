@@ -23,6 +23,7 @@ characters.
 - A client address may fail at most 10 times in any 15 minutes; beyond that every login from it
   gets `Too many failed logins. Try again later.`, also with the right password. Wait 15 minutes.
   A wrong current password under **Change the password** counts as a failed login.
+  IPv6 addresses of one `/64` network count as one client address.
 - The same message appears for everybody while the server is busy checking many logins at once.
   Try again after a moment.
 - The interface follows the browser's language, English otherwise, until you pick one with the

@@ -3,9 +3,11 @@ id: TASK-167
 title: >-
   Stop clients from bypassing the login and reset attempt limits with a forged
   or rotated address
-status: To Do
-assignee: []
+status: Done
+assignee:
+  - '@claude'
 created_date: '2026-10-30 16:13'
+updated_date: '2026-10-30 16:28'
 labels:
   - ops
   - admin
@@ -24,8 +26,28 @@ The failed-login limit (10 per client and 15 minutes, `app/src/lib/server/admin/
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 The Docker example publishes the port on `127.0.0.1` only
-- [ ] #2 The handbook says that with `ADDRESS_HEADER` set, only the proxy may reach the port
-- [ ] #3 IPv6 clients are limited per `/64`, covered by a test
-- [ ] #4 The cost of one attempt-limit check does not grow with the number of tracked clients
+- [x] #1 The Docker example publishes the port on `127.0.0.1` only
+- [x] #2 The handbook says that with `ADDRESS_HEADER` set, only the proxy may reach the port
+- [x] #3 IPv6 clients are limited per `/64`, covered by a test
+- [x] #4 The cost of one attempt-limit check does not grow with the number of tracked clients
 <!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. `clientKey` in `attempt-limit.ts`: IPv6 addresses keyed by their `/64`, IPv4-mapped as IPv4, everything else unchanged; used for the failed-login and reset-request limits
+2. Keep the map ordered by latest attempt, so expiry visits only expired keys
+3. Handbook: Docker example on `127.0.0.1`, proxy-only rule under Reverse proxy, `/64` note in admin.md
+<!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Measured with a scratch script (Node 24.22.1): 1,000 `take` calls with 100,000 live keys took 3,651 ms before and 1.1 ms after the change.
+<!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Login and reset limits now key IPv6 clients by their `/64` (`clientKey` in `app/src/lib/server/admin/attempt-limit.ts`), so rotating addresses within one network no longer resets the count. The attempt map stays ordered by each key's latest attempt, so a check removes only expired keys instead of scanning all: 1,000 checks with 100,000 tracked clients went from 3,651 ms to 1.1 ms. Handbook: the Docker example publishes on `127.0.0.1`, "Reverse proxy" says only the proxy may reach the port once `ADDRESS_HEADER` is set, and `admin.md` says one `/64` counts as one client. Verified: new `attempt-limit.spec.ts` (window, ordering, address keys), admin, login, account and setup tests green; `make handbook` strict.
+<!-- SECTION:FINAL_SUMMARY:END -->

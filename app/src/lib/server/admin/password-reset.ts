@@ -8,7 +8,7 @@ import {
 	sha256,
 	type AuthProblem
 } from './auth.ts';
-import { createAttemptLimit } from './attempt-limit.ts';
+import { clientKey, createAttemptLimit } from './attempt-limit.ts';
 
 const LINK_MINUTES = 60;
 // Enough for a typo and a second try; more from one client or for one address floods a mailbox.
@@ -31,7 +31,7 @@ export function requestPasswordReset(
 	email: string,
 	now = new Date()
 ): { to: string; token: string } | { error: 'reset-blocked' } | undefined {
-	if (!clientRequests.take(client, now)) return { error: 'reset-blocked' };
+	if (!clientRequests.take(clientKey(client), now)) return { error: 'reset-blocked' };
 	const address = normalizeEmail(email);
 	const user = db.prepare('SELECT id FROM users WHERE email = ?').get(address) as
 		{ id: number } | undefined;

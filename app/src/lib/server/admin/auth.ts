@@ -5,7 +5,7 @@ import type { DatabaseSync } from 'node:sqlite';
 import { inTransaction } from '../db/transaction.ts';
 import { log, logAlways } from '../log.ts';
 import { createLimiter } from '../limiter.ts';
-import { createAttemptLimit } from './attempt-limit.ts';
+import { clientKey, createAttemptLimit } from './attempt-limit.ts';
 
 export const SESSION_COOKIE = 'grimoire_session';
 // Every page shows whether the admin is logged in, so the cookie goes to the whole site; no
@@ -197,7 +197,7 @@ export async function login(
 ): Promise<{ session: string } | { error: AuthProblem }> {
 	// Counted as failed before the password is checked: requests sent in parallel would otherwise
 	// all pass the limit while their hashes run. A successful login forgets it again.
-	if (pendingHashes >= MAX_PENDING_HASHES || !failedLogins.take(client, now)) {
+	if (pendingHashes >= MAX_PENDING_HASHES || !failedLogins.take(clientKey(client), now)) {
 		return { error: 'blocked' };
 	}
 	const user = findUser(db, form.email);
@@ -205,7 +205,7 @@ export async function login(
 	unknownUserHash ??= await hashPassword(randomBytes(16).toString('hex'));
 	const matches = await passwordMatches(form.password, user?.password_hash ?? unknownUserHash);
 	if (!user || !matches) return { error: 'wrong-credentials' };
-	failedLogins.forget(client);
+	failedLogins.forget(clientKey(client));
 	return { session: createSession(db, user.id, now) };
 }
 
@@ -222,7 +222,7 @@ export async function changePassword(
 	now = new Date()
 ): Promise<{ error: AuthProblem } | undefined> {
 	// Counted before the check, for the same reason as in `login`.
-	if (pendingHashes >= MAX_PENDING_HASHES || !failedLogins.take(client, now)) {
+	if (pendingHashes >= MAX_PENDING_HASHES || !failedLogins.take(clientKey(client), now)) {
 		return { error: 'blocked' };
 	}
 	const user = sessionUser(db, session, now);
@@ -230,7 +230,7 @@ export async function changePassword(
 	if (!stored || !(await passwordMatches(form.current, stored.password_hash))) {
 		return { error: 'wrong-current-password' };
 	}
-	failedLogins.forget(client);
+	failedLogins.forget(clientKey(client));
 	if (form.password.length < MIN_PASSWORD_LENGTH) return { error: 'new-password-too-short' };
 	const passwordHash = await hashPassword(form.password);
 	inTransaction(db, () => {

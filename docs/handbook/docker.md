@@ -69,11 +69,11 @@ Caddy then obtains and keeps a TLS certificate.
 
 ## Docker without Compose
 
-For a host where a reverse proxy already forwards to port `3000`:
+For a host where a reverse proxy on the same host forwards to port `3000`:
 
 ```bash
 docker run --detach --name grimoire \
-  --publish 3000:3000 \
+  --publish 127.0.0.1:3000:3000 \
   --volume grimoire-data:/data \
   --env TOKEN_ENCRYPTION_KEY="<KEY_FROM_OPENSSL_RAND_BASE64_32>" \
   --env PROTOCOL_HEADER=x-forwarded-proto \
@@ -135,6 +135,10 @@ Pass on the original protocol, client address and `Host` header, and set `PROTOC
 `ADDRESS_HEADER` to the headers the proxy sends. Set them only when the proxy really sends them:
 once `ADDRESS_HEADER` is set, a request without that header fails. Without `ADDRESS_HEADER`, all
 failed logins count for the proxy's address, and one client's typos lock everybody out.
+
+With `ADDRESS_HEADER` set, only the proxy may reach grimoire's port. Anyone who reaches it directly
+sets the header themselves, counts as a new client on every request and gets past the limits on
+failed logins and password reset requests.
 
 Outside `localhost`, serve grimoire over `https`. Plain `http` works only on `localhost`, behind a
 proxy that sends the protocol header.
