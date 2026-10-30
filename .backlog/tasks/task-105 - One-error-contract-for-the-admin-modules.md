@@ -1,10 +1,11 @@
 ---
 id: TASK-105
 title: One error contract for the admin modules
-status: To Do
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-30 02:59'
+updated_date: '2026-10-30 03:30'
 labels:
   - admin
 milestone: m-0
@@ -38,8 +39,29 @@ Each route has to know which convention its module uses, later code has no defau
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 `projects.ts`, `source-access.ts` and `api-keys.ts` return expected refusals in one shape; unexpected failures throw
-- [ ] #2 `changeProjectSlug` and `changeSourceSlug` tell "not found" apart from "changed", with a test each
-- [ ] #3 `auth.ts` keeps returning codes, since plain Node loads it
-- [ ] #4 All admin route tests pass
+- [x] #1 `projects.ts`, `source-access.ts` and `api-keys.ts` return expected refusals in one shape; unexpected failures throw
+- [x] #2 `changeProjectSlug` and `changeSourceSlug` tell "not found" apart from "changed", with a test each
+- [x] #3 `auth.ts` keeps returning codes, since plain Node loads it
+- [x] #4 All admin route tests pass
 <!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. Shape for expected refusals: `{ error }` next to the success value; exceptions mean broken.
+2. `checkSourceAccess` returns `{ message } | { error }` instead of `{ ok, message }`; routes and pages branch on `'error' in`.
+3. `changeProjectSlug`/`changeSourceSlug` return `SaveResult | 'not-found'`; routes answer 'not-found' with 404.
+4. `api-keys.ts` already returns `{ error: code }` (TASK-100); `auth.ts` keeps its codes.
+<!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+The `*Problem` validators in `projects.ts` (`projectProblem`, `sourceProblem`, `remoteProblem`) still return `string | undefined`: they are checks that answer 'what is wrong', not operations, and the routes combine them with `??`. Turning them into `{ error }` would add wrapping without a reader gaining anything. `api-keys.ts` refusals carry codes, the admin modules carry translated texts; the shape is the same, the content differs because `api-keys.ts` is also used by the agent API. Checked: make lint, make test (556), make e2e (17), and 'Test access' in the browser for a reachable and an unknown branch.
+<!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Expected refusals from the admin operations now come back as `{ error }` next to the success value: the access check returns `{ message } | { error }` instead of `{ ok, message }`, and the slug changers return `{ id } | { error } | 'not-found'`, so a missing project or source can no longer pass for a successful change. Routes answer 'not-found' with 404. `auth.ts` keeps returning codes for plain Node. The validators (`*Problem`) were left as `string | undefined` on purpose. Verified by unit and route tests (new not-found tests), lint, e2e and a browser check of 'Test access'.
+<!-- SECTION:FINAL_SUMMARY:END -->

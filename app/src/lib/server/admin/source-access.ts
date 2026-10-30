@@ -7,7 +7,8 @@ import { remoteProblem, storedAccess, type SourceForm } from './projects';
 // The admin waits for this in the browser; a server that is up answers within a second or two.
 const ACCESS_TIMEOUT_MS = 15 * 1000;
 
-export type AccessResult = { ok: boolean; message: string };
+/** What the Git server answered: a report when the source can be read, otherwise why not. */
+export type AccessResult = { message: string } | { error: string };
 
 /**
  * Whether saving `form` could change what grimoire can reach: a new source, or a changed Git URL,
@@ -44,7 +45,7 @@ export async function checkSourceAccess(
 	form: SourceForm
 ): Promise<AccessResult> {
 	const problem = remoteProblem(db, projectId, sourceId, form);
-	if (problem) return { ok: false, message: problem };
+	if (problem) return { error: problem };
 	const stored = storedAccess(db, projectId, sourceId);
 	const storedToken =
 		stored?.encryptedToken && !form.removeToken
@@ -59,12 +60,12 @@ export async function checkSourceAccess(
 	const check = await checkRemote(remote, branch, ACCESS_TIMEOUT_MS);
 	switch (check.status) {
 		case 'ok':
-			return { ok: true, message: m.access_ok({ branch, commit: check.commit.slice(0, 12) }) };
+			return { message: m.access_ok({ branch, commit: check.commit.slice(0, 12) }) };
 		case 'no-branch':
-			return { ok: false, message: m.access_no_branch({ branch }) };
+			return { error: m.access_no_branch({ branch }) };
 		case 'refused':
-			return { ok: false, message: m.access_refused({ detail: check.detail }) };
+			return { error: m.access_refused({ detail: check.detail }) };
 		case 'unreachable':
-			return { ok: false, message: m.access_unreachable({ detail: check.detail }) };
+			return { error: m.access_unreachable({ detail: check.detail }) };
 	}
 }

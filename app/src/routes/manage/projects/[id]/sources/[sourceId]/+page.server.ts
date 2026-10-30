@@ -88,7 +88,7 @@ async function accessProblem(
 	form: SourceForm
 ): Promise<string | undefined> {
 	const access = await checkSourceAccess(db, TOKEN_ENCRYPTION_KEY, projectId, sourceId, form);
-	return access.ok ? undefined : access.message;
+	return 'error' in access ? access.error : undefined;
 }
 
 export const actions = {
@@ -141,8 +141,11 @@ export const actions = {
 			slug: String(data.get('slug') ?? ''),
 			confirmation: String(data.get('confirmation') ?? '')
 		};
-		const problem = changeSourceSlug(database(), project.id, source.id, form);
-		if (problem) return fail(400, { slugError: problem, slugValues: { slug: form.slug } });
+		const changed = changeSourceSlug(database(), project.id, source.id, form);
+		if (changed === 'not-found') error(404);
+		if ('error' in changed) {
+			return fail(400, { slugError: changed.error, slugValues: { slug: form.slug } });
+		}
 		return { slugChanged: true };
 	},
 	delete: ({ params }) => {

@@ -5,6 +5,7 @@ import { openDatabase } from '#lib/server/db/schema.js';
 import { saveSettings } from '#lib/server/settings.js';
 import * as projectPage from './[id]/+page.server';
 import * as sourcePage from './[id]/sources/[sourceId]/+page.server';
+import type { AccessResult } from '#lib/server/admin/source-access.js';
 
 let db: DatabaseSync;
 // vi.mock is hoisted above the imports; the mock it returns has to be hoisted with it.
@@ -15,7 +16,9 @@ vi.mock('#lib/server/db/index.js', () => ({ database: () => db }));
 vi.mock('#lib/server/sync/index.js', () => ({ requestSyncInBackground, syncPending }));
 // The Git server cannot be asked from a test; the check itself is tested against a local repository.
 const checkSourceAccess = vi.hoisted(() =>
-	vi.fn(async () => ({ ok: true, message: 'Reachable: branch main is at commit abc.' }))
+	vi.fn(async (): Promise<AccessResult> => ({
+		message: 'Reachable: branch main is at commit abc.'
+	}))
 );
 vi.mock('#lib/server/admin/source-access.js', async (original) => ({
 	...(await original<object>()),
@@ -315,7 +318,7 @@ describe('source page', () => {
 	});
 
 	it('saves nothing when the repository cannot be reached, and shows why', async () => {
-		checkSourceAccess.mockResolvedValueOnce({ ok: false, message: 'Access refused.' });
+		checkSourceAccess.mockResolvedValueOnce({ error: 'Access refused.' });
 
 		const result = await saveSource('1', 'new', SOURCE);
 
@@ -349,10 +352,7 @@ describe('source page', () => {
 			params: { id: '1', sourceId: 'new' }
 		} as never)) as { access: unknown; values: { encryptedToken: string } };
 
-		expect(result.access).toEqual({
-			ok: true,
-			message: 'Reachable: branch main is at commit abc.'
-		});
+		expect(result.access).toEqual({ message: 'Reachable: branch main is at commit abc.' });
 		expect(checkSourceAccess).toHaveBeenCalledWith(
 			db,
 			expect.any(Buffer),

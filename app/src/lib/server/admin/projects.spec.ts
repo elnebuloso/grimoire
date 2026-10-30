@@ -92,8 +92,14 @@ describe('changeProjectSlug', () => {
 		changeProjectSlug(db, projectId, { slug, confirmation });
 
 	it('changes the slug once the current slug is typed', () => {
-		expect(change('platform-team')).toBeUndefined();
+		expect(change('platform-team')).toEqual({ id: projectId });
 		expect(findProject(db, projectId)).toMatchObject({ slug: 'platform-team', name: 'Platform' });
+	});
+
+	it('tells a missing project apart from a changed one', () => {
+		expect(changeProjectSlug(db, projectId + 1, { slug: 'x', confirmation: 'x' })).toBe(
+			'not-found'
+		);
 	});
 
 	it.each([
@@ -105,7 +111,7 @@ describe('changeProjectSlug', () => {
 	])('rejects "%s" confirmed with "%s"', (slug, confirmation, message) => {
 		created(saveProject(db, undefined, { name: 'Other', description: '' }));
 
-		expect(change(slug, confirmation)).toContain(message);
+		expect(change(slug, confirmation)).toEqual({ error: expect.stringContaining(message) });
 		expect(findProject(db, projectId)?.slug).toBe('platform');
 	});
 });
@@ -142,7 +148,9 @@ describe('saveSource', () => {
 		expect(() =>
 			saveSource(db, KEY, otherProject, id, sourceForm({ name: 'Taken', token: 'glpat-x' }))
 		).toThrow('has no source');
-		changeSourceSlug(db, otherProject, id, { slug: 'taken', confirmation: 'auth-service' });
+		expect(
+			changeSourceSlug(db, otherProject, id, { slug: 'taken', confirmation: 'auth-service' })
+		).toBe('not-found');
 
 		expect(findSource(db, projectId, id)).toEqual(before);
 		expect(storedToken(id)).not.toBeNull();
@@ -198,9 +206,11 @@ describe('saveSource', () => {
 		const change = (slug: string, confirmation: string) =>
 			changeSourceSlug(db, projectId, id, { slug, confirmation });
 
-		expect(change('login', 'auth')).toContain('Type the current slug auth-service');
-		expect(change('billing', 'auth-service')).toBe('The slug "billing" is taken.');
-		expect(change('login', 'auth-service')).toBeUndefined();
+		expect(change('login', 'auth')).toEqual({
+			error: expect.stringContaining('Type the current slug auth-service')
+		});
+		expect(change('billing', 'auth-service')).toEqual({ error: 'The slug "billing" is taken.' });
+		expect(change('login', 'auth-service')).toEqual({ id });
 		expect(findSource(db, projectId, id)?.slug).toBe('login');
 	});
 

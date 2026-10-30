@@ -237,7 +237,11 @@
 		/>
 	{/if}
 	{#if form?.access}
-		<p role={form.access.ok ? 'status' : 'alert'}>{form.access.message}</p>
+		{#if 'error' in form.access}
+			<p role="alert">{form.access.error}</p>
+		{:else}
+			<p role="status">{form.access.message}</p>
+		{/if}
 	{/if}
 	<!-- Saving comes first: Enter submits with the first button of a form. -->
 	<button>{data.source ? m.save() : m.source_create()}</button>

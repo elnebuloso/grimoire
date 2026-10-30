@@ -83,7 +83,7 @@ async function accessProblem(
 		undefined,
 		sourceForm(input)
 	);
-	return access.ok ? undefined : { step: 'source', error: access.message };
+	return 'error' in access ? { step: 'source', error: access.error } : undefined;
 }
 
 export const actions = {

@@ -129,18 +129,18 @@ function slugChangeProblem(
 	return undefined;
 }
 
-/** Changes the slug of a project, and with it every ID of its sources; returns why when it cannot. */
+/** Changes the slug of a project, and with it every ID of its sources. */
 export function changeProjectSlug(
 	db: DatabaseSync,
 	id: number,
 	form: SlugChangeForm
-): string | undefined {
+): SaveResult | 'not-found' {
 	const project = findProject(db, id);
-	if (!project) return undefined;
+	if (!project) return 'not-found';
 	const problem = slugChangeProblem(project.slug, form, (slug) => projectSlugTaken(db, slug, id));
-	if (problem) return problem;
+	if (problem) return { error: problem };
 	db.prepare('UPDATE projects SET slug = ? WHERE id = ?').run(form.slug.trim(), id);
-	return undefined;
+	return { id };
 }
 
 /** Deletes the project with its sources and their index. */
@@ -386,25 +386,25 @@ export function saveSource(
 	return { id: sourceId };
 }
 
-/** Changes the slug of a source, and with it every ID of its pages; returns why when it cannot. */
+/** Changes the slug of a source, and with it every ID of its pages. */
 export function changeSourceSlug(
 	db: DatabaseSync,
 	projectId: number,
 	sourceId: number,
 	form: SlugChangeForm
-): string | undefined {
+): SaveResult | 'not-found' {
 	const source = findSource(db, projectId, sourceId);
-	if (!source) return undefined;
+	if (!source) return 'not-found';
 	const problem = slugChangeProblem(source.slug, form, (slug) =>
 		sourceSlugTaken(db, projectId, slug, sourceId)
 	);
-	if (problem) return problem;
+	if (problem) return { error: problem };
 	db.prepare('UPDATE sources SET slug = ? WHERE id = ? AND project_id = ?').run(
 		form.slug.trim(),
 		sourceId,
 		projectId
 	);
-	return undefined;
+	return { id: sourceId };
 }
 
 /** Creates a project with its first source: both, or neither when one of them is invalid. */

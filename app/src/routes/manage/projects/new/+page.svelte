@@ -102,7 +102,11 @@
 		<button formaction="?/source">{m.next()}</button>
 	{:else if step === 'source'}
 		{#if form?.access}
-			<p role={form.access.ok ? 'status' : 'alert'}>{form.access.message}</p>
+			{#if 'error' in form.access}
+				<p role="alert">{form.access.error}</p>
+			{:else}
+				<p role="status">{form.access.message}</p>
+			{/if}
 		{/if}
 		<!-- Next comes first: Enter submits with the first button of a form. -->
 		<button formaction="?/summary">{m.next()}</button>

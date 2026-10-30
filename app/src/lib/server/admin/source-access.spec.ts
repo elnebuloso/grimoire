@@ -81,7 +81,6 @@ function storedSource(token = 'glpat-stored', projectName = 'Platform') {
 describe('checkSourceAccess', () => {
 	it('reports the branch and its commit when the repository can be read', async () => {
 		expect(await checkSourceAccess(db, KEY, undefined, undefined, form())).toEqual({
-			ok: true,
 			message: expect.stringMatching(/^Reachable: branch main is at commit [0-9a-f]{12}\.$/)
 		});
 	});
@@ -92,7 +91,7 @@ describe('checkSourceAccess', () => {
 	])('says why it cannot read %j', async (changes, message) => {
 		const result = await checkSourceAccess(db, KEY, undefined, undefined, form(changes));
 
-		expect(result).toEqual({ ok: false, message: expect.stringContaining(message) });
+		expect(result).toEqual({ error: expect.stringContaining(message) });
 	});
 
 	it('uses the stored token unless a new one is entered or its removal is asked for', async () => {
@@ -115,7 +114,7 @@ describe('checkSourceAccess', () => {
 	])('contacts no server for %s, which could not be saved', async (gitUrl, message) => {
 		const result = await checkSourceAccess(db, KEY, undefined, undefined, form({ gitUrl }));
 
-		expect(result).toEqual({ ok: false, message: expect.stringContaining(message) });
+		expect(result).toEqual({ error: expect.stringContaining(message) });
 		expect(git.checkRemote).not.toHaveBeenCalled();
 	});
 
@@ -130,7 +129,7 @@ describe('checkSourceAccess', () => {
 			form({ gitUrl: 'https://attacker.example/x' })
 		);
 
-		expect(result).toEqual({ ok: false, message: expect.stringContaining('token') });
+		expect(result).toEqual({ error: expect.stringContaining('token') });
 		expect(git.checkRemote).not.toHaveBeenCalled();
 	});
 });

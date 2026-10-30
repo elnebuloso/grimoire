@@ -5,6 +5,7 @@ import { openDatabase } from '#lib/server/db/schema.js';
 import { saveSettings } from '#lib/server/settings.js';
 import { decryptToken } from '#lib/server/token-encryption.js';
 import * as wizard from './+page.server';
+import type { AccessResult } from '#lib/server/admin/source-access.js';
 
 let db: DatabaseSync;
 const KEY = vi.hoisted(() => Buffer.alloc(32, 7));
@@ -15,7 +16,9 @@ vi.mock('#lib/server/db/index.js', () => ({ database: () => db }));
 vi.mock('#lib/server/sync/index.js', () => ({ requestSyncInBackground }));
 // The Git server cannot be asked from a test; the check itself is tested against a local repository.
 const checkSourceAccess = vi.hoisted(() =>
-	vi.fn(async () => ({ ok: true, message: 'Reachable: branch main is at commit abc.' }))
+	vi.fn(async (): Promise<AccessResult> => ({
+		message: 'Reachable: branch main is at commit abc.'
+	}))
 );
 vi.mock('#lib/server/admin/source-access.js', () => ({ checkSourceAccess }));
 vi.mock('$app/env/private', () => ({ TOKEN_ENCRYPTION_KEY: KEY, SYNC_SCHEDULE: '*/5 * * * *' }));
@@ -65,10 +68,7 @@ beforeEach(() => {
 	db = openDatabase(':memory:');
 	requestSyncInBackground.mockClear();
 	checkSourceAccess.mockClear();
-	checkSourceAccess.mockResolvedValue({
-		ok: true,
-		message: 'Reachable: branch main is at commit abc.'
-	});
+	checkSourceAccess.mockResolvedValue({ message: 'Reachable: branch main is at commit abc.' });
 });
 
 describe('project wizard', () => {
@@ -213,14 +213,14 @@ describe('project wizard', () => {
 
 		expect(result).toMatchObject({
 			step: 'source',
-			access: { ok: true, message: 'Reachable: branch main is at commit abc.' }
+			access: { message: 'Reachable: branch main is at commit abc.' }
 		});
 		expect(JSON.stringify(result)).not.toContain(TOKEN);
 	});
 
 	it('stays on the source step and creates nothing while the repository cannot be reached', async () => {
 		const summary = await throughSummary();
-		checkSourceAccess.mockResolvedValue({ ok: false, message: 'Access refused.' });
+		checkSourceAccess.mockResolvedValue({ error: 'Access refused.' });
 
 		expect(await submit('summary', summary)).toMatchObject({
 			status: 400,
