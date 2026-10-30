@@ -1,7 +1,7 @@
 name: CI
 
-# Pull requests run the checks. A push to main runs them and then releases; a push without
-# `feat` or `fix` since the last tag releases nothing.
+# Pull requests run the checks. A push to main runs them, then releases and publishes the handbook;
+# a push without `feat` or `fix` since the last tag releases and publishes nothing.
 on:
   push:
     branches: [main]
@@ -44,6 +44,8 @@ jobs:
       cancel-in-progress: false
     permissions:
       contents: write
+    outputs:
+      released: ${{ steps.tag.outputs.released }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -62,3 +64,15 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DOCKERHUB_REPOSITORY: ${{ secrets.DOCKERHUB_REPOSITORY }}
+      # semantic-release tags the commit it releases; no tag means nothing was released.
+      - id: tag
+        run: echo "released=$([ -n "$(git tag --points-at HEAD)" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+
+  handbook:
+    needs: release
+    if: needs.release.outputs.released == 'true'
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/handbook.yml

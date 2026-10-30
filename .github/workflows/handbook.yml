@@ -1,12 +1,9 @@
 name: Handbook
 
+# Published with each release, so the handbook describes the image operators can run; CI calls it
+# after tagging. By hand for a docs fix that should not wait for the next release.
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'docs/handbook/**'
-      - 'zensical.toml'
-      - '.github/workflows/handbook.yml'
+  workflow_call:
   workflow_dispatch:
 
 permissions:
