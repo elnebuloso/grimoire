@@ -173,13 +173,36 @@ describe('source page', () => {
 		expect(requestSyncInBackground).toHaveBeenCalledExactlyOnceWith(1, { force: true });
 	});
 
-	it('resumes a paused source when saved without the checkbox and syncs it', async () => {
+	it('resumes a paused source when saved without the checkbox and checks it for a new commit', async () => {
 		await thrown(() => saveSource('new', { ...SOURCE, paused: 'on' }));
 
 		await thrown(() => saveSource('1', SOURCE));
 
 		expect(loadSource('1')).toMatchObject({ source: { paused: false } });
-		expect(requestSyncInBackground).toHaveBeenCalledExactlyOnceWith(1, { force: true });
+		expect(requestSyncInBackground).toHaveBeenCalledExactlyOnceWith(1, { force: false });
+	});
+
+	it('forces a sync on save only when the index changes or the last sync failed', async () => {
+		await thrown(() => saveSource('new', SOURCE));
+		let fields: Record<string, string> = { ...SOURCE, token: '' };
+		const forcedAfter = async (change: Record<string, string>) => {
+			fields = { ...fields, ...change };
+			requestSyncInBackground.mockClear();
+			await thrown(() => saveSource('1', fields));
+			return requestSyncInBackground.mock.calls[0][1].force;
+		};
+
+		expect(await forcedAfter({ name: 'Login', description: 'Sign-in', public: 'on' })).toBe(false);
+		expect(await forcedAfter({ gitUrl: 'https://gitlab.example.com/platform/login.git' })).toBe(
+			true
+		);
+		expect(await forcedAfter({ branch: 'develop' })).toBe(true);
+		expect(await forcedAfter({ path: 'site/' })).toBe(true);
+		expect(await forcedAfter({ exclusions: 'drafts/**' })).toBe(true);
+		expect(await forcedAfter({ schedule: '0 2 * * *' })).toBe(false);
+
+		db.prepare('UPDATE sources SET error = \'branch "develop" not found\' WHERE id = 1').run();
+		expect(await forcedAfter({})).toBe(true);
 	});
 
 	it('changes the slug of a source, even a paused one, without syncing it again', async () => {

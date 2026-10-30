@@ -1,9 +1,11 @@
 ---
 id: TASK-168
 title: Re-index a source on save only when a change affects the index
-status: To Do
-assignee: []
+status: Done
+assignee:
+  - '@claude'
 created_date: '2026-10-30 16:13'
+updated_date: '2026-10-30 16:30'
 labels:
   - admin
   - sync
@@ -22,8 +24,28 @@ Saving a source in `app/src/routes/manage/sources/[id]/+page.server.ts` always f
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Saving a change to Git URL, branch, path or exclusions forces a sync
-- [ ] #2 Saving a source that has a stored sync error forces a sync
-- [ ] #3 Saving only name, description or visibility of a healthy source forces no sync
-- [ ] #4 Tests cover each of the three cases
+- [x] #1 Saving a change to Git URL, branch, path or exclusions forces a sync
+- [x] #2 Saving a source that has a stored sync error forces a sync
+- [x] #3 Saving only name, description or visibility of a healthy source forces no sync
+- [x] #4 Tests cover each of the three cases
 <!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. `savingReindexes` in `admin/sources.ts`: new source, stored error, or changed Git URL, branch, path or exclusions
+2. The save action requests the sync forced only then, unforced (a check for a new commit) otherwise
+3. Route tests for each case; handbook "After saving"
+<!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Saving without an index change still requests an unforced sync: a cheap `ls-remote` check, so resuming a paused source still picks up commits made meanwhile.
+<!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Saving a source forces a full sync only when Git URL, branch, path or exclusions changed or its last sync failed (`savingReindexes` in `app/src/lib/server/admin/sources.ts`). Other saves (name, description, visibility, schedule, resuming) request an unforced sync, which only checks the branch for a new commit, so they no longer hold the single sync lane for a full re-index. Handbook "After saving" updated. Verified: new route test walks each field and the stored-error case, fails without the change; source route and admin tests green; `make handbook` strict.
+<!-- SECTION:FINAL_SUMMARY:END -->

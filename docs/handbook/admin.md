@@ -108,8 +108,10 @@ sync.
 
 ### After saving
 
-Saving a source starts a sync, so changed paths and exclusions apply without a new commit. A
-paused source, or any source while **Pause all syncs** is on, is saved without one.
+Saving a source indexes it again when Git URL, branch, path or exclusions changed, or its last
+sync failed; those changes apply without a new commit. Any other change only checks the branch for
+a new commit, so other sources do not wait behind a full index. A paused source, or any source
+while **Pause all syncs** is on, is saved without either.
 
 !!! danger "Irreversible"
     Deleting a source deletes its index. API keys limited to a deleted source lose it.

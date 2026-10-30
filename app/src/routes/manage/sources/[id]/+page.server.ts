@@ -16,6 +16,7 @@ import {
 	findSource,
 	parseIdParam,
 	saveSource,
+	savingReindexes,
 	sourceProblem,
 	type SourceForm,
 	type SourceSettings
@@ -93,11 +94,13 @@ export const actions = {
 			(accessChanged(db, source?.id, form) ? await accessProblem(db, source?.id, form) : undefined);
 		if (problem) return fail(400, { error: problem, values });
 
+		const reindex = savingReindexes(db, source?.id, form);
 		const result = saveSource(db, TOKEN_ENCRYPTION_KEY, source?.id, form);
 		if ('error' in result) return fail(400, { error: result.error, values });
 
-		// Forced, so a changed path or exclusions take effect without waiting for a new commit.
-		if (syncsAutomatically(db, form)) requestSyncInBackground(result.id, { force: true });
+		// Forced only when the index changes, so a changed path or exclusions take effect without
+		// waiting for a new commit; a forced sync of a large source holds every other one for minutes.
+		if (syncsAutomatically(db, form)) requestSyncInBackground(result.id, { force: reindex });
 		redirect(303, `/manage/sources/${result.id}`);
 	},
 	test: async ({ request, params }) => {

@@ -172,6 +172,41 @@ export function storedAccess(
 		.get(sourceId) as StoredAccess | undefined;
 }
 
+function exclusionsJson(exclusions: string): string {
+	return JSON.stringify(
+		exclusions
+			.split('\n')
+			.map((line) => line.trim())
+			.filter(Boolean)
+	);
+}
+
+/**
+ * Whether saving `form` has to index the source again: a new source, one whose last sync failed,
+ * or a changed Git URL, branch, path or exclusions. Name, description, visibility and the other
+ * settings leave the index as it is.
+ */
+export function savingReindexes(
+	db: DatabaseSync,
+	sourceId: number | undefined,
+	form: SourceForm
+): boolean {
+	if (sourceId === undefined) return true;
+	const stored = db
+		.prepare('SELECT git_url, branch, path, exclusions, error FROM sources WHERE id = ?')
+		.get(sourceId) as
+		| { git_url: string; branch: string; path: string; exclusions: string; error: string | null }
+		| undefined;
+	if (!stored) return true;
+	return (
+		stored.error !== null ||
+		stored.git_url !== form.gitUrl.trim() ||
+		stored.branch !== form.branch.trim() ||
+		stored.path !== form.path.trim() ||
+		stored.exclusions !== exclusionsJson(form.exclusions)
+	);
+}
+
 /**
  * Why grimoire must not contact the Git server in `form`; undefined when it may. Checked before
  * saving and before every access test, which sends the stored token along.
@@ -225,12 +260,7 @@ export function saveSource(
 		docs_url: form.docsUrl.trim() || null,
 		branch,
 		path,
-		exclusions: JSON.stringify(
-			form.exclusions
-				.split('\n')
-				.map((line) => line.trim())
-				.filter(Boolean)
-		),
+		exclusions: exclusionsJson(form.exclusions),
 		sync_schedule: schedule,
 		paused: form.paused ? 1 : 0,
 		public: form.public ? 1 : 0,
