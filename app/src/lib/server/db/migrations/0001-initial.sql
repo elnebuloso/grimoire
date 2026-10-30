@@ -131,6 +131,18 @@ CREATE TABLE api_key_sources (
 	PRIMARY KEY (api_key_id, source_id)
 ) STRICT;
 
+-- A key opens all sources or the ones listed here, never both: selected sources next to
+-- `all_sources = 1` would leave open which of the two applies.
+CREATE TRIGGER api_key_sources_only_for_selections BEFORE INSERT ON api_key_sources
+WHEN (SELECT all_sources FROM api_keys WHERE id = NEW.api_key_id) = 1 BEGIN
+	SELECT RAISE(ABORT, 'a key for all sources has no selected sources');
+END;
+
+CREATE TRIGGER api_keys_all_sources_without_selection BEFORE UPDATE OF all_sources ON api_keys
+WHEN NEW.all_sources = 1 AND EXISTS (SELECT 1 FROM api_key_sources WHERE api_key_id = NEW.id) BEGIN
+	SELECT RAISE(ABORT, 'a key for all sources has no selected sources');
+END;
+
 -- Accounts, any number of them; what a user may do follows from their roles. Users log in with
 -- their email address, which a password reset by mail needs anyway. The code stores addresses in
 -- lowercase, so the UNIQUE constraint holds regardless of letter case.

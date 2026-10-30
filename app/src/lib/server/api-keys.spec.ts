@@ -193,6 +193,13 @@ describe('updateApiKey', () => {
 		expect(db.prepare('SELECT count(*) AS n FROM api_key_sources').get()).toEqual({ n: 0 });
 	});
 
+	it('narrows a key for all sources to a selection', () => {
+		const { id, key } = newKey(db, 'ci', 'all');
+
+		updateApiKey(db, id, ['billing-docs'], null);
+		expect(scopeForKey(db, key, CLOCK)).toEqual({ scope: ['billing-docs'] });
+	});
+
 	it('changes nothing when a source does not exist', () => {
 		const { id, key } = newKey(db, 'ci', ['billing-docs']);
 
@@ -207,5 +214,25 @@ describe('updateApiKey', () => {
 
 		expect(updateApiKey(db, id, ['billing-docs'], null)).toEqual({ error: 'unknown-key' });
 		expect(db.prepare('SELECT count(*) AS n FROM api_key_sources').get()).toEqual({ n: 0 });
+	});
+});
+
+describe('the schema', () => {
+	const refusal = /a key for all sources has no selected sources/;
+
+	it('refuses a selected source for a key for all sources', () => {
+		const { id } = newKey(db, 'ci', 'all');
+
+		expect(() =>
+			db.prepare('INSERT INTO api_key_sources (api_key_id, source_id) VALUES (?, 1)').run(id)
+		).toThrow(refusal);
+	});
+
+	it('refuses to open all sources to a key that still has a selection', () => {
+		const { id } = newKey(db, 'ci', ['billing-docs']);
+
+		expect(() => db.prepare('UPDATE api_keys SET all_sources = 1 WHERE id = ?').run(id)).toThrow(
+			refusal
+		);
 	});
 });

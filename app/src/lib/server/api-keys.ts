@@ -90,11 +90,12 @@ export function updateApiKey(
 	return inTransaction(db, () => {
 		const sourceIds = findSourceIds(db, sources);
 		if (!sourceIds) return { error: 'unknown-source' };
+		// The old selection goes first: the schema refuses a key for all sources that still has one.
+		db.prepare('DELETE FROM api_key_sources WHERE api_key_id = ?').run(id);
 		const { changes } = db
 			.prepare('UPDATE api_keys SET all_sources = ?, valid_until = ? WHERE id = ?')
 			.run(sources === 'all' ? 1 : 0, validUntil, id);
 		if (changes === 0) return { error: 'unknown-key' };
-		db.prepare('DELETE FROM api_key_sources WHERE api_key_id = ?').run(id);
 		insertScope(db, id, sourceIds);
 		return { id };
 	});
