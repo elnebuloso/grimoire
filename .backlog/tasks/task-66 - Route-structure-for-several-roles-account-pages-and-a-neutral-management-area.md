@@ -1,10 +1,11 @@
 ---
 id: TASK-66
 title: 'Route structure for several roles: account pages and a neutral management area'
-status: To Do
-assignee: []
+status: Done
+assignee:
+  - '@claude'
 created_date: '2026-10-29 22:26'
-updated_date: '2026-10-29 22:26'
+updated_date: '2026-10-30 00:05'
 labels:
   - admin
 milestone: m-0
@@ -35,10 +36,33 @@ One shared, neutrally named area rather than one area per role: a user with seve
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Login, logout and setup are reachable outside the management area, for every user
-- [ ] #2 A logged-in user reaches their own account page (today the password change) whatever roles they hold
-- [ ] #3 The management area has a name that does not tie it to one role, and every page in it requires the role it needs, checked per request
-- [ ] #4 The header links a logged-in user only to pages they may open; nobody is led to a 403 from the navigation
-- [ ] #5 Tests, e2e tests, `docs/handbook/` and `.claude/rules/agent-environment.md` use the new URLs
-- [ ] #6 Done before the release of 1.0
+- [x] #1 Login, logout and setup are reachable outside the management area, for every user
+- [x] #2 A logged-in user reaches their own account page (today the password change) whatever roles they hold
+- [x] #3 The management area has a name that does not tie it to one role, and every page in it requires the role it needs, checked per request
+- [x] #4 The header links a logged-in user only to pages they may open; nobody is led to a 403 from the navigation
+- [x] #5 Tests, e2e tests, `docs/handbook/` and `.claude/rules/agent-environment.md` use the new URLs
+- [x] #6 Done before the release of 1.0
 <!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. Name confirmed with the user: /manage for the management area; /login, /logout, /setup and /account outside it.
+2. Move the route directories; replace URL paths in code, tests, scripts, handbook and README (module paths under lib/server/admin stay).
+3. auth.ts: accessRedirect for every path with PAGE_ROLES (prefix to role, today /manage needs admin) and ACCOUNT_PAGES; mayOpen and homeOf; the hook guards account and role pages only, everything else is served.
+4. Header: name links to /account, Manage only for users who may open it; login sends a user to homeOf.
+5. Rename 'admin area' to 'management area' in handbook, README, navigation and UI texts; tests and e2e.
+<!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Old /admin URLs answer 404, no redirects: nothing depends on them before 1.0 (redirect criterion removed when the task was created). .claude/rules/agent-environment.md names no URLs, so it needed no change. The comments in migrations 0004 and 0008 still say 'admin area'; released migrations are not edited.
+Verified: make lint, make test (452), make e2e (15), make handbook; by hand without JavaScript in the agent environment: /manage logged out goes to /login, after login /manage with the heading 'Manage grimoire', header links agent=/account and Manage=/manage, /account opens, /admin and /admin/... answer 404.
+<!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+The account pages sit outside the management area: /login, /logout, /setup and /account (the password change, open to every logged-in user). The management area moved from /admin to /manage; which role a page needs is decided per request from a prefix table in auth.ts (today /manage needs admin), and the header links a user only to pages they may open: their name to /account, Manage only with the role. After login a user lands in /manage or, without the role, on the start page. 'Admin area' is called 'management area' in the handbook, README, navigation and UI. Tests, e2e and the handbook use the new URLs; the old ones answer 404.
+<!-- SECTION:FINAL_SUMMARY:END -->
