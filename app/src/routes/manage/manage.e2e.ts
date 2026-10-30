@@ -174,12 +174,15 @@ test('links the documentation of a source only once its URL is set', async ({ pa
 	const docsUrl = 'https://docs.e2e.example/auth/';
 	await logIn(page);
 	await page.getByRole('link', { name: 'Auth Service', exact: true }).click();
-	await expect(page.getByRole('link', { name: 'Documentation' })).toHaveCount(0);
+	await expect(page.getByRole('link', { name: 'Documentation', exact: true })).toHaveCount(0);
 
 	await page.getByLabel('Documentation site').fill(docsUrl);
 	await page.getByRole('button', { name: 'Save' }).click();
 
-	await expect(page.getByRole('link', { name: 'Documentation' })).toHaveAttribute('href', docsUrl);
+	await expect(page.getByRole('link', { name: 'Documentation', exact: true })).toHaveAttribute(
+		'href',
+		docsUrl
+	);
 
 	await page.goto('/');
 	expect(await page.content()).not.toContain('docs.e2e.example');

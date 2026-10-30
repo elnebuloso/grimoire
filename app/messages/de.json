@@ -10,7 +10,7 @@
 	"theme_light": "Hell",
 	"theme_dark": "Dunkel",
 	"footer_github": "grimoire auf GitHub",
-	"footer_docs": "Dokumentation",
+	"footer_docs": "grimoire-Dokumentation",
 	"start_connect_heading": "Agent verbinden",
 	"start_connect_intro": "Mit Claude Code; den API-Key aus der Verwaltung braucht es nur für private Quellen:",
 	"start_connect_other": "Andere Clients und die HTTP-Routen:",
