@@ -31,7 +31,8 @@ export interface PagesToIndex extends PreparedSource {
 
 /**
  * Turns prepared pages into snippets and links. The Markdown processing that takes most of a
- * sync; it runs in a worker thread, so it imports only what plain Node can load there.
+ * sync; it runs in the indexing child process, which plain Node starts, so it imports only what
+ * plain Node can load.
  * A page that cannot be processed is skipped with a warning.
  */
 export function indexPages(job: PagesToIndex): Omit<SourceIndex, 'commit'> {

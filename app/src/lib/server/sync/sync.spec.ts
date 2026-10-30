@@ -12,8 +12,8 @@ import { createSyncQueue, type SyncLanes } from './queue';
 import { isDue } from './schedule';
 import { syncSource } from './sync';
 
-// Include resolution belongs in the worker thread, which loads its own copy from disk; on the
-// server thread, which these mocks replace, a docs branch could exhaust the server's memory.
+// Include resolution belongs in the indexing child process, which loads its own copy from disk; in
+// the server process, which these mocks replace, a docs branch could exhaust the server's memory.
 vi.mock('../parsing/include', () => ({
 	resolveIncludes: () => {
 		throw new Error('includes resolved on the server thread');
@@ -120,7 +120,7 @@ beforeEach(() => {
 		'shared/warning.md': '!!! warning "Careful"\n    Migrations are not rolled back.\n',
 		'src/app.ts': 'export {};\n'
 	});
-	// A file, not memory: the index is written by a worker thread with its own connection.
+	// A file, not memory: the index is written by the indexing child process with its own connection.
 	db = openDatabase(join(root, 'grimoire.db'));
 	source = addSource(`file://${bare}`, { exclusions: ['docs/drafts/**'] });
 });
@@ -230,7 +230,7 @@ describe('syncSource', () => {
 		expect(lastSynced()).toBe(synced);
 	});
 
-	it('keeps the last good index when writing the new one fails in the worker', async () => {
+	it('keeps the last good index when writing the new one fails in the indexing process', async () => {
 		await syncSource(db, source, { key, workDirectory: work });
 		commitFiles({ 'docs/index.md': '# Home again\n' });
 		db.exec(`CREATE TRIGGER refuse_pages BEFORE INSERT ON pages
@@ -331,7 +331,7 @@ describe('syncSource', () => {
 		await syncSource(db, source, { key, workDirectory: work, lanes });
 		commitFiles({ 'docs/new.md': '# New\n' });
 
-		// No worker starts, reads a checkout and writes an index within a millisecond.
+		// No indexing process starts, reads a checkout and writes an index within a millisecond.
 		const result = await syncSource(db, source, {
 			key,
 			workDirectory: work,
