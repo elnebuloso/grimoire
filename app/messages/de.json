@@ -188,5 +188,7 @@
 	"query_submit": "Suchen",
 	"query_answer": "Antwort",
 	"query_error_question": "Gib eine Frage ein.",
-	"query_error_tokens": "Das Token-Budget muss eine positive ganze Zahl sein."
+	"query_error_tokens": "Das Token-Budget muss eine positive ganze Zahl sein.",
+	"source_preview_no_snippets": "Diese Seite hat keine Snippets: Sie enthält keinen Text, den grimoire indexiert.",
+	"source_preview_snippet_tokens": "{tokens} Tokens"
 }

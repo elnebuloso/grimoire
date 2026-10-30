@@ -137,7 +137,9 @@ listed as warnings, and links that lead nowhere as dead links, each with the pag
 it is on.
 
 Every page links to a preview: the page exactly as the agent operation `read` returns it, split
-into its snippets with their `Source:` and `Edit:` lines.
+into its snippets with their `Source:` and `Edit:` lines. Each snippet is listed with its title
+path, its ID and its estimated tokens, so a section that came out too large, too small or under a
+misleading title shows up before an agent meets it. A page without any snippet says so.
 
 **Sync now** queues a sync of the source, even when the branch has not moved, and returns right
 away. It runs after the syncs queued before it; until it is done the page says that a sync is

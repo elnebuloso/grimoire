@@ -392,7 +392,10 @@ describe('source page', () => {
 
 		expect(data).toMatchObject({
 			status: { totals: { pages: 1, snippets: 1, tokens: 4 } },
-			preview: { file: 'deploy.md', markdown: expect.stringContaining('Run make deploy.') }
+			preview: {
+				file: 'deploy.md',
+				snippets: [{ tokens: 4, markdown: expect.stringContaining('Run make deploy.') }]
+			}
 		});
 		expect(loadSource('1', '1')).toMatchObject({ preview: undefined });
 	});

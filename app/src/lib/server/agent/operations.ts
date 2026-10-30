@@ -6,7 +6,8 @@ import {
 	renderSnippet,
 	scopeParameter,
 	searchSnippets,
-	selectSnippets
+	selectSnippets,
+	type SnippetHit
 } from '../search/query';
 import instructions from './instructions.md?raw';
 
@@ -166,9 +167,20 @@ export function readById(
 	location: SectionLocation,
 	scope: ProjectScope
 ): OperationResult {
+	const hits = readSnippets(db, location, scope);
+	if (hits.length === 0) return idNotFound(grimoireId(location, location.anchor || null));
+	return { found: true, markdown: hits.map(renderSnippet).join('\n\n') };
+}
+
+/** The snippets `readById` renders, in page order; empty for an unknown page or section. */
+export function readSnippets(
+	db: DatabaseSync,
+	location: SectionLocation,
+	scope: ProjectScope
+): SnippetHit[] {
 	// An empty anchor names no section, so `?section=` and an ID ending in `#` read the page.
 	const anchor = location.anchor || null;
-	const hits = selectSnippets(
+	return selectSnippets(
 		db,
 		{
 			where: `projects.slug = :project AND sources.slug = :source AND pages.file = :file
@@ -179,9 +191,6 @@ export function readById(
 		{ project: location.project, source: location.source, file: location.file, anchor },
 		scope
 	);
-
-	if (hits.length === 0) return idNotFound(grimoireId(location, anchor));
-	return { found: true, markdown: hits.map(renderSnippet).join('\n\n') };
 }
 
 // A `]` in a title would end the link text early, and llms.txt is parsed by other tools.

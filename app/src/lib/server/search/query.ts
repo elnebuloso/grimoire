@@ -25,6 +25,8 @@ export interface SnippetHit {
 	anchor: string | null;
 	titlePath: string[];
 	content: string;
+	/** Estimated when the page was indexed. */
+	tokens: number;
 }
 
 /**
@@ -67,7 +69,7 @@ export function selectSnippets(
 		.prepare(
 			`SELECT projects.slug AS project, sources.slug AS source, sources.git_url AS gitUrl,
 				sources.branch, sources.path, pages.file, snippets.anchor, snippets.title_path,
-				snippets.part, snippets.parts, snippets.content
+				snippets.part, snippets.parts, snippets.content, snippets.tokens
 			FROM snippets
 			${query.join ?? ''}
 			JOIN live_pages AS pages ON pages.id = snippets.page_id

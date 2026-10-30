@@ -124,9 +124,23 @@
 	{/if}
 	{#if data.preview}
 		<h3>{m.source_preview_title({ file: data.preview.file })}</h3>
-		{#if data.preview.markdown}
+		{#if data.preview.snippets?.length === 0}
+			<p>{m.source_preview_no_snippets()}</p>
+		{:else if data.preview.snippets}
 			<p>{m.source_preview_intro_before()} <code>read</code> {m.source_preview_intro_after()}</p>
-			<pre>{data.preview.markdown}</pre>
+			<ol>
+				{#each data.preview.snippets as snippet, index (index)}
+					<li>
+						<h4>{snippet.titlePath.join(' › ')}</h4>
+						<p>
+							<code>{snippet.id}</code> – {m.source_preview_snippet_tokens({
+								tokens: snippet.tokens
+							})}
+						</p>
+						<pre>{snippet.markdown}</pre>
+					</li>
+				{/each}
+			</ol>
 		{:else}
 			<p>{m.source_preview_missing({ file: data.preview.file })}</p>
 		{/if}

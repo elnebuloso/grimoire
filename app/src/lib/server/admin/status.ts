@@ -1,5 +1,7 @@
 import type { DatabaseSync } from 'node:sqlite';
-import { readById } from '../agent/operations';
+import { readSnippets } from '../agent/operations';
+import { grimoireId } from '../grimoire-id';
+import { renderSnippet } from '../search/query';
 import { projectStats, type ProjectStats } from '../stats';
 
 export interface PageSummary {
@@ -75,16 +77,40 @@ export function sourceStatus(db: DatabaseSync, sourceId: number): SourceStatus {
 	};
 }
 
-/** The page as the agent operation `read` returns it; undefined when the source has no such page. */
+/** A snippet of a page as the agent operation `read` returns it. */
+export interface PreviewSnippet {
+	id: string;
+	titlePath: string[];
+	tokens: number;
+	/** The snippet with its `Source:` and `Edit:` lines. */
+	markdown: string;
+}
+
+/**
+ * The snippets of a page in page order: empty for a page without any, undefined when the source
+ * has no such page.
+ */
 export function previewPage(
 	db: DatabaseSync,
 	project: string,
 	source: string,
 	file: string
-): string | undefined {
-	if (!file.endsWith('.md')) return undefined;
-	const result = readById(db, { project, source, file }, 'all');
-	return result.found ? result.markdown : undefined;
+): PreviewSnippet[] | undefined {
+	const page = db
+		.prepare(
+			`SELECT 1 FROM live_pages AS pages
+			JOIN sources ON sources.id = pages.source_id
+			JOIN projects ON projects.id = sources.project_id
+			WHERE projects.slug = ? AND sources.slug = ? AND pages.file = ?`
+		)
+		.get(project, source, file);
+	if (!page) return undefined;
+	return readSnippets(db, { project, source, file }, 'all').map((hit) => ({
+		id: grimoireId(hit, hit.anchor),
+		titlePath: hit.titlePath,
+		tokens: hit.tokens,
+		markdown: renderSnippet(hit)
+	}));
 }
 
 export interface Totals {

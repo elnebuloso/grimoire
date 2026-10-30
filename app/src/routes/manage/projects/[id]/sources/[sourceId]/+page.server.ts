@@ -52,7 +52,7 @@ export const load: PageServerLoad = ({ params, url }) => {
 			source && previewFile
 				? {
 						file: previewFile,
-						markdown: previewPage(database(), project.slug, source.slug, previewFile)
+						snippets: previewPage(database(), project.slug, source.slug, previewFile)
 					}
 				: undefined,
 		globalSchedule: SYNC_SCHEDULE,

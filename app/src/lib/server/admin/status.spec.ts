@@ -94,15 +94,32 @@ describe('sourceStatus', () => {
 });
 
 describe('previewPage', () => {
-	it('returns the page exactly as the agent operation read does', () => {
-		insertPage(1, 'guides/deploy.md', [{ anchor: null, tokens: 10 }]);
+	it('lists the snippets in page order, each as the agent operation read returns it', () => {
+		insertPage(1, 'guides/deploy.md', [
+			{ anchor: null, tokens: 10 },
+			{ anchor: 'rollback', tokens: 25 }
+		]);
 
 		const preview = previewPage(db, 'platform', 'auth', 'guides/deploy.md');
 
-		expect(preview).toContain('Content of guides/deploy.md 0');
-		expect(preview).toBe(
+		expect(preview?.map(({ id, titlePath, tokens }) => ({ id, titlePath, tokens }))).toEqual([
+			{ id: 'platform/auth/guides/deploy', titlePath: ['platform', 'auth', 'Title'], tokens: 10 },
+			{
+				id: 'platform/auth/guides/deploy#rollback',
+				titlePath: ['platform', 'auth', 'Title'],
+				tokens: 25
+			}
+		]);
+		expect(preview?.map((snippet) => snippet.markdown).join('\n\n')).toBe(
 			readById(db, parseGrimoireId('platform/auth/guides/deploy')!, 'all').markdown
 		);
+		expect(preview?.[1].markdown).toContain('Content of guides/deploy.md 1');
+	});
+
+	it('returns no snippets for a page without any, telling it apart from a missing page', () => {
+		insertPage(1, 'empty.md', []);
+
+		expect(previewPage(db, 'platform', 'auth', 'empty.md')).toEqual([]);
 	});
 
 	it('returns undefined for a page the source does not have', () => {
