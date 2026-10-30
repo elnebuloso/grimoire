@@ -26,8 +26,9 @@ test('follows the system scheme until one is picked, and again after System', as
 	await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
 	await expect.poll(() => canvas(page)).toBe(LIGHT_CANVAS);
 
-	// Kept on another page and on the next visit, over the dark system scheme.
-	await page.goto('/login');
+	// Kept on another page and on the next visit, over the dark system scheme. The not-found page
+	// leads nowhere else, whether or not the admin account exists yet.
+	await page.goto('/no/such/page');
 	await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
 	await page.reload();
 	await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
@@ -37,7 +38,7 @@ test('follows the system scheme until one is picked, and again after System', as
 	);
 
 	await theme(page).getByRole('button', { name: 'System' }).click();
-	await expect(page).toHaveURL('/login');
+	await expect(page).toHaveURL('/no/such/page');
 	await expect(page.locator('html')).not.toHaveAttribute('data-theme');
 	await expect.poll(() => canvas(page)).toBe(DARK_CANVAS);
 });
