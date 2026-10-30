@@ -20,11 +20,11 @@ export const actions = {
 	default: async ({ request, params }) => {
 		if (!mailer()) error(404);
 		const password = String((await request.formData()).get('password') ?? '');
-		const problem = await resetPassword(database(), params.token, password);
-		if (problem) {
+		const refused = await resetPassword(database(), params.token, password);
+		if (refused) {
 			return fail(400, {
-				error: authMessage(problem),
-				linkInvalid: problem === 'reset-link-invalid'
+				error: authMessage(refused.error),
+				linkInvalid: refused.error === 'reset-link-invalid'
 			});
 		}
 		return { done: true };

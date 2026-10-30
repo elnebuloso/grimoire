@@ -33,15 +33,18 @@ function withinLimit(key: string, max: number, now: Date): boolean {
 /**
  * Starts a reset for the user with `email`: returns the token for the link to send, undefined
  * when there is nothing to send (unknown address, or too many requests for it), so the answer
- * does not tell whether the address has an account. `reset-blocked` when `client` asked too often.
+ * does not tell whether the address has an account. The error `reset-blocked` when `client` asked
+ * too often.
  */
 export function requestPasswordReset(
 	db: DatabaseSync,
 	client: string,
 	email: string,
 	now = new Date()
-): { to: string; token: string } | undefined | 'reset-blocked' {
-	if (!withinLimit(`client ${client}`, MAX_REQUESTS_PER_CLIENT, now)) return 'reset-blocked';
+): { to: string; token: string } | { error: 'reset-blocked' } | undefined {
+	if (!withinLimit(`client ${client}`, MAX_REQUESTS_PER_CLIENT, now)) {
+		return { error: 'reset-blocked' };
+	}
 	const address = normalizeEmail(email);
 	const user = db.prepare('SELECT id FROM users WHERE email = ?').get(address) as
 		{ id: number } | undefined;
@@ -75,9 +78,9 @@ export async function resetPassword(
 	token: string,
 	password: string,
 	now = new Date()
-): Promise<AuthProblem | undefined> {
-	if (!resetLinkValid(db, token, now)) return 'reset-link-invalid';
-	if (password.length < MIN_PASSWORD_LENGTH) return 'password-too-short';
+): Promise<{ error: AuthProblem } | undefined> {
+	if (!resetLinkValid(db, token, now)) return { error: 'reset-link-invalid' };
+	if (password.length < MIN_PASSWORD_LENGTH) return { error: 'password-too-short' };
 	// Hashed before the transaction: other requests share the connection while it is awaited.
 	const passwordHash = await hashPassword(password);
 	return inTransaction(db, () => {
@@ -87,7 +90,7 @@ export async function resetPassword(
 				'DELETE FROM password_resets WHERE token_hash = ? AND expires_at > ? RETURNING user_id'
 			)
 			.get(sha256(token), now.toISOString()) as { user_id: number } | undefined;
-		if (!used) return 'reset-link-invalid';
+		if (!used) return { error: 'reset-link-invalid' };
 		db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(passwordHash, used.user_id);
 		db.prepare('DELETE FROM sessions WHERE user_id = ?').run(used.user_id);
 		db.prepare('DELETE FROM password_resets WHERE user_id = ?').run(used.user_id);

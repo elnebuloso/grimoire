@@ -16,8 +16,8 @@ export const actions = {
 			password: String(data.get('password') ?? '')
 		};
 		const db = database();
-		const problem = await setupAdmin(db, form);
-		if (problem) return fail(400, { error: authMessage(problem), email: form.email });
+		const refused = await setupAdmin(db, form);
+		if (refused) return fail(400, { error: authMessage(refused.error), email: form.email });
 		const result = await login(db, getClientAddress(), form);
 		if ('session' in result) cookies.set(SESSION_COOKIE, result.session, sessionCookieOptions);
 		redirect(303, '/manage');

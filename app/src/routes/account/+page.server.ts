@@ -11,7 +11,7 @@ export const load: PageServerLoad = ({ cookies }) => ({
 export const actions = {
 	default: async ({ request, cookies, getClientAddress }) => {
 		const data = await request.formData();
-		const problem = await changePassword(
+		const refused = await changePassword(
 			database(),
 			getClientAddress(),
 			cookies.get(SESSION_COOKIE)!,
@@ -20,7 +20,7 @@ export const actions = {
 				password: String(data.get('password') ?? '')
 			}
 		);
-		if (problem) return fail(400, { error: authMessage(problem) });
+		if (refused) return fail(400, { error: authMessage(refused.error) });
 		return { changed: true };
 	}
 } satisfies Actions;

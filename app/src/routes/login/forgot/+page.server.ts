@@ -20,7 +20,9 @@ export const actions = {
 		if (!mail) error(404);
 		const email = String((await request.formData()).get('email') ?? '');
 		const result = requestPasswordReset(database(), getClientAddress(), email);
-		if (result === 'reset-blocked') return fail(429, { error: authMessage(result), email });
+		if (result && 'error' in result) {
+			return fail(429, { error: authMessage(result.error), email });
+		}
 		if (result) {
 			const url = mail.link(`/login/reset/${result.token}`);
 			// Not awaited: the answer must not take longer for an address that has an account.

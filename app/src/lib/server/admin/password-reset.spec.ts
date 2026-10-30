@@ -26,7 +26,7 @@ beforeEach(async () => {
 
 function tokenFor(email = EMAIL, client = 'client', at = NOW): string {
 	const result = reset.requestPasswordReset(db, client, email, at);
-	if (!result || result === 'reset-blocked') throw new Error(`no token: ${result}`);
+	if (!result || 'error' in result) throw new Error(`no token: ${JSON.stringify(result)}`);
 	return result.token;
 }
 
@@ -50,12 +50,12 @@ describe('requestPasswordReset', () => {
 
 	it('blocks a client after 5 requests within an hour, whatever the addresses', () => {
 		for (let request = 0; request < 5; request++) {
-			expect(reset.requestPasswordReset(db, 'flood', `x${request}@example.com`, NOW)).not.toBe(
-				'reset-blocked'
-			);
+			expect(
+				reset.requestPasswordReset(db, 'flood', `x${request}@example.com`, NOW)
+			).toBeUndefined();
 		}
 
-		expect(reset.requestPasswordReset(db, 'flood', EMAIL, NOW)).toBe('reset-blocked');
+		expect(reset.requestPasswordReset(db, 'flood', EMAIL, NOW)).toEqual({ error: 'reset-blocked' });
 		expect(reset.requestPasswordReset(db, 'other', EMAIL, NOW)).toHaveProperty('token');
 		expect(reset.requestPasswordReset(db, 'flood', EMAIL, minutesLater(61))).toHaveProperty(
 			'token'
@@ -78,9 +78,9 @@ describe('resetPassword', () => {
 		expect(await logsIn(NEW_PASSWORD)).toBe(true);
 		expect(await logsIn(PASSWORD)).toBe(false);
 		expect(reset.resetLinkValid(db, token, NOW)).toBe(false);
-		expect(await reset.resetPassword(db, token, 'another long password', NOW)).toBe(
-			'reset-link-invalid'
-		);
+		expect(await reset.resetPassword(db, token, 'another long password', NOW)).toEqual({
+			error: 'reset-link-invalid'
+		});
 	});
 
 	it('lets only one of two requests with the same link through', async () => {
@@ -91,7 +91,8 @@ describe('resetPassword', () => {
 			reset.resetPassword(db, token, 'another long password', NOW)
 		]);
 
-		expect(results.toSorted()).toEqual(['reset-link-invalid', undefined]);
+		expect(results).toContainEqual({ error: 'reset-link-invalid' });
+		expect(results).toContain(undefined);
 	});
 
 	it('refuses an expired or unknown link', async () => {
@@ -99,17 +100,21 @@ describe('resetPassword', () => {
 
 		expect(reset.resetLinkValid(db, token, minutesLater(59))).toBe(true);
 		expect(reset.resetLinkValid(db, token, minutesLater(60))).toBe(false);
-		expect(await reset.resetPassword(db, token, NEW_PASSWORD, minutesLater(60))).toBe(
-			'reset-link-invalid'
-		);
-		expect(await reset.resetPassword(db, 'guess', NEW_PASSWORD, NOW)).toBe('reset-link-invalid');
+		expect(await reset.resetPassword(db, token, NEW_PASSWORD, minutesLater(60))).toEqual({
+			error: 'reset-link-invalid'
+		});
+		expect(await reset.resetPassword(db, 'guess', NEW_PASSWORD, NOW)).toEqual({
+			error: 'reset-link-invalid'
+		});
 		expect(await logsIn(PASSWORD)).toBe(true);
 	});
 
 	it('keeps the link for a password that is too short', async () => {
 		const token = tokenFor();
 
-		expect(await reset.resetPassword(db, token, 'short', NOW)).toBe('password-too-short');
+		expect(await reset.resetPassword(db, token, 'short', NOW)).toEqual({
+			error: 'password-too-short'
+		});
 		expect(reset.resetLinkValid(db, token, NOW)).toBe(true);
 	});
 

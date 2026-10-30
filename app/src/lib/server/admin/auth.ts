@@ -161,11 +161,12 @@ export function checkAdminAccount(db: DatabaseSync): boolean {
 export async function setupAdmin(
 	db: DatabaseSync,
 	form: { token: string; email: string; password: string }
-): Promise<AuthProblem | undefined> {
-	if (checkAdminAccount(db)) return 'admin-exists';
-	if (!setupTokenValue || !sameText(form.token, setupTokenValue)) return 'wrong-setup-token';
-	if (!looksLikeEmail(normalizeEmail(form.email))) return 'email-invalid';
-	if (form.password.length < MIN_PASSWORD_LENGTH) return 'password-too-short';
+): Promise<{ error: AuthProblem } | undefined> {
+	if (checkAdminAccount(db)) return { error: 'admin-exists' };
+	if (!setupTokenValue || !sameText(form.token, setupTokenValue))
+		return { error: 'wrong-setup-token' };
+	if (!looksLikeEmail(normalizeEmail(form.email))) return { error: 'email-invalid' };
+	if (form.password.length < MIN_PASSWORD_LENGTH) return { error: 'password-too-short' };
 	await createUser(db, { email: form.email, password: form.password, roles: ['admin'] });
 	checkAdminAccount(db);
 	return undefined;
@@ -230,17 +231,17 @@ export async function changePassword(
 	session: string,
 	form: { current: string; password: string },
 	now = new Date()
-): Promise<AuthProblem | undefined> {
-	if (isBlocked(client, now)) return 'blocked';
+): Promise<{ error: AuthProblem } | undefined> {
+	if (isBlocked(client, now)) return { error: 'blocked' };
 	// Counted before the check, for the same reason as in `login`.
 	recordFailedLogin(client, now);
 	const user = sessionUser(db, session, now);
 	const stored = user && findUser(db, user.email);
 	if (!stored || !(await passwordMatches(form.current, stored.password_hash))) {
-		return 'wrong-current-password';
+		return { error: 'wrong-current-password' };
 	}
 	failedLogins.delete(client);
-	if (form.password.length < MIN_PASSWORD_LENGTH) return 'new-password-too-short';
+	if (form.password.length < MIN_PASSWORD_LENGTH) return { error: 'new-password-too-short' };
 	const passwordHash = await hashPassword(form.password);
 	inTransaction(db, () => {
 		db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(passwordHash, stored.id);

@@ -56,7 +56,7 @@ describe('setup', () => {
 
 		expect(
 			await auth.setupAdmin(db, { token: 'guess', email: 'admin@example.com', password: PASSWORD })
-		).toBe('wrong-setup-token');
+		).toEqual({ error: 'wrong-setup-token' });
 		expect(auth.checkAdminAccount(db)).toBe(false);
 	});
 
@@ -65,9 +65,11 @@ describe('setup', () => {
 
 		expect(
 			await auth.setupAdmin(db, { token, email: 'admin@example.com', password: 'short' })
-		).toBe('password-too-short');
+		).toEqual({ error: 'password-too-short' });
 		for (const email of [' ', 'admin', 'admin@', 'admin@example', 'ad min@example.com']) {
-			expect(await auth.setupAdmin(db, { token, email, password: PASSWORD })).toBe('email-invalid');
+			expect(await auth.setupAdmin(db, { token, email, password: PASSWORD })).toEqual({
+				error: 'email-invalid'
+			});
 		}
 	});
 
@@ -79,7 +81,7 @@ describe('setup', () => {
 		expect(stored.password_hash).not.toContain(PASSWORD);
 		expect(
 			await auth.setupAdmin(db, { token, email: 'other@example.com', password: PASSWORD })
-		).toBe('admin-exists');
+		).toEqual({ error: 'admin-exists' });
 	});
 });
 
@@ -380,7 +382,7 @@ describe('changePassword', () => {
 	it('invalidates reset links sent before the change', async () => {
 		const reset = await import('./password-reset');
 		const link = reset.requestPasswordReset(db, 'mail', 'admin@example.com', NOW);
-		if (!link || link === 'reset-blocked') throw new Error('no reset link issued');
+		if (!link || 'error' in link) throw new Error('no reset link issued');
 
 		await auth.changePassword(
 			db,
@@ -403,7 +405,7 @@ describe('changePassword', () => {
 					{ current: 'nope', password: NEW_PASSWORD },
 					NOW
 				)
-			).toBe('wrong-current-password');
+			).toEqual({ error: 'wrong-current-password' });
 		}
 		await auth.login(db, 'laptop', { email: 'admin@example.com', password: 'nope' }, NOW);
 
@@ -420,7 +422,7 @@ describe('changePassword', () => {
 				{ current: PASSWORD, password: NEW_PASSWORD },
 				NOW
 			)
-		).toBe('blocked');
+		).toEqual({ error: 'blocked' });
 		expect('session' in (await login(PASSWORD))).toBe(true);
 		expect(auth.sessionUser(db, other, NOW)).toBeDefined();
 	});
@@ -434,7 +436,7 @@ describe('changePassword', () => {
 				{ current: PASSWORD, password: 'short pass' },
 				NOW
 			)
-		).toBe('new-password-too-short');
+		).toEqual({ error: 'new-password-too-short' });
 		expect('session' in (await login(PASSWORD))).toBe(true);
 		expect(auth.sessionUser(db, other, NOW)).toBeDefined();
 	});
