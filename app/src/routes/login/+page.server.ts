@@ -17,13 +17,13 @@ export const actions = {
 	default: async ({ request, cookies, getClientAddress }) => {
 		const data = await request.formData();
 		const form = {
-			username: String(data.get('username') ?? ''),
+			email: String(data.get('email') ?? ''),
 			password: String(data.get('password') ?? '')
 		};
 		const db = database();
 		const result = await login(db, getClientAddress(), form);
 		if ('error' in result)
-			return fail(400, { error: authMessage(result.error), username: form.username });
+			return fail(400, { error: authMessage(result.error), email: form.email });
 		cookies.set(SESSION_COOKIE, result.session, sessionCookieOptions);
 		redirect(303, homeOf(sessionUser(db, result.session)!));
 	}

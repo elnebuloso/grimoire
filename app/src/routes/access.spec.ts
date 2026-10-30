@@ -88,7 +88,7 @@ async function setUpAdmin() {
 		admin.setup({
 			request: formRequest('/setup', {
 				token: setupToken(),
-				username: 'admin',
+				email: 'admin@example.com',
 				password: PASSWORD
 			}),
 			cookies,
@@ -112,7 +112,7 @@ describe('setup action', () => {
 			admin.setup({
 				request: formRequest('/setup', {
 					token: setupToken(),
-					username: 'admin',
+					email: 'admin@example.com',
 					password: PASSWORD
 				}),
 				cookies,
@@ -127,13 +127,13 @@ describe('setup action', () => {
 		expect(admin.auth.sessionUser(db, cookies.get('grimoire_session'))).toBeDefined();
 	});
 
-	it('answers a wrong token with 400, the message and the username, without a cookie', async () => {
+	it('answers a wrong token with 400, the message and the email address, without a cookie', async () => {
 		setupToken();
 		const cookies = fakeCookies();
 		const result = await admin.setup({
 			request: formRequest('/setup', {
 				token: 'guess',
-				username: 'admin',
+				email: 'admin@example.com',
 				password: PASSWORD
 			}),
 			cookies,
@@ -142,7 +142,7 @@ describe('setup action', () => {
 
 		expect(result).toMatchObject({
 			status: 400,
-			data: { error: 'Wrong setup token. It is in the server log.', username: 'admin' }
+			data: { error: 'Wrong setup token. It is in the server log.', email: 'admin@example.com' }
 		});
 		expect(cookies.calls).toEqual([]);
 	});
@@ -151,9 +151,9 @@ describe('setup action', () => {
 describe('header', () => {
 	it('links each user only to the pages they may open', async () => {
 		const adminSession = await setUpAdmin();
-		await admin.auth.createUser(db, { username: 'editor', password: PASSWORD, roles: [] });
+		await admin.auth.createUser(db, { email: 'editor@example.com', password: PASSWORD, roles: [] });
 		const login = await admin.auth.login(db, 'editor-pc', {
-			username: 'editor',
+			email: 'editor@example.com',
 			password: PASSWORD
 		});
 		if (!('session' in login)) throw new Error(login.error);
@@ -165,8 +165,8 @@ describe('header', () => {
 				}
 			).user;
 
-		expect(header(adminSession)).toEqual({ name: 'admin', mayManage: true });
-		expect(header(login.session)).toEqual({ name: 'editor', mayManage: false });
+		expect(header(adminSession)).toEqual({ name: 'admin@example.com', mayManage: true });
+		expect(header(login.session)).toEqual({ name: 'editor@example.com', mayManage: false });
 		expect(header()).toBeUndefined();
 	});
 });
@@ -178,7 +178,7 @@ describe('login action', () => {
 		const cookies = fakeCookies();
 		const result = await thrown(() =>
 			admin.login({
-				request: formRequest('/login', { username: 'admin', password: PASSWORD }),
+				request: formRequest('/login', { email: 'admin@example.com', password: PASSWORD }),
 				cookies,
 				getClientAddress: () => 'client'
 			} as never)
@@ -191,10 +191,10 @@ describe('login action', () => {
 	});
 
 	it('sends a user without the role admin to the start page instead of a 403', async () => {
-		await admin.auth.createUser(db, { username: 'editor', password: PASSWORD, roles: [] });
+		await admin.auth.createUser(db, { email: 'editor@example.com', password: PASSWORD, roles: [] });
 		const result = await thrown(() =>
 			admin.login({
-				request: formRequest('/login', { username: 'editor', password: PASSWORD }),
+				request: formRequest('/login', { email: 'editor@example.com', password: PASSWORD }),
 				cookies: fakeCookies(),
 				getClientAddress: () => 'client'
 			} as never)
@@ -203,17 +203,17 @@ describe('login action', () => {
 		expect(isRedirect(result) && result.location).toBe('/');
 	});
 
-	it('answers wrong credentials with 400 and the username, without a cookie', async () => {
+	it('answers wrong credentials with 400 and the email address, without a cookie', async () => {
 		const cookies = fakeCookies();
 		const result = await admin.login({
-			request: formRequest('/login', { username: 'admin', password: 'wrong' }),
+			request: formRequest('/login', { email: 'admin@example.com', password: 'wrong' }),
 			cookies,
 			getClientAddress: () => 'client'
 		} as never);
 
 		expect(result).toMatchObject({
 			status: 400,
-			data: { error: 'Wrong username or password.', username: 'admin' }
+			data: { error: 'Wrong email address or password.', email: 'admin@example.com' }
 		});
 		expect(cookies.calls).toEqual([]);
 	});
@@ -252,7 +252,7 @@ describe('password action', () => {
 		expect(
 			'session' in
 				(await admin.auth.login(db, 'other', {
-					username: 'admin',
+					email: 'admin@example.com',
 					password: 'staple battery horse'
 				}))
 		).toBe(true);
@@ -292,9 +292,9 @@ describe('admin access guard', () => {
 
 	it('answers 403 to a user without the role admin', async () => {
 		await setUpAdmin();
-		await admin.auth.createUser(db, { username: 'editor', password: PASSWORD, roles: [] });
+		await admin.auth.createUser(db, { email: 'editor@example.com', password: PASSWORD, roles: [] });
 		const login = await admin.auth.login(db, 'editor-pc', {
-			username: 'editor',
+			email: 'editor@example.com',
 			password: PASSWORD
 		});
 		if (!('session' in login)) throw new Error(login.error);

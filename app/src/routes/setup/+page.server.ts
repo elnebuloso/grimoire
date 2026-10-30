@@ -12,12 +12,12 @@ export const actions = {
 		const data = await request.formData();
 		const form = {
 			token: String(data.get('token') ?? ''),
-			username: String(data.get('username') ?? ''),
+			email: String(data.get('email') ?? ''),
 			password: String(data.get('password') ?? '')
 		};
 		const db = database();
 		const problem = await setupAdmin(db, form);
-		if (problem) return fail(400, { error: authMessage(problem), username: form.username });
+		if (problem) return fail(400, { error: authMessage(problem), email: form.email });
 		const result = await login(db, getClientAddress(), form);
 		if ('session' in result) cookies.set(SESSION_COOKIE, result.session, sessionCookieOptions);
 		redirect(303, '/manage');

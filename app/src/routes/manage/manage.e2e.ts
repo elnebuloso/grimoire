@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
 
-const USERNAME = 'admin';
+const EMAIL = 'admin@example.com';
 const PASSWORD = 'correct horse battery';
 const TOKEN = 'glpat-e2e-secret';
 // `playwright.config.ts` has the server's git map these to local repositories.
@@ -20,7 +20,7 @@ function setupToken(): string {
 
 async function logIn(page: Page, password = PASSWORD) {
 	await page.goto('/login');
-	await page.getByLabel('Username').fill(USERNAME);
+	await page.getByLabel('Email address').fill(EMAIL);
 	await page.getByLabel('Password').fill(password);
 	await page.getByRole('button', { name: 'Log in' }).click();
 }
@@ -42,11 +42,11 @@ test('sets up the admin account with the token from the server log', async ({ pa
 	await page.goto('/manage');
 	await expect(page).toHaveURL('/setup');
 	// Without these tokens a password manager offers to save nothing, or files it under no user.
-	await expect(page.getByLabel('Username')).toHaveAttribute('autocomplete', 'username');
+	await expect(page.getByLabel('Email address')).toHaveAttribute('autocomplete', 'username');
 	await expect(page.getByLabel('Password')).toHaveAttribute('autocomplete', 'new-password');
 
 	await page.getByLabel('Setup token').fill(setupToken());
-	await page.getByLabel('Username').fill(USERNAME);
+	await page.getByLabel('Email address').fill(EMAIL);
 	await page.getByLabel('Password').fill(PASSWORD);
 	await page.getByRole('button', { name: 'Create admin account' }).click();
 
@@ -63,12 +63,12 @@ test('logs out and back in, and rejects a wrong password', async ({ page }) => {
 	await page.goto('/manage');
 	await expect(page).toHaveURL('/login');
 
-	await expect(page.getByLabel('Username')).toHaveAttribute('autocomplete', 'username');
+	await expect(page.getByLabel('Email address')).toHaveAttribute('autocomplete', 'username');
 	await expect(page.getByLabel('Password')).toHaveAttribute('autocomplete', 'current-password');
 
 	await logIn(page, 'wrong password');
-	await expect(page.getByRole('alert')).toHaveText('Wrong username or password.');
-	await expect(page.getByLabel('Username')).toHaveValue(USERNAME);
+	await expect(page.getByRole('alert')).toHaveText('Wrong email address or password.');
+	await expect(page.getByLabel('Email address')).toHaveValue(EMAIL);
 
 	await logIn(page);
 	await expect(page).toHaveURL('/manage');
@@ -83,9 +83,9 @@ test('offers the login action while logged out, and the account and management o
 
 	await logIn(page);
 	await page.goto('/');
-	await expect(page.getByText(`Logged in as ${USERNAME}`)).toBeVisible();
+	await expect(page.getByText(`Logged in as ${EMAIL}`)).toBeVisible();
 	await expect(page.getByRole('link', { name: 'Log in' })).toHaveCount(0);
-	await page.getByRole('link', { name: USERNAME, exact: true }).click();
+	await page.getByRole('link', { name: EMAIL, exact: true }).click();
 	await expect(page).toHaveURL('/account');
 	await page.getByRole('link', { name: 'Manage', exact: true }).click();
 	await expect(page).toHaveURL('/manage');
@@ -281,8 +281,8 @@ test('changes the password and logs in with the new one', async ({ page }) => {
 	const newPassword = 'staple battery horse';
 	await logIn(page);
 	await page.getByRole('link', { name: 'Change the password' }).click();
-	await expect(page.getByLabel('Username')).toHaveValue(USERNAME);
-	await expect(page.getByLabel('Username')).toHaveAttribute('autocomplete', 'username');
+	await expect(page.getByLabel('Email address')).toHaveValue(EMAIL);
+	await expect(page.getByLabel('Email address')).toHaveAttribute('autocomplete', 'username');
 
 	await page.getByLabel('Current password').fill('wrong password');
 	await page.getByLabel('New password').fill(newPassword);
@@ -297,7 +297,7 @@ test('changes the password and logs in with the new one', async ({ page }) => {
 	await page.goto('/manage');
 	await page.getByRole('button', { name: 'Log out' }).click();
 	await logIn(page);
-	await expect(page.getByRole('alert')).toHaveText('Wrong username or password.');
+	await expect(page.getByRole('alert')).toHaveText('Wrong email address or password.');
 	await logIn(page, newPassword);
 	await expect(page).toHaveURL('/manage');
 });

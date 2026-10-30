@@ -31,7 +31,7 @@ format: ## Format the source code with Prettier
 image: ## Build the Docker image grimoire:latest
 	docker build --tag grimoire:latest .
 
-admin-reset: ## Delete the admin account after a lost password; asks for its username
+admin-reset: ## Delete the admin account after a lost password; asks for its email address
 	cd app && node --env-file=.env ../scripts/reset-admin.ts
 
 # Without --python, uv picked an interpreter for which it built zensical from source.

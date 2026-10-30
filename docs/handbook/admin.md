@@ -4,7 +4,8 @@ The management area at `/manage` holds projects, sources, API keys and the setti
 
 ## Users and roles
 
-Everyone who logs in is a user with a username and a password of their own. What a user may do
+Everyone who logs in is a user with an email address and a password of their own; the address is
+the login, in any letter case. What a user may do
 follows from their roles; a user can hold several. Today there is one role, `admin`, which may use
 the whole management area. A logged-in user without it gets `403` there, but can still open their
 account page, log out and log in as someone else. The first user, with the role `admin`, is
@@ -26,7 +27,7 @@ This line is written whatever `LOG_LEVEL` says. With `LOG_FORMAT=ecs`, the defau
 {"log.level":"warn","@timestamp":"2026-10-29T21:38:02.587Z","service.name":"grimoire","message":"No admin account yet. Set it up at /setup with the setup token 7GQm…", …}
 ```
 
-Enter the token, a username and a password of at least 12 characters. Only someone who can read
+Enter the token, your email address and a password of at least 12 characters. Only someone who can read
 the server log can set up the account, even if the URL is reachable before you get to it. The
 token exists only in memory: a restart before the setup logs a new one, and once the account
 exists `/setup` is gone.
@@ -227,8 +228,8 @@ account with the script in the container:
 docker exec -it grimoire node scripts/reset-admin.ts
 ```
 
-It asks for the username of a user with the role `admin` and deletes that user, together with
-their sessions, only when the name matches; without a terminal (no `-it`) it refuses to run.
+It asks for the email address of a user with the role `admin` and deletes that user, together
+with their sessions, only when the address matches; without a terminal (no `-it`) it refuses to run.
 grimoire keeps running. When no other user has the role `admin`, it logs `Admin account was reset.`
 and a new setup token, and the management area offers the setup again.
 

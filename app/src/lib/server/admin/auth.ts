@@ -19,7 +19,7 @@ export type Role = (typeof ROLES)[number];
 /** The user a session belongs to. */
 export interface SessionUser {
 	id: number;
-	username: string;
+	email: string;
 	roles: Role[];
 }
 const SESSION_HOURS = 12;
@@ -33,7 +33,7 @@ const BLOCK_MINUTES = 15;
 export type AuthProblem =
 	| 'admin-exists'
 	| 'wrong-setup-token'
-	| 'username-missing'
+	| 'email-invalid'
 	| 'password-too-short'
 	| 'blocked'
 	| 'wrong-credentials'
@@ -93,30 +93,40 @@ async function passwordMatches(password: string, stored: string): Promise<boolea
 	);
 }
 
-// Compared against when a username is unknown, so a login takes as long as with a known one.
+// Compared against when an email address is unknown, so a login takes as long as with a known one.
 let unknownUserHash: string | undefined;
 
-function findUser(db: DatabaseSync, username: string) {
+// Addresses are compared and stored in lowercase: nobody expects their login to depend on it.
+function normalizeEmail(email: string): string {
+	return email.trim().toLowerCase();
+}
+
+// Only what tells a typo from an address; whether mail arrives there only sending can tell.
+function looksLikeEmail(email: string): boolean {
+	return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function findUser(db: DatabaseSync, email: string) {
 	return db
-		.prepare('SELECT id, username, password_hash FROM users WHERE username = ?')
-		.get(username) as { id: number; username: string; password_hash: string } | undefined;
+		.prepare('SELECT id, email, password_hash FROM users WHERE email = ?')
+		.get(normalizeEmail(email)) as { id: number; email: string; password_hash: string } | undefined;
 }
 
 function adminExists(db: DatabaseSync): boolean {
 	return db.prepare("SELECT 1 FROM user_roles WHERE role = 'admin'").get() !== undefined;
 }
 
-/** Creates a user with the given roles; the username must be free. Returns the new id. */
+/** Creates a user with the given roles; the email address must be free. Returns the new id. */
 export async function createUser(
 	db: DatabaseSync,
-	form: { username: string; password: string; roles: Role[] }
+	form: { email: string; password: string; roles: Role[] }
 ): Promise<number> {
 	// Hashed before the transaction: other requests share the connection while it is awaited.
 	const passwordHash = await hashPassword(form.password);
 	return inTransaction(db, () => {
 		const { lastInsertRowid } = db
-			.prepare('INSERT INTO users (username, password_hash) VALUES (?, ?)')
-			.run(form.username, passwordHash);
+			.prepare('INSERT INTO users (email, password_hash) VALUES (?, ?)')
+			.run(normalizeEmail(form.email), passwordHash);
 		for (const role of form.roles) {
 			db.prepare('INSERT INTO user_roles (user_id, role) VALUES (?, ?)').run(lastInsertRowid, role);
 		}
@@ -148,17 +158,13 @@ export function checkAdminAccount(db: DatabaseSync): boolean {
 /** Creates the first user, with the role `admin`; returns why when it cannot. */
 export async function setupAdmin(
 	db: DatabaseSync,
-	form: { token: string; username: string; password: string }
+	form: { token: string; email: string; password: string }
 ): Promise<AuthProblem | undefined> {
 	if (checkAdminAccount(db)) return 'admin-exists';
 	if (!setupTokenValue || !sameText(form.token, setupTokenValue)) return 'wrong-setup-token';
-	if (!form.username.trim()) return 'username-missing';
+	if (!looksLikeEmail(normalizeEmail(form.email))) return 'email-invalid';
 	if (form.password.length < MIN_PASSWORD_LENGTH) return 'password-too-short';
-	await createUser(db, {
-		username: form.username.trim(),
-		password: form.password,
-		roles: ['admin']
-	});
+	await createUser(db, { email: form.email, password: form.password, roles: ['admin'] });
 	checkAdminAccount(db);
 	return undefined;
 }
@@ -170,15 +176,15 @@ export async function setupAdmin(
 export async function login(
 	db: DatabaseSync,
 	client: string,
-	form: { username: string; password: string },
+	form: { email: string; password: string },
 	now = new Date()
 ): Promise<{ session: string } | { error: AuthProblem }> {
 	if (isBlocked(client, now)) return { error: 'blocked' };
 	// Counted before the password is checked: requests sent in parallel would otherwise all pass
 	// the block check while their hashes run. A successful login forgets it again.
 	recordFailedLogin(client, now);
-	const user = findUser(db, form.username);
-	// A password is checked even for an unknown username, so the answer time does not tell which.
+	const user = findUser(db, form.email);
+	// A password is checked even for an unknown address, so the answer time does not tell which.
 	unknownUserHash ??= await hashPassword(randomBytes(16).toString('hex'));
 	const matches = await passwordMatches(form.password, user?.password_hash ?? unknownUserHash);
 	if (!user || !matches) return { error: 'wrong-credentials' };
@@ -227,7 +233,7 @@ export async function changePassword(
 	// Counted before the check, for the same reason as in `login`.
 	recordFailedLogin(client, now);
 	const user = sessionUser(db, session, now);
-	const stored = user && findUser(db, user.username);
+	const stored = user && findUser(db, user.email);
 	if (!stored || !(await passwordMatches(form.current, stored.password_hash))) {
 		return 'wrong-current-password';
 	}
@@ -266,14 +272,14 @@ export function sessionUser(
 	if (!token) return undefined;
 	const row = db
 		.prepare(
-			`SELECT users.id, users.username,
+			`SELECT users.id, users.email,
 				(SELECT json_group_array(role) FROM user_roles WHERE user_id = users.id) AS roles
 			FROM sessions JOIN users ON users.id = sessions.user_id
 			WHERE sessions.token_hash = ? AND sessions.expires_at > ?`
 		)
 		.get(sha256(token), now.toISOString()) as
-		{ id: number; username: string; roles: string } | undefined;
-	return row && { id: row.id, username: row.username, roles: JSON.parse(row.roles) as Role[] };
+		{ id: number; email: string; roles: string } | undefined;
+	return row && { id: row.id, email: row.email, roles: JSON.parse(row.roles) as Role[] };
 }
 
 export function deleteSession(db: DatabaseSync, token: string) {
@@ -281,17 +287,17 @@ export function deleteSession(db: DatabaseSync, token: string) {
 }
 
 /**
- * Deletes a user with the role `admin` and their sessions, but only when `username` names one, so
+ * Deletes a user with the role `admin` and their sessions, but only when `email` names one, so
  * a reset needs to know whose account it removes. Returns whether it did. Without another admin,
  * the management area offers the setup again.
  */
-export function resetAdmin(db: DatabaseSync, username: string): boolean {
+export function resetAdmin(db: DatabaseSync, email: string): boolean {
 	const admin = db
 		.prepare(
 			`SELECT users.id FROM users JOIN user_roles ON user_roles.user_id = users.id
-			WHERE users.username = ? AND user_roles.role = 'admin'`
+			WHERE users.email = ? AND user_roles.role = 'admin'`
 		)
-		.get(username.trim()) as { id: number } | undefined;
+		.get(normalizeEmail(email)) as { id: number } | undefined;
 	if (!admin) return false;
 	inTransaction(db, () => {
 		// Deleted one by one: the reset script opens the file without enforcing foreign keys.

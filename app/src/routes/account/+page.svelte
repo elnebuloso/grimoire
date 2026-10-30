@@ -17,11 +17,12 @@
 	<FormError message={form?.error} />
 	<!-- Tells a password manager which saved login the new password belongs to. -->
 	<TextField
-		label={m.field_username()}
-		name="username"
+		label={m.field_email()}
+		name="email"
+		type="email"
 		readonly
 		autocomplete="username"
-		value={data.username}
+		value={data.email}
 	/>
 	<TextField
 		label={m.password_current()}

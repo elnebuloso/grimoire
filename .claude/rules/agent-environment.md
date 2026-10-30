@@ -16,7 +16,7 @@ without a restart. It runs beside `make dev` (5173) and `make e2e` (4173).
 
 | What | Value |
 |---|---|
-| Admin login | `agent` / `agent-password` |
+| Admin login | `agent@example.com` / `agent-password` |
 | API key (all projects) | `grimoire_agent-fixture-key` |
 | Settings | defaults: syncs not paused |
 

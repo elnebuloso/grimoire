@@ -50,8 +50,8 @@ try {
 	db.exec('DELETE FROM settings; INSERT INTO settings (id) VALUES (1)');
 
 	const agent = db
-		.prepare('INSERT INTO users (username, password_hash) VALUES (?, ?)')
-		.run('agent', agentPasswordHash);
+		.prepare('INSERT INTO users (email, password_hash) VALUES (?, ?)')
+		.run('agent@example.com', agentPasswordHash);
 	db.prepare("INSERT INTO user_roles (user_id, role) VALUES (?, 'admin')").run(
 		agent.lastInsertRowid
 	);

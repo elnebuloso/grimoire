@@ -5,7 +5,7 @@ import { changePassword, SESSION_COOKIE, sessionUser } from '#lib/server/admin/a
 import { authMessage } from '#lib/server/admin/auth-messages.js';
 
 export const load: PageServerLoad = ({ cookies }) => ({
-	username: sessionUser(database(), cookies.get(SESSION_COOKIE))?.username
+	email: sessionUser(database(), cookies.get(SESSION_COOKIE))?.email
 });
 
 export const actions = {

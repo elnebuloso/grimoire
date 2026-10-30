@@ -12,11 +12,12 @@
 <form method="post">
 	<FormError message={form?.error} />
 	<TextField
-		label={m.field_username()}
-		name="username"
+		label={m.field_email()}
+		name="email"
+		type="email"
 		required
 		autocomplete="username"
-		value={form?.username ?? ''}
+		value={form?.email ?? ''}
 	/>
 	<TextField
 		label={m.field_password()}

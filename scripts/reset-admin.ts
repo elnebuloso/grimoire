@@ -10,19 +10,19 @@ import { resetAdmin } from '../app/src/lib/server/admin/auth.ts';
 const path = process.env.DATABASE_PATH;
 if (!path || !existsSync(path)) throw new Error(`no database at "${path}"`);
 if (!process.stdin.isTTY) {
-	console.error('Run this in a terminal: it asks for the admin username to confirm the reset.');
+	console.error('Run this in a terminal: it asks for the admin email address to confirm the reset.');
 	process.exit(1);
 }
 
 const prompt = createInterface({ input: process.stdin, output: process.stdout });
-const username = await prompt.question('Username of the admin account to delete: ');
+const email = await prompt.question('Email address of the admin account to delete: ');
 prompt.close();
 
 const db = new DatabaseSync(path);
-const reset = resetAdmin(db, username);
+const reset = resetAdmin(db, email);
 db.close();
 if (!reset) {
-	console.error('That is not the admin username; nothing was changed.');
+	console.error('That is not the email address of an admin; nothing was changed.');
 	process.exit(1);
 }
 console.log('Admin account and sessions deleted. Open /setup to set it up again;');
