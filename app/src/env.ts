@@ -53,8 +53,13 @@ export const variables = defineEnvVars({
 	},
 	SMTP_PORT: {
 		description:
-			'Port of the SMTP server; 465 uses TLS from the start, others STARTTLS when offered; default 587',
+			'Port of the SMTP server; 465 uses TLS from the start, others STARTTLS; default 587',
 		schema: parseSmtpPort
+	},
+	SMTP_ALLOW_PLAINTEXT: {
+		description:
+			'With `true`, send without TLS when the SMTP server offers no STARTTLS, such as a local mail catcher; otherwise such a server gets no mail',
+		schema: (value) => value === 'true'
 	},
 	SMTP_USER: {
 		description: 'User name at the SMTP server; empty: send without logging in',

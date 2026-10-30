@@ -1,5 +1,6 @@
 import {
 	BASE_URL,
+	SMTP_ALLOW_PLAINTEXT,
 	SMTP_FROM,
 	SMTP_HOST,
 	SMTP_PASSWORD,
@@ -20,6 +21,7 @@ export function mailer(): Mailer | undefined {
 			port: SMTP_PORT,
 			user: SMTP_USER,
 			password: SMTP_PASSWORD,
+			allowPlainText: SMTP_ALLOW_PLAINTEXT,
 			from: SMTP_FROM,
 			baseUrl: BASE_URL
 		})

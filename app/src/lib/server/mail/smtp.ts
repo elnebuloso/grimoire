@@ -6,6 +6,8 @@ export interface SmtpSettings {
 	port: number;
 	user: string;
 	password: string;
+	/** Send without TLS when the server offers no STARTTLS; for a mail catcher on the same host. */
+	allowPlainText: boolean;
 	from: string;
 	/** Where grimoire is reached, such as `https://grimoire.example.com`; links in mails point there. */
 	baseUrl: string;
@@ -53,9 +55,11 @@ export function createMailer(settings: SmtpSettings): Mailer | undefined {
 	const transport = createTransport({
 		host: settings.host,
 		port: settings.port,
-		// Port 465 speaks TLS from the start; on the others nodemailer upgrades with STARTTLS
-		// when the server offers it.
+		// Port 465 speaks TLS from the start; on the others nodemailer upgrades with STARTTLS. That
+		// is required: whoever sits between grimoire and the server could strip the offer and read
+		// the SMTP password and every password reset link.
 		secure: settings.port === 465,
+		requireTLS: !settings.allowPlainText,
 		auth: settings.user ? { user: settings.user, pass: settings.password } : undefined
 	});
 	return {

@@ -12,6 +12,7 @@ const SETTINGS: SmtpSettings = {
 	port: 587,
 	user: 'grimoire',
 	password: 'smtp-secret',
+	allowPlainText: false,
 	from: 'grimoire <grimoire@example.com>',
 	baseUrl: 'https://grimoire.example.com'
 };
@@ -47,9 +48,18 @@ describe('createMailer', () => {
 			host: 'smtp.example.com',
 			port: 587,
 			secure: false,
+			requireTLS: true,
 			auth: { user: 'grimoire', pass: 'smtp-secret' }
 		});
 		expect(sendMail).toHaveBeenCalledWith({ from: 'grimoire <grimoire@example.com>', ...MAIL });
+	});
+
+	it('sends without TLS only when plain text is allowed', () => {
+		createMailer({ ...SETTINGS, host: 'localhost', port: 1025, allowPlainText: true });
+
+		expect(createTransport).toHaveBeenCalledWith(
+			expect.objectContaining({ port: 1025, secure: false, requireTLS: false })
+		);
 	});
 
 	it('uses TLS from the start on port 465 and logs in only with a user', () => {

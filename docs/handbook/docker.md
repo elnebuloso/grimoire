@@ -134,7 +134,8 @@ quota, and syncs take correspondingly longer.
 | `LOG_FORMAT` | not set (`ecs`) | `ecs` for one JSON object per line, `pretty` for readable text. |
 | `LOG_LEVEL` | not set (`info`) | Lowest level that is written: `error`, `warn`, `info` or `debug`. |
 | `SMTP_HOST` | not set (no mail) | SMTP server grimoire sends mail through. Not set: no mail is sent, and what needs it is not offered. |
-| `SMTP_PORT` | not set (`587`) | Port of the SMTP server; `465` uses TLS from the start, other ports STARTTLS when the server offers it. |
+| `SMTP_PORT` | not set (`587`) | Port of the SMTP server; `465` uses TLS from the start, other ports STARTTLS. A server that offers no STARTTLS gets no mail: someone between grimoire and the server could otherwise remove the offer and read the SMTP password and every password reset link. |
+| `SMTP_ALLOW_PLAINTEXT` | not set | `true`: send without TLS when the server offers no STARTTLS. Only for a server nobody can listen in between, such as a mail catcher on the same host. |
 | `SMTP_USER`, `SMTP_PASSWORD` | not set | Login at the SMTP server; without `SMTP_USER` grimoire sends without logging in. |
 | `BASE_URL` | not set | Where grimoire is reached, such as `https://grimoire.example.com`. Links in mails, the `claude mcp add` command on the start page and the links in `llms.txt` point there; not set, the last two use the address the request arrived at. A request arriving at another address is logged once as a warning. Required with `SMTP_HOST`. |
 | `SMTP_FROM` | not set | Sender address of the mails, such as `grimoire <grimoire@example.com>`; required with `SMTP_HOST`, the server does not start without it. |
