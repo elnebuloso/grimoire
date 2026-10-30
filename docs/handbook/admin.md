@@ -134,8 +134,11 @@ page, on the project's page and under **Needs attention**.
 | `branch "main" not found in https://…` | Correct **Branch**. |
 | `source path "docs" does not exist in the repository` | Correct **Path in the repository**. |
 | `invalid cron expression "0 25 * * *": …` | Correct **Schedule**. |
-| `indexing took longer than 10 minutes` | Split the source into smaller paths, or ask authors to look for a huge or generated page. |
+| `indexing took longer than 10 minutes` | Split the source into smaller paths, ask authors to look for a huge or generated page, or ask the operator for a longer indexing deadline (see [Memory and CPU limits](docker.md#memory-and-cpu-limits)). |
 | `indexing ended with … before it finished, out of memory for example` | Ask the operator for more memory (see [Memory and CPU limits](docker.md#memory-and-cpu-limits)). |
+
+When indexing fails, that commit is not indexed again: checks keep showing the error until the
+branch moves on. **Sync now** and saving the source try the same commit again.
 
 A Git server that does not answer within 30 seconds is skipped until the next scheduled check and
 shows as error. Warnings about single pages and includes are for the authors; they explain them on

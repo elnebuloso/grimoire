@@ -13,6 +13,9 @@ export interface SyncSource {
 	username: string | null;
 	encryptedToken: string | null;
 	lastCommit: string | null;
+	/** The commit whose indexing failed with `error`; null once a sync succeeds or is unchanged. */
+	failedCommit: string | null;
+	error: string | null;
 }
 
 export interface IndexedPage {
@@ -42,6 +45,8 @@ interface SourceRow {
 	username: string | null;
 	encrypted_token: string | null;
 	last_commit: string | null;
+	failed_commit: string | null;
+	error: string | null;
 }
 
 export interface SourceSchedule {
@@ -78,7 +83,8 @@ export function recordCheck(db: DatabaseSync, sourceId: number, at: Date) {
 export function sourceForSync(db: DatabaseSync, sourceId: number): SyncSource {
 	const row = db
 		.prepare(
-			`SELECT id, git_url, branch, path, exclusions, username, encrypted_token, last_commit
+			`SELECT id, git_url, branch, path, exclusions, username, encrypted_token, last_commit,
+				failed_commit, error
 			FROM sources WHERE id = ?`
 		)
 		.get(sourceId) as SourceRow | undefined;
@@ -91,7 +97,9 @@ export function sourceForSync(db: DatabaseSync, sourceId: number): SyncSource {
 		exclusions: JSON.parse(row.exclusions) as string[],
 		username: row.username,
 		encryptedToken: row.encrypted_token,
-		lastCommit: row.last_commit
+		lastCommit: row.last_commit,
+		failedCommit: row.failed_commit,
+		error: row.error
 	};
 }
 
@@ -184,7 +192,7 @@ export function replaceSourceIndex(
 
 	db.prepare(
 		`UPDATE sources SET index_generation = ?, last_commit = ?, last_synced_at = ?, error = NULL,
-			warnings = ?
+			failed_commit = NULL, warnings = ?
 		WHERE id = ?`
 	).run(
 		generation,
@@ -231,14 +239,30 @@ function batches<T>(items: T[], weight: (item: T) => number, max: number): T[][]
 	return result;
 }
 
-/** Stores why a sync failed; the index of the last successful sync stays as it is. */
-export function recordSyncError(db: DatabaseSync, sourceId: number, message: string) {
-	db.prepare('UPDATE sources SET error = ? WHERE id = ?').run(message, sourceId);
+/**
+ * Stores why a sync failed; the index of the last successful sync stays as it is. With
+ * `failedCommit`, indexing that commit failed, and it is not indexed again unless forced.
+ */
+export function recordSyncError(
+	db: DatabaseSync,
+	sourceId: number,
+	message: string,
+	failedCommit?: string
+) {
+	if (failedCommit === undefined) {
+		db.prepare('UPDATE sources SET error = ? WHERE id = ?').run(message, sourceId);
+	} else {
+		db.prepare('UPDATE sources SET error = ?, failed_commit = ? WHERE id = ?').run(
+			message,
+			failedCommit,
+			sourceId
+		);
+	}
 }
 
 /** The source was reachable and is up to date, so an earlier error no longer applies. */
 export function clearSyncError(db: DatabaseSync, sourceId: number) {
-	db.prepare('UPDATE sources SET error = NULL WHERE id = ?').run(sourceId);
+	db.prepare('UPDATE sources SET error = NULL, failed_commit = NULL WHERE id = ?').run(sourceId);
 }
 
 // Enough to see a source's recent story; repeats are counted in one entry, not stored apart.

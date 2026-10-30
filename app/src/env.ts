@@ -31,6 +31,19 @@ export const variables = defineEnvVars({
 			'When sources without their own schedule are checked for new commits: cron expression with five fields, in the time zone `TZ`; default every 5 minutes',
 		schema: (value) => parseSchedule(value || '*/5 * * * *')
 	},
+	INDEXING_DEADLINE_MINUTES: {
+		description:
+			'How long indexing one source may take before its sync fails, in whole minutes up to 1440; default 10',
+		schema: (value) => {
+			const minutes = Number(value || '10');
+			if (!Number.isInteger(minutes) || minutes < 1 || minutes > 1440) {
+				throw new Error(
+					`INDEXING_DEADLINE_MINUTES must be whole minutes from 1 to 1440, got "${value}"`
+				);
+			}
+			return minutes;
+		}
+	},
 	TZ: {
 		description:
 			'Time zone of the instance, an IANA name such as `Europe/Berlin`: schedules run and the UI shows times in it; default UTC',

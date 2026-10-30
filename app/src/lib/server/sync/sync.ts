@@ -78,6 +78,7 @@ async function checkAndSync(
 	// Set again when the check really starts; also recorded when it never got that far, so a
 	// broken source waits for its next scheduled run instead of being retried on every tick.
 	let checkedAt = new Date();
+	let indexingCommit: string | undefined;
 
 	try {
 		const token = source.encryptedToken && decryptToken(source.encryptedToken, options.key);
@@ -94,12 +95,18 @@ async function checkAndSync(
 			clearSyncError(db, sourceId);
 			return { status: 'unchanged', commit: latest };
 		}
+		// Indexing the same commit again fails the same way, and a run up to the deadline would
+		// otherwise hold the single sync slot in every interval; a new commit or a forced run retries.
+		if (latest === source.failedCommit && source.error && !options.force) {
+			return { status: 'failed', error: source.error };
+		}
 
 		return await lanes.sync(async () => {
 			const checkout = await mkdtemp(join(options.workDirectory ?? tmpdir(), 'grimoire-sync-'));
 			try {
 				await sparseClone(remote, source.branch, source.path, checkout);
 				const commit = await headCommit(checkout);
+				indexingCommit = latest;
 				const indexed = await indexInProcess(
 					{
 						checkout,
@@ -120,7 +127,7 @@ async function checkAndSync(
 		});
 	} catch (error) {
 		const message = redact((error as Error).message, remote);
-		recordSyncError(db, sourceId, message);
+		recordSyncError(db, sourceId, message, indexingCommit);
 		return { status: 'failed', error: message };
 	} finally {
 		recordCheck(db, sourceId, checkedAt);

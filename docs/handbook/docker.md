@@ -112,7 +112,8 @@ For documentation of that size, use `limits: { cpu: "1", memory: 512Mi }` with
 `requests: { cpu: 250m, memory: 512Mi }`. A lower memory limit makes syncs slower until one no
 longer fits; then that sync fails with
 `indexing ended with … before it finished, out of memory for example`, the source keeps its
-previous index, and grimoire keeps answering. Below one CPU, searches during a sync wait for CPU
+previous index, and grimoire keeps answering. On less CPU, a large source can outlast the
+indexing deadline; raise `INDEXING_DEADLINE_MINUTES`. Below one CPU, searches during a sync wait for CPU
 time.
 
 ## Setup token
@@ -178,6 +179,7 @@ recipient address.
 | `TOKEN_ENCRYPTION_KEY` | none, required | Key encrypting the Git access tokens of all sources: 32 random bytes, base64. The server does not start without it, also with `MIGRATE_ONLY`. See [Encryption key](database.md#encryption-key). |
 | `DATABASE_PATH` | `/data/grimoire.db` | Path of the database file; created with its schema on first start. Keep it in a directory of its own (see [Volume](database.md#volume)). |
 | `SYNC_SCHEDULE` | `*/5 * * * *` | When sources without their own schedule are checked: cron with five fields (minute, hour, day of month, month, day of week), in `TZ`. For a Git server that allows few requests, `0 * * * *`. |
+| `INDEXING_DEADLINE_MINUTES` | `10` | How long indexing one source may take before its sync fails, whole minutes from 1 to 1440. Raise it when a large source fails with `indexing took longer than 10 minutes` (see [Memory and CPU limits](#memory-and-cpu-limits)); one source indexes at a time, so every other source waits that long behind it. |
 | `TZ` | UTC | IANA time zone, such as `Europe/Berlin`. Schedules run in it, including summer time, and the UI shows every time in it, whatever the browser's time zone. API key expiry dates end at midnight in it. |
 | `INCLUDE_URL_ALLOW` | none | Origins pages may include files from by URL, separated by commas, such as `https://docs.example.com,https://raw.githubusercontent.com`. `https://` only, nothing after host and port. Nothing else is requested for an include, and no redirect is followed. |
 | `LOG_FORMAT` | `ecs` | `ecs`: one JSON object per line (see [Logs](#logs)). `pretty`: readable text for local use. |
@@ -194,7 +196,7 @@ recipient address.
 | `MIGRATE_ONLY` | `false` | `true`: update the schema and exit, such as in an init container. |
 | `PORT` | `3000` | Port the server listens on. |
 
-An invalid value of `SYNC_SCHEDULE`, `TZ`, `INCLUDE_URL_ALLOW`, `LOG_FORMAT` or `LOG_LEVEL` stops
+An invalid value of `SYNC_SCHEDULE`, `INDEXING_DEADLINE_MINUTES`, `TZ`, `INCLUDE_URL_ALLOW`, `LOG_FORMAT` or `LOG_LEVEL` stops
 the start with an error naming the variable.
 
 ## Logs

@@ -1,4 +1,10 @@
-import { INCLUDE_URL_ALLOW, SYNC_SCHEDULE, TOKEN_ENCRYPTION_KEY, TZ } from '$app/env/private';
+import {
+	INCLUDE_URL_ALLOW,
+	INDEXING_DEADLINE_MINUTES,
+	SYNC_SCHEDULE,
+	TOKEN_ENCRYPTION_KEY,
+	TZ
+} from '$app/env/private';
 import { database } from '../db';
 import { listSchedules, recordSyncError } from '../db/sources';
 import { createSyncQueue, startPolling } from './queue';
@@ -13,7 +19,8 @@ const queue = createSyncQueue((sourceId, force, lanes) =>
 		key: TOKEN_ENCRYPTION_KEY,
 		force,
 		lanes,
-		allowedIncludeOrigins: INCLUDE_URL_ALLOW
+		allowedIncludeOrigins: INCLUDE_URL_ALLOW,
+		indexingDeadlineMs: INDEXING_DEADLINE_MINUTES * 60_000
 	})
 );
 

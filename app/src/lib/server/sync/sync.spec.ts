@@ -350,6 +350,40 @@ describe('syncSource', () => {
 		).toMatchObject({ status: 'synced', pages: 3 });
 	});
 
+	it('does not index a commit again whose indexing failed, unless forced', async () => {
+		await syncSource(db, source, { key, workDirectory: work });
+		commitFiles({ 'docs/new.md': '# New\n' });
+		await syncSource(db, source, { key, workDirectory: work, indexingDeadlineMs: 1 });
+
+		// Without the short deadline, indexing would succeed: failing again shows it did not run.
+		expect(await syncSource(db, source, { key, workDirectory: work })).toEqual({
+			status: 'failed',
+			error: 'indexing took longer than 0.001 seconds'
+		});
+		expect(rows('SELECT error FROM sources WHERE id = ?', source)).toEqual([
+			{ error: 'indexing took longer than 0.001 seconds' }
+		]);
+		expect(await syncSource(db, source, { key, workDirectory: work, force: true })).toMatchObject({
+			status: 'synced',
+			pages: 3
+		});
+	});
+
+	it('indexes the next commit after one whose indexing failed', async () => {
+		await syncSource(db, source, { key, workDirectory: work });
+		commitFiles({ 'docs/new.md': '# New\n' });
+		await syncSource(db, source, { key, workDirectory: work, indexingDeadlineMs: 1 });
+		commitFiles({ 'docs/newer.md': '# Newer\n' });
+
+		expect(await syncSource(db, source, { key, workDirectory: work })).toMatchObject({
+			status: 'synced',
+			pages: 4
+		});
+		expect(rows('SELECT error, failed_commit FROM sources WHERE id = ?', source)).toEqual([
+			{ error: null, failed_commit: null }
+		]);
+	});
+
 	it('fails a sync whose indexing runs out of memory and keeps syncing other sources', async () => {
 		const sections = Array.from({ length: 10_000 }, (_, i) => `## Section ${i}\n\n${filler}`);
 		commitFiles({ 'docs/huge.md': `# Huge\n\n${sections.join('\n\n')}` });

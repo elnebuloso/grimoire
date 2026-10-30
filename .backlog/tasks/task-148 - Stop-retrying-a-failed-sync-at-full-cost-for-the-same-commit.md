@@ -1,10 +1,11 @@
 ---
 id: TASK-148
 title: Stop retrying a failed sync at full cost for the same commit
-status: To Do
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-30 13:41'
+updated_date: '2026-10-30 13:53'
 labels:
   - sync
 milestone: m-0
@@ -32,9 +33,31 @@ Possible approaches (the worker decides): store the commit whose sync stage fail
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 A source whose sync stage failed is not cloned and indexed again by an unforced run while the remote branch still points at the commit that failed; a test with `indexingDeadlineMs: 1` shows a second unforced run at the same commit starts no indexing process
-- [ ] #2 A forced run ("sync now", or a change to the source settings) still tries the failed commit again
-- [ ] #3 A new commit on the branch is synced normally after a failure
-- [ ] #4 The admin still sees the failure and its error on the source while the commit is skipped
-- [ ] #5 The indexing deadline is configurable by an environment variable declared in `app/src/env.ts`, listed in `app/.env.example`, documented in `docs/handbook/docker.md`, with the error row in `docs/handbook/admin.md` matching the actual message
+- [x] #1 A source whose sync stage failed is not cloned and indexed again by an unforced run while the remote branch still points at the commit that failed; a test with `indexingDeadlineMs: 1` shows a second unforced run at the same commit starts no indexing process
+- [x] #2 A forced run ("sync now", or a change to the source settings) still tries the failed commit again
+- [x] #3 A new commit on the branch is synced normally after a failure
+- [x] #4 The admin still sees the failure and its error on the source while the commit is skipped
+- [x] #5 The indexing deadline is configurable by an environment variable declared in `app/src/env.ts`, listed in `app/.env.example`, documented in `docs/handbook/docker.md`, with the error row in `docs/handbook/admin.md` matching the actual message
 <!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. Migration `0020-failed-commit.sql`: `sources.failed_commit`.
+2. `checkAndSync` remembers the commit it hands to indexing; when indexing fails, `recordSyncError` stores it as `failed_commit`. Clone and check failures do not set it, so a network error during clone is still retried.
+3. An unforced run whose `latest` equals `failed_commit` (with the error still standing) returns the stored error without cloning or indexing. A successful swap and an unchanged check clear `failed_commit` with the error.
+4. `INDEXING_DEADLINE_MINUTES` (whole minutes 1-1440, default 10) in `app/src/env.ts`, passed by `sync/index.ts`; `.env.example`, `docker.md` (variable table, invalid-values list, memory section) and `admin.md` (error row, retry rule).
+5. Tests in `sync.spec.ts`: second unforced run at the failed commit does not index, forced run does; next commit syncs and clears `failed_commit`.
+<!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Decision: only indexing failures mark the commit, not clone/check failures, because those can be transient (network) and indexing is the expensive, deterministic part. The fixture source `billing/archive` (missing path) now carries `failed_commit` too, since that check runs in the indexing process; it is deterministic per commit, and saving the source after fixing the path forces a retry. Upper bound 1440 minutes because `setTimeout` fires at once beyond about 24.8 days. Verified: new test fails without the change in `sync.ts`; agent environment with `INDEXING_DEADLINE_MINUTES=0` answers 500 and logs `INDEXING_DEADLINE_MINUTES must be whole minutes from 1 to 1440, got "0"`, with `15` it starts; after `make agent-reset` both fixture sources sync. `make lint`, `make test` (631) and `make handbook` pass.
+<!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+A commit whose indexing failed (deadline, out of memory, missing path) is no longer cloned and indexed again on every check: `sources.failed_commit` (migration `0020`) remembers it, and an unforced run at that commit returns the stored error without touching the sync slot. "Sync now", saving the source, or a new commit retry; a successful or unchanged run clears it. Clone and check failures still retry as before. The deadline is now `INDEXING_DEADLINE_MINUTES` (default 10, 1-1440), documented in `docker.md` and `.env.example`; `admin.md` names the retry rule and the operator option. Tests cover skip, forced retry and next commit; lint, tests and handbook pass.
+<!-- SECTION:FINAL_SUMMARY:END -->
