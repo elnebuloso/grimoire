@@ -87,6 +87,23 @@ describe('setup', () => {
 	});
 });
 
+describe('setupAdmin submitted twice at once', () => {
+	it.each([
+		['the same address', 'admin@example.com'],
+		['another address', 'other@example.com']
+	])('creates one admin and answers the second submit with %s admin-exists', async (_, email) => {
+		const token = loggedToken();
+
+		const results = await Promise.all([
+			auth.setupAdmin(db, { token, email: 'admin@example.com', password: PASSWORD }),
+			auth.setupAdmin(db, { token, email, password: PASSWORD })
+		]);
+
+		expect(results).toEqual([undefined, { error: 'admin-exists' }]);
+		expect(db.prepare('SELECT email FROM users').all()).toEqual([{ email: 'admin@example.com' }]);
+	});
+});
+
 describe('login', () => {
 	beforeEach(() => setUp());
 

@@ -138,15 +138,17 @@ export async function createUser(
 ): Promise<number> {
 	// Hashed before the transaction: other requests share the connection while it is awaited.
 	const passwordHash = await hashPassword(form.password);
-	return inTransaction(db, () => {
-		const { lastInsertRowid } = db
-			.prepare('INSERT INTO users (email, password_hash) VALUES (?, ?)')
-			.run(normalizeEmail(form.email), passwordHash);
-		for (const role of form.roles) {
-			db.prepare('INSERT INTO user_roles (user_id, role) VALUES (?, ?)').run(lastInsertRowid, role);
-		}
-		return Number(lastInsertRowid);
-	});
+	return inTransaction(db, () => insertUser(db, form.email, passwordHash, form.roles));
+}
+
+function insertUser(db: DatabaseSync, email: string, passwordHash: string, roles: Role[]): number {
+	const { lastInsertRowid } = db
+		.prepare('INSERT INTO users (email, password_hash) VALUES (?, ?)')
+		.run(normalizeEmail(email), passwordHash);
+	for (const role of roles) {
+		db.prepare('INSERT INTO user_roles (user_id, role) VALUES (?, ?)').run(lastInsertRowid, role);
+	}
+	return Number(lastInsertRowid);
 }
 
 /**
@@ -180,9 +182,16 @@ export async function setupAdmin(
 		return { error: 'wrong-setup-token' };
 	if (!looksLikeEmail(normalizeEmail(form.email))) return { error: 'email-invalid' };
 	if (form.password.length < MIN_PASSWORD_LENGTH) return { error: 'password-too-short' };
-	await createUser(db, { email: form.email, password: form.password, roles: ['admin'] });
+	const passwordHash = await hashPassword(form.password);
+	// Checked again: a second submit, a double click say, passed the check above while this one
+	// was hashing.
+	const created = inTransaction(db, () => {
+		if (adminExists(db)) return false;
+		insertUser(db, form.email, passwordHash, ['admin']);
+		return true;
+	});
 	checkAdminAccount(db);
-	return undefined;
+	return created ? undefined : { error: 'admin-exists' };
 }
 
 /**
