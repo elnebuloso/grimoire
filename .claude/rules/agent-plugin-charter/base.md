@@ -16,7 +16,10 @@
 - **New code gets tests where the logic can fail** — branches, edge cases, error paths. No test
   for a getter, a pass-through or a config constant. Test behavior through the public interface;
   mock only what you can't run (network, clock, payment provider).
-- **Bugfixes need a regression test.** When you fix a bug, first write a unit test that
+- **Test at the lowest level that can catch the failure.** Logic and edge cases go in unit tests;
+  an integration test covers where parts meet (database, HTTP, queue, file system); an end-to-end
+  test covers a flow through the system. No higher-level test for what a lower one already covers.
+- **Bugfixes need a regression test.** When you fix a bug, first write a test that
   reproduces it (fails before, passes after) so it can't silently come back. Not sensibly
   testable? Say why — no empty test as a placeholder.
 - **A test fails only when the code is broken.** Nothing in a test depends on the current time, a
@@ -51,6 +54,7 @@
 
 ## Git
 
+- **Never push on your own.** Commit locally; the user pushes, or asks you to in so many words.
 - **Conventional Commits, one coherent change per commit.** Don't bundle unrelated work.
   Example: `fix(auth): handle expired tokens on refresh`
 - **Always `git pull --rebase` before pushing.** Rebase, not merge.
