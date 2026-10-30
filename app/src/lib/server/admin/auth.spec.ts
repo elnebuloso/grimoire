@@ -175,6 +175,25 @@ describe('login', () => {
 		).toHaveLength(2);
 	});
 
+	it('refuses logins of any client while too many password hashes wait', async () => {
+		// Warms the hash compared against for unknown addresses; cheap stored hashes keep this fast.
+		await auth.login(db, 'warm-up', { email: 'admin@example.com', password: PASSWORD }, NOW);
+		const cheap = await auth.hashPassword(PASSWORD, { N: 2 ** 10, r: 8, p: 1 });
+		db.prepare('UPDATE users SET password_hash = ?').run(cheap);
+
+		const results = await Promise.all(
+			Array.from({ length: 17 }, (_, client) =>
+				auth.login(db, `client-${client}`, { email: 'admin@example.com', password: 'nope' }, NOW)
+			)
+		);
+
+		expect(results.slice(0, 16)).toEqual(Array(16).fill({ error: 'wrong-credentials' }));
+		expect(results[16]).toEqual({ error: 'blocked' });
+		expect(
+			await auth.login(db, 'client-16', { email: 'admin@example.com', password: PASSWORD }, NOW)
+		).toHaveProperty('session');
+	});
+
 	it('counts failures from zero again after 15 quiet minutes', async () => {
 		const fail = (at: Date) =>
 			auth.login(db, 'typo', { email: 'admin@example.com', password: 'nope' }, at);

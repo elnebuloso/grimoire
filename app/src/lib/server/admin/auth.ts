@@ -4,6 +4,7 @@ import type { DatabaseSync } from 'node:sqlite';
 // With its extension: the scripts in `scripts/` load this file with plain node.
 import { inTransaction } from '../db/transaction.ts';
 import { log, logAlways } from '../log.ts';
+import { createLimiter } from '../sync/queue.ts';
 
 export const SESSION_COOKIE = 'grimoire_session';
 // Every page shows whether the admin is logged in, so the cookie goes to the whole site; no
@@ -72,9 +73,24 @@ const scryptAsync = promisify(scrypt) as (
 // stored hashes verifiable.
 const COST = { N: 2 ** 17, r: 8, p: 1 };
 
-function scryptWith(password: string, salt: Buffer, keyLength: number, cost: typeof COST) {
-	// Node refuses more than 32 MiB by default; scrypt needs 128 * N * r bytes.
-	return scryptAsync(password, salt, keyLength, { ...cost, maxmem: 2 * 128 * cost.N * cost.r });
+// Every hash takes 128 MiB and a thread of the pool that file and DNS calls wait on too (4 by
+// default). The failed-login count is per client, so without a limit across clients, logins
+// from many addresses would take all of both.
+const PARALLEL_HASHES = 2;
+// Beyond this many waiting or running hashes a login is refused rather than queued.
+const MAX_PENDING_HASHES = 16;
+const hashing = createLimiter(PARALLEL_HASHES);
+let pendingHashes = 0;
+
+async function scryptWith(password: string, salt: Buffer, keyLength: number, cost: typeof COST) {
+	pendingHashes++;
+	try {
+		// Node refuses more than 32 MiB by default; scrypt needs 128 * N * r bytes.
+		const maxmem = 2 * 128 * cost.N * cost.r;
+		return await hashing(() => scryptAsync(password, salt, keyLength, { ...cost, maxmem }));
+	} finally {
+		pendingHashes--;
+	}
 }
 
 export async function hashPassword(password: string, cost = COST): Promise<string> {
@@ -174,7 +190,7 @@ export async function setupAdmin(
 
 /**
  * Checks the credentials of one client. Returns a new session token, or why not; a client is
- * blocked for a while after too many failures.
+ * blocked for a while after too many failures, and every client while too many hashes wait.
  */
 export async function login(
 	db: DatabaseSync,
@@ -182,7 +198,7 @@ export async function login(
 	form: { email: string; password: string },
 	now = new Date()
 ): Promise<{ session: string } | { error: AuthProblem }> {
-	if (isBlocked(client, now)) return { error: 'blocked' };
+	if (isBlocked(client, now) || pendingHashes >= MAX_PENDING_HASHES) return { error: 'blocked' };
 	// Counted before the password is checked: requests sent in parallel would otherwise all pass
 	// the block check while their hashes run. A successful login forgets it again.
 	recordFailedLogin(client, now);
@@ -232,7 +248,7 @@ export async function changePassword(
 	form: { current: string; password: string },
 	now = new Date()
 ): Promise<{ error: AuthProblem } | undefined> {
-	if (isBlocked(client, now)) return { error: 'blocked' };
+	if (isBlocked(client, now) || pendingHashes >= MAX_PENDING_HASHES) return { error: 'blocked' };
 	// Counted before the check, for the same reason as in `login`.
 	recordFailedLogin(client, now);
 	const user = sessionUser(db, session, now);
