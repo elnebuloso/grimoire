@@ -1,11 +1,11 @@
 ---
 id: TASK-53
 title: Develop the frontend design from mockups
-status: In Progress
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-29T06:55:00Z'
-updated_date: '2026-10-30 18:25'
+updated_date: '2026-10-30 18:28'
 labels:
   - admin
 milestone: m-0
@@ -27,12 +27,12 @@ The mockups are separate from `app/`: they imitate the current behaviour but do 
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Each round offers the developer a proposed number of independent mockups, each in a clearly different direction or, after the first round, a different variation of the chosen one
-- [ ] #2 Every mockup opens in the browser and is fully usable: every page of the current UI (start page, setup, login, forgot password, password reset, account, error page, and in the management area the overview, source detail with page preview, new source, try a query, queries without results, API keys, settings and dead links) with its states, including empty, error and validation states
-- [ ] #3 The mockups mirror the current behaviour of the UI: the same pages, fields, steps and messages, without inventing features
-- [ ] #4 After each round the developer picks a direction, and the choice and feedback are recorded in this task's notes before the next round starts
-- [ ] #5 The rounds end when the developer declares the design agreed
-- [ ] #6 The agreed design is usable as a template for implementation: its design decisions (colours, typography, spacing, components, light and dark variant) are kept in `docs/design.md`; the mockups themselves stay local in `docs/mockups/`, which git ignores
+- [x] #1 Each round offers the developer a proposed number of independent mockups, each in a clearly different direction or, after the first round, a different variation of the chosen one
+- [x] #2 Every mockup opens in the browser and is fully usable: every page of the current UI (start page, setup, login, forgot password, password reset, account, error page, and in the management area the overview, source detail with page preview, new source, try a query, queries without results, API keys, settings and dead links) with its states, including empty, error and validation states
+- [x] #3 The mockups mirror the current behaviour of the UI: the same pages, fields, steps and messages, without inventing features
+- [x] #4 After each round the developer picks a direction, and the choice and feedback are recorded in this task's notes before the next round starts
+- [x] #5 The rounds end when the developer declares the design agreed
+- [x] #6 The agreed design is usable as a template for implementation: its design decisions (colours, typography, spacing, components, light and dark variant) are kept in `docs/design.md`; the mockups themselves stay local in `docs/mockups/`, which git ignores
 <!-- AC:END -->
 
 ## Implementation Plan
@@ -63,4 +63,18 @@ Round 2 choice: the developer likes e/1 (Soft UI Evolution) best. d/1 and f/1 ar
 Round 3 requested: e/2 = e/1 refined with the missing states (global pause, never synced, sync warnings, stored/entered token, empty page filter, copy status; added to SPEC.md); variations of e/2 with one change each: e/3 sidebar navigation, e/4 denser, e/5 different accent, e/6 cooler palette.
 
 Round 3 built: e/2 (all missing states, dark input border raised to 3:1 on raised surfaces), e/3 sidebar nav (CSS only), e/4 denser (spacing 2-32, controls 34px, 44px on coarse pointers), e/5 ink-blue accent (#2A4596 / #9FB5F2; ochre rejected as too close to the warning colour), e/6 cool neutrals with petrol shifted to #0C5876 / #7FC2DD. Playwright: 690 page states in light and dark, 0 contrast failures, no overflow at 390, 900 and 1366 px, theme kept across pages. Waiting for the developer's choice.
+
+Round 3 choice: the developer chose e/6 ("e/6 ist meine Entscheidung") and with it ends the rounds. Its design decisions are written to `docs/design.md`; the mockups stay local in `docs/mockups/`.
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Found grimoire's visual design through clickable mockups in three rounds. Round 1 offered three directions (a editorial, b industrial, c product console); a and b were rejected. Round 2 offered three directions from the `ui-ux-pro-max` style catalog (d Swiss Modernism 2.0, e Soft UI Evolution, f Flat Design); the developer chose e. Round 3 offered e/2 (all states) and four single-change variations; the developer chose e/6, cool neutrals with a petrol accent.
+
+Result: `docs/design.md` holds colours (light and dark tokens), typography (IBM Plex Sans/Mono), spacing, depth, motion, the theme switch behaviour and the component rules, as the template for TASK-37 and TASK-50. The mockups themselves (`docs/mockups/`, git-ignored) mirror every page and state of the current UI from `docs/mockups/_shared/SPEC.md`; open them over a local server (`cd docs/mockups && python3 -m http.server 8765`), since browsers block their script over file://.
+
+Verification: every round was checked with Playwright over all pages and states in light and dark (690 page states in round 3): measured text contrast at WCAG AA with 0 failures, no horizontal overflow at 390, 900 and 1366 px, theme choice kept across pages, no broken links.
+
+Risk: the mockups exist only on this machine; `docs/design.md` is the lasting record.
+<!-- SECTION:FINAL_SUMMARY:END -->

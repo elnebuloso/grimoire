@@ -4,12 +4,14 @@ title: Finalize the frontend design
 status: To Do
 assignee: []
 created_date: '2026-10-28T23:50:00Z'
-updated_date: '2026-10-29T06:55:00Z'
+updated_date: '2026-10-30 18:28'
 labels:
   - admin
 milestone: m-0
 dependencies:
   - TASK-53
+documentation:
+  - docs/design.md
 priority: low
 type: feature
 ordinal: 99000
