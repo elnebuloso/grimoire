@@ -1,4 +1,4 @@
-import { createHash, randomBytes, scrypt, timingSafeEqual } from 'node:crypto';
+import { createHash, randomBytes, scrypt, timingSafeEqual, type ScryptOptions } from 'node:crypto';
 import { promisify } from 'node:util';
 import type { DatabaseSync } from 'node:sqlite';
 // With its extension: the scripts in `scripts/` load this file with plain node.
@@ -62,20 +62,33 @@ function sameText(a: string, b: string): boolean {
 const scryptAsync = promisify(scrypt) as (
 	password: string,
 	salt: Buffer,
-	keyLength: number
+	keyLength: number,
+	options: ScryptOptions
 ) => Promise<Buffer>;
 
-export async function hashPassword(password: string): Promise<string> {
+// OWASP's minimum for scrypt. The hash carries its parameters, so raising them later leaves the
+// stored hashes verifiable.
+const COST = { N: 2 ** 17, r: 8, p: 1 };
+
+function scryptWith(password: string, salt: Buffer, keyLength: number, cost: typeof COST) {
+	// Node refuses more than 32 MiB by default; scrypt needs 128 * N * r bytes.
+	return scryptAsync(password, salt, keyLength, { ...cost, maxmem: 2 * 128 * cost.N * cost.r });
+}
+
+export async function hashPassword(password: string, cost = COST): Promise<string> {
 	const salt = randomBytes(16);
-	const hash = await scryptAsync(password, salt, 64);
-	return `${salt.toString('base64')}$${hash.toString('base64')}`;
+	const hash = await scryptWith(password, salt, 64, cost);
+	return ['scrypt', cost.N, cost.r, cost.p, salt.toString('base64'), hash.toString('base64')].join(
+		'$'
+	);
 }
 
 async function passwordMatches(password: string, stored: string): Promise<boolean> {
-	const [salt, hash] = stored.split('$');
+	const [, N, r, p, salt, hash] = stored.split('$');
 	const expected = Buffer.from(hash, 'base64');
+	const cost = { N: Number(N), r: Number(r), p: Number(p) };
 	return timingSafeEqual(
-		await scryptAsync(password, Buffer.from(salt, 'base64'), expected.length),
+		await scryptWith(password, Buffer.from(salt, 'base64'), expected.length, cost),
 		expected
 	);
 }

@@ -156,6 +156,18 @@ describe('login', () => {
 		expect(await fail(quiet)).toEqual({ error: 'blocked' });
 	});
 
+	it('verifies a hash made with other scrypt parameters than the current ones', async () => {
+		const cheaper = await auth.hashPassword(PASSWORD, { N: 2 ** 17, r: 4, p: 2 });
+		db.prepare("UPDATE users SET password_hash = ? WHERE username = 'admin'").run(cheaper);
+
+		expect(
+			await auth.login(db, 'client', { username: 'admin', password: PASSWORD }, NOW)
+		).toHaveProperty('session');
+		expect(
+			await auth.login(db, 'client', { username: 'admin', password: 'wrong horse battery' }, NOW)
+		).toEqual({ error: 'wrong-credentials' });
+	});
+
 	it('deletes expired sessions when a new one starts', async () => {
 		await auth.login(db, 'client', { username: 'admin', password: PASSWORD }, NOW);
 		const later = new Date(NOW.getTime() + 12 * 3_600_000);
