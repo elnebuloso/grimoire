@@ -157,11 +157,9 @@ describe('resolveIncludes', () => {
 		});
 
 		it('reads a very long name in linear time', () => {
-			const name = ',:1'.repeat(17_000) + '!';
-			const started = performance.now();
+			// The pattern pymdownx.snippets uses took over a minute for this name, past the timeout.
+			const name = ',:1'.repeat(60_000) + '!';
 			const result = resolve(`--8<-- "${name}"`, files);
-			// The pattern pymdownx.snippets uses took seconds for this name.
-			expect(performance.now() - started).toBeLessThan(1000);
 			expect(result.warnings).toEqual([`docs/deploy.md: include "${name}" not found`]);
 		});
 	});
@@ -197,11 +195,10 @@ describe('resolveIncludes', () => {
 		});
 
 		it('reads a long run of dashes in linear time', () => {
+			// A pattern that retried the dashes from every position took about 40 seconds here, past
+			// the timeout.
 			const dashes = '-'.repeat(200_000);
-			const started = performance.now();
 			const result = resolve(`${dashes}8< [start:x`, {});
-			// A pattern that retried the dashes from every position took about a minute here.
-			expect(performance.now() - started).toBeLessThan(1000);
 			expect(result.markdown).toBe(`${dashes}8< [start:x`);
 		});
 

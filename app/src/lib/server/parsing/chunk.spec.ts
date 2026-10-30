@@ -107,28 +107,18 @@ describe('chunkPage', () => {
 	});
 
 	it('reads a heading of any length in linear time', () => {
-		const started = performance.now();
+		// A pattern for the attribute list that retried from every position took over a minute at
+		// this length, far past the test timeout.
 		const page = chunk(
-			`# Guide\n\n## Long${' '.repeat(40_000)}x\n\n## Braces ${'{'.repeat(40_000)}x}x\n`
+			`# Guide\n\n## Long${' '.repeat(250_000)}x\n\n## Braces ${'{'.repeat(250_000)}x}x\n`
 		);
-		// A pattern for the attribute list that retries from every position took seconds here.
-		expect(performance.now() - started).toBeLessThan(1000);
 		expect(page.snippets[0].aliases).toEqual(['long-x', 'braces-xx']);
 	});
 
-	it('numbers repeated headings about as fast as distinct ones', () => {
-		const timed = (markdown: string) => {
-			const started = performance.now();
-			return { page: chunk(markdown), time: performance.now() - started };
-		};
-		const distinct = timed(
-			`# Guide\n\n${Array.from({ length: 5000 }, (_, i) => `## Parameters ${i}\n\n`).join('')}`
-		);
-		const repeated = timed(`# Guide\n\n${'## Parameters\n\n'.repeat(5000)}`);
-		// Relative, so a slow machine slows both: counting up from `_1` again for every repeat took
-		// ten times as long as distinct headings here.
-		expect(repeated.time).toBeLessThan(distinct.time * 3);
-		expect(repeated.page.snippets[0].aliases.at(-1)).toBe('parameters_4999');
+	it('numbers repeated headings in linear time', () => {
+		// About 3 seconds; counting the suffix up from `_1` again for every repeat took over a minute.
+		const page = chunk(`# Guide\n\n${'## Parameters\n\n'.repeat(20_000)}`);
+		expect(page.snippets[0].aliases.at(-1)).toBe('parameters_19999');
 	}, 30_000);
 
 	it('generates the anchors MkDocs generates', () => {
