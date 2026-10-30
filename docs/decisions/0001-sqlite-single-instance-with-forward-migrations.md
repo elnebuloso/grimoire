@@ -10,7 +10,7 @@
 ## Context
 
 grimoire holds two kinds of data. A small amount is real state that exists nowhere else:
-projects, sources with their access tokens, and API keys. Everything else — pages, snippets,
+sources with their access tokens, and API keys. Everything else — pages, snippets,
 links and the search index — is derived from Git and rebuilt from scratch by every sync of a
 source.
 
@@ -42,10 +42,10 @@ node.
 - Backups are a consistent copy of one file. Going back to an older schema means restoring a
   backup; there are no down migrations.
 - A migration may drop and recreate pages, snippets, links and the search index instead of
-  converting them — the next sync fills them again. Only projects, sources and API keys must be
+  converting them — the next sync fills them again. Only sources and API keys must be
   carried over.
 - Moving to another database later means a new database module, a fresh set of migrations for that
-  engine, and copying projects, sources and API keys. The search query is the part that needs real
+  engine, and copying sources and API keys. The search query is the part that needs real
   work, because ranking differs between engines.
 
 ## Rejected alternatives
@@ -63,7 +63,7 @@ reliable over NFS, and its write-ahead log needs shared memory on one host, so c
 can corrupt the file.
 
 **One SQLite file per replica, each syncing from Git itself.** The derived index could be built
-independently per pod, but projects, sources and API keys are shared state edited in the admin
+independently per pod, but sources and API keys are shared state edited in the admin
 area; keeping them consistent across copies brings back the problem a shared database solves.
 
 **An ORM with a migration generator.** The FTS5 table and the trigger that keeps it in step with

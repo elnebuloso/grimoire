@@ -50,7 +50,7 @@ who choose the URLs, so it limits nothing.
 
 **The list as a setting in the admin area.** Which addresses grimoire may reach is a question of
 the network it runs in, answered with the deployment by whoever operates it, not by whoever
-manages projects in the app.
+manages sources in the app.
 
 ## Revision
 

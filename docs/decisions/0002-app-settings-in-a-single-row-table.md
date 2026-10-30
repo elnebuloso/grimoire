@@ -14,7 +14,7 @@ can only change by redeploying. The admin area gets a settings page whose values
 instance; the first is a switch that pauses the syncs of all sources. More will follow, each with a
 type of its own: a flag, a number, a cron expression, a name.
 
-Such a setting is real state, like projects and sources: it exists nowhere else and has to survive
+Such a setting is real state, like sources and API keys: it exists nowhere else and has to survive
 a restart of the pod.
 
 ## Decision
@@ -51,5 +51,5 @@ would be a second store next to the database, with its own backup and its own co
 
 ## Revision
 
-Reopen when settings have to be defined at runtime — by plugins or per project — instead of being
+Reopen when settings have to be defined at runtime — by plugins or per source — instead of being
 known when the code is written.
