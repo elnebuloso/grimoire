@@ -121,7 +121,7 @@ describe('project wizard', () => {
 			values: { encryptedToken: summary.encryptedToken }
 		});
 
-		const removed = await submit('summary', { ...summary, removeToken: 'on' });
+		const removed = await submit('summary', { ...summary, discardToken: 'on' });
 		expect(removed).toMatchObject({ step: 'summary', values: { encryptedToken: '' } });
 	});
 

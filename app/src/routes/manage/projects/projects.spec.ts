@@ -371,6 +371,41 @@ describe('source page', () => {
 		expect(stored.encrypted_token).not.toBeNull();
 	});
 
+	async function carriedToken(sourceId: string, token: string) {
+		const result = (await sourcePage.actions.test({
+			request: formRequest({ ...SOURCE, token }),
+			params: { id: '1', sourceId }
+		} as never)) as { values: { encryptedToken: string } };
+		return result.values.encryptedToken;
+	}
+
+	function storedToken() {
+		return (db.prepare('SELECT encrypted_token FROM sources').get() as { encrypted_token: string })
+			.encrypted_token;
+	}
+
+	it('discards an entered token on a new source', async () => {
+		const encryptedToken = await carriedToken('new', TOKEN);
+
+		await thrown(() =>
+			saveSource('1', 'new', { ...SOURCE, token: '', encryptedToken, discardToken: 'on' })
+		);
+
+		expect(storedToken()).toBeNull();
+	});
+
+	it('discards an entered token without removing the stored one', async () => {
+		await thrown(() => saveSource('1', 'new', SOURCE));
+		const stored = storedToken();
+		const encryptedToken = await carriedToken('1', 'glpat-typo');
+
+		await thrown(() =>
+			saveSource('1', '1', { ...SOURCE, token: '', encryptedToken, discardToken: 'on' })
+		);
+
+		expect(storedToken()).toBe(stored);
+	});
+
 	it('answers a changed carried token with 400 instead of failing', async () => {
 		const fields = { ...SOURCE, token: '', encryptedToken: 'tampered' };
 		const tested = await sourcePage.actions.test({

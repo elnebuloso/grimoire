@@ -83,7 +83,7 @@
 			autocomplete="off"
 		/>
 		{#if values.encryptedToken}
-			<ChoiceField name="removeToken" label={m.field_remove_entered_token()} />
+			<ChoiceField name="discardToken" label={m.field_remove_entered_token()} />
 		{/if}
 	{:else}
 		<input type="hidden" name="sourceName" value={values.source.name} />

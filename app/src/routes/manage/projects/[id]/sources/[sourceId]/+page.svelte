@@ -227,7 +227,9 @@
 		autocomplete="off"
 	/>
 	<input type="hidden" name="encryptedToken" value={values.encryptedToken} />
-	{#if data.source?.hasToken}
+	{#if values.encryptedToken}
+		<ChoiceField name="discardToken" label={m.field_remove_entered_token()} />
+	{:else if data.source?.hasToken}
 		<ChoiceField
 			name="removeToken"
 			checked={values.removeToken}

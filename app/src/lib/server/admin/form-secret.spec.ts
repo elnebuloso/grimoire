@@ -35,12 +35,23 @@ describe('readFormSecret', () => {
 		expect(read({ token: 'glpat-new', encryptedToken: sealed }).value).toBe('glpat-new');
 	});
 
-	it('drops the carried secret when asked to', () => {
+	it('drops the carried secret when asked to discard it', () => {
+		const sealed = encryptToken('glpat-carried', KEY);
+
+		expect(read({ encryptedToken: sealed, discardToken: 'on' })).toEqual({
+			value: '',
+			sealed: '',
+			remove: false,
+			damaged: false
+		});
+	});
+
+	it('keeps the carried secret when only the stored one is to be removed', () => {
 		const sealed = encryptToken('glpat-carried', KEY);
 
 		expect(read({ encryptedToken: sealed, removeToken: 'on' })).toEqual({
-			value: '',
-			sealed: '',
+			value: 'glpat-carried',
+			sealed,
 			remove: true,
 			damaged: false
 		});

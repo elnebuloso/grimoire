@@ -1,10 +1,11 @@
 ---
 id: TASK-99
 title: 'Source page: discard an entered token without deleting the stored one'
-status: To Do
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-30 02:59'
+updated_date: '2026-10-30 03:04'
 labels:
   - admin
 milestone: m-0
@@ -35,8 +36,28 @@ The project wizard already handles this correctly: it shows `field_remove_entere
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 On the source page a carried entered token can be discarded on its own whenever one is carried, also on a new source and on a source without a stored token
-- [ ] #2 Discarding the entered token keeps the stored token of the source unchanged
-- [ ] #3 Removing the stored token is a separate choice, shown only when the source has one
-- [ ] #4 Regression tests in `projects.spec.ts` (or the source route spec) cover both cases and fail on the old code
+- [x] #1 On the source page a carried entered token can be discarded on its own whenever one is carried, also on a new source and on a source without a stored token
+- [x] #2 Discarding the entered token keeps the stored token of the source unchanged
+- [x] #3 Removing the stored token is a separate choice, shown only when the source has one
+- [x] #4 Regression tests in `projects.spec.ts` (or the source route spec) cover both cases and fail on the old code
 <!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. Give the form-secret fields a separate discard checkbox (`discardToken`) that drops only the carried sealed token; `removeToken` keeps meaning "delete the stored token".
+2. Source page: show discard when a token is carried, else remove-stored when the source has one. Wizard uses the same discard field.
+3. Regression tests in `projects.spec.ts` and `form-secret.spec.ts`.
+<!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Remove-stored is hidden while a token is carried: saving a carried token replaces the stored one anyway, so both checkboxes at once would only be contradictory. The two new route tests fail on the old `form-secret.ts`. Browser check in the agent environment: new source, typed token, Test access -> 'Remove the entered token' shown; ticked and saved -> source stored with no token. make lint and make test (547 tests) pass.
+<!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+The source page now offers 'Remove the entered token' whenever a typed token is carried through the form, also on new sources and sources without a stored token; it drops only the carried token. 'Remove the stored token' is a separate field shown when the source has one and no new token is carried. The wizard uses the same discard field, so `removeToken` means the same everywhere. Covered by two route regression tests (fail on old code), a form-secret test, and a manual browser check.
+<!-- SECTION:FINAL_SUMMARY:END -->

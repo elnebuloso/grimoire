@@ -6,13 +6,16 @@ export interface SecretFields {
 	entered: string;
 	/** The hidden field carrying it encrypted, so the page never holds it in plain text. */
 	sealed: string;
-	/** The checkbox that drops the secret. */
+	/** The checkbox that drops the carried secret, so the form forgets what was entered. */
+	discard: string;
+	/** The checkbox that asks to delete the secret already stored. */
 	remove: string;
 }
 
 export const SOURCE_TOKEN_FIELDS: SecretFields = {
 	entered: 'token',
 	sealed: 'encryptedToken',
+	discard: 'discardToken',
 	remove: 'removeToken'
 };
 
@@ -21,6 +24,7 @@ export interface FormSecret {
 	value: string;
 	/** The secret encrypted, to send back into the form. */
 	sealed: string;
+	/** Delete the stored secret; a new or carried one replaces it anyway. */
 	remove: boolean;
 	/** The carried value could not be decrypted: changed in the browser, or the key changed. */
 	damaged: boolean;
@@ -28,7 +32,7 @@ export interface FormSecret {
 
 /**
  * Reads the secret of a form: a newly entered one wins; otherwise the carried one, unless the
- * remove checkbox drops it.
+ * discard checkbox drops it.
  */
 export function readFormSecret(data: FormData, key: Buffer, fields: SecretFields): FormSecret {
 	const field = (name: string) => String(data.get(name) ?? '');
@@ -36,7 +40,7 @@ export function readFormSecret(data: FormData, key: Buffer, fields: SecretFields
 	const entered = field(fields.entered).trim();
 	if (entered)
 		return { value: entered, sealed: encryptToken(entered, key), remove, damaged: false };
-	const sealed = remove ? '' : field(fields.sealed);
+	const sealed = data.get(fields.discard) === 'on' ? '' : field(fields.sealed);
 	if (!sealed) return { value: '', sealed: '', remove, damaged: false };
 	try {
 		return { value: decryptToken(sealed, key), sealed, remove, damaged: false };
