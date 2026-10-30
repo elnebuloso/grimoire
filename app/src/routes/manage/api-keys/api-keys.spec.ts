@@ -77,6 +77,16 @@ describe('create', () => {
 		expect(page.load({} as never)).toMatchObject({ keys: [{ expired: true }] });
 	});
 
+	it('accepts 29 February of a leap year', async () => {
+		await create([
+			['name', 'leap'],
+			['scope', 'all'],
+			['validUntil', '2028-02-29']
+		]);
+
+		expect(listApiKeys(db)).toMatchObject([{ name: 'leap', validUntil: '2028-02-29' }]);
+	});
+
 	it.each([
 		[
 			[
@@ -105,6 +115,30 @@ describe('create', () => {
 				['name', 'ci'],
 				['scope', 'all'],
 				['validUntil', '30.11.2026']
+			],
+			'Enter the date as YYYY-MM-DD.'
+		],
+		[
+			[
+				['name', 'ci'],
+				['scope', 'all'],
+				['validUntil', '2027-02-31']
+			],
+			'Enter the date as YYYY-MM-DD.'
+		],
+		[
+			[
+				['name', 'ci'],
+				['scope', 'all'],
+				['validUntil', '2027-02-29']
+			],
+			'Enter the date as YYYY-MM-DD.'
+		],
+		[
+			[
+				['name', 'ci'],
+				['scope', 'all'],
+				['validUntil', '2026-13-01']
 			],
 			'Enter the date as YYYY-MM-DD.'
 		],

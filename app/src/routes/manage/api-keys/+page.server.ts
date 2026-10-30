@@ -39,8 +39,14 @@ function readAccess(data: FormData) {
 	return { values };
 }
 
+// `Date` rolls `2026-02-31` over to 3 March; only a date that reads back the same exists.
 function isDate(value: string): boolean {
-	return /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(`${value}T00:00:00Z`));
+	const date = new Date(`${value}T00:00:00Z`);
+	return (
+		/^\d{4}-\d{2}-\d{2}$/.test(value) &&
+		!Number.isNaN(date.getTime()) &&
+		date.toISOString().slice(0, 10) === value
+	);
 }
 
 export const actions = {
