@@ -1,8 +1,9 @@
+import { fork } from 'node:child_process';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { DatabaseSync } from 'node:sqlite';
-import { Worker } from 'node:worker_threads';
+import { fileURLToPath } from 'node:url';
 import {
 	clearSyncError,
 	recordCheck,
@@ -12,7 +13,7 @@ import {
 } from '../db/sources';
 import { decryptToken } from '../token-encryption';
 import { headCommit, redact, remoteCommit, sparseClone, type GitRemote } from './git';
-import type { IndexJob } from './index-worker';
+import type { IndexJob, IndexOutcome } from './index-worker';
 import type { SyncLanes } from './queue';
 
 const IMMEDIATELY: SyncLanes = { check: (work) => work(), sync: (work) => work() };
@@ -30,9 +31,11 @@ export interface SyncOptions {
 	allowedIncludeOrigins?: string[];
 	/** How long indexing may take before the sync fails; defaults to `INDEXING_DEADLINE_MS`. */
 	indexingDeadlineMs?: number;
+	/** Heap limit of the indexing process in MiB; by default Node sizes it to the machine. */
+	indexingHeapMb?: number;
 }
 
-// A large real source takes about a minute. Without a deadline, content that keeps the worker
+// A large real source takes about a minute. Without a deadline, content that keeps the indexing
 // busy would hold the single sync slot, and with it every other source, until a restart.
 const INDEXING_DEADLINE_MS = 10 * 60_000;
 
@@ -97,7 +100,7 @@ async function checkAndSync(
 			try {
 				await sparseClone(remote, source.branch, source.path, checkout);
 				const commit = await headCommit(checkout);
-				const indexed = await indexInWorker(
+				const indexed = await indexInProcess(
 					{
 						checkout,
 						source: { path: source.path, exclusions: source.exclusions },
@@ -107,7 +110,8 @@ async function checkAndSync(
 						sourceId,
 						commit
 					},
-					options.indexingDeadlineMs ?? INDEXING_DEADLINE_MS
+					options.indexingDeadlineMs ?? INDEXING_DEADLINE_MS,
+					options.indexingHeapMb
 				);
 				return { status: 'synced' as const, commit, ...indexed };
 			} finally {
@@ -125,30 +129,40 @@ async function checkAndSync(
 
 /**
  * Reads the checkout, resolves includes, turns the pages into snippets and writes them, in a
- * worker thread: on a large source that is a minute of Markdown processing, which on the server's
- * thread would hold up every request, and a docs branch that exhausts memory there would end the
- * server instead of the sync.
+ * child process: on a large source that is a minute of Markdown processing, which in the server
+ * would hold up every request. A process rather than a worker thread because of memory: a docs
+ * branch that exhausts it gets this process killed, by V8 or by the container's limit, while a
+ * worker thread out of memory often took the whole server down with it.
  */
-function indexInWorker(
+function indexInProcess(
 	job: IndexJob,
-	deadlineMs: number
+	deadlineMs: number,
+	heapMb: number | undefined
 ): Promise<{ pages: number; warnings: string[] }> {
-	// The worker runs from source; `#lib` points at it from the dev server, tests and the build.
-	const worker = new Worker(new URL(import.meta.resolve('#lib/server/sync/index-worker.ts')), {
-		workerData: job
-	});
+	// The script runs from source; `#lib` points at it from the dev server, tests and the build.
+	const script = fileURLToPath(import.meta.resolve('#lib/server/sync/index-worker.ts'));
+	// Not the server's flags, such as a test runner's loader or an inspector port.
+	const execArgv = heapMb === undefined ? [] : [`--max-old-space-size=${heapMb}`];
+	const child = fork(script, { execArgv });
+	child.send(job);
 	return new Promise((resolve, reject) => {
-		// Terminating rolls back the worker's open transaction; the rows it already committed belong
-		// to a generation that never went live and go with the next successful sync.
+		// A killed process holds no lock: SQLite rolls its open transaction back, and the rows it
+		// already committed belong to a generation that never went live and go with the next sync.
 		const deadline = setTimeout(() => {
 			reject(new Error(`indexing took longer than ${formatDuration(deadlineMs)}`));
-			void worker.terminate();
+			child.kill('SIGKILL');
 		}, deadlineMs);
-		worker.once('message', resolve);
-		worker.once('error', reject);
-		worker.once('exit', (code) => {
+		child.once('message', (outcome: IndexOutcome) => {
+			if ('error' in outcome) reject(new Error(outcome.error));
+			else resolve(outcome);
+		});
+		child.once('error', reject);
+		child.once('close', (code, signal) => {
 			clearTimeout(deadline);
-			if (code !== 0) reject(new Error(`indexing stopped with exit code ${code}`));
+			const ending = signal ?? `exit code ${code}`;
+			reject(
+				new Error(`indexing ended with ${ending} before it finished, out of memory for example`)
+			);
 		});
 	});
 }

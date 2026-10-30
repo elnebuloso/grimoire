@@ -106,7 +106,7 @@ version serves requests, run the same image with `MIGRATE_ONLY=true` as an init 
 ### Resources
 
 Memory and CPU are spent mostly while a source syncs: the clone, and turning the pages into
-snippets in a second thread. Sources sync one after another, so a large one sets the need, not
+snippets in a second process. Sources sync one after another, so a large one sets the need, not
 the number of sources. Measured with the Kubernetes documentation as one source (1722 pages,
 13,160 snippets), from the first sync to its end, while agents searched every 25 ms:
 
@@ -117,7 +117,9 @@ the number of sources. Measured with the Kubernetes documentation as one source 
 | 0.5 CPU, 256 MiB | 383 s | 77 ms / 1.3 s | 256 MiB, at the limit |
 
 Node sizes its memory to the limit of the container, so a lower limit means more garbage
-collection, not a crash, down to where the data of one sync no longer fits. For documentation of
+collection, not a crash, down to where the data of one sync no longer fits. Then only the
+second process ends: the sync fails with `indexing ended with … before it finished, out of memory
+for example`, the source keeps its previous index, and grimoire keeps answering. For documentation of
 that size, `limits: { cpu: "1", memory: 512Mi }` with `requests: { cpu: 250m, memory: 512Mi }` is
 enough; smaller documentation needs less. Below one CPU, searches during a sync wait on the CPU
 quota, and syncs take correspondingly longer.

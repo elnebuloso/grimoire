@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Starts a built image and runs what plain Node loads from source in it: the worker thread that
+# Starts a built image and runs what plain Node loads from source in it: the child process that
 # indexes a source, and the reset script. Both only work when everything they import was copied
 # into the image, which no other check sees, because tests and e2e run in the full checkout.
 set -euo pipefail
@@ -7,7 +7,7 @@ set -euo pipefail
 IMAGE="${1:-grimoire:latest}"
 
 # Runs in the container as the user `node`. The schema comes from the server itself
-# (MIGRATE_ONLY); the source is a Git repository made on the spot, indexed by the real worker.
+# (MIGRATE_ONLY); the source is a Git repository made on the spot, indexed by the real indexing process.
 read -r -d '' SMOKE <<'EOF' || true
 set -eu
 MIGRATE_ONLY=true node app/build
@@ -22,33 +22,35 @@ git -C "$fixture" -c user.name=smoke -c user.email=smoke@example.com commit --qu
 
 cd app
 node --input-type=module -e "
+import { fork } from 'node:child_process';
 import { DatabaseSync } from 'node:sqlite';
-import { Worker } from 'node:worker_threads';
+import { fileURLToPath } from 'node:url';
 const db = new DatabaseSync(process.env.DATABASE_PATH);
 db.exec(\"INSERT INTO projects (id, slug) VALUES (1, 'smoke')\");
 db.exec(\"INSERT INTO sources (id, project_id, slug, git_url, branch, path) VALUES (1, 1, 'docs', 'file:///tmp/fixture', 'main', 'docs/')\");
-const worker = new Worker(new URL(import.meta.resolve('#lib/server/sync/index-worker.ts')), {
-	// Not --input-type from this eval, which a worker started from a file refuses.
-	execArgv: [],
-	workerData: {
-		checkout: '/tmp/fixture',
-		source: { path: 'docs/', exclusions: ['docs/shared.md'] },
-		remote: { url: 'file:///tmp/fixture', username: null },
-		allowedIncludeOrigins: [],
-		databasePath: process.env.DATABASE_PATH,
-		sourceId: 1,
-		commit: 'smoke'
-	}
+// Not --input-type from this eval, which a process started from a file refuses.
+const child = fork(fileURLToPath(import.meta.resolve('#lib/server/sync/index-worker.ts')), {
+	execArgv: []
+});
+child.send({
+	checkout: '/tmp/fixture',
+	source: { path: 'docs/', exclusions: ['docs/shared.md'] },
+	remote: { url: 'file:///tmp/fixture', username: null },
+	allowedIncludeOrigins: [],
+	databasePath: process.env.DATABASE_PATH,
+	sourceId: 1,
+	commit: 'smoke'
 });
 const result = await new Promise((resolve, reject) => {
-	worker.once('message', resolve);
-	worker.once('error', reject);
+	child.once('message', resolve);
+	child.once('error', reject);
+	child.once('close', (code, signal) => reject(new Error('indexing ended with ' + (signal ?? code))));
 });
 const snippet = db.prepare('SELECT content FROM snippets').all().map((row) => row.content).join();
 if (result.pages !== 1 || !snippet.includes('Included text from the fixture.')) {
 	throw new Error('indexing in the image went wrong: ' + JSON.stringify(result));
 }
-console.log('indexing worker: ok');
+console.log('indexing process: ok');
 "
 
 # Without a terminal the script stops at its first question, after all of its imports loaded.

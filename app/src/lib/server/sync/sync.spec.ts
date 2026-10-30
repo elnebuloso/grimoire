@@ -346,6 +346,26 @@ describe('syncSource', () => {
 		).toMatchObject({ status: 'synced', pages: 3 });
 	});
 
+	it('fails a sync whose indexing runs out of memory and keeps syncing other sources', async () => {
+		const sections = Array.from({ length: 10_000 }, (_, i) => `## Section ${i}\n\n${filler}`);
+		commitFiles({ 'docs/huge.md': `# Huge\n\n${sections.join('\n\n')}` });
+
+		const exhausted = await syncSource(db, source, {
+			key,
+			workDirectory: work,
+			indexingHeapMb: 32
+		});
+
+		expect(exhausted).toEqual({
+			status: 'failed',
+			error: expect.stringMatching(/^indexing ended with .+ before it finished, out of memory/)
+		});
+		const other = addSource(`file://${bare}`, { exclusions: ['docs/huge.md', 'docs/drafts/**'] });
+		expect(
+			await syncSource(db, other, { key, workDirectory: work, indexingHeapMb: 32 })
+		).toMatchObject({ status: 'synced', pages: 2 });
+	}, 60_000);
+
 	it('reports a wrong encryption key as an error of the source', async () => {
 		const withToken = addSource(`file://${bare}`, { token: 'secret' });
 		const result = await syncSource(db, withToken, {
