@@ -7,6 +7,7 @@ status: To Do
 assignee:
   - '@claude'
 created_date: '2026-10-30 08:08'
+updated_date: '2026-10-30 08:10'
 labels:
   - admin
 milestone: m-0
@@ -28,8 +29,10 @@ Accounts, sessions, password hashing and login lockout are hand-written in `app/
 
 Direction agreed with the user (2026-10-30):
 - No self-registration. Users are created by the setup (first admin) and later by admins.
-- Users get an email address.
-- Password reset by email exists only when SMTP is configured. Without SMTP there is no reset and no other way back in: `scripts/reset-admin.ts` (reset from inside the container) is removed, no other recovery path; a lost last admin without SMTP is lost.
+- Users log in with their email address instead of a username; the username goes. Email is unique per user.
+- Whether an address is verified does not matter for now; no verification mail. Known risk, to be named in the result: a mistyped address sends the reset link to whoever owns it.
+- Password reset by email exists only when SMTP is configured; without SMTP the function is not offered.
+- `scripts/reset-admin.ts` (reset from inside the container) stays as the way back in, with or without SMTP: common practice for self-hosted apps, and whoever has a shell in the container has the data anyway.
 - In `make dev` and `make e2e` a mail catcher (e.g. Mailpit) receives the mails when SMTP is configured.
 - The app has never been released or installed: nothing has to be migrated, the current auth code may be thrown away.
 
