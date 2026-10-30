@@ -3,6 +3,7 @@ import type { DatabaseSync } from 'node:sqlite';
 import { openDatabase } from '../db/schema';
 import { replaceSourceIndex } from '../db/sources';
 import { chunkPage, estimateTokens } from '../parsing/chunk';
+import { splitCode } from '../parsing/markdown';
 import { preprocessPage } from '../parsing/preprocess';
 import { indexPages } from '../sync/index-pages';
 import { changeProjectSlug, changeSourceSlug } from '../admin/projects';
@@ -77,7 +78,8 @@ function addSource(
 			const metadata = preprocessPage(markdown);
 			const navPosition = nav.includes(file) ? nav.indexOf(file) : undefined;
 			const chunked = chunkPage(metadata, file);
-			return { file, navPosition, metadata, chunked };
+			const searchTexts = chunked.snippets.map((snippet) => splitCode(snippet.content));
+			return { file, navPosition, metadata, chunked, searchTexts };
 		})
 	});
 }

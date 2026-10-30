@@ -2,6 +2,7 @@ import { posix } from 'node:path';
 import type { IndexedPage, SourceIndex } from '../db/sources.ts';
 import { chunkPage } from '../parsing/chunk.ts';
 import { resolveLinks } from '../parsing/links.ts';
+import { splitCode } from '../parsing/markdown.ts';
 import { preprocessPage } from '../parsing/preprocess.ts';
 import type { SiteConfig } from '../parsing/site-config.ts';
 import { configuredSlugify, pythonMarkdownSlugify, type Slugify } from '../parsing/slugs.ts';
@@ -42,7 +43,7 @@ export function indexPages(job: PagesToIndex): Omit<SourceIndex, 'commit'> {
 		if (configured.warning) warnings.push(`${job.siteConfig.file}: ${configured.warning}`);
 	}
 
-	const indexed: IndexedPage[] = [];
+	const indexed: Omit<IndexedPage, 'searchTexts'>[] = [];
 	for (const { file, markdown, navPosition, includeWarnings } of job.pages) {
 		warnings.push(...includeWarnings);
 		try {
@@ -55,6 +56,10 @@ export function indexPages(job: PagesToIndex): Omit<SourceIndex, 'commit'> {
 	}
 
 	const linked = resolveLinks(new Map(indexed.map((page) => [page.file, page.chunked])));
-	const pages = indexed.map((page) => ({ ...page, chunked: linked.pages.get(page.file)! }));
+	const pages = indexed.map((page) => {
+		const chunked = linked.pages.get(page.file)!;
+		const searchTexts = chunked.snippets.map((snippet) => splitCode(snippet.content));
+		return { ...page, chunked, searchTexts };
+	});
 	return { pages, links: linked.links, warnings };
 }

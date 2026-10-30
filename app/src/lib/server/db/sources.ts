@@ -1,9 +1,6 @@
 import type { DatabaseSync } from 'node:sqlite';
-import { toString } from 'mdast-util-to-string';
-import type { RootContent } from 'mdast';
 import type { ChunkedPage } from '../parsing/chunk';
 import type { Link } from '../parsing/links';
-import { parseMarkdown } from '../parsing/markdown.ts';
 import type { PreprocessedPage } from '../parsing/preprocess';
 import { inTransaction } from './transaction.ts';
 
@@ -25,6 +22,8 @@ export interface IndexedPage {
 	navPosition?: number;
 	metadata: PreprocessedPage;
 	chunked: ChunkedPage;
+	/** Prose and code of each snippet apart, for the search index. */
+	searchTexts: { text: string; code: string }[];
 }
 
 export interface SourceIndex {
@@ -129,12 +128,6 @@ export function replaceSourceIndex(
 	const insertLink = db.prepare(
 		'INSERT INTO links (page_id, anchor, target, dead) VALUES (?, ?, ?, ?)'
 	);
-	// Parsed before any write lock is taken, so other connections wait as briefly as possible.
-	const pages = index.pages.map((page) => ({
-		...page,
-		searchTexts: page.chunked.snippets.map((snippet) => splitCode(snippet.content))
-	}));
-
 	// What an interrupted sync left behind would collide with the pages written now.
 	deleteStalePages(db, sourceId, snippetsPerBatch);
 	const { generation } = db
@@ -142,8 +135,8 @@ export function replaceSourceIndex(
 		.get(sourceId) as { generation: number };
 	const pageIds = new Map<string, number>();
 
-	const snippetCount = (page: (typeof pages)[number]) => page.chunked.snippets.length;
-	for (const batch of batches(pages, snippetCount, snippetsPerBatch)) {
+	const snippetCount = (page: IndexedPage) => page.chunked.snippets.length;
+	for (const batch of batches(index.pages, snippetCount, snippetsPerBatch)) {
 		inTransaction(db, () => {
 			for (const { file, navPosition, metadata, chunked, searchTexts } of batch) {
 				const pageId = Number(
@@ -303,20 +296,4 @@ export function recordSyncRun(
 		`DELETE FROM sync_runs WHERE source_id = :source AND id <= (
 			SELECT id FROM sync_runs WHERE source_id = :source ORDER BY id DESC LIMIT 1 OFFSET :kept)`
 	).run({ source: sourceId, kept: SYNC_RUNS_KEPT });
-}
-
-/** Separates code blocks from the prose of a snippet, so search can weigh them differently. */
-export function splitCode(markdown: string): { text: string; code: string } {
-	const nodes = parseMarkdown(markdown).children;
-	const isCode = (node: RootContent) => node.type === 'code';
-	return {
-		text: nodes
-			.filter((node) => !isCode(node))
-			.map((node) => toString(node))
-			.join('\n'),
-		code: nodes
-			.filter(isCode)
-			.map((node) => toString(node))
-			.join('\n')
-	};
 }

@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import type { DatabaseSync } from 'node:sqlite';
 import { openDatabase } from '../db/schema';
-import { listSchedules, splitCode } from '../db/sources';
+import { listSchedules } from '../db/sources';
 import { encryptToken } from '../token-encryption';
 import { createLimiter, createSyncQueue, type SyncLanes } from './queue';
 import { isDue } from './schedule';
@@ -407,14 +407,5 @@ describe('deleting a source while it syncs', () => {
 		await expect(deleted).rejects.toThrow(`source ${source} does not exist`);
 		expect(await kept).toMatchObject({ status: 'synced' });
 		expect(queue.isPending(source)).toBe(false);
-	});
-});
-
-describe('splitCode', () => {
-	it('separates code blocks from prose', () => {
-		expect(splitCode('Roll back:\n\n```bash\nmake rollback\n```\n\nThen `check`.\n')).toEqual({
-			text: 'Roll back:\nThen check.',
-			code: 'make rollback'
-		});
 	});
 });

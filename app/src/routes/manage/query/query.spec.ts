@@ -3,6 +3,7 @@ import type { DatabaseSync } from 'node:sqlite';
 import { openDatabase } from '#lib/server/db/schema.js';
 import { replaceSourceIndex } from '#lib/server/db/sources.js';
 import { chunkPage } from '#lib/server/parsing/chunk.js';
+import { splitCode } from '#lib/server/parsing/markdown.js';
 import { preprocessPage } from '#lib/server/parsing/preprocess.js';
 import { queryProjects } from '#lib/server/agent/operations.js';
 import * as page from './+page.server';
@@ -22,11 +23,13 @@ function addProjectWithPage(slug: string, markdown: string) {
 			.run(projectId).lastInsertRowid
 	);
 	const metadata = preprocessPage(markdown);
+	const chunked = chunkPage(metadata, 'index.md');
+	const searchTexts = chunked.snippets.map((snippet) => splitCode(snippet.content));
 	replaceSourceIndex(db, sourceId, {
 		commit: 'abc',
 		links: [],
 		warnings: [],
-		pages: [{ file: 'index.md', metadata, chunked: chunkPage(metadata, 'index.md') }]
+		pages: [{ file: 'index.md', metadata, chunked, searchTexts }]
 	});
 }
 
