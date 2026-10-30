@@ -5,6 +5,7 @@ import type { ChunkedPage } from '../parsing/chunk';
 import type { Link } from '../parsing/links';
 import { parseMarkdown } from '../parsing/markdown.ts';
 import type { PreprocessedPage } from '../parsing/preprocess';
+import { inTransaction } from './transaction.ts';
 
 export interface SyncSource {
 	id: number;
@@ -229,18 +230,6 @@ function batches<T>(items: T[], weight: (item: T) => number, max: number): T[][]
 	}
 	if (batch.length > 0) result.push(batch);
 	return result;
-}
-
-function inTransaction<T>(db: DatabaseSync, write: () => T): T {
-	db.exec('BEGIN IMMEDIATE');
-	try {
-		const result = write();
-		db.exec('COMMIT');
-		return result;
-	} catch (error) {
-		if (db.isTransaction) db.exec('ROLLBACK');
-		throw error;
-	}
 }
 
 /** Stores why a sync failed; the index of the last successful sync stays as it is. */

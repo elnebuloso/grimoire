@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto';
 import type { DatabaseSync } from 'node:sqlite';
+import { inTransaction } from './db/transaction.ts';
 
 // The prefix lets secret scanners recognise a leaked key.
 const KEY_PREFIX = 'grimoire_';
@@ -111,18 +112,6 @@ function insertScope(db: DatabaseSync, id: number, projectIds: number[]) {
 		'INSERT OR IGNORE INTO api_key_projects (api_key_id, project_id) VALUES (?, ?)'
 	);
 	for (const projectId of projectIds) insertProject.run(id, projectId);
-}
-
-function inTransaction<T>(db: DatabaseSync, work: () => T): T {
-	db.exec('BEGIN IMMEDIATE');
-	try {
-		const result = work();
-		db.exec('COMMIT');
-		return result;
-	} catch (error) {
-		if (db.isTransaction) db.exec('ROLLBACK');
-		throw error;
-	}
 }
 
 /** All keys with their scope; neither the key nor its hash. */

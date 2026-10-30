@@ -2,6 +2,7 @@ import { createHash, randomBytes, scrypt, timingSafeEqual } from 'node:crypto';
 import { promisify } from 'node:util';
 import type { DatabaseSync } from 'node:sqlite';
 // With its extension: the scripts in `scripts/` load this file with plain node.
+import { inTransaction } from '../db/transaction.ts';
 import { log, logAlways } from '../log.ts';
 
 export const SESSION_COOKIE = 'grimoire_session';
@@ -99,20 +100,15 @@ export async function createUser(
 ): Promise<number> {
 	// Hashed before the transaction: other requests share the connection while it is awaited.
 	const passwordHash = await hashPassword(form.password);
-	db.exec('BEGIN IMMEDIATE');
-	try {
+	return inTransaction(db, () => {
 		const { lastInsertRowid } = db
 			.prepare('INSERT INTO users (username, password_hash) VALUES (?, ?)')
 			.run(form.username, passwordHash);
 		for (const role of form.roles) {
 			db.prepare('INSERT INTO user_roles (user_id, role) VALUES (?, ?)').run(lastInsertRowid, role);
 		}
-		db.exec('COMMIT');
 		return Number(lastInsertRowid);
-	} catch (error) {
-		if (db.isTransaction) db.exec('ROLLBACK');
-		throw error;
-	}
+	});
 }
 
 /**
@@ -225,18 +221,13 @@ export async function changePassword(
 	failedLogins.delete(client);
 	if (form.password.length < MIN_PASSWORD_LENGTH) return 'new-password-too-short';
 	const passwordHash = await hashPassword(form.password);
-	db.exec('BEGIN IMMEDIATE');
-	try {
+	inTransaction(db, () => {
 		db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(passwordHash, stored.id);
 		db.prepare('DELETE FROM sessions WHERE user_id = ? AND token_hash != ?').run(
 			stored.id,
 			sha256(session)
 		);
-		db.exec('COMMIT');
-	} catch (error) {
-		if (db.isTransaction) db.exec('ROLLBACK');
-		throw error;
-	}
+	});
 	return undefined;
 }
 
@@ -289,18 +280,13 @@ export function resetAdmin(db: DatabaseSync, username: string): boolean {
 		)
 		.get(username.trim()) as { id: number } | undefined;
 	if (!admin) return false;
-	db.exec('BEGIN IMMEDIATE');
-	try {
+	inTransaction(db, () => {
 		// Deleted one by one: the reset script opens the file without enforcing foreign keys.
 		for (const table of ['sessions', 'user_roles']) {
 			db.prepare(`DELETE FROM ${table} WHERE user_id = ?`).run(admin.id);
 		}
 		db.prepare('DELETE FROM users WHERE id = ?').run(admin.id);
-		db.exec('COMMIT');
-	} catch (error) {
-		if (db.isTransaction) db.exec('ROLLBACK');
-		throw error;
-	}
+	});
 	return true;
 }
 

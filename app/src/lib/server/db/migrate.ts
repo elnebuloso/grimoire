@@ -1,6 +1,7 @@
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
+import { inTransaction } from './transaction.ts';
 
 export interface Migration {
 	/** File name, numbered from `0001-`; the number is the schema version it leads to. */
@@ -45,21 +46,17 @@ export function migrate(db: DatabaseSync, migrations: Migration[]) {
 	migrations.forEach((migration, index) => {
 		// IMMEDIATE takes the write lock up front; reading the version inside the transaction
 		// lets a process that waited for it see that another one already migrated.
-		db.exec('BEGIN IMMEDIATE');
 		try {
-			if (userVersion(db) > index) {
-				db.exec('COMMIT');
-				return;
-			}
-			db.exec(migration.sql);
-			const violations = db.prepare('PRAGMA foreign_key_check').all();
-			if (violations.length > 0) {
-				throw new Error(`${violations.length} rows violate foreign keys`);
-			}
-			db.exec(`PRAGMA user_version = ${index + 1}`);
-			db.exec('COMMIT');
+			inTransaction(db, () => {
+				if (userVersion(db) > index) return;
+				db.exec(migration.sql);
+				const violations = db.prepare('PRAGMA foreign_key_check').all();
+				if (violations.length > 0) {
+					throw new Error(`${violations.length} rows violate foreign keys`);
+				}
+				db.exec(`PRAGMA user_version = ${index + 1}`);
+			});
 		} catch (error) {
-			if (db.isTransaction) db.exec('ROLLBACK');
 			throw new Error(`migration ${migration.name} failed: ${(error as Error).message}`, {
 				cause: error
 			});

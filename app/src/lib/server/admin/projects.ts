@@ -3,6 +3,7 @@ import { redactUrl } from '../sync/git';
 import { parseSchedule } from '../sync/schedule';
 import type { SourceFields } from '#lib/source-fields.js';
 import { encryptToken } from '../token-encryption';
+import { inTransaction } from '../db/transaction';
 import { m } from '#lib/paraglide/messages.js';
 import { isSlug, MAX_NAME_LENGTH, MAX_SLUG_LENGTH, slugify } from '../../slug';
 
@@ -414,24 +415,19 @@ export function createProjectWithSource(
 	project: ProjectForm,
 	source: SourceForm
 ): { projectId: number; sourceId: number } | { error: string } {
-	db.exec('BEGIN IMMEDIATE');
-	try {
-		const created = saveProject(db, undefined, project);
-		if ('error' in created) {
-			db.exec('ROLLBACK');
-			return created;
-		}
-		const saved = saveSource(db, key, created.id, undefined, source);
-		if ('error' in saved) {
-			db.exec('ROLLBACK');
-			return saved;
-		}
-		db.exec('COMMIT');
-		return { projectId: created.id, sourceId: saved.id };
-	} catch (error) {
-		if (db.isTransaction) db.exec('ROLLBACK');
-		throw error;
-	}
+	return inTransaction(db, () => {
+		// Checked before anything is written, so a refusal leaves nothing to roll back.
+		const problem =
+			projectProblem(db, undefined, project) ?? sourceProblem(db, undefined, undefined, source);
+		if (problem) return { error: problem };
+		const projectId = savedId(saveProject(db, undefined, project));
+		return { projectId, sourceId: savedId(saveSource(db, key, projectId, undefined, source)) };
+	});
+}
+
+function savedId(result: SaveResult): number {
+	if ('error' in result) throw new Error(`refused after the checks passed: ${result.error}`);
+	return result.id;
 }
 
 function checkGitUrl(gitUrl: string): string | undefined {
