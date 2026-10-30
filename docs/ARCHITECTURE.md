@@ -1,6 +1,8 @@
-# grimoire – Concept
+# grimoire – Architecture
 
-As of: 2026-10-29 · Status: agreed, version 1 functionally complete
+How grimoire works and why it is built this way. The decisions behind single parts are in
+`docs/decisions/`, the visual design in `docs/DESIGN.md`, the product context for UI work in
+`docs/PRODUCT.md`.
 
 ## Idea
 
@@ -11,8 +13,8 @@ The model is [Context7](https://context7.com): documentation is split into small
 served selectively within a token budget. Unlike Context7, it is about **internal** knowledge,
 and agents **write** it too.
 
-Planned as an open-source project on GitHub. Code, docs, instructions and admin area are
-therefore in English.
+An open-source project on GitHub. Code, docs and agent instructions are therefore in English;
+the web UI is in English and German, with English as the fallback.
 
 ## Principles
 
@@ -58,10 +60,13 @@ Source: gateway          main   docs/
 | Short description | "Login, sessions and tokens" – appears in `sources` |
 | Git URL (HTTPS) | `https://gitlab.thoemo.net/platform/auth-service.git` |
 | Branch | `main` |
-| Path | `docs/` |
-| Exclusions | `docs/drafts/**` (optional) |
+| Path | `docs` – empty for the whole repository |
+| Exclusions | `docs/drafts/**` (optional, glob patterns relative to the repository root) |
+| Documentation site | `https://docs.example.com/platform/` (optional, linked for public sources) |
 | Schedule | Cron expression, e.g. `0 * * * *` (optional, otherwise the global default) |
-| User + token | The provider's read token (GitLab deploy token, GitHub fine-grained token, Forgejo/Gitea access token) |
+| Paused | polling skips the source; only "Sync now" syncs it |
+| Public | anyone who can reach the instance may search and read it without an API key; off when created |
+| User + token | The provider's read token (GitLab deploy token, GitHub fine-grained token, Forgejo/Gitea access token), stored encrypted |
 
 Decisions:
 
@@ -72,8 +77,24 @@ Decisions:
 - **No grouping above sources.** Agents search everything, or name the sources they want; see
   ADR 0003 for why there are no projects.
 
-Per source, the admin area shows: last sync, commit, number of pages, snippets and tokens, sync
-errors and a preview of the snippets.
+Per source, the admin area shows: last check and sync, commit, number of pages, snippets and
+tokens, sync errors and warnings, the sync history, and a preview of every page as the snippets
+an agent gets. A "Test connection" button checks the Git access before saving; changing the slug
+needs it typed as confirmation, because every ID of the source changes with it.
+
+Beside the sources, the admin area has:
+
+- an overview listing what needs attention: sources never synced, with errors or warnings;
+- **API keys**, each for all sources or a selection, optionally valid until a date, with its last
+  use; the key is shown once;
+- **Try a query**, which returns exactly what `query` returns an agent;
+- **Dead links** across all sources;
+- **Queries without results**: questions agents asked that found nothing, kept for 30 days;
+- **Settings** for the whole instance, today one switch that pauses the syncs of all sources
+  (ADR 0002).
+
+The start page is open to everyone: every source with its visibility and stats, a query against
+the public sources and how to connect an agent.
 
 **Secrets.** Access tokens are never output – not in the `Edit:` line, not in error messages,
 logs or the API. Git URLs are always shown without credentials.
@@ -82,11 +103,15 @@ logs or the API. Git URLs are always shown without credentials.
 
 | Object | Contents |
 |---|---|
-| Source | slug (unique), name, short description, Git URL, branch, path, exclusions, user, token, last commit, last sync, errors/warnings |
-| Page | belongs to a source; file path, title, description, tags, full text |
-| Snippet | belongs to a page; anchor, title path, content, estimated tokens – in the FTS5 index |
+| Source | slug (unique), name, short description, Git URL, branch, path, exclusions, documentation site, schedule, public, paused, user, encrypted token, last check, last commit, last sync, errors/warnings |
+| Page | belongs to a source; file path, title, description, tags, full text, position in the site navigation |
+| Snippet | belongs to a page; anchor, anchors of merged subsections, title path, content, part of a split section, estimated tokens – in the FTS5 index |
 | Link | from page/anchor to target ID; for backlinks and dead links |
-| API key | name, hash of the key, allowed sources (all or a selection) |
+| Sync run | belongs to a source; when, outcome (synced, unchanged, failed), commit, error |
+| API key | name, hash of the key, allowed sources (all or a selection), created, last used, valid until |
+| User | email address, password hash, roles (today only `admin`), sessions, password reset links |
+| Missed query | a question that found nothing, with its sources and when it was asked |
+| Settings | one row for the whole instance (ADR 0002) |
 
 A source's pages, snippets and links are replaced completely on every sync (see Sync).
 
@@ -135,6 +160,7 @@ tiny subsections `### Port` and `### Timeout` becomes one snippet `Configuration
 | Admonitions `!!! warning "Caution"` | `> **Caution:** …`, content stays |
 | Content tabs `=== "Linux"` | `**Linux:**`, content stays |
 | Includes `--8<-- "file.md"` | are resolved, content from the repo inserted – also from outside the path (see Sync) |
+| URL includes `--8<-- "https://…"` | fetched only when the site sets `url_download: true` and the origin is listed in `INCLUDE_URL_ALLOW` (ADR 0004); otherwise a warning |
 | Mermaid | stays a code block |
 | Images | alt text stays, URL is dropped |
 | HTML comments | are dropped |
@@ -146,9 +172,11 @@ source's path is broken in MkDocs as well and counts as dead.
 
 **IDs.** `<source>/<file without .md>#<anchor>`. Anchors are derived from the heading
 exactly as in MkDocs (duplicates get `_1`, `_2`), so grimoire IDs and the rendered page match.
-Zensical uses the same `toc` extension of Python-Markdown as MkDocs for this. Version 1 only
-reproduces its default slugify; if a site changes `toc.slugify` (for instance to
-`pymdownx.slugs.slugify`), the anchors differ.
+Zensical uses the same `toc` extension of Python-Markdown as MkDocs for this. grimoire reads
+`toc.slugify` and the separator from the site's `mkdocs.yml` or `zensical.toml` and reproduces
+the default slugify, `slugify_unicode` and `pymdownx.slugs.slugify` with its options. Any other
+slug function falls back to the default and is reported as a warning: its anchors may differ from
+the rendered page.
 
 **Output format.** Like Context7, but without a generated description and with an "Edit:" line:
 
@@ -199,7 +227,9 @@ of sources, it is restricted to them.
 grimoire speaks only Git, no provider API. That way every Git server works the same.
 
 **Checking (polling on a schedule).** Every source is checked by its cron expression, a source
-without one by the global default (every 5 minutes). A cron expression instead of an interval,
+without one by the global default (`SYNC_SCHEDULE`, every 5 minutes); schedules run in the time
+zone `TZ`. A paused source is skipped, and the setting "Pause all syncs" skips every source;
+"Sync now" still works for both. A cron expression instead of an interval,
 because some Git servers allow only a few requests and some sources rarely change.
 `git ls-remote <url> refs/heads/<branch>` returns the current commit hash without downloading
 anything. Unchanged → do nothing. In addition, a "Sync now" button in the admin area. Webhooks
@@ -224,12 +254,15 @@ permanent clone.
 **Access.** HTTPS with the token as password; all providers support that. SSH deploy keys perhaps
 later.
 
-**Rebuilding completely.** When a source changes, all its snippets are deleted and rewritten in
-**one transaction**. Deleted and moved files take care of themselves; agents never see a half
+**Rebuilding completely.** When a source changes, its whole index is rebuilt. The new pages,
+snippets and links are written under the source's next generation in short transactions, so other
+writers never wait long; switching the generation makes them live at once, and the old ones are
+deleted afterwards. Deleted and moved files take care of themselves; agents never see a half
 index. Doc repos are small – only very large collections make a per-file comparison worthwhile.
+Indexing one source may take at most `INDEXING_DEADLINE_MINUTES` (default 10), or the sync fails.
 
 **Errors.** If the sync fails, the last good state stays active; the error is shown at the source
-in the admin area. A broken file is skipped and reported as a warning, the rest is ingested.
+in the admin area and in its sync history. A broken file is skipped and reported as a warning, the rest is ingested.
 
 **Moved files.** If the path changes, the ID changes and links to it become dead. grimoire shows
 dead links in the admin area; redirects perhaps later.
@@ -271,10 +304,13 @@ section over HTTP instead of loading whole pages. Over MCP, the ID stays unchang
 
 ## Authentication
 
-- **Agents:** API keys, created in the admin area. Per key: all sources or a selection. grimoire
-  only reads, so that is enough.
-- **Admin area:** to start, one local admin account. Login via OAuth (GitLab, GitHub …) is
-  possible later.
+- **Agents:** without an API key, a request reads and searches the public sources. An API key,
+  created in the admin area, adds all sources or a selection; it never hides a public source. A
+  key may have a last day it is valid. grimoire only reads, so that is enough (ADR 0003).
+- **Admin area:** local users with roles; today the one role is `admin`. The first admin is
+  created by the setup, which needs the setup token from the server log and stays open while no
+  user has the role `admin`. Forgotten passwords are reset by a link sent by mail, valid for one
+  hour. Login via OAuth (GitLab, GitHub …) is possible later.
 
 Agents change docs in the respective repo (edit the file, commit). Conceivable later: a `write`
 operation in grimoire for agents without a checkout. A direct commit via `git push` works with
@@ -294,8 +330,8 @@ Internal knowledge: read `curl -H "Authorization: Bearer $GRIMOIRE_KEY" https://
 once per session and follow it.
 ```
 
-Budget: under 250 tokens, because the text stays in the context permanently. Content (draft, tone
-later):
+Budget: under 250 tokens, because the text stays in the context permanently. The text, kept in
+`app/src/lib/server/agent/instructions.md`:
 
 ```markdown
 grimoire is the organization's internal knowledge base: how services, tools and
@@ -332,8 +368,12 @@ of operations and none of the agents' business.
   knowledge base.
 - **Polling** in the same process by timer.
 - **Token counting** estimated (characters / 4); exact tokenizers differ per model.
-- **Operations:** one Docker image (Node + git), one volume for the SQLite file, configuration
-  (admin access, polling interval) via environment variables.
+- **Texts** of the web UI as messages per language (Paraglide), English and German.
+- **Mail** over SMTP, for password reset links.
+- **Operations:** one Docker image (Node + git), one volume for the SQLite file. Deployment
+  configuration (encryption key, polling schedule, time zone, SMTP, allowed include origins …) via
+  environment variables, documented in `app/src/env.ts`; settings an admin changes at runtime in
+  the database (ADR 0002).
 
 ## Repository
 
@@ -350,14 +390,13 @@ of operations and none of the agents' business.
 
 | What | Why / when |
 |---|---|
-| Web UI for reading, editor | humans read through MkDocs/Zensical, writing happens in the repo |
+| Web UI for reading, editor | humans read through MkDocs/Zensical, writing happens in the repo; the start page only lists sources and tries a query |
 | Writing through grimoire (`write`) | only once agents have to write without a checkout |
 | Embeddings / hybrid search | only once missing synonyms get in the way in practice |
 | Webhooks | polling is enough; webhook formats differ per provider |
 | CLI | HTTP and MCP cover everything |
-| OAuth login, SSH deploy keys | local admin and HTTPS token are enough to start |
+| OAuth login, SSH deploy keys | local users and HTTPS token are enough to start |
 | Redirects for moved files | dead links are shown and fixed in the repo |
 | LLM-generated snippet descriptions | costs on every sync, title path is enough |
 | Multiple instances / horizontal scaling | SQLite, one instance is enough |
-| Custom `toc.slugify` from `mkdocs.yml`/`zensical.toml` | version 2: otherwise sites with their own slug function get different anchors than the rendered page |
 | HTML sources (rendered MkDocs/Zensical sites) | version 2: for docs without repo access. HTML → Markdown, then the same splitting. Open: cutting out the content per theme, change detection without `ls-remote`, `Edit:` line, SSO |
