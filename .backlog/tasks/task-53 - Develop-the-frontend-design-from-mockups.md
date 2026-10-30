@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@claude'
 created_date: '2026-10-29T06:55:00Z'
-updated_date: '2026-10-30 17:41'
+updated_date: '2026-10-30 17:53'
 labels:
   - admin
 milestone: m-0
@@ -46,3 +46,11 @@ The mockups are separate from `app/`: they imitate the current behaviour but do 
 6. Record choice and feedback per round in the notes; next stage as a copy of the chosen one.
 7. Once the developer agrees the design, write `docs/design.md` and finalize.
 <!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Round 1 started: shared tooling `docs/mockups/_shared/mockup.js` (theme switch system/light/dark, state bar via `?state=`) and the binding page/state/text spec `docs/mockups/_shared/SPEC.md`, both git-ignored like the rest of `docs/mockups/`. Lines a/1 (calm, editorial), b/1 (technical, industrial), c/1 (product console) in progress.
+
+Round 1 built: a/1, b/1, c/1. Checked with Playwright over a local server (`python3 -m http.server` in `docs/mockups/`; browsers block file:// for the scripts): all 15 pages x all states (60 per line) in light and dark without console errors, failed requests, horizontal overflow or missing h1; theme choice kept across pages; no overflow at 390px. Known gaps for the next stage: preview showed a billing-docs page on platform-docs and the overview counted 1 API key while the list shows 2 (both fixed in SPEC.md); no state yet for the global-pause polling text, the stored-token labels, sync warnings, PageList no-match and CopyButton results. Waiting for the developer's choice.
+<!-- SECTION:NOTES:END -->
