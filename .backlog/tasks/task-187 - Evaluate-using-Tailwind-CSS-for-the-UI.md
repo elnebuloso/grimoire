@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-30 21:41'
-updated_date: '2026-10-30 22:25'
+updated_date: '2026-10-30 22:26'
 labels:
   - admin
 milestone: m-0
@@ -50,6 +50,8 @@ Measured on a throwaway worktree (branch spike/tailwind, deleted afterwards), No
 - Tokens: light-dark() custom properties would move into @theme; both schemes, prefers-reduced-motion and pointer: coarse map to variants, but the rules in .claude/rules/ui-components.md (scoped styles, app.css holds only shared base) and DESIGN.md would be rewritten around utilities.
 
 Recommendation: stay with plain CSS. The design already lives in one token set and scoped component styles that the rules and DESIGN.md are written around; Tailwind would add a second idiom (or a migration of ~1150 lines across 24 files) and more CSS, for no feature the product lacks. Icons, the one concrete gain named, are solved with @lucide/svelte (TASK-186). Reopen if the UI grows enough that writing scoped CSS becomes the bottleneck.
+
+Decision by the user: stay with plain CSS and tokens for now.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
