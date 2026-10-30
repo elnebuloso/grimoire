@@ -4,7 +4,7 @@ title: Switch the UI between light and dark
 status: To Do
 assignee: []
 created_date: '2026-10-29T06:46:00Z'
-updated_date: '2026-10-29T06:58:00Z'
+updated_date: '2026-10-30 17:41'
 labels:
   - admin
 milestone: m-0
@@ -23,6 +23,8 @@ ordinal: 112000
 Users want the UI to match their surroundings and the rest of their desktop: light or dark, following the operating system unless they pick one themselves.
 
 Waits for TASK-37: until the visual design is agreed, the frontend carries no theming at all (`.claude/rules/until-v1.md`, section "Frontend: function first"), and a dark variant is part of that design.
+
+The colours of both variants and the switching behaviour come from the agreed design of TASK-53 (`docs/design.md`), whose mockups already try out the switch.
 <!-- SECTION:DESCRIPTION:END -->
 
 ## Acceptance Criteria
