@@ -4,6 +4,7 @@ title: Bring the handbook and the README up to date for 1.0.0
 status: To Do
 assignee: []
 created_date: '2026-10-30 23:27'
+updated_date: '2026-10-30 23:40'
 labels: []
 milestone: m-2
 dependencies:
@@ -28,4 +29,5 @@ The 1.0.0 release publishes the handbook and puts the README in front of everyon
 - [ ] #2 The handbook follows `.claude/rules/agent-plugin-charter/handbook.md` (one reader per page, nothing the reader can already see, no build internals)
 - [ ] #3 `README.md` matches the 1.0.0 state: what grimoire is, how to run it and where the handbook is, with no 0.x-only notes left
 - [ ] #4 `make handbook` passes
+- [ ] #5 The section "Connecting agents" in `README.md` no longer says "Every request needs an API key": without a key, requests read and search the public sources; a key adds private sources (ADR 0003)
 <!-- AC:END -->
