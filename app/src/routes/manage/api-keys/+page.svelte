@@ -1,6 +1,7 @@
 <script lang="ts">
 	import ChoiceField from '#lib/components/ChoiceField.svelte';
 	import ConfirmForm from '#lib/components/ConfirmForm.svelte';
+	import CopyButton from '#lib/components/CopyButton.svelte';
 	import DateTime from '#lib/components/DateTime.svelte';
 	import FormError from '#lib/components/FormError.svelte';
 	import TextField from '#lib/components/TextField.svelte';
@@ -64,6 +65,7 @@
 		{m.apikeys_created({ name: form.created.name })}
 		<output>{form.created.key}</output>
 	</p>
+	<p><CopyButton value={form.created.key} label={m.apikeys_copy()} /></p>
 {/if}
 
 {#if data.keys.length === 0}

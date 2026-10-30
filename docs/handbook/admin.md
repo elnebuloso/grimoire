@@ -203,7 +203,7 @@ Agents authenticate with an API key, sent as `Authorization: Bearer <key>`. Unde
 create one with a name and the projects it may read: all of them, including projects added
 later, or a selection.
 
-The key is shown once, right after it is created. grimoire stores only its SHA-256 hash, so a
+The key is shown once, right after it is created; **Copy key** puts it on the clipboard. grimoire stores only its SHA-256 hash, so a
 lost key cannot be recovered: revoke it and create a new one. Revoking takes effect with the next
 request. A key limited to a selection loses a project when the project is deleted, and sees
 nothing once all of them are gone.

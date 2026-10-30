@@ -217,5 +217,8 @@
 	"project_source_warning": "1 Sync-Warnung",
 	"project_source_warnings": "{count} Sync-Warnungen",
 	"dead_links_none": "Keine Quelle hat einen toten Link.",
-	"source_sync_pending_reload": "Lade die Seite neu für das Ergebnis."
+	"source_sync_pending_reload": "Lade die Seite neu für das Ergebnis.",
+	"copy_done": "Kopiert.",
+	"copy_failed": "Kopieren ging nicht. Markiere den Key und kopiere ihn von Hand.",
+	"apikeys_copy": "Key kopieren"
 }
