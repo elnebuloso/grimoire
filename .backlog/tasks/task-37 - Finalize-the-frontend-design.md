@@ -1,10 +1,11 @@
 ---
 id: TASK-37
 title: Finalize the frontend design
-status: To Do
-assignee: []
+status: In Progress
+assignee:
+  - '@claude'
 created_date: '2026-10-28T23:50:00Z'
-updated_date: '2026-10-30 18:36'
+updated_date: '2026-10-30 19:40'
 labels:
   - admin
 milestone: m-0
@@ -43,3 +44,19 @@ Visual reference until then: mockup e/6, local and git-ignored: `cd docs/mockups
 <!-- DOD:BEGIN -->
 - [ ] #1 Accepted only by the user explicitly confirming the design; not marked done before that
 <!-- DOD:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. Bring the design into the product: TASK-178 to TASK-182, TASK-50, TASK-58 (done).
+2. Hand the result to the user for review in light and dark, against mockup e/6.
+3. After the user's explicit acceptance: delete `docs/mockups/` and its line in `.gitignore`, check the criteria, close.
+<!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Ready for acceptance. TASK-178 to TASK-182, TASK-50 and TASK-58 are done. `make e2e` (20 tests, every admin flow) passes with the design (AC #2 evidence). Every page and state was compared against e/6 in light and dark at 390 and 1366 px with screenshots, axe (wcag2a/aa) and an overflow check during those tasks (AC #3 evidence, listed in each task's notes).
+Known deviations from the mockup, deliberate: links after a status ("Log in", "Request a new link", "To the start page") and "New source" are plain links, not link-styled buttons, since `docs/design.md` defines no such element; the page-list line after the file name is one message, shown entirely in `--ink-2`.
+Waiting for the user's explicit acceptance (DoD #1); AC #1 and #4 follow from it.
+<!-- SECTION:NOTES:END -->
