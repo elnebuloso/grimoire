@@ -20,7 +20,7 @@ Its character: calm, tactile and quiet. Cool neutral surfaces, one petrol accent
 - **Numbers are a ledger, not tiles.** Overview figures are a term | value list with right-aligned tabular numbers.
 - **Mono only for machine strings:** slugs, commit hashes, snippet IDs, file paths, cron expressions, exclusions, the API key and snippet markdown.
 
-## Colour
+## Colors
 
 Every colour is a token with a light and a dark value, written with `light-dark()`:
 
