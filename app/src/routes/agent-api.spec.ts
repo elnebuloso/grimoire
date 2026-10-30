@@ -26,6 +26,7 @@ let billingKey: string;
 
 // The real accessor opens the file from the environment; the routes get an in-memory database.
 vi.mock('#lib/server/db/index.js', () => ({ database: () => db }));
+vi.mock('$app/env/private', () => ({ TZ: 'UTC' }));
 
 function addSource(
 	project: string,
