@@ -25,27 +25,59 @@
 	});
 </script>
 
-{#if filterable}
-	<TextField
-		label={m.pages_filter()}
-		type="search"
-		value={filter}
-		oninput={(event) => (filter = event.currentTarget.value)}
-	/>
-{/if}
-{#if shown.length === 0}
-	<p>{m.pages_filter_none()}</p>
-{:else}
-	<ul>
-		{#each shown as page (page.file)}
-			<li>
-				<a
-					href="{resolve('/manage/sources/[id]', {
-						id: String(sourceId)
-					})}?preview={encodeURIComponent(page.file)}">{page.file}</a
-				>
-				– {m.source_page_line({ title: page.title, snippets: page.snippets, tokens: page.tokens })}
-			</li>
-		{/each}
-	</ul>
-{/if}
+<div>
+	{#if filterable}
+		<TextField
+			label={m.pages_filter()}
+			type="search"
+			value={filter}
+			oninput={(event) => (filter = event.currentTarget.value)}
+		/>
+	{/if}
+	{#if shown.length === 0}
+		<p>{m.pages_filter_none()}</p>
+	{:else}
+		<ul>
+			{#each shown as page (page.file)}
+				<li>
+					<a
+						href="{resolve('/manage/sources/[id]', {
+							id: String(sourceId)
+						})}?preview={encodeURIComponent(page.file)}">{page.file}</a
+					>
+					–
+					<span class="muted"
+						>{m.source_page_line({
+							title: page.title,
+							snippets: page.snippets,
+							tokens: page.tokens
+						})}</span
+					>
+				</li>
+			{/each}
+		</ul>
+	{/if}
+</div>
+
+<style>
+	div {
+		display: grid;
+		gap: var(--s3);
+		min-width: 0;
+	}
+	ul {
+		list-style: none;
+	}
+	li {
+		padding: var(--s2) 0;
+		border-top: 1px solid var(--line);
+		overflow-wrap: anywhere;
+	}
+	li:first-child {
+		border-top: 0;
+	}
+	a {
+		font-family: var(--mono);
+		font-size: 13.5px;
+	}
+</style>

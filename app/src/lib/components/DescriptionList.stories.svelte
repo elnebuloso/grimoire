@@ -39,3 +39,19 @@
 		await expect(canvas.queryAllByRole('term')).toHaveLength(0);
 	}}
 />
+
+<Story
+	name="Numbers"
+	args={{
+		numbers: true,
+		items: [
+			['Sources', 4],
+			['Tokens', 3222]
+		]
+	}}
+	play={async ({ canvas }) => {
+		const values = canvas.getAllByRole('definition');
+		await expect(values.map((value) => value.textContent?.trim())).toEqual(['4', '3222']);
+		await expect(getComputedStyle(values[1]).textAlign).toBe('end');
+	}}
+/>

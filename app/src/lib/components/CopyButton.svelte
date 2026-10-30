@@ -28,7 +28,20 @@
 
 {#if available}
 	<button type="button" onclick={copy}>{label}</button>
-	<span role="status"
+	<span role="status" class={outcome}
 		>{outcome === 'copied' ? m.copy_done() : outcome === 'failed' ? m.copy_failed() : ''}</span
 	>
 {/if}
+
+<style>
+	span {
+		font-size: 14px;
+		font-weight: 500;
+	}
+	.copied {
+		color: var(--ok);
+	}
+	.failed {
+		color: var(--err);
+	}
+</style>

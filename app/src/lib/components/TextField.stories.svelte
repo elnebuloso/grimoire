@@ -45,3 +45,13 @@
 		await expect(input).toHaveValue('admin');
 	}}
 />
+
+<Story
+	name="Machine string"
+	args={{ label: 'Branch', name: 'branch', value: 'main', mono: true }}
+	play={async ({ canvas }) => {
+		const input = canvas.getByLabelText('Branch');
+		await expect(input).toHaveValue('main');
+		await expect(getComputedStyle(input).fontFamily).toContain('IBM Plex Mono');
+	}}
+/>

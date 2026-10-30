@@ -186,6 +186,15 @@ a:hover {
 
 /* Forms */
 
+form {
+	display: grid;
+	gap: var(--s4);
+	min-width: 0;
+}
+form > button {
+	justify-self: start;
+}
+
 fieldset {
 	margin: 0;
 	padding: 0;

@@ -30,5 +30,5 @@
 	}}
 >
 	{@render children?.()}
-	<button aria-label={buttonLabel}>{label}</button>
+	<button class="danger" aria-label={buttonLabel}>{label}</button>
 </form>

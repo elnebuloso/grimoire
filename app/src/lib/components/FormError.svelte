@@ -3,4 +3,4 @@
 	let { message }: { message?: string } = $props();
 </script>
 
-{#if message}<p role="alert">{message}</p>{/if}
+{#if message}<p class="notice alert" role="alert">{message}</p>{/if}

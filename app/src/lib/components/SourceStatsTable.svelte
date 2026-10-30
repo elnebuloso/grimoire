@@ -19,40 +19,66 @@
 			<tr>
 				<th scope="col">{m.source()}</th>
 				<th scope="col">{m.visibility()}</th>
-				<th scope="col">{m.pages()}</th>
-				<th scope="col">{m.snippets()}</th>
-				<th scope="col">{m.tokens()}</th>
+				<th scope="col" class="num">{m.pages()}</th>
+				<th scope="col" class="num">{m.snippets()}</th>
+				<th scope="col" class="num">{m.tokens()}</th>
 				<th scope="col">{m.source_last_sync()}</th>
 				<th scope="col">{m.sync_error()}</th>
-				<th scope="col">{m.dead_links()}</th>
+				<th scope="col" class="num">{m.dead_links()}</th>
 			</tr>
 		</thead>
 		<tbody>
 			{#each sources as source (source.slug)}
 				<tr>
 					<th scope="row">
-						{#if name}{@render name(source)}{:else}{source.name}{/if}
-						<code>{source.slug}</code>
-						{#if source.description}<br />{source.description}{/if}
-						{#if source.docsUrl}<br /><a href={source.docsUrl} rel="external"
-								>{m.source_docs_link()}</a
-							>{/if}
+						<div class="source">
+							<span class="name"
+								>{#if name}{@render name(source)}{:else}{source.name}{/if}</span
+							>
+							<code>{source.slug}</code>
+							{#if source.description}<span class="muted">{source.description}</span>{/if}
+							{#if source.docsUrl}<a href={source.docsUrl} rel="external">{m.source_docs_link()}</a
+								>{/if}
+						</div>
 					</th>
 					<td>{source.public ? m.visibility_public() : m.visibility_private()}</td>
-					<td>{source.pages}</td>
-					<td>{source.snippets}</td>
-					<td>{source.tokens}</td>
-					<td>
+					<td class="num">{source.pages}</td>
+					<td class="num">{source.snippets}</td>
+					<td class="num">{source.tokens}</td>
+					<td class="when">
 						{#if source.lastSync}
 							<DateTime value={source.lastSync} {timeZone} />
 						{:else}
 							{m.not_synced()}
 						{/if}
 					</td>
-					<td>{source.error ? m.yes() : m.no()}</td>
-					<td>{source.deadLinks}</td>
+					<td class={source.error ? 'error' : 'muted'}>{source.error ? m.yes() : m.no()}</td>
+					<td class="num">{source.deadLinks}</td>
 				</tr>
 			{/each}
 		</tbody>
 	</table>
 </div>
+
+<style>
+	.source {
+		display: grid;
+		gap: 2px;
+		min-width: 12rem;
+	}
+	.name {
+		font-weight: 500;
+	}
+	code {
+		color: var(--ink-2);
+		font-size: 12.5px;
+	}
+	.when {
+		color: var(--ink-2);
+		white-space: nowrap;
+	}
+	.error {
+		color: var(--err);
+		font-weight: 600;
+	}
+</style>

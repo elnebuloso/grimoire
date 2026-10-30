@@ -26,8 +26,8 @@
 </script>
 
 <form method="post" action="?/slug">
-	<p>{effects}</p>
-	{#if changed}<p role="status">{m.slug_changed()}</p>{/if}
+	<p class="muted">{effects}</p>
+	{#if changed}<p class="notice" role="status">{m.slug_changed()}</p>{/if}
 	<FormError message={error} />
 	<TextField
 		label={m.slug_change_new()}
@@ -35,7 +35,14 @@
 		required
 		maxlength={MAX_SLUG_LENGTH}
 		value={value ?? current}
+		mono
 	/>
-	<TextField label={m.slug_change_confirmation()} name="confirmation" required autocomplete="off" />
+	<TextField
+		label={m.slug_change_confirmation()}
+		name="confirmation"
+		required
+		autocomplete="off"
+		mono
+	/>
 	<button>{m.slug_change_submit()}</button>
 </form>

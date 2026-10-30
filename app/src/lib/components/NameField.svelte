@@ -9,7 +9,24 @@
 	const slug = $derived(slugify(typed));
 </script>
 
-<p>
-	<label>{label} <input {name} required maxlength={MAX_NAME_LENGTH} bind:value={typed} /></label>
+<div>
+	<label
+		><span>{label}</span>
+		<input {name} required maxlength={MAX_NAME_LENGTH} bind:value={typed} /></label
+	>
 	<output>{m.slug_preview({ slug: slug || m.slug_preview_empty() })}</output>
-</p>
+</div>
+
+<style>
+	div,
+	label {
+		display: grid;
+		gap: 6px;
+		min-width: 0;
+	}
+	output {
+		color: var(--ink-2);
+		font-family: var(--mono);
+		font-size: 13px;
+	}
+</style>

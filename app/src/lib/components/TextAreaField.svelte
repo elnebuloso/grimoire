@@ -5,4 +5,12 @@
 		$props();
 </script>
 
-<p><label>{label} <textarea {...textarea}>{value}</textarea></label></p>
+<label><span>{label}</span> <textarea {...textarea}>{value}</textarea></label>
+
+<style>
+	label {
+		display: grid;
+		gap: 6px;
+		min-width: 0;
+	}
+</style>

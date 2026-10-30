@@ -41,3 +41,16 @@
 		<ChoiceField type="radio" name="scope" value="selected" label="Only these" />
 	{/snippet}
 </Story>
+
+<Story
+	name="Machine string"
+	args={{ label: 'billing-docs', name: 'source', value: 'billing-docs', mono: true }}
+	play={async ({ canvas }) => {
+		const checkbox = canvas.getByRole('checkbox', { name: 'billing-docs' });
+		await userEvent.click(checkbox);
+		await expect(checkbox).toBeChecked();
+		await expect(getComputedStyle(canvas.getByText('billing-docs')).fontFamily).toContain(
+			'IBM Plex Mono'
+		);
+	}}
+/>
