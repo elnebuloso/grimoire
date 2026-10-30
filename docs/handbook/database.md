@@ -46,20 +46,6 @@ Releases before `1.0.0` are previews with no update path between them: a databas
 `0.x` release may not work with a later one. Start the new release with an empty volume and enter
 sources and API keys again.
 
-## Schema updates
-
-From `1.0.0` on, a new version updates the schema when it starts. A failed update is rolled back
-and stops the start with an error naming the migration. An older version refuses to start on a
-database a newer one has updated.
-
-!!! danger "Irreversible"
-    A schema update cannot be undone. Take a backup before every update; going back
-    to the older version means restoring it.
-
-To update before the application starts, run the same image with `MIGRATE_ONLY=true` and the same
-`DATABASE_PATH`, for example as an init container. If the application starts at the same time
-anyway, each update is still applied once.
-
 ## Backups
 
 Take a consistent copy while grimoire runs:
