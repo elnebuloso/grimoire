@@ -223,6 +223,7 @@
 	"auth_reset_blocked": "Zu viele Anfragen für ein neues Passwort. Versuche es später erneut.",
 	"auth_reset_link_invalid": "Dieser Link ist ungültig, schon benutzt oder abgelaufen. Fordere einen neuen an.",
 	"login_forgot": "Passwort vergessen?",
+	"login_no_mail_reset": "Passwort vergessen? Hier ist kein Mailversand eingerichtet; bitte die Person, die diese Instanz betreibt, das Admin-Konto zurückzusetzen.",
 	"forgot_title": "Passwort zurücksetzen",
 	"forgot_intro": "Gib die E-Mail-Adresse deines Kontos ein. Gehört sie zu einem Konto, geht ein Link zum Setzen eines neuen Passworts dorthin; er gilt eine Stunde.",
 	"forgot_submit": "Link senden",

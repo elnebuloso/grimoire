@@ -223,6 +223,7 @@
 	"auth_reset_blocked": "Too many requests for a new password. Try again later.",
 	"auth_reset_link_invalid": "This link is invalid, used or expired. Request a new one.",
 	"login_forgot": "Forgot your password?",
+	"login_no_mail_reset": "Forgot your password? No mail is set up here, so ask whoever runs this instance to reset the admin account.",
 	"forgot_title": "Reset your password",
 	"forgot_intro": "Enter the email address of your account. If it has one, a link to set a new password is sent there; it is valid for one hour.",
 	"forgot_submit": "Send link",
