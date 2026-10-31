@@ -40,6 +40,10 @@ Facts learned while building grimoire.
 - `docker exec -it` needs a terminal; without one:
   `printf 'admin\n' | script -qec "docker exec -it <container> node scripts/reset-admin.ts" /dev/null`.
 
+## Database
+
+- A released migration is never edited; a schema change is a new numbered file.
+
 ## Handbook
 
 - A new page in `docs/handbook/` needs an entry in `nav` in `zensical.toml`; `make handbook`
