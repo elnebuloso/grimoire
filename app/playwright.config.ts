@@ -10,9 +10,9 @@ import { defineConfig } from '@playwright/test';
 process.env.E2E_DIR ??= mkdtempSync(join(tmpdir(), 'grimoire-e2e-'));
 const directory = process.env.E2E_DIR;
 
-// Sources must use https, and the tests must not need the network: git in the server maps these
-// URLs to local paths. `auth.git` has a branch `main` but no `docs/`, so a sync of the default path
-// reaches the repository and still fails; `missing.git` does not exist.
+// Sources must use https, and the tests must not need the network: git in the server maps this
+// URL to a local path. `auth.git` has a branch `main` but no `docs/`, so a sync of the default path
+// reaches the repository and still fails.
 const E2E_GIT = 'https://git.e2e.example/platform';
 const repository = join(directory, 'auth.git');
 const gitConfig = join(directory, 'gitconfig');
@@ -34,11 +34,7 @@ if (!existsSync(repository)) {
 		'README'
 	]);
 	execFileSync('git', ['clone', '--quiet', '--bare', work, repository]);
-	writeFileSync(
-		gitConfig,
-		`[url "file://${repository}"]\n\tinsteadOf = ${E2E_GIT}/auth.git\n` +
-			`[url "file://${join(directory, 'missing.git')}"]\n\tinsteadOf = ${E2E_GIT}/missing.git\n`
-	);
+	writeFileSync(gitConfig, `[url "file://${repository}"]\n\tinsteadOf = ${E2E_GIT}/auth.git\n`);
 }
 
 export default defineConfig({

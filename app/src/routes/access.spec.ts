@@ -412,3 +412,16 @@ describe('handleError', () => {
 		expect(logged()).toEqual([]);
 	});
 });
+
+describe('handleRobots', () => {
+	it('asks search engines to skip every answer, pages, errors and agent routes alike', async () => {
+		const setHeaders = vi.fn();
+		const resolve = vi.fn(async () => new Response('served'));
+		const event = { setHeaders };
+
+		await admin.hooks.handleRobots({ event, resolve } as never);
+
+		expect(setHeaders).toHaveBeenCalledWith({ 'X-Robots-Tag': 'noindex, nofollow' });
+		expect(resolve).toHaveBeenCalledWith(event);
+	});
+});

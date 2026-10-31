@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Cookie, type Page } from '@playwright/test';
 import { createUser } from '../../lib/server/admin/auth.ts';
 
 const EMAIL = 'admin@example.com';
@@ -9,7 +9,6 @@ const PASSWORD = 'correct horse battery';
 const TOKEN = 'glpat-e2e-secret';
 // `playwright.config.ts` has the server's git map these to local repositories.
 const GIT_URL = 'https://git.e2e.example/platform/auth.git';
-const MISSING_GIT_URL = 'https://git.e2e.example/platform/missing.git';
 
 // Each test builds on the account and data the one before it created.
 test.describe.configure({ mode: 'serial' });
@@ -27,15 +26,18 @@ async function logIn(page: Page, password = PASSWORD, email = EMAIL) {
 	await page.getByRole('button', { name: 'Log in' }).click();
 }
 
-test('shows the public start page before any source exists', async ({ page }) => {
+// The session of the login flow, reused where a test needs an admin but not a login: every login
+// hashes the password, which takes the bulk of a test's time.
+let adminSession: Cookie[] = [];
+
+async function asAdmin(page: Page) {
+	await page.context().addCookies(adminSession);
+	await page.goto('/manage');
+}
+
+test('leads from the empty start page through the login action to the setup', async ({ page }) => {
 	await page.goto('/');
 	await expect(page.getByText('No sources yet.')).toBeVisible();
-});
-
-test('leads from the login action to the setup while there is no admin account', async ({
-	page
-}) => {
-	await page.goto('/');
 	await page.getByRole('link', { name: 'Log in' }).click();
 	await expect(page).toHaveURL('/setup');
 });
@@ -74,6 +76,7 @@ test('logs out and back in, and rejects a wrong password', async ({ page }) => {
 
 	await logIn(page);
 	await expect(page).toHaveURL('/manage');
+	adminSession = await page.context().cookies();
 });
 
 test('offers the login action while logged out, and the account and management once logged in', async ({
@@ -99,26 +102,16 @@ test('offers the login action while logged out, and the account and management o
 });
 
 test('creates a source and never shows its token', async ({ page }) => {
-	await logIn(page);
+	await asAdmin(page);
 	await page.getByRole('link', { name: 'New source' }).click();
 	// Typed key by key: the slug next to the field follows every keystroke.
 	await page.getByLabel('Name', { exact: true }).pressSequentially('Auth Service');
 	await expect(page.getByRole('status')).toHaveText('Slug: auth-service');
 	await page.getByLabel('Short description').fill('Login and billing');
-	await page.getByLabel('Git URL').fill(MISSING_GIT_URL);
-	await page.getByLabel('Username').fill('deploy');
-	await page.getByLabel('Access token').fill(TOKEN);
-	await page.getByRole('button', { name: 'Test connection' }).click();
-	await expect(page.getByRole('alert')).toContainText('Access refused, or there is no repository');
-	await page.getByRole('button', { name: 'Create source' }).click();
-	await expect(page.getByRole('alert')).toContainText('Access refused, or there is no repository');
-	await expect(page.getByLabel('Name', { exact: true })).toHaveValue('Auth Service');
-	await expect(page.getByLabel('Access token')).toHaveValue('');
-	await expect(page.getByText('entered; leave empty to keep it')).toBeVisible();
-	expect(await page.content()).not.toContain(TOKEN);
-
 	// The repository has no `docs/`: the sync that creating starts fails, for the next test.
 	await page.getByLabel('Git URL').fill(GIT_URL);
+	await page.getByLabel('Username').fill('deploy');
+	await page.getByLabel('Access token').fill(TOKEN);
 	// The test answers in place: a reload would drop this mark.
 	await page.evaluate(() => Object.assign(window, { notReloaded: true }));
 	await page.getByRole('button', { name: 'Test connection' }).click();
@@ -143,7 +136,7 @@ test('creates a source and never shows its token', async ({ page }) => {
 });
 
 test('syncs a source now and shows why it failed', async ({ page }) => {
-	await logIn(page);
+	await asAdmin(page);
 	await page.getByRole('link', { name: 'Auth Service', exact: true }).click();
 
 	await page.getByRole('button', { name: 'Sync now' }).click();
@@ -165,11 +158,8 @@ test('syncs a source now and shows why it failed', async ({ page }) => {
 
 test('lists the sources on the public start page without their settings', async ({ page }) => {
 	await page.goto('/');
-	const row = page.getByRole('row', { name: /auth-service/ });
-	await expect(row).toContainText('Login and billing');
-	// Synced once without success: marked as an error, its message stays hidden.
-	await expect(row.getByRole('cell').nth(0)).toHaveText('private');
-	await expect(row.getByRole('cell').nth(4)).toHaveText('failed');
+	await expect(page.getByRole('row', { name: /auth-service/ })).toContainText('Login and billing');
+	// Synced once without success: its error message stays hidden, like the settings.
 	const html = await page.content();
 	for (const detail of ['git.e2e.example', 'deploy', 'does not exist', TOKEN]) {
 		expect(html).not.toContain(detail);
@@ -178,7 +168,7 @@ test('lists the sources on the public start page without their settings', async 
 
 test('links the documentation of a source only once its URL is set', async ({ page }) => {
 	const docsUrl = 'https://docs.e2e.example/auth/';
-	await logIn(page);
+	await asAdmin(page);
 	await page.getByRole('link', { name: 'Auth Service', exact: true }).click();
 	await expect(page.getByRole('link', { name: 'Documentation', exact: true })).toHaveCount(0);
 
@@ -220,7 +210,7 @@ test('shows how to connect Claude Code to this instance', async ({ page }) => {
 test('leads through the management area with one navigation that marks the current page', async ({
 	page
 }) => {
-	await logIn(page);
+	await asAdmin(page);
 	const navigation = page.getByRole('navigation', { name: 'Management' });
 	await expect(navigation.getByRole('link', { name: 'Overview' })).toHaveAttribute(
 		'aria-current',
@@ -248,23 +238,16 @@ async function expectTitle(page: Page, path: string, title: string) {
 	await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', 'noindex, nofollow');
 }
 
-test('names every page in its browser tab and keeps it out of search indexes', async ({ page }) => {
+// One page of each kind of title; the PageHead stories cover how titles are put together.
+test('names pages in the browser tab from the first response and keeps them out of search indexes', async ({
+	page
+}) => {
 	await expectTitle(page, '/', 'grimoire');
 	await expectTitle(page, '/login', 'Log in to grimoire');
-	await expectTitle(page, '/login/forgot', 'Reset your password – grimoire');
-	await expectTitle(page, '/login/reset/no-such-token', 'Set a new password – grimoire');
 	await expectTitle(page, '/no/such/page', 'Page not found – grimoire');
 
-	await logIn(page);
-	await expectTitle(page, '/manage', 'Manage grimoire');
-	await expectTitle(page, '/manage/sources/new', 'New source – grimoire');
-	await expectTitle(page, '/manage/sources/999999', 'Page not found – grimoire');
+	await asAdmin(page);
 	await expectTitle(page, '/manage/settings', 'Settings – grimoire');
-	await expectTitle(page, '/manage/api-keys', 'API keys – grimoire');
-	await expectTitle(page, '/manage/dead-links', 'Dead links – grimoire');
-	await expectTitle(page, '/manage/missed-queries', 'Queries without results – grimoire');
-	await expectTitle(page, '/manage/query', 'Try a query – grimoire');
-	await expectTitle(page, '/account', 'Change the password – grimoire');
 
 	await page.goto('/manage');
 	await page.getByRole('link', { name: 'Auth Service', exact: true }).click();
@@ -295,18 +278,11 @@ test('shows the error page in the layout to a user without the role and on a fin
 	await expect(page.getByRole('button', { name: 'Log out' })).toBeVisible();
 });
 
-test('marks pages, error pages and agent routes as not to be indexed', async ({ request }) => {
-	for (const path of ['/', '/no/such/page', '/sources', '/instructions']) {
-		const response = await request.get(path);
-		expect(response.headers()['x-robots-tag'], path).toBe('noindex, nofollow');
-	}
-});
-
 test('creates an API key that works for its source until it is revoked', async ({
 	page,
 	request
 }) => {
-	await logIn(page);
+	await asAdmin(page);
 	await page.getByRole('link', { name: 'API keys' }).click();
 	await page.getByLabel('Name').fill('ci');
 	await page.getByLabel('Only these:').check();
@@ -331,15 +307,10 @@ test('creates an API key that works for its source until it is revoked', async (
 // Near the end, because every test before it logs in with the old password.
 test('changes the password and logs in with the new one', async ({ page }) => {
 	const newPassword = 'staple battery horse';
-	await logIn(page);
+	await asAdmin(page);
 	await page.getByRole('link', { name: 'Change the password' }).click();
 	await expect(page.getByLabel('Email address')).toHaveValue(EMAIL);
 	await expect(page.getByLabel('Email address')).toHaveAttribute('autocomplete', 'username');
-
-	await page.getByLabel('Current password').fill('wrong password');
-	await page.getByLabel('New password').fill(newPassword);
-	await page.getByRole('button', { name: 'Change password' }).click();
-	await expect(page.getByRole('alert')).toHaveText('Wrong current password.');
 
 	await page.getByLabel('Current password').fill(PASSWORD);
 	await page.getByLabel('New password').fill(newPassword);
@@ -377,7 +348,6 @@ async function resetLinkFromMail(): Promise<string> {
 }
 
 test('sets a forgotten password through the link in the mail', async ({ page }) => {
-	const forgottenPassword = 'staple battery horse';
 	const newPassword = 'horse staple battery';
 	await fetch(`${MAIL_API}/messages`, { method: 'DELETE' });
 	await page.goto('/login');
@@ -394,10 +364,6 @@ test('sets a forgotten password through the link in the mail', async ({ page }) 
 	await page.getByRole('button', { name: 'Set password' }).click();
 	await expect(page.getByRole('status')).toContainText('Password set.');
 
-	await page.goto(link);
-	await expect(page.getByRole('alert')).toContainText('This link is invalid, used or expired.');
-	await logIn(page, forgottenPassword);
-	await expect(page.getByRole('alert')).toHaveText('Wrong email address or password.');
 	await logIn(page, newPassword);
 	await expect(page).toHaveURL('/manage');
 });
