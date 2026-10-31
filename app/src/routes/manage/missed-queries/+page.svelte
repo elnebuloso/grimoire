@@ -8,10 +8,10 @@
 
 	let { data }: PageProps = $props();
 
-	const tryQuery = (question: string, sources: string | null) =>
+	const tryQuery = (question: string, sources: string[] | null) =>
 		new URLSearchParams([
 			['q', question],
-			...(sources?.split(', ') ?? []).map((source) => ['source', source])
+			...(sources ?? []).map((source) => ['source', source])
 		]).toString();
 </script>
 
@@ -40,7 +40,8 @@
 								>
 							</td>
 							<td>
-								{#if query.sources}<code>{query.sources}</code>{:else}{m.query_all_sources()}{/if}
+								{#if query.sources}<code>{query.sources.join(', ')}</code
+									>{:else}{m.query_all_sources()}{/if}
 							</td>
 							<td class="num">{query.count}</td>
 							<td class="when"><DateTime value={query.lastAskedAt} timeZone={data.timeZone} /></td>

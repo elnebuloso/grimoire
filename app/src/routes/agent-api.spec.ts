@@ -246,7 +246,7 @@ describe('GET /query', () => {
 		expect(recorded).toEqual(
 			expect.arrayContaining([
 				{ question: 'release process', sources: null },
-				{ question: 'vpn', sources: 'billing-docs, platform-docs' }
+				{ question: 'vpn', sources: ['billing-docs', 'platform-docs'] }
 			])
 		);
 	});
@@ -405,7 +405,7 @@ describe('POST /mcp', () => {
 		expect(listMissedQueries(db)).toEqual([]);
 		await tool('query', { query: 'release process', sources: ['platform-docs'] });
 		expect(listMissedQueries(db)).toMatchObject([
-			{ question: 'release process', sources: 'platform-docs', count: 1 }
+			{ question: 'release process', sources: ['platform-docs'], count: 1 }
 		]);
 	});
 

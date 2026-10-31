@@ -29,7 +29,7 @@ describe('missed queries', () => {
 		expect(listMissedQueries(db)).toEqual([
 			{
 				question: 'vpn',
-				sources: 'platform-docs',
+				sources: ['platform-docs'],
 				count: 1,
 				lastAskedAt: '2026-11-01T12:00:00.000Z'
 			},
@@ -41,7 +41,7 @@ describe('missed queries', () => {
 			},
 			{
 				question: 'release process',
-				sources: 'platform-docs',
+				sources: ['platform-docs'],
 				count: 1,
 				lastAskedAt: '2026-10-30T12:00:00.000Z'
 			}
@@ -53,7 +53,7 @@ describe('missed queries', () => {
 		recordMissedQuery(db, { question: 'vpn', sources: ['billing-docs', 'platform-docs'] }, NOW);
 
 		expect(listMissedQueries(db)).toMatchObject([
-			{ question: 'vpn', sources: 'billing-docs, platform-docs', count: 2 }
+			{ question: 'vpn', sources: ['billing-docs', 'platform-docs'], count: 2 }
 		]);
 	});
 

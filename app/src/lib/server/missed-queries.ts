@@ -8,8 +8,8 @@ const MAX_LISTED = 200;
 
 export interface MissedQuery {
 	question: string;
-	/** The slugs asked for, comma-separated; null for a query across all sources. */
-	sources: string | null;
+	/** The slugs asked for, sorted; null for a query across all sources. */
+	sources: string[] | null;
 	count: number;
 	lastAskedAt: string;
 }
@@ -23,7 +23,7 @@ export function recordMissedQuery(
 	const cutoff = new Date(now.getTime() - KEEP_DAYS * 86_400_000).toISOString();
 	db.prepare('INSERT INTO missed_queries (question, sources, asked_at) VALUES (?, ?, ?)').run(
 		query.question,
-		query.sources ? [...query.sources].sort().join(', ') : null,
+		query.sources ? JSON.stringify([...query.sources].sort()) : null,
 		now.toISOString()
 	);
 	db.prepare('DELETE FROM missed_queries WHERE asked_at < ?').run(cutoff);
@@ -35,7 +35,7 @@ export function recordMissedQuery(
 
 /** The recorded questions, each once per set of sources with how often it was asked, latest first. */
 export function listMissedQueries(db: DatabaseSync): MissedQuery[] {
-	return db
+	const rows = db
 		.prepare(
 			`SELECT question, sources, count(*) AS count, max(asked_at) AS lastAskedAt
 			FROM missed_queries
@@ -43,5 +43,9 @@ export function listMissedQueries(db: DatabaseSync): MissedQuery[] {
 			ORDER BY lastAskedAt DESC
 			LIMIT ?`
 		)
-		.all(MAX_LISTED) as unknown as MissedQuery[];
+		.all(MAX_LISTED) as unknown as (Omit<MissedQuery, 'sources'> & { sources: string | null })[];
+	return rows.map((row) => ({
+		...row,
+		sources: row.sources === null ? null : JSON.parse(row.sources)
+	}));
 }

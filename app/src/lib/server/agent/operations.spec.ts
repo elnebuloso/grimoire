@@ -259,7 +259,7 @@ describe('agentQuery', () => {
 		agentQuery(db, { query: 'kubernetes', sources: ['platform-docs', 'billing-docs'] }, 'all');
 
 		expect(listMissedQueries(db)).toMatchObject([
-			{ question: 'kubernetes', sources: 'billing-docs, platform-docs' }
+			{ question: 'kubernetes', sources: ['billing-docs', 'platform-docs'] }
 		]);
 	});
 });

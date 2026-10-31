@@ -174,6 +174,35 @@ describe('openDatabase', () => {
 		).toThrow(/CHECK constraint failed/);
 	});
 
+	it('refuses invalid JSON in missed_queries.sources and accepts NULL', () => {
+		const db = openDatabase(':memory:');
+		const record = db.prepare(
+			"INSERT INTO missed_queries (question, sources, asked_at) VALUES ('vpn', ?, '2026-10-31T12:00:00.000Z')"
+		);
+
+		expect(() => record.run('billing-docs, platform-docs')).toThrow(/CHECK constraint failed/);
+		expect(() => record.run('["billing-docs"]')).not.toThrow();
+		expect(() => record.run(null)).not.toThrow();
+	});
+
+	it.each(['', '   '])('refuses the API key name %j', (name) => {
+		const db = openDatabase(':memory:');
+
+		expect(() =>
+			db
+				.prepare("INSERT INTO api_keys (name, key_hash, all_sources) VALUES (?, 'hash', 1)")
+				.run(name)
+		).toThrow(/CHECK constraint failed/);
+	});
+
+	it('refuses an email address with capital letters', () => {
+		const db = openDatabase(':memory:');
+		const insertUser = db.prepare("INSERT INTO users (email, password_hash) VALUES (?, 'x')");
+
+		expect(() => insertUser.run('Admin@Example.com')).toThrow(/CHECK constraint failed/);
+		expect(() => insertUser.run('admin@example.com')).not.toThrow();
+	});
+
 	it('removes the scope entries of API keys with their source', () => {
 		const db = openDatabase(':memory:');
 		const source = addSource(db, 'auth');

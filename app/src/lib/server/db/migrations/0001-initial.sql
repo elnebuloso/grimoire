@@ -117,7 +117,7 @@ CREATE INDEX sync_runs_source ON sync_runs (source_id, id);
 
 CREATE TABLE api_keys (
 	id INTEGER PRIMARY KEY,
-	name TEXT NOT NULL,
+	name TEXT NOT NULL CHECK (trim(name) <> ''),
 	key_hash TEXT NOT NULL UNIQUE,
 	all_sources INTEGER NOT NULL CHECK (all_sources IN (0, 1)),
 	-- ISO 8601 in UTC with `Z`, like every timestamp the application writes.
@@ -149,11 +149,11 @@ WHEN NEW.all_sources = 1 AND EXISTS (SELECT 1 FROM api_key_sources WHERE api_key
 END;
 
 -- Accounts, any number of them; what a user may do follows from their roles. Users log in with
--- their email address, which a password reset by mail needs anyway. The code stores addresses in
+-- their email address, which a password reset by mail needs anyway. Addresses are stored in
 -- lowercase, so the UNIQUE constraint holds regardless of letter case.
 CREATE TABLE users (
 	id INTEGER PRIMARY KEY,
-	email TEXT NOT NULL UNIQUE,
+	email TEXT NOT NULL UNIQUE CHECK (email = lower(email)),
 	password_hash TEXT NOT NULL
 ) STRICT;
 
@@ -186,13 +186,13 @@ CREATE INDEX password_resets_user ON password_resets (user_id);
 CREATE TABLE missed_queries (
 	id INTEGER PRIMARY KEY,
 	question TEXT NOT NULL,
-	-- The slugs, comma-separated; NULL for a query across all sources.
-	sources TEXT,
+	-- The slugs as a sorted JSON array; NULL for a query across all sources.
+	sources TEXT CHECK (json_valid(sources)),
 	asked_at TEXT NOT NULL
 ) STRICT;
 CREATE INDEX missed_queries_asked_at ON missed_queries (asked_at);
 
--- Settings of the whole instance, changed in the admin area: one row, one typed column per setting.
+-- Settings of the whole instance: one row, one typed column per setting.
 CREATE TABLE settings (
 	id INTEGER PRIMARY KEY CHECK (id = 1),
 	-- 1 while the admin has paused all syncs: polling checks no source, "sync now" still syncs.

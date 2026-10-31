@@ -18,7 +18,7 @@ describe('queries without results page', () => {
 
 		recordMissedQuery(db, { question: 'vpn', sources: ['platform-docs'] }, new Date());
 		expect(page.load({} as never)).toMatchObject({
-			queries: [{ question: 'vpn', sources: 'platform-docs', count: 1 }]
+			queries: [{ question: 'vpn', sources: ['platform-docs'], count: 1 }]
 		});
 	});
 });
