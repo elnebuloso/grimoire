@@ -1,11 +1,11 @@
 ---
 id: TASK-216
 title: Keep a typed Git token when another form on the source page is submitted
-status: In Progress
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-31 13:06'
-updated_date: '2026-10-31 13:22'
+updated_date: '2026-10-31 13:30'
 labels:
   - admin
 milestone: m-1
@@ -23,7 +23,7 @@ On `app/src/routes/manage/sources/[id]/+page.svelte`, a token typed into the set
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 A token entered but not yet saved is still there after another form on the source page has been submitted, or that form cannot be submitted while unsaved token input is pending
+- [x] #1 A token entered and tested but not yet saved is still there after **Sync now** on the source page; the slug change form, a rare and deliberate step, may still reload the page
 - [x] #2 A story or e2e test covers it
 <!-- AC:END -->
 
@@ -39,4 +39,12 @@ On `app/src/routes/manage/sources/[id]/+page.svelte`, a token typed into the set
 
 <!-- SECTION:NOTES:BEGIN -->
 Sync now form enhanced: on its redirect only invalidateAll() runs, so the settings form, the form result and the sealed token stay; other results go through update(). New e2e step 'keeps a tested token that is not saved yet when syncing now' in manage.e2e.ts fails without the change (label 'Access token (entered; ...)' not found) and passes with it; the whole manage.e2e.ts passes (16 tests). Open: the slug change form (SlugChangeForm, full-page POST to ?/slug) still drops a tested token, so AC #1 holds for Sync now only. Waiting for the user to decide whether the slug form is in scope.
+
+Scope narrowed by the user to Sync now: the slug change form keeps its full-page POST; a tested token is retyped in that rare case.
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+The Sync now form is enhanced: on its redirect only invalidateAll() runs, so the settings form, its result and the sealed token stay instead of being dropped by a page reload. e2e step 'keeps a tested token that is not saved yet when syncing now' in manage.e2e.ts fails without the change and passes with it; full lint, test and e2e passed. By the user's decision the slug change form keeps its full-page POST and still drops a tested, unsaved token.
+<!-- SECTION:FINAL_SUMMARY:END -->
