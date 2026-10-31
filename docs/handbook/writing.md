@@ -7,8 +7,8 @@
 
     New to grimoire? Read [Concepts](index.md) first.
 
-Agents never get a whole page, only the snippets that match their search, each on its own. Write
-so that every section makes sense without the rest of the page.
+A search returns the matching snippets, each without the rest of its page. Write so that every
+section makes sense on its own.
 
 ## One topic per file
 

@@ -35,8 +35,8 @@ Git repository ──sync──▶ source ─┴─▶ search, read ──▶ ag
   only with a key that opens all sources or that one. A new source is private.
 - Sync: grimoire checks every source on a schedule and reads it again when its branch moved.
   Until a sync is complete, agents get answers from the previous one.
-- Snippet: one heading with the text below it. Agents get snippets, never whole pages, unless
-  they ask for one.
+- Snippet: one heading with the text below it. A search returns snippets; an agent gets a whole
+  page only when it reads one.
 - ID: every page and snippet has one, `<source>/<page>#<anchor>`, such as
   `auth-service/deploy#rollback`. Agents read on and link with it.
 - Token budget: how much text an agent accepts per search, about four characters per token.
