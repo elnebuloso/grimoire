@@ -13,16 +13,18 @@
 		error === message ? { 'aria-invalid': true, 'aria-describedby': 'query-error' } : {};
 
 	let answerHeading = $state<HTMLHeadingElement>();
+	let form = $state<HTMLFormElement>();
 
 	// The answer replaces the page below the form, often past the fold on a phone: focus takes the
-	// reader there, and a screen reader announces it.
+	// reader there, and a screen reader announces it. A refusal takes focus to the field it is about.
 	$effect(() => {
 		if (answer) answerHeading?.focus();
+		else if (error) form?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
 	});
 </script>
 
 <div class="query">
-	<form method="get">
+	<form method="get" bind:this={form}>
 		<FormError message={error} id="query-error" />
 		<TextField
 			label={m.query_question()}

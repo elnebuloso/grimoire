@@ -34,7 +34,7 @@ How it is measured:
 | `/manage/api-keys` | 0/0/1/0 | 7.3 | 0/0 | 17 |
 | `/manage/dead-links` | 0/0/0/0 (P1 from iteration 3 fixed after 25) | 7.2 | 0/0 | 11 (full re-measure), **plateau** |
 | `/manage/missed-queries` | 0/0/0/2 | 7.3 | 0/0 | 18, **plateau** |
-| `/manage/query` | 0/0/1/1 | 7.0 | 0/0 | 27 |
+| `/manage/query` | 0/0/0/1 | 7.3 | 0/0 | 28 |
 | `/manage/settings` | 0/0/0/2 | 7.5 | 0/0 | 23 |
 | `/manage/sources/[id]` | 0/0/0/1 | 6.8 | 0/1 | 11 (full re-measure), **plateau** |
 
@@ -90,3 +90,4 @@ Notes on iteration 11:
 | – | `/manage/dead-links` | fix after 25: `overflow-wrap: anywhere` again in `DeadLinkList`, with a story that fails on a path without a break opportunity | P1 1→0 | – | – | fix, not an iteration: iteration 3 had swapped `anywhere` for `break-word`, which lets a long path widen the page at 390px |
 | 26 | `/manage/query` (`QueryForm`, also on `/`) | harden (the field a refusal is about is `aria-invalid` and described by the message; story checks it) | P0–P2 2→1 | 7.3→7.0 | 0→0 | kept: audit better (stagnation 0); the nav P2 was gone since 23 |
 | 27 | `/manage/query` (`QueryForm`) | harden (focus moves to the answer heading when an answer arrives; story checks it) | P0–P2 1→1 | 7.0→7.0 | 0→0 | kept: the reported P2 is fixed, focus after a refusal takes its place (stagnation 1) |
+| 28 | `/manage/query` (`QueryForm`) | harden (a refusal moves focus to the field it is about; story checks it) | P0–P2 1→0 | 7.0→7.3 | 0→0 | kept: audit better (stagnation 0) |

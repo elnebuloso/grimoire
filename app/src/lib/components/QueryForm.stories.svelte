@@ -56,6 +56,7 @@
 			'The token budget must be a positive whole number.'
 		);
 		await expect(canvas.getByRole('searchbox')).not.toHaveAttribute('aria-invalid');
+		await expect(tokens).toHaveFocus();
 	}}
 />
 
