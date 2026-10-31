@@ -260,6 +260,12 @@ test('leads through the management area with one navigation that marks the curre
 	);
 	await navigation.getByRole('link', { name: 'API keys' }).click();
 	await expect(page).toHaveURL('/manage/api-keys');
+	await navigation.getByRole('link', { name: 'Dead links' }).click();
+	await expect(page).toHaveURL('/manage/dead-links');
+	await expect(navigation.getByRole('link', { name: 'Dead links' })).toHaveAttribute(
+		'aria-current',
+		'page'
+	);
 
 	// The server already marks it: before hydration, and for a reader without JavaScript.
 	const html = await (await page.request.get('/manage/settings')).text();

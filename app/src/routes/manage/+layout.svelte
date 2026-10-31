@@ -16,13 +16,14 @@
 			href: resolve('/manage/missed-queries'),
 			label: m.missed_title()
 		},
+		{ route: '/manage/dead-links', href: resolve('/manage/dead-links'), label: m.dead_links() },
 		{ route: '/manage/api-keys', href: resolve('/manage/api-keys'), label: m.api_keys() },
 		{ route: '/manage/settings', href: resolve('/manage/settings'), label: m.settings_title() },
 		{ route: '/account', href: resolve('/account'), label: m.password_title() }
 	]);
 
-	// Pages reached from the overview rather than from the nav: a source and the dead links.
-	const OVERVIEW_CHILDREN = ['/manage/sources/[id]', '/manage/dead-links'];
+	// Pages reached from the overview rather than from the nav: a source.
+	const OVERVIEW_CHILDREN = ['/manage/sources/[id]'];
 
 	function current(route: string): 'page' | 'true' | undefined {
 		if (page.route.id === route) return 'page';

@@ -173,8 +173,7 @@ It keeps the newest 100 lines.
 
 ## Checking what agents get
 
-- **Dead links**, opened from the count of dead links on `Manage > Overview`, lists links that lead
-  nowhere, by source; authors fix them in Git.
+- `Manage > Dead links` lists links that lead nowhere, by source; authors fix them in Git.
 - Every page of a source links to a preview: the page exactly as `read` returns it, split into
   snippets with ID and estimated tokens. Use it to find sections that came out too large, too small
   or under a misleading title.
