@@ -109,6 +109,8 @@ Iterations 36–40 go past the stagnation stop. The goal condition set for this 
 |---|---|---|---|---|---|---|
 | 36 | `/login/forgot` | harden (the sent state links back to Log in instead of ending there) | P0–P2 0→0 | 7.8→7.5 | source 0→0 | kept: no counted change either way |
 | 37 | `/setup` | harden (each refusal marks its field, token, email or password, which points to the message; e2e step with a wrong token) | P0–P2 0→0 | 7.5→7.5 | source 0→0 | kept: no counted change either way |
+| 38 | `/login/reset/[token]` | harden (a too short password marks the field) | P0–P2 0→1 | 8.0→7.0 | source 0→0 | worse, reverted (b4dbf23) |
+| 39 | `/` (root layout) | adapt (account email and "Log in" in the header reach 44px on `pointer: coarse`) | P0–P2 1→1 | 7.3→7.0 | 0→0, also `/login` and `/account` 0→0 | kept: the touch-target P3 is fixed, no counted change |
 
 ## Summary
 

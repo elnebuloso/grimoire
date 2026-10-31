@@ -237,6 +237,12 @@
 		.session :is(button, .button) {
 			min-height: 44px;
 		}
+		/* The account email and "Log in" are text links; on touch they get the controls' height. */
+		.session a:not(.button) {
+			display: inline-flex;
+			align-items: center;
+			min-height: 44px;
+		}
 		footer .icon {
 			min-width: 44px;
 			min-height: 44px;
