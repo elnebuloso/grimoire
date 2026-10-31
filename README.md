@@ -87,7 +87,8 @@ key and backups in [docs/handbook/database.md](docs/handbook/database.md).
 
 ## Development
 
-`make help` lists all targets; `make test` runs the unit tests and the component stories,
+`make help` lists all targets; `make image` builds the image `grimoire:latest` from the checkout,
+to try unreleased changes. `make test` runs the unit tests and the component stories,
 `make e2e` the browser tests of the management area against the production build (both download
 Chromium on first use), `make lint` checks formatting, lint rules and types. `make storybook`
 opens the component catalog; [.claude/rules/ui-components.md](.claude/rules/ui-components.md) says

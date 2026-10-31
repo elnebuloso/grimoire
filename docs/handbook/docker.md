@@ -16,12 +16,6 @@ that terminates TLS.
 The image is `elnebuloso/grimoire:<version>`, the release version without its `v`: release
 `v1.2.0` is `elnebuloso/grimoire:1.2.0`. There is no `latest` tag; the examples on this page use `1.0.0`, change the version to update.
 
-To build the image from a checkout of the repository, for example to try unreleased changes:
-
-```bash
-make image   # builds grimoire:latest
-```
-
 ## Docker Compose
 
 grimoire with Caddy as reverse proxy. Save as `compose.yaml`:
@@ -272,12 +266,12 @@ recipient address.
 
 | Variable | Default in the image | Meaning |
 |---|---|---|
-| `ENCRYPTION_KEY` | none, required | Key encrypting the Git access tokens of all sources, and a token a source form carries from its test to saving: 32 random bytes, base64. The server does not start without it, also with `MIGRATE_ONLY`. See [Encryption key](database.md#encryption-key). |
+| `ENCRYPTION_KEY` | none, required | Key encrypting the Git access tokens of all sources: 32 random bytes, base64. The server does not start without it, also with `MIGRATE_ONLY`. See [Encryption key](database.md#encryption-key). |
 | `DATABASE_PATH` | `/data/grimoire.db` | Path of the database file; created with its schema on first start. Keep it in a directory of its own (see [Volume](database.md#volume)). |
 | `SYNC_SCHEDULE` | `*/5 * * * *` | When sources without their own schedule are checked: cron with five fields (minute, hour, day of month, month, day of week), in `TZ`. For a Git server that allows few requests, `0 * * * *`. |
-| `INDEXING_DEADLINE_MINUTES` | `10` | How long indexing one source may take before its sync fails, whole minutes from 1 to 1440. Raise it when a large source fails with `indexing took longer than 10 minutes` (see [Memory and CPU limits](#memory-and-cpu-limits)); one source indexes at a time, so every other source waits that long behind it. |
+| `INDEXING_DEADLINE_MINUTES` | `10` | How long indexing one source may take before its sync fails, whole minutes from 1 to 1440. Raise it when a large source fails with `indexing took longer than 10 minutes`, or the deadline set, (see [Memory and CPU limits](#memory-and-cpu-limits)); one source indexes at a time, so every other source waits that long behind it. |
 | `GRIMOIRE_VERSION` | the release of the image | Set by the image itself; leave it alone. The footer and the MCP server report it. |
-| `INSTANCE_NAME` | `grimoire` | Name the instance shows: header, page titles, the password reset mail, and the MCP server name and instructions agents see, such as `Acme Docs`. The `claude mcp add` command on the start page names the server as one word derived from it, such as `acme-docs`. Links to grimoire's own repository and handbook keep the name grimoire. |
+| `INSTANCE_NAME` | `grimoire` | Name the instance shows: header, page titles, the password reset mail, and the MCP server name and instructions agents see, such as `Acme Docs`. The `claude mcp add` command on the start page names the server as one word derived from it, such as `acme-docs`. |
 | `TZ` | UTC | IANA time zone, such as `Europe/Berlin`. Schedules run in it, including summer time, and the UI shows every time in it, whatever the browser's time zone. API key expiry dates end at midnight in it. |
 | `INCLUDE_URL_ALLOW` | none | Origins pages may include files from by URL, separated by commas, such as `https://docs.example.com,https://raw.githubusercontent.com`. `https://` only, nothing after host and port. Nothing else is requested for an include, and no redirect is followed. |
 | `LOG_FORMAT` | `ecs` | `ecs`: one JSON object per line (see [Logs](#logs)). `pretty`: readable text for local use. |
@@ -295,9 +289,20 @@ recipient address.
 | `MIGRATE_ONLY` | `false` | `true`: update the schema and exit, such as in an init container. |
 | `PORT` | `3000` | Port the server listens on. |
 
-An invalid value of `ENCRYPTION_KEY`, `SYNC_SCHEDULE`, `INDEXING_DEADLINE_MINUTES`, `TZ`,
-`INCLUDE_URL_ALLOW`, `LOG_FORMAT`, `LOG_LEVEL`, `BASE_URL` or `SMTP_PORT` stops the start with an
-error naming the variable.
+### The server does not start: `Invalid environment variables`
+
+A missing `ENCRYPTION_KEY`, or an invalid value of `ENCRYPTION_KEY`, `SYNC_SCHEDULE`,
+`INDEXING_DEADLINE_MINUTES`, `TZ`, `INCLUDE_URL_ALLOW`, `LOG_FORMAT`, `LOG_LEVEL`, `BASE_URL` or
+`SMTP_PORT`, stops the start. The log names every such variable with the reason below it:
+
+```text
+Invalid environment variables:
+
+ENCRYPTION_KEY
+  - required: 32 random bytes, base64, e.g. `openssl rand -base64 32`
+```
+
+Correct the value and start again.
 
 ## Logs
 

@@ -25,7 +25,7 @@ characters.
 - The same message appears for everybody while the server is busy checking many logins at once.
   Try again after a moment.
 - The interface follows the browser's language, English otherwise, until you pick one with the
-  language switch; the choice is kept in a cookie. Sync errors and warnings are always in English.
+  language switch; the choice is kept in a cookie for 400 days. Sync errors and warnings are always in English.
 - The colours follow the light or dark setting of your system until you pick **Light** or
   **Dark** under **Theme**; the choice is kept in a cookie for 400 days in this browser.
   **System** follows the system again.
@@ -54,8 +54,6 @@ sessions are logged out; the browser you changed it in stays logged in.
 - `This link is invalid, used or expired. Request a new one.`: use **Request a new link**.
 
 ## Sources
-
-Create a source with **New source** on `Manage > Overview`.
 
 !!! note "Public"
     The start page `/` shows every source's name, slug and short description without a login,
@@ -128,7 +126,7 @@ while **Pause all syncs** is on, is saved without either.
     `/sources/<slug>` or `/query?source=<slug>` in agent configurations stop working. Search,
     `read` and links between pages answer with the new IDs right away.
 
-Confirm by typing the current slug. The new slug must be free.
+The new slug must be free.
 
 ## Sync errors
 
@@ -141,10 +139,10 @@ page and under **Needs attention**.
 | `the Git server asks for a username and token: the repository is private, or there is none at this URL` | Enter a username and token, or correct the Git URL. |
 | `branch "main" not found in https://…` | Correct **Branch**. |
 | `source path "docs" does not exist in the repository` | Correct **Path in the repository**. |
-| `no page could be indexed, docs/deploy.md: skipped, …`, or another reason a page was skipped | Every page was skipped, so the previous index stays. Ask the authors to fix what the message names (see [Writing documentation](writing.md#sync-warnings)). |
+| `no page could be indexed, …` | Every page was skipped, so the previous index stays; the message ends with the last reason. Ask the authors to fix what the message names (see [Writing documentation](writing.md#sync-warnings)). |
 | `invalid cron expression "0 25 * * *": …` | Correct **Schedule**. |
 | `the stored access token cannot be decrypted with the current key: …` | Enter the token again, or remove it. The instance's encryption key is not the one the token was stored with, or the stored value is damaged. If every source with a token shows this, ask the operator whether the key was replaced. |
-| `indexing took longer than 10 minutes` | Split the source into smaller paths, ask authors to look for a huge or generated page, or ask the operator for a longer indexing deadline (see [Memory and CPU limits](docker.md#memory-and-cpu-limits)). |
+| `indexing took longer than 10 minutes`, or the deadline set | Split the source into smaller paths, ask authors to look for a huge or generated page, or ask the operator for a longer indexing deadline (see [Memory and CPU limits](docker.md#memory-and-cpu-limits)). |
 | `indexing ended with … before it finished, out of memory for example` | Ask the operator for more memory (see [Memory and CPU limits](docker.md#memory-and-cpu-limits)). |
 
 When indexing fails, that commit is not indexed again: checks keep showing the error until the
@@ -163,7 +161,6 @@ shows as error. Warnings about single pages and includes are for the authors; th
 - While a source syncs, agents get answers from its previous index.
 
 **Sync now** queues a sync even when the branch has not moved, behind the syncs queued before it.
-The page shows the outcome when it is done.
 
 **Paused** on a source stops polling for it, for example while its repository moves or its token
 is replaced; index, schedule and settings stay. `Manage > Settings > Pause all syncs` does the

@@ -34,7 +34,7 @@ the text.
 |---|---|
 | Text under `#` before the first `##` | The snippet `Overview`. |
 | A heading with its section | One snippet. |
-| A section under about 50 tokens, without subsections | Merged into its parent section; its anchor reads the parent. |
+| A section under about 50 tokens, without subsections | Merged into its parent section; `read` with its anchor returns the parent section. |
 | A section over about 800 tokens | Cut between paragraphs, lists, code blocks and tables into `Rollback (1/2)`, `Rollback (2/2)`, never inside one; a single block over 800 tokens stays whole. |
 
 A token is about four characters. Sections of a few paragraphs work best: short ones lose their
@@ -44,7 +44,9 @@ own heading, long ones lose their context in the second part.
 
 A snippet's ID is `<source>/<file without .md>#<anchor>`; the anchor is built from the
 heading as MkDocs and Zensical build it. Renaming a heading or moving a file changes the ID, and
-links to the old one become dead links.
+links to the old one become dead links. Give a heading a fixed anchor with `{#rollback}` after its
+text, as `attr_list` does in MkDocs: `## Rolling back a deploy {#rollback}` keeps the ID
+`auth-service/deploy#rollback` when the heading is renamed.
 
 Link with relative links, as MkDocs expects them: `deploy.md#rollback`. Agents can follow them
 with `read`. A link that leaves the source's path is dead, in MkDocs as well.
@@ -54,8 +56,8 @@ with `read`. A link that leaves the source's path is dead, in MkDocs as well.
 | Element | In the snippet |
 |---|---|
 | Front matter | `title` becomes the page title instead of the first `#`; the front matter is not text of any snippet. |
-| Admonitions `!!! warning "Caution"` | `> **Caution:** …` with the content. |
-| Content tabs `=== "Linux"` | `**Linux:**` with the content. |
+| Admonitions `!!! warning "Caution"`, collapsible `???` and `???+` | `> **Caution:** …` with the content. |
+| Content tabs `=== "Linux"`, also `===+` and `===!` | `**Linux:**` with the content. |
 | `nav` in `zensical.toml` or `mkdocs.yml` | The order of pages in the index; pages missing from `nav` follow by path. The first of the two files found in the source path or above it counts. |
 | `toc` `slugify` and `separator` in the site config | Anchors are built the same way for `pymdownx.slugs.slugify` with its options, `markdown.extensions.toc.slugify` and `slugify_unicode`; any other function, and a `normalize` or `case` value `pymdownx.slugs.slugify` does not know, falls back to the default with a warning. |
 | Includes `--8<-- "file.md"` | The included file, also from outside the source's path. |

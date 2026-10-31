@@ -69,11 +69,14 @@ volume and enter sources, users and API keys again.
 
 ## Backups
 
-Take a consistent copy while grimoire runs:
+Take a consistent copy while grimoire runs, then copy it out of the container:
 
 ```bash
-sqlite3 /data/grimoire.db ".backup /backup/grimoire.db"
+docker exec grimoire node -e "const { DatabaseSync, backup } = require('node:sqlite'); backup(new DatabaseSync('/data/grimoire.db'), '/tmp/grimoire-backup.db')"
+docker cp grimoire:/tmp/grimoire-backup.db ./grimoire-backup.db
 ```
+
+On Kubernetes, run the same with `kubectl exec` and `kubectl cp`.
 
 A plain file copy of a running database can miss changes still in `<file>-wal`; copy files only
 while grimoire is stopped.
