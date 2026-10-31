@@ -92,7 +92,7 @@
 		{/if}
 	</section>
 	<section class="sheet" aria-labelledby="overview">
-		<h2 id="overview">{m.admin_overview()}</h2>
+		<h2 id="overview">{m.admin_numbers()}</h2>
 		<DescriptionList
 			numbers
 			items={[

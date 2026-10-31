@@ -77,6 +77,7 @@
 	"apikeys_error_scope": "Choose all sources or at least one.",
 	"admin_title": "Manage {name}",
 	"admin_overview": "Overview",
+	"admin_numbers": "In numbers",
 	"admin_attention": "Needs attention",
 	"admin_all_fine": "Every source is synced without errors or warnings.",
 	"admin_never_synced": "never synced",
