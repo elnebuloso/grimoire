@@ -94,7 +94,7 @@
 	"admin_fix_unreachable": "Check the Git URL under Settings. If it is right, the Git server cannot be reached from grimoire; \"Sync now\" tries again.",
 	"admin_fix_deadline": "The source takes too long to index: narrow it with \"Path in the repository\" or exclusions, or ask the operator to raise INDEXING_DEADLINE_MINUTES.",
 	"admin_fix_aborted": "Indexing stopped, usually for lack of memory: narrow the source with \"Path in the repository\" or exclusions, or ask the operator for more memory.",
-	"admin_fix_no_page": "Every page was skipped; the reason above is the last one. Fix the Markdown in the repository: the next commit syncs again.",
+	"admin_fix_no_page": "Every page was skipped; the reason above is the last one. Fix what it names in the repository, such as the Markdown or a file name: the next commit syncs again.",
 	"admin_fix_unknown": "Check the settings and the sync history of the source; \"Sync now\" tries again.",
 	"source_title": "Source {name}",
 	"source_status": "Status",
