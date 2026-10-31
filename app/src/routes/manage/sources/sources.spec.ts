@@ -14,13 +14,15 @@ const requestSyncInBackground = vi.hoisted(() => vi.fn());
 vi.mock('#lib/server/db/index.js', () => ({ database: () => db }));
 vi.mock('#lib/server/sync/index.js', () => ({ requestSyncInBackground, syncPending }));
 // The Git server cannot be asked from a test; the check itself is tested against a local repository.
-const checkSourceAccess = vi.hoisted(() =>
-	vi.fn(async (): Promise<AccessResult> => ({
+const { checkAccess, checkSourceAccess } = vi.hoisted(() => {
+	const reachable = async (): Promise<AccessResult> => ({
 		message: 'Reachable: branch main is at commit abc.'
-	}))
-);
+	});
+	return { checkAccess: vi.fn(reachable), checkSourceAccess: vi.fn(reachable) };
+});
 vi.mock('#lib/server/admin/source-access.js', async (original) => ({
 	...(await original<object>()),
+	checkAccess,
 	checkSourceAccess
 }));
 vi.mock('$app/env/private', () => ({
@@ -80,6 +82,7 @@ const SOURCE = {
 beforeEach(() => {
 	db = openDatabase(':memory:');
 	requestSyncInBackground.mockClear();
+	checkAccess.mockClear();
 	checkSourceAccess.mockClear();
 });
 
@@ -239,7 +242,7 @@ describe('source page', () => {
 	});
 
 	it('saves nothing when the repository cannot be reached, and shows why', async () => {
-		checkSourceAccess.mockResolvedValueOnce({ error: 'Access refused.' });
+		checkAccess.mockResolvedValueOnce({ error: 'Access refused.' });
 
 		const result = await saveSource('new', SOURCE);
 
@@ -250,7 +253,7 @@ describe('source page', () => {
 
 	it('asks the Git server again only when the URL, branch, username or token change', async () => {
 		await thrown(() => saveSource('new', SOURCE));
-		checkSourceAccess.mockClear();
+		checkAccess.mockClear();
 
 		await thrown(() =>
 			saveSource('1', {
@@ -261,15 +264,15 @@ describe('source page', () => {
 				schedule: '0 2 * * *'
 			})
 		);
-		expect(checkSourceAccess).not.toHaveBeenCalled();
+		expect(checkAccess).not.toHaveBeenCalled();
 
 		await thrown(() => saveSource('1', { ...SOURCE, token: '', branch: 'develop' }));
-		expect(checkSourceAccess).toHaveBeenCalledOnce();
+		expect(checkAccess).toHaveBeenCalledOnce();
 	});
 
 	it('answers 404 when the source is deleted while the Git server is asked', async () => {
 		await thrown(() => saveSource('new', SOURCE));
-		checkSourceAccess.mockImplementationOnce(async () => {
+		checkAccess.mockImplementationOnce(async () => {
 			db.prepare('DELETE FROM sources').run();
 			return { message: 'Reachable: branch develop is at commit abc.' };
 		});
@@ -354,6 +357,7 @@ describe('source page', () => {
 			});
 		}
 		expect(checkSourceAccess).not.toHaveBeenCalled();
+		expect(checkAccess).not.toHaveBeenCalled();
 		expect(db.prepare('SELECT COUNT(*) AS n FROM sources').get()).toEqual({ n: 0 });
 	});
 

@@ -6,8 +6,8 @@ import { join } from 'node:path';
 import type { DatabaseSync } from 'node:sqlite';
 import { openDatabase } from '../db/schema';
 import * as git from '../sync/git';
-import { saveSource, type SourceForm } from './sources';
-import { accessChanged, checkSourceAccess } from './source-access';
+import { saveSource, savingChanges, type SourceForm } from './sources';
+import { checkSourceAccess } from './source-access';
 
 const repositories = vi.hoisted(() => ({ directory: '' }));
 
@@ -73,8 +73,8 @@ beforeEach(() => {
 
 /** A stored source as saving would leave it; `saveSource` itself never asks the Git server. */
 function storedSource(token = 'glpat-stored') {
-	const source = saveSource(db, KEY, undefined, form({ token }));
-	if (source === 'not-found' || 'error' in source) throw new Error(JSON.stringify(source));
+	const source = saveSource(db, KEY, undefined, form({ token }), savingChanges(undefined, form()));
+	if (source === 'not-found') throw new Error('source not saved');
 	return source.id;
 }
 
@@ -152,35 +152,5 @@ describe('checkSourceAccess', () => {
 
 		expect(result).toEqual({ error: expect.stringContaining('token') });
 		expect(git.checkRemote).not.toHaveBeenCalled();
-	});
-});
-
-describe('accessChanged', () => {
-	it('is true for a new source', () => {
-		expect(accessChanged(db, undefined, form())).toBe(true);
-	});
-
-	it('ignores everything but URL, branch, username and token', () => {
-		const id = storedSource();
-
-		expect(
-			accessChanged(
-				db,
-				id,
-				form({ name: 'Other', path: 'site/', schedule: '0 2 * * *', paused: true })
-			)
-		).toBe(false);
-	});
-
-	it.each([
-		{ gitUrl: 'file:///elsewhere.git' },
-		{ branch: 'develop' },
-		{ username: 'ci' },
-		{ token: 'glpat-new' },
-		{ removeToken: true }
-	])('is true when %j changes', (changes) => {
-		const id = storedSource();
-
-		expect(accessChanged(db, id, form(changes))).toBe(true);
 	});
 });

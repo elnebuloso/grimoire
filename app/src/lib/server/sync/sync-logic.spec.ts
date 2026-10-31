@@ -4,7 +4,7 @@ import { mkdtempSync, readdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { DatabaseSync } from 'node:sqlite';
-import { saveSource, type SourceForm } from '../admin/sources';
+import { saveSource, savingChanges, storedSource, type SourceForm } from '../admin/sources';
 import { openDatabase } from '../db/schema';
 import { saveSettings } from '../settings';
 import { listSchedules, replaceSourceIndex } from '../db/sources';
@@ -260,7 +260,7 @@ describe('syncSource', () => {
 	describe('settings saved while the source does not sync on its own', () => {
 		// The form as the source page sends it for the source `addSource` created.
 		const save = (changes: Partial<SourceForm>) => {
-			const result = saveSource(db, key, source, {
+			const form: SourceForm = {
 				name: 'Docs',
 				description: '',
 				gitUrl: 'https://git.example.com/auth.git',
@@ -275,8 +275,15 @@ describe('syncSource', () => {
 				token: '',
 				removeToken: false,
 				...changes
-			});
-			if (result === 'not-found' || 'error' in result) throw new Error(JSON.stringify(result));
+			};
+			const result = saveSource(
+				db,
+				key,
+				source,
+				form,
+				savingChanges(storedSource(db, source), form)
+			);
+			if (result === 'not-found') throw new Error('source not saved');
 		};
 
 		// Stored as the form stores it, path normalised, before the first sync.

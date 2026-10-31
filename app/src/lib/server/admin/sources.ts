@@ -109,11 +109,12 @@ function sourceSlugTaken(db: DatabaseSync, slug: string, sourceId: number | unde
 
 /**
  * Why the source cannot be saved like this; undefined when it can. A new source takes its slug
- * from the name; an existing one keeps its slug.
+ * from the name; an existing one keeps its slug. `stored` is the source as `storedSource` read it.
  */
 export function sourceProblem(
 	db: DatabaseSync,
 	sourceId: number | undefined,
+	stored: StoredSource | undefined,
 	form: SourceForm
 ): string | undefined {
 	const nameIssue = nameProblem(form.name);
@@ -124,7 +125,7 @@ export function sourceProblem(
 		if (sourceSlugTaken(db, slug, undefined)) return m.error_source_slug_taken({ slug });
 	}
 
-	const remoteIssue = remoteProblem(db, sourceId, form);
+	const remoteIssue = remoteProblem(stored, form);
 	if (remoteIssue) return remoteIssue;
 
 	const docsUrlProblem = checkDocsUrl(form.docsUrl.trim());
@@ -150,26 +151,33 @@ export function sourceProblem(
 	return undefined;
 }
 
-/** What grimoire sends to the Git server of a source: its URL, branch and credentials. */
-export interface StoredAccess {
+/**
+ * What a save is compared against: what grimoire sends to the Git server of a source (URL, branch,
+ * credentials), what its index was built from (path, exclusions), and whether its last sync failed.
+ */
+export interface StoredSource {
 	gitUrl: string;
 	branch: string;
 	username: string | null;
 	encryptedToken: string | null;
+	path: string;
+	exclusions: string;
+	error: string | null;
 }
 
-/** The stored access of a source; undefined for a new one. */
-export function storedAccess(
+/** The stored source; undefined for a new one or one that no longer exists. */
+export function storedSource(
 	db: DatabaseSync,
 	sourceId: number | undefined
-): StoredAccess | undefined {
+): StoredSource | undefined {
 	if (sourceId === undefined) return undefined;
 	return db
 		.prepare(
-			`SELECT git_url AS gitUrl, branch, username, encrypted_token AS encryptedToken
+			`SELECT git_url AS gitUrl, branch, username, encrypted_token AS encryptedToken, path,
+				exclusions, error
 			FROM sources WHERE id = ?`
 		)
-		.get(sourceId) as StoredAccess | undefined;
+		.get(sourceId) as StoredSource | undefined;
 }
 
 function exclusionsJson(exclusions: string): string {
@@ -181,30 +189,36 @@ function exclusionsJson(exclusions: string): string {
 	);
 }
 
+/** What saving a form changes about a source. */
+export interface SavingChanges {
+	/** A new source, or a changed Git URL, branch, username or token: the Git server is asked first. */
+	access: boolean;
+	/** A changed Git URL, branch, path or exclusions: the stored index no longer matches. */
+	index: boolean;
+	/** The save forces a sync: a new source, a changed index, or one whose last sync failed. */
+	reindex: boolean;
+}
+
 /**
- * Whether saving `form` has to index the source again: a new source, one whose last sync failed,
- * or a changed Git URL, branch, path or exclusions. Name, description, visibility and the other
- * settings leave the index as it is.
+ * What saving `form` changes compared to `stored`, the source as `storedSource` read it. Name,
+ * description, visibility and the other settings change neither access nor index.
  */
-export function savingReindexes(
-	db: DatabaseSync,
-	sourceId: number | undefined,
-	form: SourceForm
-): boolean {
-	if (sourceId === undefined) return true;
-	const stored = db
-		.prepare('SELECT git_url, branch, path, exclusions, error FROM sources WHERE id = ?')
-		.get(sourceId) as
-		| { git_url: string; branch: string; path: string; exclusions: string; error: string | null }
-		| undefined;
-	if (!stored) return true;
-	return (
-		stored.error !== null ||
-		stored.git_url !== form.gitUrl.trim() ||
-		stored.branch !== form.branch.trim() ||
+export function savingChanges(stored: StoredSource | undefined, form: SourceForm): SavingChanges {
+	if (!stored) return { access: true, index: true, reindex: true };
+	const gitUrl = form.gitUrl.trim();
+	const branch = form.branch.trim();
+	const access =
+		stored.gitUrl !== gitUrl ||
+		stored.branch !== branch ||
+		(stored.username ?? '') !== form.username.trim() ||
+		form.token.trim() !== '' ||
+		(form.removeToken && stored.encryptedToken !== null);
+	const index =
+		stored.gitUrl !== gitUrl ||
+		stored.branch !== branch ||
 		repositoryPath(stored.path) !== repositoryPath(form.path) ||
-		stored.exclusions !== exclusionsJson(form.exclusions)
-	);
+		stored.exclusions !== exclusionsJson(form.exclusions);
+	return { access, index, reindex: index || stored.error !== null };
 }
 
 /**
@@ -212,15 +226,13 @@ export function savingReindexes(
  * saving and before every access test, which sends the stored token along.
  */
 export function remoteProblem(
-	db: DatabaseSync,
-	sourceId: number | undefined,
+	previous: StoredSource | undefined,
 	form: SourceForm
 ): string | undefined {
 	const gitUrl = form.gitUrl.trim();
 	const urlProblem = checkGitUrl(gitUrl);
 	if (urlProblem) return urlProblem;
 
-	const previous = storedAccess(db, sourceId);
 	// A stored token goes to whatever server the URL names; moving it to another one needs the
 	// admin to enter it again, so a changed URL cannot carry it off unnoticed.
 	if (
@@ -236,18 +248,17 @@ export function remoteProblem(
 
 /**
  * Creates a source when `sourceId` is undefined, otherwise updates it; `'not-found'` when the
- * source to update no longer exists. A new token is stored encrypted with `key`; an empty one
- * keeps the stored token unless `removeToken` is set.
+ * source to update no longer exists. Saves `form` as it is: `sourceProblem` checks it first.
+ * A new token is stored encrypted with `key`; an empty one keeps the stored token unless
+ * `removeToken` is set.
  */
 export function saveSource(
 	db: DatabaseSync,
 	key: Buffer,
 	sourceId: number | undefined,
-	form: SourceForm
-): SaveResult | 'not-found' {
-	const problem = sourceProblem(db, sourceId, form);
-	if (problem) return { error: problem };
-
+	form: SourceForm,
+	changes: SavingChanges
+): { id: number } | 'not-found' {
 	const name = form.name.trim();
 	const gitUrl = form.gitUrl.trim();
 	const branch = form.branch.trim();
@@ -286,21 +297,19 @@ export function saveSource(
 	}
 	// A change the index depends on drops the commits the old index was built from, so the next
 	// sync indexes again even without a new commit: a paused source gets no forced sync on save.
-	const indexChanged = `(git_url IS NOT :git_url OR branch IS NOT :branch OR path IS NOT :path
-		OR exclusions IS NOT :exclusions)`;
-	const { changes } = db
+	const { changes: updated } = db
 		.prepare(
 			`UPDATE sources SET
-			last_commit = CASE WHEN ${indexChanged} THEN NULL ELSE last_commit END,
-			failed_commit = CASE WHEN ${indexChanged} THEN NULL ELSE failed_commit END,
+			last_commit = CASE WHEN :index_changed THEN NULL ELSE last_commit END,
+			failed_commit = CASE WHEN :index_changed THEN NULL ELSE failed_commit END,
 			name = :name, description = :description, git_url = :git_url,
 			docs_url = :docs_url, branch = :branch, path = :path,
 			exclusions = :exclusions, sync_schedule = :sync_schedule, paused = :paused,
 			public = :public, username = :username
 		WHERE id = :id`
 		)
-		.run({ ...values, id: sourceId });
-	if (changes === 0) return 'not-found';
+		.run({ ...values, id: sourceId, index_changed: changes.index ? 1 : 0 });
+	if (updated === 0) return 'not-found';
 	if (token || form.removeToken) {
 		db.prepare('UPDATE sources SET encrypted_token = ? WHERE id = ?').run(encryptedToken, sourceId);
 	}

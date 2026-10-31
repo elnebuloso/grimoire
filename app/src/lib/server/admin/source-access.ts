@@ -2,7 +2,7 @@ import type { DatabaseSync } from 'node:sqlite';
 import { m } from '#lib/paraglide/messages.js';
 import { checkRemote, type GitRemote } from '../sync/git';
 import { decryptToken } from '../token-encryption';
-import { remoteProblem, storedAccess, type SourceForm } from './sources';
+import { remoteProblem, storedSource, type SourceForm, type StoredSource } from './sources';
 
 // The admin waits for this in the browser; a server that is up answers within a second or two.
 const ACCESS_TIMEOUT_MS = 15 * 1000;
@@ -11,30 +11,8 @@ const ACCESS_TIMEOUT_MS = 15 * 1000;
 export type AccessResult = { message: string } | { error: string };
 
 /**
- * Whether saving `form` could change what grimoire can reach: a new source, or a changed Git URL,
- * branch, username or token. Anything else saves without asking the Git server.
- */
-export function accessChanged(
-	db: DatabaseSync,
-	sourceId: number | undefined,
-	form: SourceForm
-): boolean {
-	const stored = storedAccess(db, sourceId);
-	if (!stored) return true;
-	return (
-		stored.gitUrl !== form.gitUrl.trim() ||
-		stored.branch !== form.branch.trim() ||
-		(stored.username ?? '') !== form.username.trim() ||
-		form.token.trim() !== '' ||
-		(form.removeToken && stored.encryptedToken !== null)
-	);
-}
-
-/**
- * Asks the Git server whether the source in `form` can be read: the server answers, the
- * credentials are accepted and the branch exists. Uses the stored token of the source unless a
- * new one is entered or its removal is asked for. A URL that could not be saved is not contacted.
- * `sourceId` is undefined for a source not saved yet.
+ * Asks the Git server whether the source in `form` can be read; a URL that could not be saved is
+ * not contacted. `sourceId` is undefined for a source not saved yet.
  */
 export async function checkSourceAccess(
 	db: DatabaseSync,
@@ -42,10 +20,24 @@ export async function checkSourceAccess(
 	sourceId: number | undefined,
 	form: SourceForm
 ): Promise<AccessResult> {
-	const problem = remoteProblem(db, sourceId, form);
+	const stored = storedSource(db, sourceId);
+	const problem = remoteProblem(stored, form);
 	if (problem) return { error: problem };
+	return checkAccess(key, stored, form);
+}
+
+/**
+ * Asks the Git server whether the source in `form` can be read: the server answers, the
+ * credentials are accepted and the branch exists. Uses the token of `stored`, the source as
+ * `storedSource` read it, unless a new one is entered or its removal is asked for. Contacts the
+ * URL without checking it: `remoteProblem` must have passed it.
+ */
+export async function checkAccess(
+	key: Buffer,
+	stored: StoredSource | undefined,
+	form: SourceForm
+): Promise<AccessResult> {
 	const enteredToken = form.token.trim();
-	const stored = storedAccess(db, sourceId);
 	let storedToken: string | undefined;
 	// Decrypted only when it is used: after a change of ENCRYPTION_KEY it cannot be, and
 	// entering the token again is how the admin repairs the source.
