@@ -1,9 +1,12 @@
-import { createHash, randomBytes } from 'node:crypto';
+import { randomBytes } from 'node:crypto';
 import type { DatabaseSync } from 'node:sqlite';
+import { sha256 } from './admin/auth.ts';
 import { inTransaction } from './db/transaction.ts';
 
 // The prefix lets secret scanners recognise a leaked key.
 const KEY_PREFIX = 'grimoire_';
+// A slow hash protects passwords people choose; a random 256-bit key cannot be guessed, so
+// SHA-256 suffices and a key is found by a plain lookup on the unique hash.
 const KEY_BYTES = 32;
 
 /** The sources a key opens: all of them, or a selection of source slugs. */
@@ -41,12 +44,6 @@ export function isExpired(validUntil: string | null, today: string): boolean {
 	return validUntil !== null && validUntil < today;
 }
 
-// A slow hash protects passwords people choose; a random 256-bit key cannot be guessed, so
-// SHA-256 suffices and a key is found by a plain lookup on the unique hash.
-export function hashKey(key: string): string {
-	return createHash('sha256').update(key).digest('hex');
-}
-
 /** What a key action refuses instead of throwing: everything else is a broken database. */
 export type ApiKeyRefusal = { error: 'unknown-source' } | { error: 'unknown-key' };
 
@@ -70,7 +67,7 @@ export function createApiKey(
 				.prepare(
 					'INSERT INTO api_keys (name, key_hash, all_sources, valid_until) VALUES (?, ?, ?, ?)'
 				)
-				.run(name, hashKey(key), sources === 'all' ? 1 : 0, validUntil).lastInsertRowid
+				.run(name, sha256(key), sources === 'all' ? 1 : 0, validUntil).lastInsertRowid
 		);
 		insertScope(db, id, sourceIds);
 		return { id, key };
@@ -170,7 +167,7 @@ export function scopeForKey(
 ): { scope: SourceScope } | undefined {
 	const row = db
 		.prepare(`SELECT id, all_sources, last_used_at, valid_until FROM api_keys WHERE key_hash = ?`)
-		.get(hashKey(key)) as
+		.get(sha256(key)) as
 		| { id: number; all_sources: number; last_used_at: string | null; valid_until: string | null }
 		| undefined;
 	if (!row || isExpired(row.valid_until, clock.today)) return undefined;

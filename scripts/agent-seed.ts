@@ -8,8 +8,7 @@ import { DatabaseSync } from 'node:sqlite';
 // Plain node runs this, without Vite: no `import.meta.glob`, so the migrations are read here, and
 // an imported `.ts` file needs its extension and may import npm packages and `node:` modules, but
 // nothing that needs Vite (`#lib`, `$app`).
-import { hashPassword } from '../app/src/lib/server/admin/auth.ts';
-import { hashKey } from '../app/src/lib/server/api-keys.ts';
+import { hashPassword, sha256 } from '../app/src/lib/server/admin/auth.ts';
 
 const FIXTURE_REPOSITORY = 'https://github.com/elnebuloso/grimoire-fixture-docs';
 const MIGRATIONS = join(import.meta.dirname, '../app/src/lib/server/db/migrations');
@@ -52,7 +51,7 @@ try {
 	);
 	db.prepare('INSERT INTO api_keys (name, key_hash, all_sources) VALUES (?, ?, 1)').run(
 		'agent',
-		hashKey('grimoire_agent-fixture-key')
+		sha256('grimoire_agent-fixture-key')
 	);
 
 	const insertSource = db.prepare(
