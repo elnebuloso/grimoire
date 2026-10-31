@@ -10,16 +10,21 @@ Measured in the agent's shell (4 cores):
 
 | Run | Time |
 |---|---|
-| `make lint` (prettier, eslint, then svelte-check) | 62 s |
-| `make test`, all specs and stories | 91 s |
-| `make test TEST=--project=server` | 39 s, of which `sync.spec.ts` alone takes 38 s |
-| `make test TEST=--project=storybook` | 21 s |
-| `make test TEST=<one spec file>` | 8–9 s |
-| `make test TEST=<one *.stories.svelte>` | 13–15 s |
-| `make test TEST=--changed` | what the changed files reach: one component 16 s, `src/lib/slug.ts` 44 s |
-| `make e2e`, production build plus all browser tests | 65 s |
-| `make e2e E2E=<one *.e2e.ts>` | 17–19 s, the build (10 s) included |
-| `make format` | 6 s; fixes what the prettier part of `make lint` would report |
+| `make lint` (prettier and eslint 38 s, then svelte-check 26 s) | 54 s |
+| `make test`, all 55 specs and 17 story files | 84 s |
+| `make test TEST=--project=server` | 45 s; `sync.spec.ts` is the slowest file, 33 s on its own |
+| `make test TEST=--project=storybook` | 25 s |
+| `make test TEST=<one spec file>` | 8–10 s |
+| `make test TEST="<one spec file> -t '<test name>'"` | 10 s |
+| `make test TEST=<one *.stories.svelte>` | 13–20 s |
+| `make test TEST=--changed` | what the changed files reach: nothing changed 8 s, one component (1 story file) 17 s, `src/lib/slug.ts` (11 files) 18 s |
+| `make build` | 20 s |
+| `make e2e`, production build plus all browser tests | 54 s, of which `manage.e2e.ts` takes 35 s |
+| `make e2e E2E=<one *.e2e.ts>` | 22 s for `theme` or `language`, 45 s for `manage`, the build included |
+| `make format` | 7 s; fixes what the prettier part of `make lint` would report |
+
+Next slowest spec files after `sync.spec.ts`: `migrate.spec.ts` (20 s within the full run) and
+`chunk.spec.ts` (14 s). Every spec, story and e2e file also passes on its own.
 
 ## Pick the run by the change
 
@@ -29,7 +34,8 @@ Measured in the agent's shell (4 cores):
 - **A component or its stories:** `make test TEST=<Component>.stories.svelte`. Look at it in the
   agent environment in light and dark; axe runs in the stories.
 - **A server module with specs:** its spec file, or `--changed`. Leave `src/lib/server/sync/` alone
-  unless the change is there: its spec is the slowest file by far.
+  unless the change is there: its spec is the slowest file by far. One failing test:
+  `make test TEST="<spec file> -t '<test name>'"`.
 - **A page, a load or a form action:** its route spec if there is one, then try it in the agent
   environment with curl or the browser (`.claude/rules/agent-environment.md`). Run the e2e file
   covering the page when the change alters a flow the e2e tests walk through.
