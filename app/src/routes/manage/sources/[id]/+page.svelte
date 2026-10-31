@@ -207,15 +207,11 @@
 					],
 					[m.source_last_check(), lastCheck],
 					[m.source_last_sync(), lastSync],
-					[m.source_commit(), commit]
-				]}
-			/>
-			<DescriptionList
-				numbers
-				items={[
-					[m.pages(), data.status.totals.pages],
-					[m.snippets(), data.status.totals.snippets],
-					[m.tokens(), data.status.totals.tokens]
+					[m.source_commit(), commit],
+					[
+						m.source_totals(),
+						`${data.status.totals.pages}, ${data.status.totals.snippets}, ${data.status.totals.tokens}`
+					]
 				]}
 			/>
 			{#if data.status.error}
@@ -340,7 +336,6 @@
 
 			<section class="sheet" aria-labelledby="delete">
 				<h2 id="delete">{m.delete()}</h2>
-				<p class="effects">{m.source_delete_effects()}</p>
 				<ConfirmForm
 					action="?/delete"
 					question={m.source_delete_question({ name: data.source.name })}
@@ -392,8 +387,7 @@
 	}
 	/* The width of a single form: in the wide column the text would run past a readable line and
 	the slug fields far past any slug. */
-	.danger :global(form),
-	.effects {
+	.danger :global(form) {
 		max-width: 30rem;
 	}
 	.new {
