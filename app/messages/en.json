@@ -195,6 +195,8 @@
 	"source_history_synced": "synced",
 	"source_history_unchanged": "unchanged",
 	"source_history_failed": "failed",
+	"dead_links_lead": "Links in a page that lead to no page or heading of their source. Fix the link in the repository: once that commit is synced, it leaves this list.",
+	"dead_link_to": "links to",
 	"dead_links_none": "No source has a dead link.",
 	"source_sync_pending_reload": "Reload the page for its result.",
 	"copy_done": "Copied.",

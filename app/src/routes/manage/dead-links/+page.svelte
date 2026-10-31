@@ -8,7 +8,7 @@
 	let { data }: PageProps = $props();
 </script>
 
-<PageHead title={m.dead_links()} />
+<PageHead title={m.dead_links()}>{m.dead_links_lead()}</PageHead>
 
 {#if data.groups.length === 0}
 	<p class="muted">{m.dead_links_none()}</p>
