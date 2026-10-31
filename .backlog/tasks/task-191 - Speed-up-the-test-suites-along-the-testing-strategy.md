@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@claude'
 created_date: '2026-10-30 23:20'
-updated_date: '2026-10-31 01:04'
+updated_date: '2026-10-31 01:07'
 labels: []
 milestone: m-1
 dependencies: []
@@ -42,4 +42,6 @@ Every moved assertion: the lower test fails on a deliberately broken line before
 
 <!-- SECTION:NOTES:BEGIN -->
 Step 1, `sync.spec.ts`: 20 tests, 28 s alone -> 6 boundary tests, 14.5 s. The git fixture is built once per file and copied per test. Moved down, each new test seen failing on a deliberately broken line first: orchestration (check times, check before the sync stage, run history, failed-commit skip and retry, git error kept, token redaction, wrong key, deleted while queued) to the new `sync-logic.spec.ts` (real `sync.ts`, `./git` and `fork` mocked, 9 tests in 1.9 s); nav positions and slugify wiring to `index-source.spec.ts`; the "no page could be indexed" throw to the new `index-pages.spec.ts`; `last_synced_at` and the clearing of `failed_commit` to `db/sources.spec.ts`. Dropped as duplicates: deleted before the check (same path as before the sync). The out-of-memory test stays at about 8 s: a smaller page stops overflowing, and a smaller heap limit still costs about 7 s of last-resort garbage collection.
+
+Step 2, `chunk.spec.ts`: about 3.3 s -> 0.7 s. `assignAnchors` is exported and its linear numbering is tested on 20,000 hand-built headings (137 ms); with the quadratic version restored the test fails (62 s, past the timeout). The list test uses 25 items of 40 tokens and asserts that the list is over 800 tokens, so it still runs the split path.
 <!-- SECTION:NOTES:END -->

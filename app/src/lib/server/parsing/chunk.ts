@@ -102,9 +102,12 @@ export function chunkPage(
 	return { title, titleAnchor, description: description || undefined, snippets };
 }
 
-// Mirrors Python-Markdown: ids from attribute lists (`{#id}`) are reserved first, then every
-// heading in document order gets its slug, made unique with `_1`, `_2`.
-function assignAnchors(headings: Heading[], slugify: Slugify): Map<Heading, string> {
+/**
+ * The anchor of every heading, as Python-Markdown makes them: ids from attribute lists (`{#id}`)
+ * are reserved first, then every heading in document order gets its slug, made unique with `_1`,
+ * `_2`.
+ */
+export function assignAnchors(headings: Heading[], slugify: Slugify): Map<Heading, string> {
 	const customIds = new Map(headings.map((heading) => [heading, takeAttributeListId(heading)]));
 	const used = new Set([...customIds.values()].filter((id) => id !== undefined));
 	const anchors = new Map<Heading, string>();

@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { chunkPage, estimateTokens } from './chunk';
+import type { Heading } from 'mdast';
+import { assignAnchors, chunkPage, estimateTokens } from './chunk';
 import type { PreprocessedPage } from './preprocess';
+import { pythonMarkdownSlugify } from './slugs';
 
 /** A paragraph of roughly the given number of tokens. */
 function text(tokens: number): string {
@@ -94,7 +96,8 @@ describe('chunkPage', () => {
 		});
 
 		it('never cuts a list', () => {
-			const list = Array.from({ length: 300 }, (_, i) => `- item ${i} ${text(3)}`).join('\n');
+			const list = Array.from({ length: 25 }, (_, i) => `- item ${i} ${text(40)}`).join('\n');
+			expect(estimateTokens(list)).toBeGreaterThan(800);
 			const page = chunk(`# Guide\n\n## Items\n\n${list}\n`);
 			expect(page.snippets).toHaveLength(1);
 			expect(page.snippets[0].content).toBe(`${list}\n`);
@@ -116,10 +119,16 @@ describe('chunkPage', () => {
 	});
 
 	it('numbers repeated headings in linear time', () => {
-		// About 3 seconds; counting the suffix up from `_1` again for every repeat took over a minute.
-		const page = chunk(`# Guide\n\n${'## Parameters\n\n'.repeat(20_000)}`);
-		expect(page.snippets[0].aliases.at(-1)).toBe('parameters_19999');
-	}, 30_000);
+		// Counting the suffix up from `_1` again for every repeat took over a minute at this count.
+		const headings: Heading[] = Array.from({ length: 20_000 }, () => ({
+			type: 'heading',
+			depth: 2,
+			children: [{ type: 'text', value: 'Parameters' }]
+		}));
+		const anchors = assignAnchors(headings, pythonMarkdownSlugify);
+		expect(anchors.get(headings[0])).toBe('parameters');
+		expect(anchors.get(headings.at(-1)!)).toBe('parameters_19999');
+	});
 
 	it('generates the anchors MkDocs generates', () => {
 		const headings = [
