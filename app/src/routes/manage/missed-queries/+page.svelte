@@ -57,4 +57,11 @@
 		color: var(--ink-2);
 		white-space: nowrap;
 	}
+	/* On a phone the date may break between its parts, so the column fits instead of lying past
+	the scroll edge. */
+	@media (max-width: 40rem) {
+		.when {
+			white-space: normal;
+		}
+	}
 </style>
