@@ -279,14 +279,15 @@ export function saveSource(
 		username: form.username.trim() || null
 	};
 	const encryptedToken = token ? encryptToken(token, key) : null;
+	// The keys of `values` are the column names, so a new setting cannot be left out of one statement.
+	const columns = Object.keys(values);
 
 	if (sourceId === undefined) {
+		const inserted = [...columns, 'slug', 'encrypted_token'];
 		const result = db
 			.prepare(
-				`INSERT INTO sources (slug, name, description, git_url, docs_url, branch, path,
-					exclusions, sync_schedule, paused, public, username, encrypted_token)
-				VALUES (:slug, :name, :description, :git_url, :docs_url, :branch, :path,
-					:exclusions, :sync_schedule, :paused, :public, :username, :encrypted_token)`
+				`INSERT INTO sources (${inserted.join(', ')})
+				VALUES (${inserted.map((column) => `:${column}`).join(', ')})`
 			)
 			.run({
 				...values,
@@ -302,10 +303,7 @@ export function saveSource(
 			`UPDATE sources SET
 			last_commit = CASE WHEN :index_changed THEN NULL ELSE last_commit END,
 			failed_commit = CASE WHEN :index_changed THEN NULL ELSE failed_commit END,
-			name = :name, description = :description, git_url = :git_url,
-			docs_url = :docs_url, branch = :branch, path = :path,
-			exclusions = :exclusions, sync_schedule = :sync_schedule, paused = :paused,
-			public = :public, username = :username
+			${columns.map((column) => `${column} = :${column}`).join(', ')}
 		WHERE id = :id`
 		)
 		.run({ ...values, id: sourceId, index_changed: changes.index ? 1 : 0 });

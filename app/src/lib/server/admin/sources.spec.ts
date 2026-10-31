@@ -228,6 +228,33 @@ describe('saveSource', () => {
 		});
 	});
 
+	it('changes every setting of a stored source', () => {
+		const id = created(trySave(undefined, sourceForm()));
+		const edited = {
+			name: 'Login Service',
+			description: 'Login and sessions',
+			gitUrl: 'https://gitlab.example.com/platform/login.git',
+			docsUrl: 'https://docs.example.com/login/',
+			branch: 'release',
+			path: 'site',
+			exclusions: 'drafts/**',
+			schedule: '0 2 * * *',
+			paused: true,
+			public: true,
+			username: 'ci'
+		};
+
+		created(trySave(id, sourceForm(edited)));
+
+		expect(findSource(db, id)).toEqual({
+			...edited,
+			id,
+			slug: 'auth-service',
+			exclusions: ['drafts/**'],
+			hasToken: false
+		});
+	});
+
 	it('stores the description trimmed and changes it', () => {
 		const id = created(trySave(undefined, sourceForm({ description: ' Login ' })));
 		expect(findSource(db, id)?.description).toBe('Login');
