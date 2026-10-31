@@ -1,9 +1,12 @@
 # Handbook build of make handbook
 /site/
+
 # Playwright MCP snapshots and screenshots
 /.playwright-mcp/
+
 # Code audit reports
-/docs/audit/
+/docs/audits/
+
 # The user's private notes, kept from the agent
 /docs/private/
 
