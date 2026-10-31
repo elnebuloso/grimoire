@@ -8,7 +8,7 @@ created_date: '2026-10-31 00:17'
 labels:
   - admin
   - impeccable
-milestone: m-2
+milestone: m-1
 dependencies: []
 priority: medium
 type: enhancement

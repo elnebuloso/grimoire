@@ -7,7 +7,7 @@ assignee:
 created_date: '2026-10-29T01:06:00Z'
 updated_date: '2026-10-31 00:17'
 labels: []
-milestone: m-2
+milestone: m-1
 dependencies: []
 references:
   - app/src/routes/+page.svelte

@@ -1,5 +1,5 @@
 ---
-id: m-2
+id: m-1
 title: "Release 1.0.0"
 ---
 
