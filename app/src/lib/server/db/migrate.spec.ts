@@ -1,11 +1,11 @@
-import { describe, it, expect } from 'vitest';
-import { spawn } from 'node:child_process';
+import { describe, it, expect, onTestFinished } from 'vitest';
+import { once } from 'node:events';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { pathToFileURL } from 'node:url';
 import { DatabaseSync } from 'node:sqlite';
-import { migrate, type Migration } from './migrate';
+import { Worker } from 'node:worker_threads';
+import { migrate, openMigratedDatabase, type Migration } from './migrate';
 import { migrations as shippedMigrations } from './schema';
 
 function userVersion(db: DatabaseSync): number {
@@ -118,45 +118,61 @@ describe('migrate', () => {
 });
 
 describe('openMigratedDatabase', () => {
-	// Two real processes, because the write lock is held per connection and a single test process
-	// could not race against itself. New files each round: switching to WAL is where they collide.
-	it('applies each migration exactly once when two processes migrate a new file at once', async () => {
-		const dir = mkdtempSync(join(tmpdir(), 'grimoire-migrate-'));
-		try {
-			// The WAL collision hits roughly one round in eight; 20 rounds catch it almost every run.
-			for (let round = 0; round < 20; round++) {
-				const path = join(dir, `round-${round}.db`);
-				const exitCodes = await Promise.all(['a', 'b'].map((who) => runMigrator(path, who)));
-				expect(exitCodes).toEqual([0, 0]);
+	it('switches a new file to WAL while another connection holds its write lock', async () => {
+		const path = join(tempDir(), 'new.db');
+		// On a new file this makes the WAL switch fail with SQLITE_BUSY at once, without waiting.
+		const { released } = await holdWriteLock(path, 'BEGIN IMMEDIATE');
 
-				const db = new DatabaseSync(path);
-				expect(userVersion(db)).toBe(2);
-				expect(rows(db, 'SELECT count(*) AS n FROM log')).toEqual([{ n: 1 }]);
-				db.close();
-			}
-		} finally {
-			rmSync(dir, { recursive: true });
-		}
-	}, 30_000);
+		const db = openMigratedDatabase(path, [createNotes]);
+		await released;
+		expect(rows(db, 'PRAGMA journal_mode')).toEqual([{ journal_mode: 'wal' }]);
+		expect(userVersion(db)).toBe(1);
+		db.close();
+	});
+
+	it('skips a migration another connection applied while this one waited for the lock', async () => {
+		const path = join(tempDir(), 'shared.db');
+		const setup = new DatabaseSync(path);
+		setup.exec('PRAGMA journal_mode = WAL');
+		setup.close();
+		const { released } = await holdWriteLock(
+			path,
+			"BEGIN IMMEDIATE; CREATE TABLE notes (text TEXT); INSERT INTO notes VALUES ('other'); PRAGMA user_version = 1;"
+		);
+
+		const db = openMigratedDatabase(path, [
+			createNotes,
+			{ name: '0002-note.sql', sql: "INSERT INTO notes VALUES ('this');" }
+		]);
+		await released;
+		expect(userVersion(db)).toBe(2);
+		expect(rows(db, 'SELECT text FROM notes')).toEqual([{ text: 'other' }, { text: 'this' }]);
+		db.close();
+	});
 });
 
-const SLOW_QUERY =
-	'WITH RECURSIVE c(x) AS (SELECT 1 UNION ALL SELECT x + 1 FROM c WHERE x < 200000) SELECT count(*) FROM c;';
+function tempDir(): string {
+	const dir = mkdtempSync(join(tmpdir(), 'grimoire-migrate-'));
+	onTestFinished(() => rmSync(dir, { recursive: true }));
+	return dir;
+}
 
-function runMigrator(path: string, who: string): Promise<number | null> {
-	const migrateUrl = pathToFileURL(join(import.meta.dirname, 'migrate.ts')).href;
-	const script = `
-		import { openMigratedDatabase } from ${JSON.stringify(migrateUrl)};
-		const [path, who] = process.argv.slice(-2);
-		openMigratedDatabase(path, [
-			{ name: '0001-log.sql', sql: 'CREATE TABLE log (who TEXT); ${SLOW_QUERY}' },
-			{ name: '0002-entry.sql', sql: "INSERT INTO log VALUES ('" + who + "'); ${SLOW_QUERY}" }
-		]).close();
-	`;
-	return new Promise((resolve) => {
-		const child = spawn(process.execPath, ['--input-type=module', '-e', script, path, who], {
-			stdio: ['ignore', 'ignore', 'inherit']
-		});
-		child.on('exit', resolve);
-	});
+// A worker thread has its own connection, so it keeps the lock while openMigratedDatabase blocks
+// the test thread. It commits after a fixed time, well within the busy timeout.
+async function holdWriteLock(path: string, sql: string) {
+	const worker = new Worker(
+		`
+		const { DatabaseSync } = require('node:sqlite');
+		const { parentPort, workerData } = require('node:worker_threads');
+		const db = new DatabaseSync(workerData.path);
+		db.exec(workerData.sql);
+		parentPort.postMessage('locked');
+		Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 300);
+		db.exec('COMMIT');
+		db.close();
+		`,
+		{ eval: true, workerData: { path, sql } }
+	);
+	await once(worker, 'message');
+	return { released: once(worker, 'exit') };
 }
