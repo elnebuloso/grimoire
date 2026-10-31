@@ -30,12 +30,12 @@ How it is measured:
 | `/login/reset/[token]` | 0/0/1/1 | 8.3 | 0/0 | 11 (full re-measure) |
 | `/setup` | 0/0/1/1 | 8.0 | – (source 0/0) | 11 (full re-measure) |
 | `/account` | 0/0/1/1 | 7.3 | 0/0 | 11 (full re-measure) |
-| `/manage` | 0/0/0/2 | 7.0 | 0/1 | 20 |
+| `/manage` | 0/0/0/2 | 7.0 | 0/1 | 20, **plateau** |
 | `/manage/api-keys` | 0/0/1/0 | 7.3 | 0/0 | 17 |
 | `/manage/dead-links` | 0/0/0/0 | 7.2 | 0/0 | 11 (full re-measure) |
 | `/manage/missed-queries` | 0/0/0/2 | 7.3 | 0/0 | 18, **plateau** |
 | `/manage/query` | 0/0/2/1 | 7.3 | 0/0 | 11 (full re-measure) |
-| `/manage/settings` | 0/0/1/1 | 7.2 | 0/0 | 11 (full re-measure) |
+| `/manage/settings` | 0/0/0/2 | 7.5 | 0/0 | 23 |
 | `/manage/sources/[id]` | 0/0/0/1 | 6.8 | 0/1 | 11 (full re-measure), **plateau** |
 
 Baseline: detector and audit targets are met everywhere. Critique: four routes are below 7, and
@@ -82,3 +82,6 @@ Notes on iteration 11:
 | 18 | `/manage/missed-queries` (+ `PageHead`) | clarify (intro says what to do about a term; lead measure 60ch, about 78 characters, `text-wrap: pretty`) | P0–P2 0→0 | 7.0→7.3 | 1→0 (advisory gone, line-length kept away) | kept: detector better (stagnation 0). The detector ran on every route, since `PageHead` reaches all of them: no new finding anywhere |
 | 19 | `/manage`, `/` (`SourceStatsTable`) | adapt (Status column next to Source) | P0–P2 /manage 1→2, / 1→2 | /manage 7.2→7.3, / 7.3→7.0 | 1→1 | worse, reverted (45b1893); area "column order" tried (stagnation 1). Before it, `d667f0f` fixed `manage.e2e.ts` after iteration 13; the gate now runs `make e2e` every iteration |
 | 20 | `/manage`, `/` (`app.css` `.table-scroll`) | harden (focus ring of the table region drawn inside it, no longer clipped by the flush sheet) | P0–P2 /manage 1→0, / 1→1 | /manage 7.2→7.0, / 7.3→7.3 | 1→1, no new finding on any route | kept: audit better (stagnation 0). `/manage/missed-queries` has had 4 edits (12, 15, 16, 18): **plateau**, its remaining costs (sort order, marking a term as handled) need data and logic changes |
+| 21 | `/manage` | clarify (numbers sheet headed "In numbers" instead of repeating "Overview") | P0–P2 0→2 | 7.0→6.9 | 1→1 | worse, reverted (1fdd34f) (stagnation 1) |
+| 22 | `/manage`, `/` (`SourceStatsTable`) | adapt (state word under the source name below 40rem, Status column hidden there) | P0–P2 /manage 0→1, / 1→1 | /manage 7.0→7.0, / 7.3→7.3 | 1→1 | worse, reverted (822addd); 4th edit of `/manage` (19–22): **plateau** (stagnation 2) |
+| 23 | `/manage/settings` (manage layout) | harden (nav marks the current page by route, already in the server render; regression check in `manage.e2e.ts`) | P0–P2 1→0 | 7.2→7.5 | 0→0, no new finding on any manage route | kept: audit better (stagnation 0). The fix reaches the nav of every manage page; `/manage/query` and `/manage/missed-queries` reported the same P2 |

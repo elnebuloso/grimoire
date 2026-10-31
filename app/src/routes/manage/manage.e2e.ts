@@ -228,6 +228,10 @@ test('leads through the management area with one navigation that marks the curre
 	);
 	await navigation.getByRole('link', { name: 'API keys' }).click();
 	await expect(page).toHaveURL('/manage/api-keys');
+
+	// The server already marks it: before hydration, and for a reader without JavaScript.
+	const html = await (await page.request.get('/manage/settings')).text();
+	expect(html).toMatch(/<a href="[^"]*settings"[^>]*aria-current="page"/);
 });
 
 /** Opens a page and checks that the server already names it and keeps it out of search indexes. */

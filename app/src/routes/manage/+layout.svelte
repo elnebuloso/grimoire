@@ -6,23 +6,27 @@
 
 	let { children }: LayoutProps = $props();
 
+	// Matched by route, not by href: on the server `resolve` gives relative hrefs, which never equal
+	// the pathname, so the current item would only be marked once the page hydrates.
 	const links = $derived([
-		{ href: resolve('/manage'), label: m.admin_overview() },
-		{ href: resolve('/manage/query'), label: m.query_title() },
-		{ href: resolve('/manage/missed-queries'), label: m.missed_title() },
-		{ href: resolve('/manage/api-keys'), label: m.api_keys() },
-		{ href: resolve('/manage/settings'), label: m.settings_title() },
-		{ href: resolve('/account'), label: m.password_title() }
+		{ route: '/manage', href: resolve('/manage'), label: m.admin_overview() },
+		{ route: '/manage/query', href: resolve('/manage/query'), label: m.query_title() },
+		{
+			route: '/manage/missed-queries',
+			href: resolve('/manage/missed-queries'),
+			label: m.missed_title()
+		},
+		{ route: '/manage/api-keys', href: resolve('/manage/api-keys'), label: m.api_keys() },
+		{ route: '/manage/settings', href: resolve('/manage/settings'), label: m.settings_title() },
+		{ route: '/account', href: resolve('/account'), label: m.password_title() }
 	]);
 
 	// Pages reached from the overview rather than from the nav: a source and the dead links.
 	const OVERVIEW_CHILDREN = ['/manage/sources/[id]', '/manage/dead-links'];
 
-	function current(href: string): 'page' | 'true' | undefined {
-		if (page.url.pathname === href) return 'page';
-		if (href === resolve('/manage') && OVERVIEW_CHILDREN.includes(page.route.id ?? '')) {
-			return 'true';
-		}
+	function current(route: string): 'page' | 'true' | undefined {
+		if (page.route.id === route) return 'page';
+		if (route === '/manage' && OVERVIEW_CHILDREN.includes(page.route.id ?? '')) return 'true';
 		return undefined;
 	}
 </script>
@@ -30,8 +34,8 @@
 <nav aria-label={m.manage_nav()}>
 	<ul>
 		{#each links as link (link.href)}
-			<li class:apart={link.href === resolve('/account')}>
-				<a href={link.href} aria-current={current(link.href)}>{link.label}</a>
+			<li class:apart={link.route === '/account'}>
+				<a href={link.href} aria-current={current(link.route)}>{link.label}</a>
 			</li>
 		{/each}
 	</ul>
