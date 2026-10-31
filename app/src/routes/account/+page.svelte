@@ -6,6 +6,17 @@
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
+
+	// Each refusal but the lockout concerns one field; it points to the message and takes focus.
+	// MIN_PASSWORD_LENGTH of the server, which code in the browser cannot import.
+	const MIN_LENGTH = 12;
+	const marked = (message: string) =>
+		form?.error === message ? { 'aria-invalid': true, 'aria-describedby': 'password-error' } : {};
+
+	let sheet = $state<HTMLElement>();
+	$effect(() => {
+		if (form?.error) sheet?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
+	});
 </script>
 
 <PageHead title={m.password_title()}>{m.password_lead()}</PageHead>
@@ -14,9 +25,9 @@
 	<p class="notice" role="status">{m.password_changed()}</p>
 {/if}
 
-<section class="sheet">
+<section class="sheet" bind:this={sheet}>
 	<form method="post">
-		<FormError message={form?.error} />
+		<FormError message={form?.error} id="password-error" />
 		<!-- Tells a password manager which saved login the new password belongs to. -->
 		<TextField
 			label={m.field_email()}
@@ -32,14 +43,16 @@
 			type="password"
 			required
 			autocomplete="current-password"
+			{...marked(m.auth_wrong_current_password())}
 		/>
 		<TextField
 			label={m.password_new()}
 			name="password"
 			type="password"
 			required
-			minlength={12}
+			minlength={MIN_LENGTH}
 			autocomplete="new-password"
+			{...marked(m.auth_new_password_too_short({ min: MIN_LENGTH }))}
 		/>
 		<button class="primary">{m.password_submit()}</button>
 	</form>

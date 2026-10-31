@@ -323,6 +323,13 @@ test('changes the password and logs in with the new one', async ({ page }) => {
 	await expect(page.getByLabel('Email address')).toHaveValue(EMAIL);
 	await expect(page.getByLabel('Email address')).toHaveAttribute('autocomplete', 'username');
 
+	await page.getByLabel('Current password').fill('not the password');
+	await page.getByLabel('New password').fill(newPassword);
+	await page.getByRole('button', { name: 'Change password' }).click();
+	await expect(page.getByLabel('Current password')).toHaveAttribute('aria-invalid', 'true');
+	await expect(page.getByLabel('Current password')).toBeFocused();
+	await expect(page.getByLabel('New password')).not.toHaveAttribute('aria-invalid');
+
 	await page.getByLabel('Current password').fill(PASSWORD);
 	await page.getByLabel('New password').fill(newPassword);
 	await page.getByRole('button', { name: 'Change password' }).click();
