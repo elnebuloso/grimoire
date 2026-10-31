@@ -73,6 +73,10 @@ test('logs out and back in, and rejects a wrong password', async ({ page }) => {
 	await logIn(page, 'wrong password');
 	await expect(page.getByRole('alert')).toHaveText('Wrong email address or password.');
 	await expect(page.getByLabel('Email address')).toHaveValue(EMAIL);
+	await expect(page.getByLabel('Password')).toHaveAttribute('aria-invalid', 'true');
+	await expect(page.getByLabel('Password')).toHaveAccessibleDescription(
+		'Wrong email address or password.'
+	);
 
 	await logIn(page);
 	await expect(page).toHaveURL('/manage');

@@ -25,7 +25,7 @@ How it is measured:
 | Route | Audit findings (P0/P1/P2/P3) | Critique | Detector (e/w) | Iteration |
 |---|---|---|---|---|
 | `/` | 0/0/1/1 | 7.3 | 0/1 | 20 |
-| `/login` | 0/0/1/2 | 7.3 | 0/0 | 11 (full re-measure) |
+| `/login` | 0/0/1/2 | 7.5 | 0/0 | 24 |
 | `/login/forgot` | 0/0/1/1 | 8.0 | 0/0 | 11 (full re-measure) |
 | `/login/reset/[token]` | 0/0/1/1 | 8.3 | 0/0 | 11 (full re-measure) |
 | `/setup` | 0/0/1/1 | 8.0 | – (source 0/0) | 11 (full re-measure) |
@@ -85,3 +85,4 @@ Notes on iteration 11:
 | 21 | `/manage` | clarify (numbers sheet headed "In numbers" instead of repeating "Overview") | P0–P2 0→2 | 7.0→6.9 | 1→1 | worse, reverted (1fdd34f) (stagnation 1) |
 | 22 | `/manage`, `/` (`SourceStatsTable`) | adapt (state word under the source name below 40rem, Status column hidden there) | P0–P2 /manage 0→1, / 1→1 | /manage 7.0→7.0, / 7.3→7.3 | 1→1 | worse, reverted (822addd); 4th edit of `/manage` (19–22): **plateau** (stagnation 2) |
 | 23 | `/manage/settings` (manage layout) | harden (nav marks the current page by route, already in the server render; regression check in `manage.e2e.ts`) | P0–P2 1→0 | 7.2→7.5 | 0→0, no new finding on any manage route | kept: audit better (stagnation 0). The fix reaches the nav of every manage page; `/manage/query` and `/manage/missed-queries` reported the same P2 |
+| 24 | `/login` (+ `FormError` `id`) | harden (after a refusal both fields are `aria-invalid` and described by the message; e2e check) | P0–P2 1→1 | 7.3→7.5 | 0→0 | kept: the reported P2 is fixed, a different one (focus after the reload) takes its place (stagnation 1) |

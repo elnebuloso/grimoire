@@ -7,13 +7,18 @@
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
+
+	// The refusal concerns both fields: it never says which of the two was wrong.
+	const invalid = $derived(
+		form?.error ? { 'aria-invalid': true, 'aria-describedby': 'login-error' } : {}
+	);
 </script>
 
 <PageHead title={m.login_title({ name: data.instanceName })} namesInstance />
 
 <section class="sheet">
 	<form method="post">
-		<FormError message={form?.error} />
+		<FormError message={form?.error} id="login-error" />
 		<TextField
 			label={m.field_email()}
 			name="email"
@@ -21,6 +26,7 @@
 			required
 			autocomplete="username"
 			value={form?.email ?? ''}
+			{...invalid}
 		/>
 		<TextField
 			label={m.field_password()}
@@ -28,6 +34,7 @@
 			type="password"
 			required
 			autocomplete="current-password"
+			{...invalid}
 		/>
 		<button class="primary">{m.header_log_in()}</button>
 	</form>
