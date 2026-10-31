@@ -10,6 +10,8 @@ nav = [{ "Concepts" = "index.md" }, { "Running grimoire" = "docker.md" }, { "Dat
 logo = "assets/logo.png"
 favicon = "assets/logo.png"
 features = ["content.action.copy"]
+# Otherwise the theme loads its fonts from Google Fonts on every page.
+font = false
 
 [project.plugins.llmstxt]
 sections = { Handbook = ["index.md", "*.md"] }
