@@ -4,7 +4,7 @@ title: Release 1.0.0
 status: To Do
 assignee: []
 created_date: '2026-10-30 23:20'
-updated_date: '2026-10-30 23:27'
+updated_date: '2026-10-31 12:31'
 labels: []
 milestone: m-1
 dependencies:
@@ -33,3 +33,9 @@ semantic-release derives the version from the commits; leaving 0.x needs a commi
 - [ ] #3 One commit deletes `.claude/rules/until-v1.md` and carries a `BREAKING CHANGE:` footer, so semantic-release cuts 1.0.0
 - [ ] #4 After the user's push, the release v1.0.0, the image tag 1.0.0 and the handbook exist
 <!-- AC:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Agreed with the user while finishing TASK-194: the release commit, besides deleting .claude/rules/until-v1.md, adds to .claude/rules/memory.md under a new 'Database' heading: 'A released migration is never edited; a schema change is a new numbered file.'
+<!-- SECTION:NOTES:END -->
