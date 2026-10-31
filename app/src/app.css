@@ -436,6 +436,10 @@ td.num {
 .table-scroll {
 	overflow-x: auto;
 }
+/* Inside the region: a flush sheet clips everything past its edges, the focus ring included. */
+.table-scroll:focus-visible {
+	outline-offset: -3px;
+}
 @media (max-width: 40rem) {
 	.sheet {
 		padding: var(--s4);
