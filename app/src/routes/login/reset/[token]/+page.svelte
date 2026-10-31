@@ -7,15 +7,6 @@
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
-
-	// MIN_PASSWORD_LENGTH of the server, which code in the browser cannot import.
-	const MIN_LENGTH = 12;
-	// The one refusal about the field: a password too short.
-	const tooShort = $derived(
-		form?.error === m.auth_password_too_short({ min: MIN_LENGTH })
-			? { 'aria-invalid': true, 'aria-describedby': 'reset-error' }
-			: {}
-	);
 </script>
 
 <PageHead title={m.reset_title()} />
@@ -29,15 +20,14 @@
 {:else}
 	<section class="sheet">
 		<form method="post">
-			<FormError message={form?.error} id="reset-error" />
+			<FormError message={form?.error} />
 			<TextField
 				label={m.field_new_password()}
 				name="password"
 				type="password"
 				required
-				minlength={MIN_LENGTH}
+				minlength={12}
 				autocomplete="new-password"
-				{...tooShort}
 			/>
 			<button class="primary">{m.reset_submit()}</button>
 		</form>
