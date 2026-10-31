@@ -29,7 +29,7 @@ How it is measured:
 | `/login/forgot` | 0/0/1/1 | 8.5 | 0/0 | baseline |
 | `/login/reset/[token]` | 0/0/1/2 | 8.5 | 0/0 | baseline |
 | `/setup` | 0/0/1/1 | 7.8 | – (source 0/0) | baseline |
-| `/account` | 0/0/2/0 | 6.8 | 0/0 | baseline |
+| `/account` | 0/0/2/1 | 7.3 | 0/0 | 4 |
 | `/manage` | 0/0/0/3 | 8.0 | 0/1 | baseline |
 | `/manage/api-keys` | 0/0/2/0 | 7.5 | 0/0 | baseline |
 | `/manage/dead-links` | 0/0/0/1 | 6.8 | 0/0 | 3 |
@@ -48,3 +48,4 @@ the average is 7.52.
 | 1 | `/manage/dead-links` | clarify (lead, spoken "links to" instead of the arrow) | 1→4 | 6.7→6.7 | 0→0 | worse, reverted; area "DeadLinkList copy" tried |
 | 2 | `/manage/settings` | clarify (short label, linked hint, paused state as a notice) | 3→2 | 6.7→6.9 | 0→0 | kept (audit better; critique change within noise) |
 | 3 | `/manage/dead-links` | typeset (target on its own line, source quiet, spoken "links to", lead) | 1→1 | 6.7→6.8 | 0→0 | kept, no counted improvement (stagnation 1) |
+| 4 | `/account` | clarify (consequence as lead before the form, way back to Manage) | 2→3 | 6.8→7.3 | 0→0 | kept: critique +0.5; the extra audit entry is the shared mobile header (layout), already counted on every route |

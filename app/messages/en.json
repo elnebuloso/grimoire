@@ -53,6 +53,7 @@
 	"setup_token": "Setup token",
 	"setup_submit": "Create admin account",
 	"password_title": "Change the password",
+	"password_lead": "Changing it logs out every other session; this one stays logged in.",
 	"password_changed": "Password changed. Every other session was logged out.",
 	"password_current": "Current password",
 	"password_new": "New password (at least 12 characters)",

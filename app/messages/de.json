@@ -53,6 +53,7 @@
 	"setup_token": "Setup-Token",
 	"setup_submit": "Admin-Konto anlegen",
 	"password_title": "Passwort ändern",
+	"password_lead": "Die Änderung meldet jede andere Sitzung ab; diese bleibt angemeldet.",
 	"password_changed": "Passwort geändert. Alle anderen Sitzungen wurden abgemeldet.",
 	"password_current": "Aktuelles Passwort",
 	"password_new": "Neues Passwort (mindestens 12 Zeichen)",
