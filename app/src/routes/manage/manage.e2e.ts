@@ -167,6 +167,23 @@ test('syncs a source now and shows why it failed', async ({ page }) => {
 	await expect(page.getByRole('heading', { name: 'Source Auth Service' })).toBeVisible();
 });
 
+test('keeps a tested token that is not saved yet when syncing now', async ({ page }) => {
+	const rotated = 'glpat-rotated-e2e-token';
+	await asAdmin(page);
+	await page.getByRole('link', { name: 'Auth Service', exact: true }).click();
+	await page.getByLabel('Access token').fill(rotated);
+	await page.getByRole('button', { name: 'Test connection' }).click();
+	await expect(page.getByRole('status').filter({ hasText: 'Reachable' })).toBeVisible();
+
+	await page.getByRole('button', { name: 'Sync now' }).click();
+
+	const pending = page.getByRole('status').filter({ hasText: 'A sync is queued or running.' });
+	await expect(pending).toBeVisible();
+	await expect(pending).toHaveCount(0, { timeout: 15_000 });
+	await expect(page.getByLabel('Access token (entered; leave empty to keep it)')).toBeVisible();
+	expect(await page.content()).not.toContain(rotated);
+});
+
 test('lists the sources on the public start page without their settings', async ({ page }) => {
 	await page.goto('/');
 	await expect(page.getByRole('row', { name: /auth-service/ })).toContainText('Login and billing');

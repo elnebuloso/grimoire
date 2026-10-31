@@ -168,7 +168,17 @@
 		<section class="sheet" aria-labelledby="status">
 			<div class="sheet-head">
 				<h2 id="status">{m.source_status()}</h2>
-				<form method="post" action="?/sync">
+				<!-- Only the page data reloads: the settings form keeps what was entered, a tested token
+				included, which following the redirect would drop. -->
+				<form
+					method="post"
+					action="?/sync"
+					use:enhance={() =>
+						async ({ result, update }) => {
+							if (result.type === 'redirect') await invalidateAll();
+							else await update();
+						}}
+				>
 					<button class="primary">{m.source_sync_now()}</button>
 				</form>
 			</div>
