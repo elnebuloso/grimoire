@@ -7,9 +7,10 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-31 01:41'
-updated_date: '2026-10-31 01:48'
+updated_date: '2026-10-31 02:01'
 labels:
   - parsing
+milestone: m-1
 dependencies: []
 references:
   - app/src/lib/server/parsing/chunk.ts

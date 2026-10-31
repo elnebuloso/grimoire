@@ -5,10 +5,11 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-31 01:36'
-updated_date: '2026-10-31 01:53'
+updated_date: '2026-10-31 02:01'
 labels:
   - admin
   - sync
+milestone: m-1
 dependencies: []
 references:
   - app/src/lib/server/admin/sources.ts

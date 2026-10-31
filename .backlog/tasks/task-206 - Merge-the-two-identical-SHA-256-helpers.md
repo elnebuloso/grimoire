@@ -5,9 +5,10 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-31 01:36'
-updated_date: '2026-10-31 01:54'
+updated_date: '2026-10-31 02:01'
 labels:
   - admin
+milestone: m-1
 dependencies: []
 references:
   - app/src/lib/server/admin/auth.ts
