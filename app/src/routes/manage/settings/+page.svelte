@@ -16,7 +16,8 @@
 	<p class="notice warn">{m.syncs_paused_notice()}</p>
 {/if}
 
-<section class="sheet">
+<section class="sheet" aria-labelledby="syncs">
+	<h2 id="syncs">{m.settings_syncs()}</h2>
 	<form method="post">
 		<ChoiceField
 			name="syncsPaused"
