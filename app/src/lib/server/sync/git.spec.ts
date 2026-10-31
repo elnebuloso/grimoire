@@ -146,3 +146,57 @@ describe('a Git server that refuses the credentials', () => {
 		);
 	});
 });
+
+describe('a Git server that redirects', () => {
+	const servers: HttpServer[] = [];
+	let received: { server: string; authorization: string | undefined }[];
+	let origin: string;
+
+	async function listen(name: string, answer: (url: string) => [number, string?]) {
+		const server = createHttpServer((request, response) => {
+			received.push({ server: name, authorization: request.headers.authorization });
+			const [status, location] = answer(request.url ?? '');
+			response.writeHead(status, location ? { location } : {}).end();
+		});
+		await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+		servers.push(server);
+		return (server.address() as AddressInfo).port;
+	}
+
+	beforeAll(async () => {
+		const otherPort = await listen('other host', () => [404]);
+		const originPort = await listen('origin', (url) => {
+			if (url.startsWith('/same/')) return [302, url.replace('/same/', '/moved/')];
+			if (url.startsWith('/other/')) return [302, `http://localhost:${otherPort}${url}`];
+			return [404];
+		});
+		origin = `http://127.0.0.1:${originPort}`;
+	});
+
+	afterAll(() => servers.forEach((server) => server.close()));
+
+	async function headersAfterRedirect(path: string) {
+		received = [];
+		await checkRemote(
+			{ url: `${origin}${path}`, username: 'deploy', token: 'glpat-secret' },
+			'main'
+		);
+		return received;
+	}
+
+	it('sends the token along a redirect on the same server', async () => {
+		expect(await headersAfterRedirect('/same/auth.git')).toEqual([
+			{ server: 'origin', authorization: `Basic ${encoded}` },
+			{ server: 'origin', authorization: `Basic ${encoded}` }
+		]);
+	});
+
+	// git's HTTP transport drops the Authorization header when a redirect leaves the host, so a
+	// Git server cannot hand a stored token to another one.
+	it('does not send the token to another host it redirects to', async () => {
+		expect(await headersAfterRedirect('/other/auth.git')).toEqual([
+			{ server: 'origin', authorization: `Basic ${encoded}` },
+			{ server: 'other host', authorization: undefined }
+		]);
+	});
+});
