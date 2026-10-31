@@ -35,7 +35,7 @@ Edit: https://git.example.com/platform/auth-service.git (main) docs/deploy.md
 ## MCP
 
 Endpoint `/mcp`, Streamable HTTP, tools `sources`, `index`, `query` and `read`. `query` takes the
-sources to search as a list, `sources: ["auth-service", "gateway"]`. Authentication
+sources to search as a list, `sources: ["auth-service", "gateway"]`, and the budget as `tokens`. Authentication
 is the API key header only, without OAuth. With Claude Code:
 
 ```bash
@@ -46,8 +46,8 @@ claude mcp add --transport http --scope user grimoire https://grimoire.example.c
 `--scope user` makes grimoire available in all your projects on this machine; leave it out to add
 it to the current project only.
 
-The start page `/` of the instance shows this command with its address filled in, and with
-**Try a query** what an agent without a key gets from the public sources.
+The start page `/` of the instance shows this command with its address and server name filled in,
+and, once a source is public, **Try a query** answers what an agent without a key gets.
 
 The server sends its instructions on connect: when to search, how to read on, how to change
 documentation. An agent connected over MCP needs nothing about grimoire in its `CLAUDE.md`.

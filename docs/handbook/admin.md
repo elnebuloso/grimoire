@@ -2,9 +2,7 @@
 
 !!! info "Prerequisites"
     - Reader: admin.
-    - Required permissions: a user with the role `admin`. Every other user may only log in, log out
-      and change their own password; the management area answers them with
-      `You may not open this page.`
+    - Required permissions: the admin account, set up once at the first start.
 
     New to grimoire? Read [Concepts](index.md) first.
 
@@ -50,8 +48,9 @@ sessions are logged out; the browser you changed it in stays logged in.
 - The link is valid for one hour and works once. Setting the password ends every session of the
   account and voids its other links.
 - The answer is the same whether the address has an account or not.
-- One client may request 5 links an hour, and one address receives at most 3 an hour; requests
-  beyond that are answered as usual but send nothing.
+- One address receives at most 3 links an hour; requests beyond that are answered as usual but
+  send nothing. One client may request 5 links an hour; beyond that it gets
+  `Too many requests for a new password. Try again later.`
 - `This link is invalid, used or expired. Request a new one.`: use **Request a new link**.
 
 ## Sources
@@ -62,7 +61,7 @@ Create a source with **New source** on `Manage > Overview`.
     The start page `/` shows every source's name, slug and short description without a login,
     with whether it is public or private, its counts of pages, snippets, tokens and dead links, its
     last sync and whether it has a sync error. It shows neither Git URLs nor error texts. For
-    public sources it links the **Documentation site** and offers **Try a query** to everyone,
+    public sources it links the **Documentation** site and offers **Try a query** to everyone,
     searching the public sources only.
 
 To serve two paths of one repository, add it twice, as two sources, and name each for what it
@@ -108,6 +107,7 @@ sync.
 | `The repository has no branch main.` | Correct **Branch**. |
 | `Access refused, or there is no repository at this URL: …` | Check the Git URL, then the token and its scope. |
 | `The Git server cannot be reached: …` | Check the host name; a firewall or a Git server down is outside grimoire. |
+| `The stored access token cannot be decrypted with the current key. Enter the token again or remove it.` | Enter the token again, or tick **Remove the stored token**. |
 
 ### After saving
 
@@ -176,7 +176,8 @@ It keeps the newest 100 lines.
 
 ## Checking what agents get
 
-- **Dead links** lists links that lead nowhere, by source; authors fix them in Git.
+- **Dead links**, opened from the count of dead links on `Manage > Overview`, lists links that lead
+  nowhere, by source; authors fix them in Git.
 - Every page of a source links to a preview: the page exactly as `read` returns it, split into
   snippets with ID and estimated tokens. Use it to find sections that came out too large, too small
   or under a misleading title.
@@ -191,7 +192,8 @@ once per set of sources asked for, with how often and when last. Search matches 
 means the documentation lacks the topic or names it differently. Open a question in
 **Try a query** to check it again after the docs changed.
 
-- Questions are stored as the agent sent them and may contain whatever the agent put in.
+- Questions are stored as the agent sent them, up to 500 characters, and may contain whatever the
+  agent put in.
 - Entries are deleted after 30 days and beyond the newest 10,000.
 - Questions naming an unknown source are not recorded, nor questions sent without an API key.
 
@@ -208,5 +210,5 @@ means the documentation lacks the topic or names it differently. Open a question
   rejected from the next day on; the list shows it as expired.
 - The list shows when a key last authenticated a request, to the minute. Revoke keys unused for a
   long time.
-- A key limited to a selection loses a source when it is deleted and sees nothing once all are
-  gone.
+- A key limited to a selection loses a source when it is deleted; once all are gone, it reads the
+  public sources only, like a request without a key.

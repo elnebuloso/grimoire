@@ -3,7 +3,7 @@
 !!! info "Prerequisites"
     - Reader: operator.
     - Required access: the Docker host, or the Kubernetes namespace grimoire runs in.
-    - Version: images exist from release `0.4.0`; releases before `1.0.0` are previews (see
+    - Version: `1.0.0` or later; a database from a `0.x` release cannot be updated (see
       [Updating from a 0.x release](database.md#updating-from-a-0x-release)).
 
     New to grimoire? Read [Concepts](index.md) first.
@@ -14,7 +14,7 @@ that terminates TLS.
 ## Image
 
 The image is `elnebuloso/grimoire:<version>`, the release version without its `v`: release
-`v1.2.0` is `elnebuloso/grimoire:1.2.0`. There is no `latest` tag; change the version to update.
+`v1.2.0` is `elnebuloso/grimoire:1.2.0`. There is no `latest` tag; the examples on this page use `1.0.0`, change the version to update.
 
 To build the image from a checkout of the repository, for example to try unreleased changes:
 
@@ -29,7 +29,7 @@ grimoire with Caddy as reverse proxy. Save as `compose.yaml`:
 ```yaml
 services:
   grimoire:
-    image: elnebuloso/grimoire:<version>
+    image: elnebuloso/grimoire:1.0.0
     restart: unless-stopped
     volumes:
       - grimoire-data:/data
@@ -78,23 +78,109 @@ docker run --detach --name grimoire \
   --env ENCRYPTION_KEY="<KEY_FROM_OPENSSL_RAND_BASE64_32>" \
   --env PROTOCOL_HEADER=x-forwarded-proto \
   --env ADDRESS_HEADER=x-forwarded-for \
-  elnebuloso/grimoire:<version>
+  elnebuloso/grimoire:1.0.0
 ```
 
 The setup token is in `docker logs grimoire`.
 
 ## Kubernetes
 
-A Deployment needs:
+A Secret with the encryption key, a volume, one pod and a Service. Save as `grimoire.yaml`, fill in
+the placeholders, and apply it with `kubectl apply --namespace <namespace> --filename grimoire.yaml`:
 
-- the image, with the variables below as `env` and `ENCRYPTION_KEY` from a Secret;
-- a PersistentVolumeClaim at `/data`, writable for uid 1000 (`fsGroup: 1000`);
-- exactly one replica with `strategy: Recreate` (see [One instance](database.md#one-instance));
-- a Service on port `3000`, and an Ingress whose controller sends the headers named in
-  `PROTOCOL_HEADER` and `ADDRESS_HEADER`.
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: grimoire
+type: Opaque
+stringData:
+  # Every start needs the same key: keep a copy outside the cluster.
+  ENCRYPTION_KEY: "<KEY_FROM_OPENSSL_RAND_BASE64_32>"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: grimoire-data
+spec:
+  # One writer only: SQLite corrupts on ReadWriteMany and network file systems.
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grimoire
+spec:
+  # Exactly one process per database file.
+  replicas: 1
+  # The old pod stops before the new one opens the database.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: grimoire
+  template:
+    metadata:
+      labels:
+        app: grimoire
+    spec:
+      securityContext:
+        # The server runs as uid 1000 and must be able to write the volume.
+        fsGroup: 1000
+      containers:
+        - name: grimoire
+          # No latest tag: change the version to update.
+          image: elnebuloso/grimoire:1.0.0
+          ports:
+            - containerPort: 3000
+          env:
+            - name: ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: grimoire
+                  key: ENCRYPTION_KEY
+            - name: TZ
+              value: Europe/Berlin
+            # Set only the headers your Ingress controller really sends.
+            - name: PROTOCOL_HEADER
+              value: x-forwarded-proto
+            - name: ADDRESS_HEADER
+              value: x-forwarded-for
+          resources:
+            requests: { cpu: 250m, memory: 512Mi }
+            limits: { cpu: "1", memory: 512Mi }
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: grimoire-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grimoire
+spec:
+  selector:
+    app: grimoire
+  ports:
+    - port: 3000
+      targetPort: 3000
+```
 
-The setup token is in `kubectl logs`. To update the schema before the new version serves, run the
-same image with `MIGRATE_ONLY=true` as an init container.
+Route an Ingress with TLS to the Service on port `3000`; with `ADDRESS_HEADER` set, nothing but the
+Ingress controller may reach the Service (see [Reverse proxy](#reverse-proxy)). Further variables
+go under `env` (see [Environment variables](#environment-variables)). The setup token is in
+`kubectl logs deployment/grimoire`.
+
+The pod updates the schema itself on start and only listens afterwards, so no init container is
+needed. Add a liveness probe, and a long schema update can get the pod restarted before it
+finishes; there, run the update in an init container with the same image, volume, `env` and
+`MIGRATE_ONLY=true`, where no probe runs (see [Schema updates](database.md#schema-updates)).
 
 ### Memory and CPU limits
 
@@ -133,7 +219,8 @@ can read the log can set up the account, even when `/setup` is reachable from ou
 
 Pass on the original protocol, client address and `Host` header, and set `PROTOCOL_HEADER` and
 `ADDRESS_HEADER` to the headers the proxy sends. Set them only when the proxy really sends them:
-once `ADDRESS_HEADER` is set, a request without that header fails. Without `ADDRESS_HEADER`, all
+once `ADDRESS_HEADER` is set, a login, setup, password change or reset request without that header
+fails with `500`. Without `ADDRESS_HEADER`, all
 failed logins count for the proxy's address, and one client's typos lock everybody out.
 
 With `ADDRESS_HEADER` set, only the proxy may reach grimoire's port. Anyone who reaches it directly
@@ -185,7 +272,7 @@ recipient address.
 
 | Variable | Default in the image | Meaning |
 |---|---|---|
-| `ENCRYPTION_KEY` | none, required | Key encrypting the Git access tokens of all sources: 32 random bytes, base64. The server does not start without it, also with `MIGRATE_ONLY`. See [Encryption key](database.md#encryption-key). |
+| `ENCRYPTION_KEY` | none, required | Key encrypting the Git access tokens of all sources, and a token a source form carries from its test to saving: 32 random bytes, base64. The server does not start without it, also with `MIGRATE_ONLY`. See [Encryption key](database.md#encryption-key). |
 | `DATABASE_PATH` | `/data/grimoire.db` | Path of the database file; created with its schema on first start. Keep it in a directory of its own (see [Volume](database.md#volume)). |
 | `SYNC_SCHEDULE` | `*/5 * * * *` | When sources without their own schedule are checked: cron with five fields (minute, hour, day of month, month, day of week), in `TZ`. For a Git server that allows few requests, `0 * * * *`. |
 | `INDEXING_DEADLINE_MINUTES` | `10` | How long indexing one source may take before its sync fails, whole minutes from 1 to 1440. Raise it when a large source fails with `indexing took longer than 10 minutes` (see [Memory and CPU limits](#memory-and-cpu-limits)); one source indexes at a time, so every other source waits that long behind it. |
@@ -196,7 +283,8 @@ recipient address.
 | `LOG_FORMAT` | `ecs` | `ecs`: one JSON object per line (see [Logs](#logs)). `pretty`: readable text for local use. |
 | `LOG_LEVEL` | `info` | Lowest level written: `error`, `warn`, `info` or `debug`. |
 | `PROTOCOL_HEADER` | none | Header carrying the original protocol, such as `x-forwarded-proto`. Without it, grimoire assumes `https`. |
-| `ADDRESS_HEADER` | none | Header carrying the client address, such as `x-forwarded-for`. Requests without it fail. |
+| `ADDRESS_HEADER` | none | Header carrying the client address, such as `x-forwarded-for`. Logins and password forms without it fail. |
+| `XFF_DEPTH` | `1` | With `ADDRESS_HEADER=x-forwarded-for`: which address, counted from the right, is the client's. Behind two proxies, such as a CDN and Caddy, `2`; otherwise every client counts as the inner proxy for the login limits. |
 | `HOST_HEADER` | `Host` | Header carrying the host the browser asked for, for a proxy that rewrites `Host`. |
 | `BASE_URL` | none | Where grimoire is reached, such as `https://grimoire.example.com`. Reset links, the `claude mcp add` command on the start page and the links in `llms.txt` use it; without it the last two use the address of the request. A request to another address is logged once as a warning. |
 | `SMTP_HOST` | none | SMTP server for mail. Without it no mail is sent. |
@@ -207,8 +295,9 @@ recipient address.
 | `MIGRATE_ONLY` | `false` | `true`: update the schema and exit, such as in an init container. |
 | `PORT` | `3000` | Port the server listens on. |
 
-An invalid value of `SYNC_SCHEDULE`, `INDEXING_DEADLINE_MINUTES`, `TZ`, `INCLUDE_URL_ALLOW`, `LOG_FORMAT` or `LOG_LEVEL` stops
-the start with an error naming the variable.
+An invalid value of `ENCRYPTION_KEY`, `SYNC_SCHEDULE`, `INDEXING_DEADLINE_MINUTES`, `TZ`,
+`INCLUDE_URL_ALLOW`, `LOG_FORMAT`, `LOG_LEVEL`, `BASE_URL` or `SMTP_PORT` stops the start with an
+error naming the variable.
 
 ## Logs
 
@@ -229,8 +318,8 @@ up again:
 docker exec -it grimoire node scripts/reset-admin.ts
 ```
 
-The script asks for the email address of an admin and deletes that user and their sessions only
-when the address matches; without a terminal (`-it`) it refuses. grimoire keeps running. When no
-other admin is left, it logs `Admin account was reset.` and a new setup token.
+The script asks for the email address of the admin account and deletes it and its sessions only
+when the address matches; without a terminal (`-it`) it refuses. grimoire keeps running; at the
+next request to `/manage` it logs `Admin account was reset.` and a new setup token.
 
 Anyone who can run `docker exec` or `kubectl exec` in the container can do this; restrict who may.

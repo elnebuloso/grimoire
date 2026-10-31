@@ -26,22 +26,17 @@
   it.
 - **Humans read the docs where they already do**, for example in MkDocs or Zensical.
 
-## Status
-
-Before `1.0.0`. Sync, search, the HTTP API, the MCP server, the management area and the Docker image
-work. Every release publishes its Docker image as `elnebuloso/grimoire:<version>`. `0.x` releases are
-previews without an upgrade path: a later release may need a fresh database.
-
 ## Connecting agents
 
-Every request needs an API key: `Authorization: Bearer <key>`. Keys are created in the management area
-under **API keys**; a key sees all sources or a selection of them.
+Without an API key, agents read and search the public sources. A key adds private sources: send it
+as `Authorization: Bearer <key>`. Keys are created in the management area under **API keys**; a key
+opens all sources or a selection of them.
 
 ### MCP
 
 The MCP server lives at `/mcp` (Streamable HTTP) and offers the tools `sources`, `index`,
-`query` and `read`. Its instructions tell the agent how to use them. Access is by API key only,
-so any client that can send the key as a header works, for example Claude Code:
+`query` and `read`. Its instructions tell the agent how to use them. The API key goes in a header,
+without OAuth, so any client that can send one works, for example Claude Code:
 
 ```bash
 claude mcp add --transport http --scope user grimoire https://grimoire.example/mcp \
@@ -99,10 +94,8 @@ opens the component catalog; [.claude/rules/ui-components.md](.claude/rules/ui-c
 how components and their stories are written. `make mail-catcher` receives the mails of `make dev`
 (see `app/.env.example`); `make e2e` starts its own. Both need Docker.
 
-Until `1.0.0` the schema changes in place in `app/src/lib/server/db/migrations/0001-initial.sql`,
-without new migration files. After pulling a schema change, delete `app/data/`: grimoire refuses a
-database with `database schema is at version …, this grimoire knows only 1`, and a database at
-version 1 silently keeps the old schema.
+A schema change is a new migration file in `app/src/lib/server/db/migrations/`; released
+migrations are never edited, since they have already run on every installation.
 
 Commits follow [Conventional Commits](https://www.conventionalcommits.org). Releases are cut from
 them by the `CI` workflow on every push to `main`, once lint, unit and browser tests passed:

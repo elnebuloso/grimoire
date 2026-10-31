@@ -55,8 +55,10 @@ database schema is at version 2, this grimoire knows only 1: run a newer grimoir
     A schema update cannot be undone. Take a backup before every update; going back
     to the older version means restoring it.
 
-To update before the application starts, run the same image with `MIGRATE_ONLY=true` and the same
-`DATABASE_PATH`, for example as an init container. If the application starts at the same time
+grimoire answers requests only once the update is done. To update in a step of its own, run the
+same image with `MIGRATE_ONLY=true` and the same `DATABASE_PATH`: it updates the schema and exits.
+On Kubernetes this is worth it only where a liveness probe could restart the pod during a long
+update (see [Kubernetes](docker.md#kubernetes)). If the application starts at the same time
 anyway, each update is still applied once.
 
 ## Updating from a 0.x release

@@ -32,10 +32,10 @@ the text.
 
 | Part of the page | Becomes |
 |---|---|
-| Text under `#` before the first `##` | The snippet `Overview`, and the page description in the index unless the front matter has `description`. |
+| Text under `#` before the first `##` | The snippet `Overview`. |
 | A heading with its section | One snippet. |
-| A section under about 50 tokens | Merged into its parent section. |
-| A section over about 800 tokens | Cut at subheadings, else between paragraphs, into `Rollback (1/2)`, `Rollback (2/2)`; never inside a code block, table or list. |
+| A section under about 50 tokens, without subsections | Merged into its parent section; its anchor reads the parent. |
+| A section over about 800 tokens | Cut between paragraphs, lists, code blocks and tables into `Rollback (1/2)`, `Rollback (2/2)`, never inside one; a single block over 800 tokens stays whole. |
 
 A token is about four characters. Sections of a few paragraphs work best: short ones lose their
 own heading, long ones lose their context in the second part.
@@ -53,7 +53,7 @@ with `read`. A link that leaves the source's path is dead, in MkDocs as well.
 
 | Element | In the snippet |
 |---|---|
-| Front matter | Title, description and tags become metadata, not text. |
+| Front matter | `title` becomes the page title instead of the first `#`; the front matter is not text of any snippet. |
 | Admonitions `!!! warning "Caution"` | `> **Caution:** …` with the content. |
 | Content tabs `=== "Linux"` | `**Linux:**` with the content. |
 | `nav` in `zensical.toml` or `mkdocs.yml` | The order of pages in the index; pages missing from `nav` follow by path. The first of the two files found in the source path or above it counts. |
@@ -68,8 +68,9 @@ with `read`. A link that leaves the source's path is dead, in MkDocs as well.
 
 ## Sync warnings
 
-A warning skips one page or one include; the rest of the source syncs. When every page is skipped,
-the sync fails and agents keep getting the previous index. Admins see the warnings on the source
+A warning skips one page or one include, or a setting of the site config; the rest of the source
+syncs. When no page can be processed (`: skipped, …` on every page), the sync fails and agents keep
+getting the previous index. Admins see the warnings on the source
 page. Fix them in the repository; the next sync clears them.
 
 | Warning | Fix |
@@ -82,8 +83,9 @@ page. Fix them in the repository; the next sync clears them.
 | `docs/deploy.md: includes exceed 1000000 characters, "big.md" and every later include not inserted` | A page may pull in at most 1,000,000 characters through includes; include less, or split the page. |
 | `docs/deploy.md: include "https://…" not inserted, URL includes are disabled (url_download in the site config)` | Set `url_download: true` under `pymdownx.snippets`, or include a file from the repository. |
 | `docs/deploy.md: include "https://…" not fetched, https://… is not listed in INCLUDE_URL_ALLOW` | Ask the operator to allow the origin, or include a file from the repository. |
-| `docs/deploy.md: include "https://…" not fetched, …` | The fetch failed: a redirect (not followed), an error status, more than 1 MiB, no answer within 10 seconds, or more than 100 URL includes in one sync. |
+| `docs/deploy.md: include "https://…" not fetched, …` | The fetch failed: a redirect (not followed), an error status, more than 1 MiB, no answer within 10 seconds, more than 100 URL includes in one sync, or credentials in the URL. |
 | `docs/deploy.md: include "notes.md" in the URL include "https://…" is not a URL, not inserted` | A file included by URL may include URLs only. |
 | `docs/run#1.md: "#" in the file name, skipped` | Rename the file: in an ID, `#` starts the anchor. |
 | `docs/link.md: not readable inside the repository, skipped` | The file is a symlink that points outside the repository; replace it with the file. |
 | `site config ignored, …` | Fix `mkdocs.yml` or `zensical.toml` as the message says; until then its `nav` and `toc` settings do not apply. |
+| `mkdocs.yml: toc slugify "…" is not supported, heading IDs use the default` | Use one of the slugify functions listed under [MkDocs and Zensical syntax](#mkdocs-and-zensical-syntax), or accept the default anchors. |
