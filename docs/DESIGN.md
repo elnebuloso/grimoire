@@ -13,7 +13,7 @@ Its character: calm, tactile and quiet. Cool neutral surfaces, one petrol accent
   - Anything inside a sheet that is not a control goes *down*, not up. These are **wells**: inputs, code, query answers, nested forms and the one-time API key.
   - Never put a sheet inside a sheet.
 - **Status is text and an edge, never a badge.**
-  - State values are coloured words, e.g. "yes" under Sync error, or "synced" / "failed".
+  - State values are coloured words, e.g. "failed" under Status, or "synced" / "failed" in the sync history.
   - Notices and lists that need attention carry a 3px bar on their leading edge.
   - There are no pills or emoji, and no status is shown by an icon. The word always carries the meaning; colour only repeats it.
 - **One accent.** Petrol marks links, the primary button, focus and the info notice. It is used for nothing else.
@@ -103,7 +103,7 @@ It sits in the header of every page, next to the language switch. Both use the s
 
 ## Components
 
-- **Header.** It sits on the canvas, not on a sheet. On the left is the wordmark "grimoire" linking to the start page. On the right are the session links ("Logged in as" + email, "Manage", "Log out") followed by the Language and Theme switches. "Manage" is a link that looks exactly like the "Log out" button: a raised control, ink colour, no underline.
+- **Header.** It sits on the canvas, not on a sheet. On the left is the wordmark "grimoire" linking to the start page. On the right are the session links ("Logged in as" + email, "Manage", "Log out") followed by the Language and Theme switches. "Manage" is a link that looks exactly like the "Log out" button: a raised control, ink colour, no underline. Before the header, a "Skip to content" link is the first stop of the keyboard: hidden until focused, then a raised button at the top left.
 - **Footer.** It sits on the canvas below the content, as wide as the header, separated by a `--line` rule. It holds the product name "grimoire" at the start of the line, 13px, weight 500, `--ink-2`, whatever `INSTANCE_NAME` calls the instance, followed by the version at weight 400; a release version links to its release notes in the same colour, `--accent` on hover, and the icon links to the GitHub repository and the documentation side by side at the end.
 - **Icons.**
   - Line icons from Lucide (`@lucide/svelte`), imported one by one; brand marks Lucide lacks, such as the GitHub mark, as an inline SVG in the same box.
