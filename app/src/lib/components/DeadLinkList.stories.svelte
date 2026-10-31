@@ -45,3 +45,20 @@
 		await expect(pages[0].querySelectorAll('li')).toHaveLength(2);
 	}}
 />
+
+<Story
+	name="A path without a break opportunity"
+	args={{
+		links: [
+			{
+				file: `runbooks/${'very_long_page_name_'.repeat(20)}.md`,
+				anchor: 'a_heading_anchor_that_is_long',
+				target: `../shared/${'unbroken_target_'.repeat(20)}.md`
+			}
+		]
+	}}
+	play={async ({ canvas }) => {
+		const list = canvas.getAllByRole('list')[0];
+		await expect(list.scrollWidth).toBeLessThanOrEqual(list.clientWidth);
+	}}
+/>

@@ -32,7 +32,7 @@ How it is measured:
 | `/account` | 0/0/1/1 | 7.3 | 0/0 | 11 (full re-measure) |
 | `/manage` | 0/0/0/2 | 7.0 | 0/1 | 20, **plateau** |
 | `/manage/api-keys` | 0/0/1/0 | 7.3 | 0/0 | 17 |
-| `/manage/dead-links` | 0/0/0/0 | 7.2 | 0/0 | 11 (full re-measure) |
+| `/manage/dead-links` | 0/0/0/0 (P1 from iteration 3 fixed after 25) | 7.2 | 0/0 | 11 (full re-measure), **plateau** |
 | `/manage/missed-queries` | 0/0/0/2 | 7.3 | 0/0 | 18, **plateau** |
 | `/manage/query` | 0/0/2/1 | 7.3 | 0/0 | 11 (full re-measure) |
 | `/manage/settings` | 0/0/0/2 | 7.5 | 0/0 | 23 |
@@ -86,3 +86,5 @@ Notes on iteration 11:
 | 22 | `/manage`, `/` (`SourceStatsTable`) | adapt (state word under the source name below 40rem, Status column hidden there) | P0–P2 /manage 0→1, / 1→1 | /manage 7.0→7.0, / 7.3→7.3 | 1→1 | worse, reverted (822addd); 4th edit of `/manage` (19–22): **plateau** (stagnation 2) |
 | 23 | `/manage/settings` (manage layout) | harden (nav marks the current page by route, already in the server render; regression check in `manage.e2e.ts`) | P0–P2 1→0 | 7.2→7.5 | 0→0, no new finding on any manage route | kept: audit better (stagnation 0). The fix reaches the nav of every manage page; `/manage/query` and `/manage/missed-queries` reported the same P2 |
 | 24 | `/login` (+ `FormError` `id`) | harden (after a refusal both fields are `aria-invalid` and described by the message; e2e check) | P0–P2 1→1 | 7.3→7.5 | 0→0 | kept: the reported P2 is fixed, a different one (focus after the reload) takes its place (stagnation 1) |
+| 25 | `/manage/dead-links` | harden (each page links to its preview on the source page) | P0–P2 0→1 (a P1) | 7.2→6.9 | 0→0 | worse, reverted (0ac173e); 4th edit of the route (1, 3, 7, 25): **plateau** (stagnation 2). The P1, a long unbroken path widening the page at 390px, comes from iteration 3 and is fixed in the next commit |
+| – | `/manage/dead-links` | fix after 25: `overflow-wrap: anywhere` again in `DeadLinkList`, with a story that fails on a path without a break opportunity | P1 1→0 | – | – | fix, not an iteration: iteration 3 had swapped `anywhere` for `break-word`, which lets a long path widen the page at 390px |

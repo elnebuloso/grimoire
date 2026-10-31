@@ -44,7 +44,9 @@
 		gap: var(--s1);
 		padding: var(--s2) 0;
 		border-top: 1px solid var(--line);
-		overflow-wrap: break-word;
+		/* anywhere, not break-word: only anywhere lets a grid item shrink below its longest
+		unbroken path, which would otherwise widen the page on a phone. */
+		overflow-wrap: anywhere;
 	}
 	li:first-child {
 		border-top: 0;
