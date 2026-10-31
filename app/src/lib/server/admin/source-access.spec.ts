@@ -106,6 +106,28 @@ describe('checkSourceAccess', () => {
 		expect(tokenUsed()).toBeUndefined();
 	});
 
+	describe('when the stored token was encrypted with another key', () => {
+		const otherKey = Buffer.alloc(32, 8);
+
+		it('reads the source with a newly entered token', async () => {
+			const id = storedSource();
+
+			const result = await checkSourceAccess(db, otherKey, id, form({ token: 'glpat-new' }));
+
+			expect(result).toEqual({ message: expect.stringContaining('Reachable') });
+			expect(vi.mocked(git.checkRemote).mock.lastCall?.[0].token).toBe('glpat-new');
+		});
+
+		it('asks for the token again instead of failing without a new one', async () => {
+			const id = storedSource();
+
+			const result = await checkSourceAccess(db, otherKey, id, form());
+
+			expect(result).toEqual({ error: expect.stringContaining('Enter the token again') });
+			expect(git.checkRemote).not.toHaveBeenCalled();
+		});
+	});
+
 	it.each([
 		['http://git.example/docs.git', 'https'],
 		['file:///etc/docs.git', 'https'],

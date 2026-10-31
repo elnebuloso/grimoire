@@ -118,6 +118,7 @@
 	"error_schedule": "Zeitplan: {detail}",
 	"error_token_other_server": "Die Git-URL zeigt auf einen anderen Server: Gib das Token erneut ein oder entferne es.",
 	"error_token_damaged": "Das eingegebene Zugriffstoken ließ sich nicht wieder lesen. Gib es erneut ein.",
+	"error_stored_token_unreadable": "Das gespeicherte Zugriffstoken lässt sich nicht entschlüsseln: TOKEN_ENCRYPTION_KEY wurde seit dem Speichern geändert. Gib das Token erneut ein oder entferne es.",
 	"error_git_url": "Gib die Git-URL ein, z. B. https://gitlab.example.com/platform/docs.git.",
 	"error_git_url_https": "Die Git-URL muss mit https:// beginnen.",
 	"error_git_url_credentials": "Gib Benutzername und Token in ihren eigenen Feldern ein, nicht in der Git-URL.",

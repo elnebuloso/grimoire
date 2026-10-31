@@ -44,15 +44,22 @@ export async function checkSourceAccess(
 ): Promise<AccessResult> {
 	const problem = remoteProblem(db, sourceId, form);
 	if (problem) return { error: problem };
+	const enteredToken = form.token.trim();
 	const stored = storedAccess(db, sourceId);
-	const storedToken =
-		stored?.encryptedToken && !form.removeToken
-			? decryptToken(stored.encryptedToken, key)
-			: undefined;
+	let storedToken: string | undefined;
+	// Decrypted only when it is used: after a change of TOKEN_ENCRYPTION_KEY it cannot be, and
+	// entering the token again is how the admin repairs the source.
+	if (!enteredToken && !form.removeToken && stored?.encryptedToken) {
+		try {
+			storedToken = decryptToken(stored.encryptedToken, key);
+		} catch {
+			return { error: m.error_stored_token_unreadable() };
+		}
+	}
 	const remote: GitRemote = {
 		url: form.gitUrl.trim(),
 		username: form.username.trim() || null,
-		token: form.token.trim() || storedToken
+		token: enteredToken || storedToken
 	};
 	const branch = form.branch.trim();
 	const check = await checkRemote(remote, branch, ACCESS_TIMEOUT_MS);
