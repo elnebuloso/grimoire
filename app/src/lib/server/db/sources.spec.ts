@@ -2,7 +2,13 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import type { DatabaseSync } from 'node:sqlite';
 import { indexPages } from '../sync/index-pages';
 import { openDatabase } from './schema';
-import { recordSyncRun, replaceSourceIndex, type SourceIndex, type SyncRun } from './sources';
+import {
+	recordSyncError,
+	recordSyncRun,
+	replaceSourceIndex,
+	type SourceIndex,
+	type SyncRun
+} from './sources';
 
 let db: DatabaseSync;
 
@@ -105,6 +111,31 @@ describe('replaceSourceIndex', () => {
 		replaceSourceIndex(db, 1, sourceIndex('new', NEW));
 		expect(liveTitles()).toEqual(['New A', 'New B', 'New C']);
 		expect(count('pages')).toBe(3);
+	});
+});
+
+describe('sync state of a source', () => {
+	const state = (id = 1) =>
+		db
+			.prepare('SELECT last_commit, last_synced_at, error, failed_commit FROM sources WHERE id = ?')
+			.get(id);
+
+	it('sets last_synced_at only when an index is swapped in, never on a failure', () => {
+		db.exec(`INSERT INTO sources (id, slug, name, git_url, branch, path)
+			VALUES (2, 'new', 'New', 'https://git.example/new.git', 'main', 'docs/');`);
+		recordSyncError(db, 2, 'git ls-remote failed');
+		expect(state(2)).toMatchObject({ last_synced_at: null, error: 'git ls-remote failed' });
+
+		const synced = state().last_synced_at;
+		expect(synced).not.toBeNull();
+		recordSyncError(db, 1, 'indexing took longer than 10 minutes', 'bad');
+		expect(state()).toMatchObject({ last_synced_at: synced, failed_commit: 'bad' });
+	});
+
+	it('clears the error and the failed commit when a new index is swapped in', () => {
+		recordSyncError(db, 1, 'indexing took longer than 10 minutes', 'bad');
+		replaceSourceIndex(db, 1, sourceIndex('new', NEW));
+		expect(state()).toMatchObject({ last_commit: 'new', error: null, failed_commit: null });
 	});
 });
 

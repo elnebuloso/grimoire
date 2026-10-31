@@ -156,3 +156,35 @@ describe('indexCheckout with symlinks', () => {
 		expect(index.warnings).toEqual([]);
 	});
 });
+
+describe('indexCheckout with a site config at the repository root', () => {
+	it('gives each page its position in the nav', async () => {
+		write({
+			'mkdocs.yml': 'docs_dir: docs\nnav:\n  - Deploy: deploy.md\n  - Home: index.md\n',
+			'docs/index.md': '# Home\n',
+			'docs/deploy.md': '# Deploy\n'
+		});
+
+		const index = await indexCheckout(vi.fn());
+
+		expect(index.pages.map((page) => [page.file, page.navPosition]).sort()).toEqual([
+			['deploy.md', 0],
+			['index.md', 1]
+		]);
+	});
+
+	it('builds heading IDs with the slug function of the site config', async () => {
+		write({
+			'mkdocs.yml':
+				'markdown_extensions:\n  - toc:\n      slugify: !!python/object/apply:pymdownx.slugs.slugify\n        kwds:\n          case: lower\n',
+			'docs/index.md': '# Home\n\n## Größe & Gewicht\n\nText.\n'
+		});
+
+		const index = await indexCheckout(vi.fn());
+
+		// The short section is merged into the overview, which keeps its ID as an alias.
+		expect(index.pages[0].chunked.snippets.map((snippet) => snippet.aliases)).toEqual([
+			['größe--gewicht']
+		]);
+	});
+});

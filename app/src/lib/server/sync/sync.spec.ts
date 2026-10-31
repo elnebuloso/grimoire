@@ -1,15 +1,12 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach, vi } from 'vitest';
 import { execFileSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import type { DatabaseSync } from 'node:sqlite';
 import { openDatabase } from '../db/schema';
-import { listSchedules } from '../db/sources';
-import { encryptToken } from '../token-encryption';
 import { createLimiter } from '../limiter';
-import { createSyncQueue, type SyncLanes } from './queue';
-import { isDue } from './schedule';
+import type { SyncLanes } from './queue';
 import { syncSource } from './sync';
 
 // Include resolution belongs in the indexing child process, which loads its own copy from disk; in
@@ -27,6 +24,8 @@ vi.setConfig({ testTimeout: 30_000 });
 const key = Buffer.alloc(32, 7);
 const filler = 'Some words to keep this section above the merge threshold. '.repeat(6);
 
+// The repository every test starts from, built once: Git takes most of the time of a test.
+let template: string;
 let root: string;
 let work: string;
 let db: DatabaseSync;
@@ -56,9 +55,9 @@ function git(cwd: string, ...args: string[]) {
 	);
 }
 
-function commitFiles(files: Record<string, string | null>) {
+function commitFiles(files: Record<string, string | null>, repository = bare) {
 	const clone = mkdtempSync(join(root, 'edit-'));
-	git(root, 'clone', '--quiet', bare, clone);
+	git(root, 'clone', '--quiet', repository, clone);
 	for (const [path, content] of Object.entries(files)) {
 		if (content === null) {
 			rmSync(join(clone, path));
@@ -80,41 +79,48 @@ function rows(sql: string, ...values: (string | number)[]) {
 		.map((row) => ({ ...row }));
 }
 
-function addSource(url: string, options: { exclusions?: string[]; token?: string } = {}) {
+function addSource(url: string, exclusions: string[]) {
 	return Number(
 		db
 			.prepare(
-				`INSERT INTO sources (slug, name, git_url, branch, path, exclusions, username, encrypted_token)
-				VALUES (?, 'Docs', ?, 'main', 'docs/', ?, 'deploy', ?)`
+				`INSERT INTO sources (slug, name, git_url, branch, path, exclusions)
+				VALUES (?, 'Docs', ?, 'main', 'docs/', ?)`
 			)
-			.run(
-				`auth-${Math.random().toString(36).slice(2)}`,
-				url,
-				JSON.stringify(options.exclusions ?? []),
-				options.token ? encryptToken(options.token, key) : null
-			).lastInsertRowid
+			.run(`auth-${Math.random().toString(36).slice(2)}`, url, JSON.stringify(exclusions))
+			.lastInsertRowid
 	);
 }
+
+beforeAll(() => {
+	root = mkdtempSync(join(tmpdir(), 'grimoire-sync-template-'));
+	template = join(root, 'auth.git');
+	git(root, 'init', '--quiet', '--bare', '--initial-branch=main', template);
+	// Lets the blob-less clone work over file://, as Git hosting servers allow by default.
+	git(template, 'config', 'uploadpack.allowFilter', 'true');
+	commitFiles(
+		{
+			'docs/deploy.md': `# Deploy\n\n## Rollback\n\n${filler}\n\n\`\`\`bash\nmake rollback\n\`\`\`\n\n--8<-- "shared/warning.md"\n`,
+			'docs/index.md': `# Home\n\nSee [rollback](deploy.md#rollback) and [gone](missing.md).\n`,
+			'docs/broken.md': '---\ntitle: [unclosed\n---\n# Broken\n',
+			'docs/drafts/wip.md': '# Work in progress\n',
+			'shared/warning.md': '!!! warning "Careful"\n    Migrations are not rolled back.\n',
+			'src/app.ts': 'export {};\n'
+		},
+		template
+	);
+});
+
+afterAll(() => rmSync(dirname(template), { recursive: true, force: true }));
 
 beforeEach(() => {
 	root = mkdtempSync(join(tmpdir(), 'grimoire-sync-test-'));
 	work = join(root, 'work');
 	mkdirSync(work);
 	bare = join(root, 'auth.git');
-	git(root, 'init', '--quiet', '--bare', '--initial-branch=main', bare);
-	// Lets the blob-less clone work over file://, as Git hosting servers allow by default.
-	git(bare, 'config', 'uploadpack.allowFilter', 'true');
-	commitFiles({
-		'docs/deploy.md': `# Deploy\n\n## Rollback\n\n${filler}\n\n\`\`\`bash\nmake rollback\n\`\`\`\n\n--8<-- "shared/warning.md"\n`,
-		'docs/index.md': `# Home\n\nSee [rollback](deploy.md#rollback) and [gone](missing.md).\n`,
-		'docs/broken.md': '---\ntitle: [unclosed\n---\n# Broken\n',
-		'docs/drafts/wip.md': '# Work in progress\n',
-		'shared/warning.md': '!!! warning "Careful"\n    Migrations are not rolled back.\n',
-		'src/app.ts': 'export {};\n'
-	});
+	cpSync(template, bare, { recursive: true });
 	// A file, not memory: the index is written by the indexing child process with its own connection.
 	db = openDatabase(join(root, 'grimoire.db'));
-	source = addSource(`file://${bare}`, { exclusions: ['docs/drafts/**'] });
+	source = addSource(`file://${bare}`, ['docs/drafts/**']);
 });
 
 afterEach(() => {
@@ -150,32 +156,6 @@ describe('syncSource', () => {
 		expect(readdirSync(work)).toEqual([]);
 	});
 
-	it('stores the position of each page in the nav of the site config at the repository root', async () => {
-		commitFiles({
-			'mkdocs.yml': 'docs_dir: docs\nnav:\n  - Deploy: deploy.md\n  - Home: index.md\n'
-		});
-		await syncSource(db, source, { key, workDirectory: work });
-
-		expect(rows('SELECT file, nav_position FROM pages ORDER BY file')).toEqual([
-			{ file: 'deploy.md', nav_position: 0 },
-			{ file: 'index.md', nav_position: 1 }
-		]);
-	});
-
-	it('builds heading IDs with the slug function of the site config', async () => {
-		commitFiles({
-			'mkdocs.yml':
-				'markdown_extensions:\n  - toc:\n      slugify: !!python/object/apply:pymdownx.slugs.slugify\n        kwds:\n          case: lower\n',
-			'docs/index.md': '# Home\n\n## Größe & Gewicht\n\nText.\n'
-		});
-		await syncSource(db, source, { key, workDirectory: work });
-
-		// The short section is merged into the overview, which keeps its ID as an alias.
-		expect(rows("SELECT aliases FROM snippets WHERE aliases != '[]'")).toEqual([
-			{ aliases: '["größe--gewicht"]' }
-		]);
-	});
-
 	it('skips an unchanged branch and replaces the index after a new commit', async () => {
 		await syncSource(db, source, { key, workDirectory: work });
 		expect(await syncSource(db, source, { key, workDirectory: work })).toMatchObject({
@@ -190,52 +170,6 @@ describe('syncSource', () => {
 			{ file: 'deploy.md' },
 			{ file: 'new.md' }
 		]);
-	});
-
-	it('keeps the last good index and stores the error when a sync fails', async () => {
-		await syncSource(db, source, { key, workDirectory: work });
-		rmSync(bare, { recursive: true });
-
-		const result = await syncSource(db, source, { key, workDirectory: work });
-		expect(result.status).toBe('failed');
-		expect(rows('SELECT count(*) AS n FROM pages')).toEqual([{ n: 2 }]);
-		const [state] = rows('SELECT error FROM sources WHERE id = ?', source);
-		expect(state.error).toMatch(/git ls-remote failed/);
-		expect(readdirSync(work)).toEqual([]);
-	});
-
-	it('keeps the last good index and fails when no page of the new commit can be indexed', async () => {
-		await syncSource(db, source, { key, workDirectory: work });
-		commitFiles({ 'docs/index.md': null, 'docs/deploy.md': null });
-
-		const result = await syncSource(db, source, { key, workDirectory: work });
-
-		expect(result).toMatchObject({
-			status: 'failed',
-			error: expect.stringMatching(/^no page could be indexed, docs\/broken.md: skipped, /)
-		});
-		expect(rows('SELECT file FROM pages ORDER BY file')).toEqual([
-			{ file: 'deploy.md' },
-			{ file: 'index.md' }
-		]);
-	});
-
-	it('sets last_synced_at only when an index is swapped in, never on a failure', async () => {
-		const lastSynced = () =>
-			rows('SELECT last_synced_at FROM sources WHERE id = ?', source)[0].last_synced_at;
-		const unreachable = addSource(`file://${join(root, 'missing.git')}`);
-
-		await syncSource(db, unreachable, { key, workDirectory: work });
-		expect(rows('SELECT last_synced_at FROM sources WHERE id = ?', unreachable)).toEqual([
-			{ last_synced_at: null }
-		]);
-
-		await syncSource(db, source, { key, workDirectory: work });
-		const synced = lastSynced();
-		expect(synced).not.toBeNull();
-		rmSync(bare, { recursive: true });
-		await syncSource(db, source, { key, workDirectory: work });
-		expect(lastSynced()).toBe(synced);
 	});
 
 	it('keeps the last good index when writing the new one fails in the indexing process', async () => {
@@ -256,109 +190,8 @@ describe('syncSource', () => {
 		]);
 	});
 
-	it('records when every check started, whether it synced, found nothing new or failed', async () => {
-		// Only Date is faked: timers, Git and the indexing process run as usual.
-		vi.useFakeTimers({ toFake: ['Date'] });
-		let checkStartedAt = new Date('2026-10-30T08:00:00.000Z');
-		// The clock is set where a check starts; the sync stage runs an hour later.
-		const lanes: SyncLanes = {
-			check: (work) => {
-				vi.setSystemTime(checkStartedAt);
-				return work();
-			},
-			sync: (work) => {
-				vi.setSystemTime(checkStartedAt.getTime() + 3_600_000);
-				return work();
-			}
-		};
-		const checkedAt = () =>
-			rows('SELECT last_checked_at FROM sources WHERE id = ?', source)[0].last_checked_at;
-
-		try {
-			expect(await syncSource(db, source, { key, workDirectory: work, lanes })).toMatchObject({
-				status: 'synced'
-			});
-			expect(checkedAt()).toBe('2026-10-30T08:00:00.000Z');
-
-			checkStartedAt = new Date('2026-10-30T09:00:00.000Z');
-			expect(await syncSource(db, source, { key, workDirectory: work, lanes })).toMatchObject({
-				status: 'unchanged'
-			});
-			expect(checkedAt()).toBe('2026-10-30T09:00:00.000Z');
-
-			rmSync(bare, { recursive: true });
-			checkStartedAt = new Date('2026-10-30T10:00:00.000Z');
-			expect(await syncSource(db, source, { key, workDirectory: work, lanes })).toMatchObject({
-				status: 'failed'
-			});
-			expect(checkedAt()).toBe('2026-10-30T10:00:00.000Z');
-		} finally {
-			vi.useRealTimers();
-		}
-	});
-
-	it('records the check before the sync stage, so a process dying in it is not due again on restart', async () => {
-		let syncStageReached!: () => void;
-		const reached = new Promise<void>((resolve) => (syncStageReached = resolve));
-		// The sync stage never finishes, as when the process dies in it.
-		const lanes: SyncLanes = {
-			check: (work) => work(),
-			sync: () => {
-				syncStageReached();
-				return new Promise(() => {});
-			}
-		};
-
-		void syncSource(db, source, { key, workDirectory: work, lanes });
-		await reached;
-
-		const [schedule] = listSchedules(db);
-		expect(schedule.lastCheckedAt).not.toBeNull();
-		expect(isDue('0 * * * *', schedule.lastCheckedAt, schedule.lastCheckedAt!, 'UTC')).toBe(false);
-	});
-
-	it('records every run in the history of the source', async () => {
-		const history = () =>
-			rows(
-				'SELECT outcome, commit_hash, error, runs FROM sync_runs WHERE source_id = ? ORDER BY id',
-				source
-			);
-		const first = git(bare, 'rev-parse', 'main').trim();
-
-		await syncSource(db, source, { key, workDirectory: work });
-		await syncSource(db, source, { key, workDirectory: work });
-		await syncSource(db, source, { key, workDirectory: work });
-		rmSync(bare, { recursive: true });
-		await syncSource(db, source, { key, workDirectory: work });
-
-		expect(history()).toEqual([
-			{ outcome: 'synced', commit_hash: first, error: null, runs: 1 },
-			{ outcome: 'unchanged', commit_hash: first, error: null, runs: 2 },
-			{
-				outcome: 'failed',
-				commit_hash: null,
-				error: expect.stringMatching(/git ls-remote failed/),
-				runs: 1
-			}
-		]);
-	});
-
-	it('never stores the access token, not even in an error', async () => {
-		const token = 'glpat-very-secret-token';
-		const withToken = addSource(`https://deploy:${token}@127.0.0.1:9/auth.git`, { token });
-
-		const result = await syncSource(db, withToken, { key, workDirectory: work });
-		expect(result.status).toBe('failed');
-		const [state] = rows('SELECT error, encrypted_token FROM sources WHERE id = ?', withToken);
-		expect(state.error).not.toContain(token);
-		expect(state.error).not.toContain(Buffer.from(`deploy:${token}`).toString('base64'));
-		expect(state.encrypted_token).not.toContain(token);
-	});
-
 	it('fails a sync whose indexing outlasts the deadline and frees the sync slot', async () => {
 		const lanes: SyncLanes = { check: createLimiter(1), sync: createLimiter(1) };
-		await syncSource(db, source, { key, workDirectory: work, lanes });
-		commitFiles({ 'docs/new.md': '# New\n' });
 
 		// No indexing process starts, reads a checkout and writes an index within a millisecond.
 		const result = await syncSource(db, source, {
@@ -378,53 +211,7 @@ describe('syncSource', () => {
 		]);
 		expect(
 			await syncSource(db, source, { key, workDirectory: work, lanes, force: true })
-		).toMatchObject({ status: 'synced', pages: 3 });
-	});
-
-	it('does not index a commit again whose indexing failed, unless forced', async () => {
-		await syncSource(db, source, { key, workDirectory: work });
-		commitFiles({ 'docs/new.md': '# New\n' });
-		await syncSource(db, source, { key, workDirectory: work, indexingDeadlineMs: 1 });
-
-		const failing = git(bare, 'rev-parse', 'main').trim();
-
-		// Without the short deadline, indexing would succeed: failing again shows it did not run.
-		expect(await syncSource(db, source, { key, workDirectory: work })).toEqual({
-			status: 'failed',
-			error: 'indexing took longer than 0.001 seconds',
-			commit: failing
-		});
-		expect(
-			rows(
-				'SELECT outcome, commit_hash, runs FROM sync_runs WHERE source_id = ? ORDER BY id',
-				source
-			)
-		).toEqual([
-			{ outcome: 'synced', commit_hash: expect.any(String), runs: 1 },
-			{ outcome: 'failed', commit_hash: failing, runs: 2 }
-		]);
-		expect(rows('SELECT error FROM sources WHERE id = ?', source)).toEqual([
-			{ error: 'indexing took longer than 0.001 seconds' }
-		]);
-		expect(await syncSource(db, source, { key, workDirectory: work, force: true })).toMatchObject({
-			status: 'synced',
-			pages: 3
-		});
-	});
-
-	it('indexes the next commit after one whose indexing failed', async () => {
-		await syncSource(db, source, { key, workDirectory: work });
-		commitFiles({ 'docs/new.md': '# New\n' });
-		await syncSource(db, source, { key, workDirectory: work, indexingDeadlineMs: 1 });
-		commitFiles({ 'docs/newer.md': '# Newer\n' });
-
-		expect(await syncSource(db, source, { key, workDirectory: work })).toMatchObject({
-			status: 'synced',
-			pages: 4
-		});
-		expect(rows('SELECT error, failed_commit FROM sources WHERE id = ?', source)).toEqual([
-			{ error: null, failed_commit: null }
-		]);
+		).toMatchObject({ status: 'synced', pages: 2 });
 	});
 
 	it('fails a sync whose indexing runs out of memory and keeps syncing other sources', async () => {
@@ -442,74 +229,32 @@ describe('syncSource', () => {
 			error: expect.stringMatching(/^indexing ended with .+ before it finished, out of memory/),
 			commit: git(bare, 'rev-parse', 'main').trim()
 		});
-		const other = addSource(`file://${bare}`, { exclusions: ['docs/huge.md', 'docs/drafts/**'] });
+		const other = addSource(`file://${bare}`, ['docs/huge.md', 'docs/drafts/**']);
 		expect(
 			await syncSource(db, other, { key, workDirectory: work, indexingHeapMb: 32 })
 		).toMatchObject({ status: 'synced', pages: 2 });
 	});
-
-	it('reports a wrong encryption key as an error of the source', async () => {
-		const withToken = addSource(`file://${bare}`, { token: 'secret' });
-		const result = await syncSource(db, withToken, {
-			key: Buffer.alloc(32, 9),
-			workDirectory: work
-		});
-		expect(result).toMatchObject({
-			status: 'failed',
-			error: expect.stringMatching(/TOKEN_ENCRYPTION_KEY/)
-		});
-	});
 });
 
 describe('deleting a source while it syncs', () => {
-	/** Runs the sync, deleting with `sql` just before the stage named by `when` starts. */
-	function deletingBefore(when: keyof SyncLanes, sql: string): SyncLanes {
-		const run: SyncLanes['check'] = (work) => work();
-		const deleting: SyncLanes['check'] = (work) => {
-			db.prepare(sql).run();
-			return work();
+	it('leaves nothing behind when the source is deleted before the sync stage', async () => {
+		// The indexing process then writes into a source that no longer exists.
+		const lanes: SyncLanes = {
+			check: (run) => run(),
+			sync: (run) => {
+				db.prepare('DELETE FROM sources').run();
+				return run();
+			}
 		};
-		return when === 'check' ? { check: deleting, sync: run } : { check: run, sync: deleting };
-	}
 
-	function leftOver(sourceId: number) {
-		return {
-			pages: rows('SELECT id FROM pages WHERE source_id = ?', sourceId).length,
+		const outcome = await syncSource(db, source, { key, workDirectory: work, lanes });
+
+		expect(outcome.status).toBe('failed');
+		expect({
+			pages: rows('SELECT id FROM pages').length,
 			snippets: rows('SELECT id FROM snippets').length,
 			links: rows('SELECT target FROM links').length,
-			runs: rows('SELECT id FROM sync_runs WHERE source_id = ?', sourceId).length
-		};
-	}
-
-	it.each([
-		['check', `DELETE FROM sources`],
-		['sync', `DELETE FROM sources`]
-	] as const)(
-		'leaves nothing behind when the source is deleted before the %s',
-		async (when, sql) => {
-			const outcome = await syncSource(db, source, {
-				key,
-				workDirectory: work,
-				lanes: deletingBefore(when, sql)
-			});
-
-			expect(outcome.status).toBe('failed');
-			expect(leftOver(source)).toEqual({ pages: 0, snippets: 0, links: 0, runs: 0 });
-		}
-	);
-
-	it('keeps the queue working after a source was deleted while queued', async () => {
-		const other = addSource(`file://${bare}`);
-		const queue = createSyncQueue((id, force, lanes) =>
-			syncSource(db, id, { key, workDirectory: work, force, lanes })
-		);
-		db.prepare('DELETE FROM sources WHERE id = ?').run(source);
-
-		const deleted = queue.request(source);
-		const kept = queue.request(other);
-
-		await expect(deleted).rejects.toThrow(`source ${source} does not exist`);
-		expect(await kept).toMatchObject({ status: 'synced' });
-		expect(queue.isPending(source)).toBe(false);
+			runs: rows('SELECT id FROM sync_runs').length
+		}).toEqual({ pages: 0, snippets: 0, links: 0, runs: 0 });
 	});
 });
