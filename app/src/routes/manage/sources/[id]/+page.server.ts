@@ -107,6 +107,7 @@ export const actions = {
 		redirect(303, `/manage/sources/${result.id}`);
 	},
 	test: async ({ request, params }) => {
+		// Only the remote, not `sourceProblem`: access can be tested before the source is named.
 		const source = sourceFor(params);
 		const { form, values, damaged } = readSourceForm(await request.formData());
 		if (damaged) return fail(400, { error: damaged, values });

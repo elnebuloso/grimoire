@@ -1,9 +1,11 @@
 ---
 id: TASK-215
 title: Say next to the `test` action why it skips `sourceProblem`
-status: To Do
-assignee: []
+status: Done
+assignee:
+  - '@claude'
 created_date: '2026-10-31 13:06'
+updated_date: '2026-10-31 13:16'
 labels:
   - admin
 milestone: m-1
@@ -21,5 +23,17 @@ In `app/src/routes/manage/sources/[id]/+page.server.ts`, the `save` action valid
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 A one-line comment at the `test` action states why it checks only the remote and not `sourceProblem`
+- [x] #1 A one-line comment at the `test` action states why it checks only the remote and not `sourceProblem`
 <!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. One-line comment at the test action: why it checks only the remote.
+<!-- SECTION:PLAN:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Added a one-line comment at the test action in routes/manage/sources/[id]/+page.server.ts: it checks only the remote, not sourceProblem, because access can be tested before the source is named. Comment only, no behaviour change.
+<!-- SECTION:FINAL_SUMMARY:END -->
