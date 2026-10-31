@@ -41,8 +41,6 @@
 
 	{#if data.resetByMail}
 		<p class="forgot"><a href={resolve('/login/forgot')}>{m.login_forgot()}</a></p>
-	{:else}
-		<p class="forgot muted">{m.login_no_mail_reset()}</p>
 	{/if}
 </section>
 
