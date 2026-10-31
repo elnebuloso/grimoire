@@ -33,7 +33,7 @@ How it is measured:
 | `/manage` | 0/0/1/1 | 7.2 | 0/1 | 11 (full re-measure) |
 | `/manage/api-keys` | 0/0/1/2 | 6.8 | 0/0 | 11 (full re-measure) |
 | `/manage/dead-links` | 0/0/0/0 | 7.2 | 0/0 | 11 (full re-measure) |
-| `/manage/missed-queries` | 0/0/2/0 | 6.6 | 0/0 | 11 (full re-measure) |
+| `/manage/missed-queries` | 0/0/1/0 | 6.9 | 0/0 | 12 |
 | `/manage/query` | 0/0/2/1 | 7.3 | 0/0 | 11 (full re-measure) |
 | `/manage/settings` | 0/0/1/1 | 7.2 | 0/0 | 11 (full re-measure) |
 | `/manage/sources/[id]` | 0/0/0/1 | 6.8 | 0/1 | 11 (full re-measure), **plateau** |
@@ -73,3 +73,4 @@ Notes on iteration 11:
 - Separately, `143aeee` removed the back link from iteration 4. It repeated the header's "Manage" a
   few lines above it and broke `manage.e2e.ts`. The per-iteration gate ran only `--changed` tests,
   so it did not catch that; root-layout iterations now also run `make test` and `make e2e` in full.
+| 12 | `/manage/missed-queries` | clarify (own column head instead of the form legend, intro names "search terms" as the table does) | P0–P2 2→1 | 6.6→6.9 | 0→0 | kept: audit better. The fixture now holds two missed queries, so the filled table was reviewed |

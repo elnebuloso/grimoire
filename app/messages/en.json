@@ -186,7 +186,7 @@
 	"apikeys_error_valid_until": "Enter the date as YYYY-MM-DD.",
 	"apikeys_error_valid_until_past": "The date must be today or later.",
 	"missed_title": "Queries without results",
-	"missed_intro": "Questions agents asked over HTTP or MCP that found nothing, kept for 30 days: the documentation is missing the topic, or uses other words for it. A question opens in Try a query.",
+	"missed_intro": "Search terms agents sent over HTTP or MCP that found nothing, kept for 30 days. A term opens in Try a query.",
 	"missed_none": "No query without results in the last 30 days.",
 	"missed_count": "Times asked",
 	"missed_last_asked": "Last asked",

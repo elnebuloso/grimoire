@@ -26,7 +26,7 @@
 				<thead>
 					<tr>
 						<th scope="col">{m.query_question()}</th>
-						<th scope="col">{m.query_sources()}</th>
+						<th scope="col">{m.sources()}</th>
 						<th scope="col" class="num">{m.missed_count()}</th>
 						<th scope="col">{m.missed_last_asked()}</th>
 					</tr>
