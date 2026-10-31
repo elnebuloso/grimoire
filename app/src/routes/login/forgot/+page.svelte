@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import FormError from '#lib/components/FormError.svelte';
 	import PageHead from '#lib/components/PageHead.svelte';
 	import TextField from '#lib/components/TextField.svelte';
@@ -11,6 +12,7 @@
 {#if form?.sent}
 	<PageHead title={m.forgot_title()} />
 	<p class="notice" role="status">{m.forgot_sent()}</p>
+	<p><a href={resolve('/login')}>{m.header_log_in()}</a></p>
 {:else}
 	<PageHead title={m.forgot_title()}><p>{m.forgot_intro()}</p></PageHead>
 	<section class="sheet">

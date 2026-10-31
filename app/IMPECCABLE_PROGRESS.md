@@ -103,6 +103,12 @@ Notes on iteration 11:
 | 34 | `/manage/settings` | clarify (pause hint without "polling": "No source is checked for new commits until you resume") | P0–P2 0→0 | 7.2→7.5 | 0→0 | kept, no counted improvement (stagnation 2); 4th edit (2, 8, 23, 34): **plateau** |
 | 35 | `/login` | clarify (without mail the sheet says who can reset the admin account) | P0–P2 0→1 | 7.3→7.5 | 0→0 | worse, reverted (9ca8607); third iteration in a row without improvement (33, 34, 35): **the loop ends** |
 
+Iterations 36–40 go past the stagnation stop. The goal condition set for this run counts only all targets met, every route at target or on plateau, or 40 iterations, and the critique average stays short. They work on the routes at target, each with a concrete finding from the final reviews.
+
+| # | Route | Command | Audit | Critique | Detector | Result |
+|---|---|---|---|---|---|---|
+| 36 | `/login/forgot` | harden (the sent state links back to Log in instead of ending there) | P0–P2 0→0 | 7.8→7.5 | source 0→0 | kept: no counted change either way |
+
 ## Summary
 
 ### Baseline against the end
