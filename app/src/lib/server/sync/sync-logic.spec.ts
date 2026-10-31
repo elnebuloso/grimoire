@@ -276,7 +276,7 @@ describe('syncSource', () => {
 				removeToken: false,
 				...changes
 			});
-			if ('error' in result) throw new Error(result.error);
+			if (result === 'not-found' || 'error' in result) throw new Error(JSON.stringify(result));
 		};
 
 		// Stored as the form stores it, path normalised, before the first sync.

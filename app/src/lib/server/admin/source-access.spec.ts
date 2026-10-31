@@ -74,7 +74,7 @@ beforeEach(() => {
 /** A stored source as saving would leave it; `saveSource` itself never asks the Git server. */
 function storedSource(token = 'glpat-stored') {
 	const source = saveSource(db, KEY, undefined, form({ token }));
-	if ('error' in source) throw new Error(source.error);
+	if (source === 'not-found' || 'error' in source) throw new Error(JSON.stringify(source));
 	return source.id;
 }
 

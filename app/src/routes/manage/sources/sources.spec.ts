@@ -267,6 +267,18 @@ describe('source page', () => {
 		expect(checkSourceAccess).toHaveBeenCalledOnce();
 	});
 
+	it('answers 404 when the source is deleted while the Git server is asked', async () => {
+		await thrown(() => saveSource('new', SOURCE));
+		checkSourceAccess.mockImplementationOnce(async () => {
+			db.prepare('DELETE FROM sources').run();
+			return { message: 'Reachable: branch develop is at commit abc.' };
+		});
+
+		const result = await thrown(() => saveSource('1', { ...SOURCE, branch: 'develop' }));
+
+		expect(isHttpError(result) && result.status).toBe(404);
+	});
+
 	it('tests the connection and keeps an entered token, only encrypted', async () => {
 		const result = (await sourcePage.actions.test({
 			request: formRequest(SOURCE),

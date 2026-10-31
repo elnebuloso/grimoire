@@ -44,8 +44,8 @@ function storedToken(sourceId: number): string | null {
 	return row.encrypted_token && decryptToken(row.encrypted_token, KEY);
 }
 
-function created(result: { id: number } | { error: string }): number {
-	if ('error' in result) throw new Error(result.error);
+function created(result: { id: number } | { error: string } | 'not-found'): number {
+	if (result === 'not-found' || 'error' in result) throw new Error(JSON.stringify(result));
 	return result.id;
 }
 
@@ -182,6 +182,10 @@ describe('saveSource', () => {
 			error: expect.stringContaining(message)
 		});
 		expect(findSource(db, id)?.slug).toBe('auth-service');
+	});
+
+	it('tells a missing source apart from a refused save', () => {
+		expect(saveSource(db, KEY, 1, sourceForm())).toBe('not-found');
 	});
 
 	it('tells a missing source apart from a refused slug change', () => {

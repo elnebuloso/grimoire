@@ -96,6 +96,8 @@ export const actions = {
 
 		const reindex = savingReindexes(db, source?.id, form);
 		const result = saveSource(db, ENCRYPTION_KEY.sourceTokens, source?.id, form);
+		// Deleted in another tab while the Git server was asked.
+		if (result === 'not-found') error(404);
 		if ('error' in result) return fail(400, { error: result.error, values });
 
 		// Forced only when the index changes, so a changed path or exclusions take effect without

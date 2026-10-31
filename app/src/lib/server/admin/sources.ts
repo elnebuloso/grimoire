@@ -235,15 +235,16 @@ export function remoteProblem(
 }
 
 /**
- * Creates a source when `sourceId` is undefined, otherwise updates it. A new token
- * is stored encrypted with `key`; an empty one keeps the stored token unless `removeToken` is set.
+ * Creates a source when `sourceId` is undefined, otherwise updates it; `'not-found'` when the
+ * source to update no longer exists. A new token is stored encrypted with `key`; an empty one
+ * keeps the stored token unless `removeToken` is set.
  */
 export function saveSource(
 	db: DatabaseSync,
 	key: Buffer,
 	sourceId: number | undefined,
 	form: SourceForm
-): SaveResult {
+): SaveResult | 'not-found' {
 	const problem = sourceProblem(db, sourceId, form);
 	if (problem) return { error: problem };
 
@@ -299,7 +300,7 @@ export function saveSource(
 		WHERE id = :id`
 		)
 		.run({ ...values, id: sourceId });
-	if (changes === 0) throw new Error(`there is no source ${sourceId}`);
+	if (changes === 0) return 'not-found';
 	if (token || form.removeToken) {
 		db.prepare('UPDATE sources SET encrypted_token = ? WHERE id = ?').run(encryptedToken, sourceId);
 	}
