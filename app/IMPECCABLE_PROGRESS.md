@@ -122,7 +122,7 @@ Notes on iteration 11:
 | `/manage/query` | 2 → 0 | 7.5 → 7.0 | 0 → 0 |
 | `/manage/settings` | 1 → 0 | 6.7 → 7.5 | 0 → 0 |
 | `/manage/sources/[id]` | 1 → 1 | 6.8 → 7.3 | 1 → 1 |
-| **All** | **15 → 4** | **average 7.52 → 7.48** | **3 → 2 routes with a warning** |
+| **All** | **15 → 4** | **average 7.52 → 7.42** | **3 → 2 routes with a warning** |
 
 ### Targets
 
@@ -134,7 +134,7 @@ Notes on iteration 11:
   `/manage/dead-links` on a phone, was caused by iteration 3 and is fixed (`4461433`, with a story).
 - **Critique per route, met everywhere:** every route is at 7.0 or higher. Four routes were below 7
   at the start: `/account`, `/manage/dead-links`, `/manage/settings`, `/manage/sources/[id]`.
-- **Critique average, not met:** 7.48 against the target of 8.0.
+- **Critique average, not met:** 7.42 against the target of 8.0.
 
 ### Why the loop ended after 35 of 40 iterations
 
@@ -153,10 +153,10 @@ The average target of 8.0 is missed, and continuing would not have changed that:
 - The critique of a route varies by up to ±0.8 between two reviewer runs on unchanged code. Examples:
   `/manage` 8.0 → 7.2 in the iteration 11 re-measure with only the shared header changed;
   `/manage/sources/[id]` 7.0 → 6.8 with no change at all. That spread is wider than the 0.5 a change
-  must gain to count, and the 0.52 the average still lacks.
+  must gain to count, and the 0.58 the average still lacks.
 - The baseline run scored more leniently than every later full run. The full re-measure after iteration 11 gave
-  7.33 for nearly the same code. Measured against that run, the end is +0.15. Against the baseline
-  run it is −0.04. Both are within the noise.
+  7.33 for nearly the same code. Measured against that run, the end is +0.09. Against the baseline
+  run it is −0.10. Both are within the noise.
 - The costs the reviewers name most often lie outside the allowed scope (next section).
 
 ### Why the plateau routes stopped where they did
