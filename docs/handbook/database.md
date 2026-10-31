@@ -40,11 +40,29 @@ Run exactly one grimoire process per database file. On Kubernetes: `replicas: 1`
     Never put the file on a `ReadWriteMany` volume or another network file system.
     Locking is unreliable there, and two writers can corrupt the file.
 
+## Schema updates
+
+A new version updates the schema when it starts. A failed update is rolled back and stops the start
+with an error naming the migration. An older version refuses to start on a database a newer one has
+updated:
+
+```text
+database schema is at version 2, this grimoire knows only 1: run a newer grimoire or restore a backup
+```
+
+!!! danger "Irreversible"
+    A schema update cannot be undone. Take a backup before every update; going back
+    to the older version means restoring it.
+
+To update before the application starts, run the same image with `MIGRATE_ONLY=true` and the same
+`DATABASE_PATH`, for example as an init container. If the application starts at the same time
+anyway, each update is still applied once.
+
 ## Updating from a 0.x release
 
-Releases before `1.0.0` are previews with no update path between them: a database written by one
-`0.x` release may not work with a later one. Start the new release with an empty volume and enter
-sources and API keys again.
+Releases before `1.0.0` are previews with no update path, not even to `1.0.0`: a database written
+by a `0.x` release may start without an error and still not work. Start `1.0.0` with an empty
+volume and enter sources, users and API keys again.
 
 ## Backups
 

@@ -1,10 +1,11 @@
 ---
 id: TASK-194
 title: Carry out and remove the rules for the phase before 1.0.0
-status: To Do
-assignee: []
+status: In Progress
+assignee:
+  - '@claude'
 created_date: '2026-10-30 23:20'
-updated_date: '2026-10-31 12:04'
+updated_date: '2026-10-31 12:30'
 labels: []
 milestone: m-1
 dependencies: []
@@ -25,8 +26,8 @@ The file itself is deleted in the commit that cuts 1.0.0 (the release task). Che
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Migrations are squashed into one `0001`; a fresh database from it equals the current schema, and the user has signed off the schema
-- [ ] #2 `docs/handbook/database.md` describes schema updates on start, their rollback and `MIGRATE_ONLY` again
+- [x] #1 Migrations are squashed into one `0001`; a fresh database from it equals the current schema, and the user has signed off the schema
+- [x] #2 `docs/handbook/database.md` describes schema updates on start, their rollback and `MIGRATE_ONLY` again
 - [x] #3 Every ADR has been reviewed by the project owner, who set its status
 - [ ] #4 No other rule for the phase before 1.0.0 is left; `.claude/rules/until-v1.md` is ready to be deleted with the release commit
 - [ ] #5 `make lint`, `make test`, `make e2e` and `make handbook` pass
@@ -36,4 +37,8 @@ The file itself is deleted in the commit that cuts 1.0.0 (the release task). Che
 
 <!-- SECTION:NOTES:BEGIN -->
 ADRs consolidated to 0001-0005 (commit a0ecb30); the project owner accepted all five on 2026-10-31, status set to Accepted. The 'ADR status' section of .claude/rules/until-v1.md is removed.
+
+Schema signed off by the user on 2026-10-31 after four changes to 0001-initial.sql: users.email CHECK (email = lower(email)), api_keys.name CHECK (trim(name) <> ''), missed_queries.sources as a sorted JSON array with json_valid (was comma-separated text the page split again), and no location in the settings comment. The migrations were already a single 0001.
+
+docs/handbook/database.md has '## Schema updates' again (start, rollback by backup, MIGRATE_ONLY, exact error text of an older version), and 'Updating from a 0.x release' says there is no path to 1.0.0 either. make handbook passes.
 <!-- SECTION:NOTES:END -->
