@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { resolve } from '$app/paths';
 	import FormError from '#lib/components/FormError.svelte';
 	import PageHead from '#lib/components/PageHead.svelte';
 	import TextField from '#lib/components/TextField.svelte';
@@ -9,12 +8,7 @@
 	let { data, form }: PageProps = $props();
 </script>
 
-<PageHead
-	title={m.password_title()}
-	back={data.user?.mayManage ? { href: resolve('/manage'), label: m.header_manage() } : undefined}
->
-	{m.password_lead()}
-</PageHead>
+<PageHead title={m.password_title()}>{m.password_lead()}</PageHead>
 
 {#if form?.changed}
 	<p class="notice" role="status">{m.password_changed()}</p>
