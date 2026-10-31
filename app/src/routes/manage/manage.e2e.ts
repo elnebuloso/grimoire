@@ -296,7 +296,10 @@ test('creates an API key that works for its source until it is revoked', async (
 
 	await page.goto('/manage/api-keys');
 	expect(await page.content()).not.toContain(key!);
-	await expect(page.getByText('ci – auth-service')).toBeVisible();
+	const keyEntry = page
+		.getByRole('listitem')
+		.filter({ has: page.getByText('ci', { exact: true }) });
+	await expect(keyEntry).toContainText('auth-service');
 
 	page.once('dialog', (dialog) => dialog.accept());
 	await page.getByRole('button', { name: 'Revoke ci' }).click();
