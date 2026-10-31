@@ -19,7 +19,7 @@ import type { SyncLanes } from './queue';
 const IMMEDIATELY: SyncLanes = { check: (work) => work(), sync: (work) => work() };
 
 export interface SyncOptions {
-	/** Value of `TOKEN_ENCRYPTION_KEY`. */
+	/** The key of the stored access tokens, derived from `ENCRYPTION_KEY`. */
 	key: Buffer;
 	/** Sync even when the branch has not moved, e.g. after the source settings changed. */
 	force?: boolean;

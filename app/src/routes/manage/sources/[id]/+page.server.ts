@@ -1,7 +1,7 @@
 import type { DatabaseSync } from 'node:sqlite';
 import { error, fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
-import { SYNC_SCHEDULE, TOKEN_ENCRYPTION_KEY, TZ } from '$app/env/private';
+import { ENCRYPTION_KEY, SYNC_SCHEDULE, TZ } from '$app/env/private';
 import { database } from '#lib/server/db/index.js';
 import { deleteSource } from '#lib/server/db/sources.js';
 import { requestSyncInBackground, syncPending } from '#lib/server/sync/index.js';
@@ -63,7 +63,7 @@ export const load: PageServerLoad = ({ params, url }) => {
  */
 function readSourceForm(data: FormData) {
 	const fields = readSourceFields(data);
-	const token = readFormSecret(data, TOKEN_ENCRYPTION_KEY, SOURCE_TOKEN_FIELDS);
+	const token = readFormSecret(data, ENCRYPTION_KEY.formSecrets, SOURCE_TOKEN_FIELDS);
 	const form: SourceForm = { ...fields, token: token.value, removeToken: token.remove };
 	const values = {
 		...fields,
@@ -79,7 +79,7 @@ async function accessProblem(
 	sourceId: number | undefined,
 	form: SourceForm
 ): Promise<string | undefined> {
-	const access = await checkSourceAccess(db, TOKEN_ENCRYPTION_KEY, sourceId, form);
+	const access = await checkSourceAccess(db, ENCRYPTION_KEY.sourceTokens, sourceId, form);
 	return 'error' in access ? access.error : undefined;
 }
 
@@ -95,7 +95,7 @@ export const actions = {
 		if (problem) return fail(400, { error: problem, values });
 
 		const reindex = savingReindexes(db, source?.id, form);
-		const result = saveSource(db, TOKEN_ENCRYPTION_KEY, source?.id, form);
+		const result = saveSource(db, ENCRYPTION_KEY.sourceTokens, source?.id, form);
 		if ('error' in result) return fail(400, { error: result.error, values });
 
 		// Forced only when the index changes, so a changed path or exclusions take effect without
@@ -107,7 +107,12 @@ export const actions = {
 		const source = sourceFor(params);
 		const { form, values, damaged } = readSourceForm(await request.formData());
 		if (damaged) return fail(400, { error: damaged, values });
-		const access = await checkSourceAccess(database(), TOKEN_ENCRYPTION_KEY, source?.id, form);
+		const access = await checkSourceAccess(
+			database(),
+			ENCRYPTION_KEY.sourceTokens,
+			source?.id,
+			form
+		);
 		return { access, values };
 	},
 	sync: async ({ params, url }) => {

@@ -47,7 +47,7 @@ export async function checkSourceAccess(
 	const enteredToken = form.token.trim();
 	const stored = storedAccess(db, sourceId);
 	let storedToken: string | undefined;
-	// Decrypted only when it is used: after a change of TOKEN_ENCRYPTION_KEY it cannot be, and
+	// Decrypted only when it is used: after a change of ENCRYPTION_KEY it cannot be, and
 	// entering the token again is how the admin repairs the source.
 	if (!enteredToken && !form.removeToken && stored?.encryptedToken) {
 		try {

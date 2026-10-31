@@ -2,7 +2,7 @@ import {
 	INCLUDE_URL_ALLOW,
 	INDEXING_DEADLINE_MINUTES,
 	SYNC_SCHEDULE,
-	TOKEN_ENCRYPTION_KEY,
+	ENCRYPTION_KEY,
 	TZ
 } from '$app/env/private';
 import { database } from '../db';
@@ -16,7 +16,7 @@ const TICK_MS = 15_000;
 
 const queue = createSyncQueue((sourceId, force, lanes) =>
 	syncSource(database(), sourceId, {
-		key: TOKEN_ENCRYPTION_KEY,
+		key: ENCRYPTION_KEY.sourceTokens,
 		force,
 		lanes,
 		allowedIncludeOrigins: INCLUDE_URL_ALLOW,

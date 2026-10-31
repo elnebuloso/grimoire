@@ -218,7 +218,7 @@ describe('syncSource', () => {
 
 		expect(
 			await syncSource(db, withToken, { key: Buffer.alloc(32, 9), workDirectory: work })
-		).toMatchObject({ status: 'failed', error: expect.stringMatching(/TOKEN_ENCRYPTION_KEY/) });
+		).toMatchObject({ status: 'failed', error: expect.stringMatching(/ENCRYPTION_KEY differs/) });
 		expect(remoteCommit).not.toHaveBeenCalled();
 	});
 

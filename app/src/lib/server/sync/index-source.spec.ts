@@ -113,7 +113,7 @@ describe('indexCheckout with symlinks', () => {
 
 	beforeEach(() => {
 		outside = mkdtempSync(join(tmpdir(), 'grimoire-outside-'));
-		writeFileSync(join(outside, 'secret.md'), 'TOKEN_ENCRYPTION_KEY=secret\n');
+		writeFileSync(join(outside, 'secret.md'), 'ENCRYPTION_KEY=secret\n');
 	});
 
 	afterEach(() => rmSync(outside, { recursive: true, force: true }));
@@ -139,7 +139,7 @@ describe('indexCheckout with symlinks', () => {
 		const index = await indexCheckout(noUrls);
 
 		expect(index.pages.map((page) => page.file)).toEqual(['index.md']);
-		expect(pageText(index)).not.toContain('TOKEN_ENCRYPTION_KEY');
+		expect(pageText(index)).not.toContain('ENCRYPTION_KEY');
 		expect(index.warnings).toContain('docs/index.md: include "docs/db.md" not found');
 	});
 

@@ -1,10 +1,11 @@
 ---
 id: TASK-209
 title: Rename TOKEN_ENCRYPTION_KEY to ENCRYPTION_KEY and derive one key per purpose
-status: To Do
-assignee: []
+status: Done
+assignee:
+  - '@claude'
 created_date: '2026-10-31 12:36'
-updated_date: '2026-10-31 12:41'
+updated_date: '2026-10-31 12:51'
 labels:
   - ops
 milestone: m-1
@@ -32,13 +33,26 @@ Places that name the variable today (`grep -rn TOKEN_ENCRYPTION_KEY` outside `.b
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 No file outside `.backlog/` names `TOKEN_ENCRYPTION_KEY`; the server reads `ENCRYPTION_KEY` and does not start without it, also with `MIGRATE_ONLY`
-- [ ] #2 Git tokens are encrypted with a key derived from `ENCRYPTION_KEY` by HKDF with a purpose label; a test shows a token encrypted for one purpose label cannot be decrypted with another
-- [ ] #3 A token stored under one key still fails to decrypt under another key, and entering a new token afterwards still works (the TASK-203 regression test passes)
-- [ ] #4 `docs/handbook/docker.md`, `docs/handbook/database.md`, `app/.env.example` and `README.md` describe `ENCRYPTION_KEY` as the key for the secrets grimoire stores, today the Git access tokens
-- [ ] #5 `make setup`, `make agent-reset` and `make image-smoke` work with the new name
-- [ ] #6 `make lint`, `make test`, `make e2e` and `make handbook` pass
-- [ ] #7 The developer's `app/.env` (not committed) carries the existing key value under `ENCRYPTION_KEY` instead of `TOKEN_ENCRYPTION_KEY`, changed in the same step as the code, so `make dev` keeps starting; its database then needs the Git tokens entered again or `app/data/` deleted, since the derived key changes the ciphertexts
-- [ ] #8 `docs/ARCHITECTURE.md`, next to the paragraph on secrets, describes the procedure for maintainers: one `ENCRYPTION_KEY`, one key per purpose derived from it with HKDF-SHA256 and a fixed purpose label, nothing derived is stored, a new purpose gets a new label and never reuses one, and why (no two purposes share key material, so a value encrypted for one is never valid for another)
-- [ ] #9 The handbook tells operators only what they act on: one key protects every secret grimoire stores, and with another key every stored secret is unreadable until it is entered again — no word on HKDF (the handbook rule keeps build internals out)
+- [x] #1 No file outside `.backlog/` names `TOKEN_ENCRYPTION_KEY`; the server reads `ENCRYPTION_KEY` and does not start without it, also with `MIGRATE_ONLY`
+- [x] #2 Git tokens are encrypted with a key derived from `ENCRYPTION_KEY` by HKDF with a purpose label; a test shows a token encrypted for one purpose label cannot be decrypted with another
+- [x] #3 A token stored under one key still fails to decrypt under another key, and entering a new token afterwards still works (the TASK-203 regression test passes)
+- [x] #4 `docs/handbook/docker.md`, `docs/handbook/database.md`, `app/.env.example` and `README.md` describe `ENCRYPTION_KEY` as the key for the secrets grimoire stores, today the Git access tokens
+- [x] #5 `make setup`, `make agent-reset` and `make image-smoke` work with the new name
+- [x] #6 `make lint`, `make test`, `make e2e` and `make handbook` pass
+- [x] #7 The developer's `app/.env` (not committed) carries the existing key value under `ENCRYPTION_KEY` instead of `TOKEN_ENCRYPTION_KEY`, changed in the same step as the code, so `make dev` keeps starting; its database then needs the Git tokens entered again or `app/data/` deleted, since the derived key changes the ciphertexts
+- [x] #8 `docs/ARCHITECTURE.md`, next to the paragraph on secrets, describes the procedure for maintainers: one `ENCRYPTION_KEY`, one key per purpose derived from it with HKDF-SHA256 and a fixed purpose label, nothing derived is stored, a new purpose gets a new label and never reuses one, and why (no two purposes share key material, so a value encrypted for one is never valid for another)
+- [x] #9 The handbook tells operators only what they act on: one key protects every secret grimoire stores, and with another key every stored secret is unreadable until it is entered again — no word on HKDF (the handbook rule keeps build internals out)
 <!-- AC:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Besides the stored Git tokens, the hidden form field that carries an entered token between requests used the same key; per ADR 0006 that is a second purpose, so it got its own label (form-secrets). parseEncryptionKey now returns the derived keys { sourceTokens, formSecrets }; ENCRYPTION_KEY in $app/env/private carries them, the instance key itself is never used to encrypt.
+Checked: grep finds TOKEN_ENCRYPTION_KEY only in .backlog/; the image with MIGRATE_ONLY=true exits 1 with env_invalid ENCRYPTION_KEY without a key and with only the old name, 0 with ENCRYPTION_KEY; make image + make image-smoke ok; make agent-reset and the agent server start with the new name; setup.sh's sed works on the new .env.example line; app/.env renamed (value kept). make lint, make test (738), make e2e (21), make handbook pass.
+<!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Renamed TOKEN_ENCRYPTION_KEY to ENCRYPTION_KEY everywhere (code, scripts, Playwright config, messages, .env.example, README, handbook) and stopped using the key directly: app/src/lib/server/token-encryption.ts derives one AES-256-GCM key per purpose with HKDF-SHA256 (source-tokens for stored Git tokens, form-secrets for tokens carried in forms), as decided in ADR 0006. Tests show the derivation is stable, the keys differ from each other and from the instance key, and a value encrypted for one purpose is refused under another. docs/ARCHITECTURE.md describes the procedure; the handbook says one key protects every stored secret. The developer's app/.env carries its key under the new name; existing tokens in a dev database must be entered again (or app/data/ deleted, needed anyway after the schema change).
+<!-- SECTION:FINAL_SUMMARY:END -->

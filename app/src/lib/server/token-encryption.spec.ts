@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { decryptToken, encryptToken, parseEncryptionKey } from './token-encryption';
+import { decryptToken, deriveKeys, encryptToken, parseEncryptionKey } from './token-encryption';
 
 const key = Buffer.alloc(32, 1);
 const otherKey = Buffer.alloc(32, 2);
@@ -19,7 +19,7 @@ describe('token encryption', () => {
 
 	it('refuses a wrong key without revealing key or token', () => {
 		const error = catchError(() => decryptToken(encryptToken(token, key), otherKey));
-		expect(error.message).toMatch(/TOKEN_ENCRYPTION_KEY differs/);
+		expect(error.message).toMatch(/ENCRYPTION_KEY differs/);
 		expect(error.message).not.toContain(token);
 		expect(error.message).not.toContain(otherKey.toString('base64'));
 	});
@@ -36,8 +36,8 @@ describe('token encryption', () => {
 });
 
 describe('parseEncryptionKey', () => {
-	it('accepts 32 bytes in base64', () => {
-		expect(parseEncryptionKey(key.toString('base64'))).toEqual(key);
+	it('accepts 32 bytes in base64 and derives the key of each purpose from them', () => {
+		expect(parseEncryptionKey(key.toString('base64'))).toEqual(deriveKeys(key));
 	});
 
 	it.each([
@@ -48,6 +48,24 @@ describe('parseEncryptionKey', () => {
 		const error = catchError(() => parseEncryptionKey(value));
 		expect(error.message).toMatch(message);
 		if (value) expect(error.message).not.toContain(value);
+	});
+});
+
+describe('deriveKeys', () => {
+	it('derives the same keys from the same instance key, so stored values survive a restart', () => {
+		expect(deriveKeys(Buffer.from(key))).toEqual(deriveKeys(key));
+	});
+
+	it('gives every purpose a key of its own, none of them the instance key', () => {
+		const { sourceTokens, formSecrets } = deriveKeys(key);
+		expect(new Set([sourceTokens, formSecrets, key].map((k) => k.toString('hex'))).size).toBe(3);
+	});
+
+	it('refuses a value encrypted for one purpose under the key of another', () => {
+		const { sourceTokens, formSecrets } = deriveKeys(key);
+		expect(() => decryptToken(encryptToken(token, sourceTokens), formSecrets)).toThrow(
+			/ENCRYPTION_KEY differs/
+		);
 	});
 });
 

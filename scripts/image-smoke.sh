@@ -68,7 +68,7 @@ fi
 EOF
 
 docker run --rm \
-	--env TOKEN_ENCRYPTION_KEY="$(head -c 32 /dev/urandom | base64)" \
+	--env ENCRYPTION_KEY="$(head -c 32 /dev/urandom | base64)" \
 	--env LOG_LEVEL=error \
 	--env EXPECTED_VERSION="$VERSION" \
 	--entrypoint sh \

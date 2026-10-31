@@ -21,10 +21,13 @@ export const variables = defineEnvVars({
 			'With `true`, migrate the database and exit without serving, e.g. in an init container',
 		schema: (value) => value === 'true'
 	},
-	TOKEN_ENCRYPTION_KEY: {
+	ENCRYPTION_KEY: {
 		description:
-			'Key encrypting the Git access tokens of sources in the database; 32 bytes, base64',
-		schema: (value) => (building ? Buffer.alloc(0) : parseEncryptionKey(value))
+			'Key encrypting the secrets grimoire stores, today the Git access tokens of sources; 32 bytes, base64',
+		schema: (value) =>
+			building
+				? { sourceTokens: Buffer.alloc(0), formSecrets: Buffer.alloc(0) }
+				: parseEncryptionKey(value)
 	},
 	SYNC_SCHEDULE: {
 		description:

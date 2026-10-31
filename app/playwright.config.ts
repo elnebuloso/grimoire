@@ -57,7 +57,7 @@ export default defineConfig({
 			env: {
 				PORT: '4173',
 				DATABASE_PATH: join(directory, 'grimoire.db'),
-				TOKEN_ENCRYPTION_KEY: Buffer.alloc(32, 7).toString('base64'),
+				ENCRYPTION_KEY: Buffer.alloc(32, 7).toString('base64'),
 				PROTOCOL_HEADER: 'x-forwarded-proto',
 				GIT_CONFIG_GLOBAL: gitConfig,
 				SMTP_HOST: 'localhost',

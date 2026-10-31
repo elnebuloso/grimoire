@@ -24,7 +24,7 @@ vi.mock('#lib/server/admin/source-access.js', async (original) => ({
 	checkSourceAccess
 }));
 vi.mock('$app/env/private', () => ({
-	TOKEN_ENCRYPTION_KEY: Buffer.alloc(32, 7),
+	ENCRYPTION_KEY: { sourceTokens: Buffer.alloc(32, 7), formSecrets: Buffer.alloc(32, 8) },
 	SYNC_SCHEDULE: '*/5 * * * *',
 	TZ: 'UTC'
 }));

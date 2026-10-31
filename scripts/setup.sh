@@ -21,8 +21,8 @@ if [ -e "$APP/.env" ]; then
 	echo "app/.env exists, left unchanged."
 else
 	key="$(node -p "require('node:crypto').randomBytes(32).toString('base64')")"
-	sed "s|^TOKEN_ENCRYPTION_KEY=.*|TOKEN_ENCRYPTION_KEY=$key|" "$APP/.env.example" > "$APP/.env"
-	echo "Created app/.env with a new TOKEN_ENCRYPTION_KEY."
+	sed "s|^ENCRYPTION_KEY=.*|ENCRYPTION_KEY=$key|" "$APP/.env.example" > "$APP/.env"
+	echo "Created app/.env with a new ENCRYPTION_KEY."
 fi
 
 npm --prefix "$APP" ci

@@ -34,7 +34,7 @@ services:
     volumes:
       - grimoire-data:/data
     environment:
-      TOKEN_ENCRYPTION_KEY: ${TOKEN_ENCRYPTION_KEY:?generate one with openssl rand -base64 32}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:?generate one with openssl rand -base64 32}
       SYNC_SCHEDULE: "*/5 * * * *"
       TZ: Europe/Berlin
       PROTOCOL_HEADER: x-forwarded-proto
@@ -54,7 +54,7 @@ volumes:
 Generate the encryption key into `.env` next to it, start, and read the setup token:
 
 ```bash
-echo "TOKEN_ENCRYPTION_KEY=$(openssl rand -base64 32)" > .env
+echo "ENCRYPTION_KEY=$(openssl rand -base64 32)" > .env
 docker compose up --detach
 docker compose logs grimoire
 ```
@@ -75,7 +75,7 @@ For a host where a reverse proxy on the same host forwards to port `3000`:
 docker run --detach --name grimoire \
   --publish 127.0.0.1:3000:3000 \
   --volume grimoire-data:/data \
-  --env TOKEN_ENCRYPTION_KEY="<KEY_FROM_OPENSSL_RAND_BASE64_32>" \
+  --env ENCRYPTION_KEY="<KEY_FROM_OPENSSL_RAND_BASE64_32>" \
   --env PROTOCOL_HEADER=x-forwarded-proto \
   --env ADDRESS_HEADER=x-forwarded-for \
   elnebuloso/grimoire:<version>
@@ -87,7 +87,7 @@ The setup token is in `docker logs grimoire`.
 
 A Deployment needs:
 
-- the image, with the variables below as `env` and `TOKEN_ENCRYPTION_KEY` from a Secret;
+- the image, with the variables below as `env` and `ENCRYPTION_KEY` from a Secret;
 - a PersistentVolumeClaim at `/data`, writable for uid 1000 (`fsGroup: 1000`);
 - exactly one replica with `strategy: Recreate` (see [One instance](database.md#one-instance));
 - a Service on port `3000`, and an Ingress whose controller sends the headers named in
@@ -185,7 +185,7 @@ recipient address.
 
 | Variable | Default in the image | Meaning |
 |---|---|---|
-| `TOKEN_ENCRYPTION_KEY` | none, required | Key encrypting the Git access tokens of all sources: 32 random bytes, base64. The server does not start without it, also with `MIGRATE_ONLY`. See [Encryption key](database.md#encryption-key). |
+| `ENCRYPTION_KEY` | none, required | Key encrypting the secrets grimoire stores, today the Git access tokens of all sources: 32 random bytes, base64. The server does not start without it, also with `MIGRATE_ONLY`. See [Encryption key](database.md#encryption-key). |
 | `DATABASE_PATH` | `/data/grimoire.db` | Path of the database file; created with its schema on first start. Keep it in a directory of its own (see [Volume](database.md#volume)). |
 | `SYNC_SCHEDULE` | `*/5 * * * *` | When sources without their own schedule are checked: cron with five fields (minute, hour, day of month, month, day of week), in `TZ`. For a Git server that allows few requests, `0 * * * *`. |
 | `INDEXING_DEADLINE_MINUTES` | `10` | How long indexing one source may take before its sync fails, whole minutes from 1 to 1440. Raise it when a large source fails with `indexing took longer than 10 minutes` (see [Memory and CPU limits](#memory-and-cpu-limits)); one source indexes at a time, so every other source waits that long behind it. |

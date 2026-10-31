@@ -18,7 +18,7 @@ CREATE TABLE sources (
 	path TEXT NOT NULL,
 	exclusions TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(exclusions)),
 	username TEXT,
-	-- Encrypted by the application with TOKEN_ENCRYPTION_KEY.
+	-- Encrypted by the application with a key derived from ENCRYPTION_KEY.
 	encrypted_token TEXT,
 	-- Where the documentation of the source is published as a site, for people; NULL when not given.
 	docs_url TEXT,

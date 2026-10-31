@@ -21,7 +21,7 @@ start() {
 	# Fixed fixture key: the sources hold no tokens, so nothing secret depends on it.
 	cat > "$DIR/.env" <<-EOF
 		DATABASE_PATH=$DIR/grimoire.db
-		TOKEN_ENCRYPTION_KEY=BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc=
+		ENCRYPTION_KEY=BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc=
 		SYNC_SCHEDULE="*/5 * * * *"
 		LOG_FORMAT=pretty
 	EOF
