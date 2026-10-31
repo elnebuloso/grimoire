@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Starts a built image and runs what plain Node loads from source in it: the child process that
-# indexes a source, and the reset script. Both only work when everything they import was copied
+# indexes a source, and the reset and backup scripts. Both only work when everything they import was copied
 # into the image, which no other check sees, because tests and e2e run in the full checkout.
 set -euo pipefail
 
@@ -65,6 +65,14 @@ else
 	node ../scripts/reset-admin.ts < /dev/null || true
 	exit 1
 fi
+
+node ../scripts/backup.ts /tmp/smoke-backup.db
+node -e "
+const { DatabaseSync } = require('node:sqlite');
+const count = new DatabaseSync('/tmp/smoke-backup.db').prepare('SELECT count(*) AS n FROM snippets').get().n;
+if (count === 0) throw new Error('the backup has no snippets');
+"
+echo 'backup script: ok'
 EOF
 
 docker run --rm \

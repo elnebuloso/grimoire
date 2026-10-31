@@ -40,7 +40,7 @@ GRIMOIRE_VERSION ?= 0.0.0
 image: ## Build the Docker image grimoire:latest (GRIMOIRE_VERSION=… sets its version)
 	docker build --build-arg GRIMOIRE_VERSION=$(GRIMOIRE_VERSION) --tag grimoire:latest .
 
-image-smoke: ## Run the indexing worker and the reset script inside grimoire:latest and check its version (after make image)
+image-smoke: ## Run the indexing worker, the reset and the backup script inside grimoire:latest and check its version (after make image)
 	scripts/image-smoke.sh grimoire:latest $(GRIMOIRE_VERSION)
 
 admin-reset: ## Delete the admin account after a lost password; asks for its email address
