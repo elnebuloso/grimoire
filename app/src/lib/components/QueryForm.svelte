@@ -11,6 +11,14 @@
 	// The two refusals each concern one field; the field points to the message that explains it.
 	const marked = (message: string) =>
 		error === message ? { 'aria-invalid': true, 'aria-describedby': 'query-error' } : {};
+
+	let answerHeading = $state<HTMLHeadingElement>();
+
+	// The answer replaces the page below the form, often past the fold on a phone: focus takes the
+	// reader there, and a screen reader announces it.
+	$effect(() => {
+		if (answer) answerHeading?.focus();
+	});
 </script>
 
 <div class="query">
@@ -53,7 +61,7 @@
 
 	{#if answer}
 		<div class="answer">
-			<h2>{m.query_answer()}</h2>
+			<h2 tabindex="-1" bind:this={answerHeading}>{m.query_answer()}</h2>
 			<pre>{answer}</pre>
 		</div>
 	{/if}

@@ -35,6 +35,7 @@
 		await expect(canvas.getByRole('checkbox', { name: 'billing-docs' })).toBeChecked();
 		await expect(canvas.getByRole('checkbox', { name: 'platform-docs' })).not.toBeChecked();
 		await expect(canvas.getByRole('heading', { name: 'Answer' })).toBeVisible();
+		await expect(canvas.getByRole('heading', { name: 'Answer' })).toHaveFocus();
 		await expect(canvas.getByText(/Source: billing-docs\/invoices/)).toBeVisible();
 	}}
 />
