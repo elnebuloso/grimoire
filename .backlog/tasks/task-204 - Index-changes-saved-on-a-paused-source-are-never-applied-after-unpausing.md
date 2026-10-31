@@ -1,9 +1,11 @@
 ---
 id: TASK-204
 title: Index changes saved on a paused source are never applied after unpausing
-status: To Do
-assignee: []
+status: Done
+assignee:
+  - '@claude'
 created_date: '2026-10-31 01:36'
+updated_date: '2026-10-31 01:50'
 labels:
   - admin
   - sync
@@ -31,8 +33,28 @@ Found in the code audit of 2026-10-31.
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 A change to Git URL, branch, path or exclusions saved while the source is paused is indexed by the first sync after unpausing the source, without a new commit
-- [ ] #2 The same holds when the change was saved while all syncs were paused in Settings and they are resumed
-- [ ] #3 A paused source still does not sync on its own while paused
-- [ ] #4 A test covers the paused case and fails before the fix
+- [x] #1 A change to Git URL, branch, path or exclusions saved while the source is paused is indexed by the first sync after unpausing the source, without a new commit
+- [x] #2 The same holds when the change was saved while all syncs were paused in Settings and they are resumed
+- [x] #3 A paused source still does not sync on its own while paused
+- [x] #4 A test covers the paused case and fails before the fix
 <!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. saveSource clears last_commit and failed_commit in the same UPDATE when Git URL, branch, path or exclusions change, so any later sync sees the branch as moved and does not skip a commit that failed under the old settings.
+2. The save action keeps its forced sync for sources that sync automatically; paused sources simply wait for their next sync.
+3. Tests in sync-logic.spec.ts with the real saveSource and syncSource: paused source, globally paused syncs, a failed commit, and a save that changes nothing for the index.
+<!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+The two bug tests (paused source, failed commit) failed before the fix with 'unchanged' and 'failed'. The paused source staying out of polling is unchanged code (listSchedules), covered by sources.spec.ts 'leaves a paused source out of polling'. Side effect: after such a save the source page shows 'Last commit: none' until the next sync, which is accurate, since no index for the new settings exists yet.
+<!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Saving a change to Git URL, branch, path or exclusions now clears last_commit and failed_commit of the source. A source that was paused (or saved while all syncs were paused) therefore re-indexes at its first sync after unpausing, without a new commit, also when the previous commit had failed to index under the old settings. Saves that touch nothing the index depends on keep the index as it is. Tests: four new cases in sync-logic.spec.ts, make test --changed green (138 tests).
+<!-- SECTION:FINAL_SUMMARY:END -->

@@ -283,9 +283,16 @@ export function saveSource(
 			});
 		return { id: Number(result.lastInsertRowid) };
 	}
+	// A change the index depends on drops the commits the old index was built from, so the next
+	// sync indexes again even without a new commit: a paused source gets no forced sync on save.
+	const indexChanged = `(git_url IS NOT :git_url OR branch IS NOT :branch OR path IS NOT :path
+		OR exclusions IS NOT :exclusions)`;
 	const { changes } = db
 		.prepare(
-			`UPDATE sources SET name = :name, description = :description, git_url = :git_url,
+			`UPDATE sources SET
+			last_commit = CASE WHEN ${indexChanged} THEN NULL ELSE last_commit END,
+			failed_commit = CASE WHEN ${indexChanged} THEN NULL ELSE failed_commit END,
+			name = :name, description = :description, git_url = :git_url,
 			docs_url = :docs_url, branch = :branch, path = :path,
 			exclusions = :exclusions, sync_schedule = :sync_schedule, paused = :paused,
 			public = :public, username = :username

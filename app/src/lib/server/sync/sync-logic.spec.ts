@@ -4,7 +4,9 @@ import { mkdtempSync, readdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { DatabaseSync } from 'node:sqlite';
+import { saveSource, type SourceForm } from '../admin/sources';
 import { openDatabase } from '../db/schema';
+import { saveSettings } from '../settings';
 import { listSchedules, replaceSourceIndex } from '../db/sources';
 import { encryptToken } from '../token-encryption';
 import { headCommit, remoteCommit } from './git';
@@ -253,6 +255,68 @@ describe('syncSource', () => {
 		expect(rows('SELECT error, failed_commit FROM sources WHERE id = ?', source)).toEqual([
 			{ error: null, failed_commit: null }
 		]);
+	});
+
+	describe('settings saved while the source does not sync on its own', () => {
+		// The form as the source page sends it for the source `addSource` created.
+		const save = (changes: Partial<SourceForm>) => {
+			const result = saveSource(db, key, source, {
+				name: 'Docs',
+				description: '',
+				gitUrl: 'https://git.example.com/auth.git',
+				docsUrl: '',
+				branch: 'main',
+				path: 'docs/',
+				exclusions: '',
+				schedule: '',
+				paused: false,
+				public: false,
+				username: 'deploy',
+				token: '',
+				removeToken: false,
+				...changes
+			});
+			if ('error' in result) throw new Error(result.error);
+		};
+
+		// Stored as the form stores it, path normalised, before the first sync.
+		beforeEach(() => save({}));
+
+		it('are indexed by the next sync, without a new commit', async () => {
+			await sync();
+			save({ paused: true, path: 'guides/' });
+			save({ paused: false, path: 'guides/' });
+
+			expect(await sync()).toMatchObject({ status: 'synced', commit: 'c1' });
+			expect(fork).toHaveBeenCalledTimes(2);
+		});
+
+		it('are indexed by the next sync once all syncs are resumed', async () => {
+			await sync();
+			saveSettings(db, { syncsPaused: true });
+			save({ branch: 'release' });
+			saveSettings(db, { syncsPaused: false });
+
+			expect(await sync()).toMatchObject({ status: 'synced', commit: 'c1' });
+		});
+
+		it('retry a commit whose indexing failed with the old settings', async () => {
+			indexing.run = () => ({ error: 'indexing took longer than 10 minutes' });
+			await sync();
+			indexing.run = indexOnePage;
+			save({ paused: true, exclusions: 'docs/huge/**' });
+			save({ exclusions: 'docs/huge/**' });
+
+			expect(await sync()).toMatchObject({ status: 'synced', commit: 'c1' });
+		});
+
+		it('leave the index alone when nothing the index depends on changed', async () => {
+			await sync();
+			save({ paused: true, name: 'Auth docs', description: 'How auth works' });
+			save({ name: 'Auth docs', description: 'How auth works' });
+
+			expect(await sync()).toMatchObject({ status: 'unchanged', commit: 'c1' });
+		});
 	});
 });
 
