@@ -120,7 +120,7 @@ It sits in the header of every page, next to the language switch. Both use the s
   - Sub-parts inside a sheet are separated by a hairline and a 16px gap, not by another sheet.
   - Tables that fill a sheet use a *flush* sheet: no padding, the head row padded, the table head on `--well`.
 - **Page layout on wide screens (from 64rem):**
-  - Overview: the numbers ledger (19rem) next to "Needs attention", with Sources full width below.
+  - Overview: "Needs attention" first, the numbers ledger (19rem) to its right at the same height, with Sources full width below. Below 64rem they stack in that order.
   - Source page: status, history, pages and preview on the left; a 25rem column on the right with Settings, Change the slug and Delete.
   - Start page: Sources full width, then "Try a query" next to "Connect an agent". It has no page title on the canvas: the heading of the Sources sheet is the page's `h1`, set at the `h2` size.
 - **Facts (description list).** A two-column ledger: term in `--ink-2` at 14px, value in ink, hairlines between rows. The numbers variant right-aligns tabular values at weight 500.
@@ -133,7 +133,9 @@ It sits in the header of every page, next to the language switch. Both use the s
   - Status (`role=status`) uses `--accent-well` with an `--accent` edge. A warning uses `--warn-well` with a `--warn` edge.
   - An alert (`role=alert`, used for form errors) uses `--err-well`, an `--err` edge and `--err-ink` text.
 - **Needs attention:**
-  - A list whose items carry the leading edge: `--err` for a sync error, `--warn` for never synced and warnings. The slug link is in mono.
+  - One item per problem of a source, most severe first: sync errors, then warnings and dead links, then paused polling and never synced.
+  - Each item carries the leading edge: `--err` for a sync error, `--warn` for everything else. The slug link is in mono; a dead-link count is a plain link.
+  - A sync error is followed by its fix as a sentence in `--ink-2`.
   - Nested warnings are one step quieter: a 1px `--line` edge in `--ink-2`.
 - **Inputs:**
   - A `--well` field with an 8px radius, a 1px `--edge` border, a sunk shadow and a minimum height of 42px.
