@@ -32,7 +32,7 @@ How it is measured:
 | `/account` | 0/0/2/1 | 7.3 | 0/0 | 4 |
 | `/manage` | 0/0/0/3 | 8.0 | 0/1 | baseline |
 | `/manage/api-keys` | 0/0/2/0 | 7.5 | 0/0 | baseline |
-| `/manage/dead-links` | 0/0/0/1 | 6.8 | 0/0 | 3 |
+| `/manage/dead-links` | 0/0/0/0 | 7.3 | 0/0 | 7 |
 | `/manage/missed-queries` | 0/0/1/0 | 7.5 | 0/0 | baseline |
 | `/manage/query` | 0/0/2/0 | 7.5 | 0/0 | baseline |
 | `/manage/settings` | 0/0/1/1 | 6.9 | 0/0 | 2 |
@@ -55,3 +55,4 @@ page. The table above keeps all four severities.
 | 4 | `/account` | clarify (consequence as lead before the form, way back to Manage) | 2→3 | 6.8→7.3 | 0→0 | kept: critique +0.5; the extra audit entry is the shared mobile header (layout), already counted on every route |
 | 5 | `/manage/sources/[id]` | clarify (candid delete copy, totals as a numbers ledger) | 2→3 | 6.8→6.8 | 1→1 | worse, reverted (e51099b); area "Delete + totals" tried (stagnation 1) |
 | 6 | `/manage/sources/[id]` | adapt (history date range on lines of its own at 390) | P0–P2 1→1 | 6.8→7.0 | 1→1 | kept; the reported P2 is fixed, a different P2 (clipped Error column) takes its place (stagnation 2) |
+| 7 | `/manage/dead-links` | distill (links grouped under their page and section) | P0–P2 0→0 (all 1→0) | 6.8→7.3 | 0→0 | kept: critique +0.5 (stagnation 0); `DeadLinkList` is also on `/manage/sources/[id]`, whose detector stays 0/0 |

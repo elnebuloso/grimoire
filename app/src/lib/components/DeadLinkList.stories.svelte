@@ -19,10 +19,29 @@
 		]
 	}}
 	play={async ({ canvas }) => {
-		const items = canvas.getAllByRole('listitem');
-		await expect(items.map((item) => item.textContent?.replace(/\s+/g, ' ').trim())).toEqual([
+		const pages = canvas.getAllByRole('list')[0].querySelectorAll(':scope > li');
+		await expect([...pages].map((page) => page.textContent?.replace(/\s+/g, ' ').trim())).toEqual([
 			'auth-service.md#rotating_the_signing_keys → links to auth-service#token-lifetime',
 			'index.md → links to services'
 		]);
+	}}
+/>
+
+<Story
+	name="Several links from one section"
+	args={{
+		links: [
+			{ file: 'invoices.md', anchor: 'payment-provider-outages', target: 'invoices#late-fees' },
+			{ file: 'invoices.md', anchor: 'payment-provider-outages', target: 'refunds' },
+			{ file: 'invoices.md', anchor: null, target: 'refunds' }
+		]
+	}}
+	play={async ({ canvas }) => {
+		const pages = canvas.getAllByRole('list')[0].querySelectorAll(':scope > li');
+		await expect([...pages].map((page) => page.querySelector('.from')?.textContent)).toEqual([
+			'invoices.md#payment-provider-outages',
+			'invoices.md'
+		]);
+		await expect(pages[0].querySelectorAll('li')).toHaveLength(2);
 	}}
 />
