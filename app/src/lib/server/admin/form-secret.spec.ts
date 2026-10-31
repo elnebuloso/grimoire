@@ -1,13 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import { encryptSecret } from '../secret-encryption';
-import { readFormSecret, SOURCE_TOKEN_FIELDS } from './form-secret';
+import { readFormSecret } from './form-secret';
 
 const KEY = Buffer.alloc(32, 7);
 
 function read(fields: Record<string, string>) {
 	const data = new FormData();
 	for (const [name, value] of Object.entries(fields)) data.set(name, value);
-	return readFormSecret(data, KEY, SOURCE_TOKEN_FIELDS);
+	return readFormSecret(data, KEY);
 }
 
 describe('readFormSecret', () => {

@@ -7,7 +7,7 @@ import { requestSyncInBackground, syncPending } from '#lib/server/sync/index.js'
 import { redactUrl } from '#lib/server/sync/git.js';
 import { nextRun } from '#lib/server/sync/schedule.js';
 import { checkAccess, checkSourceAccess } from '#lib/server/admin/source-access.js';
-import { readFormSecret, SOURCE_TOKEN_FIELDS } from '#lib/server/admin/form-secret.js';
+import { readFormSecret } from '#lib/server/admin/form-secret.js';
 import { readSourceFields } from '#lib/source-fields.js';
 import { m } from '#lib/paraglide/messages.js';
 import {
@@ -64,7 +64,7 @@ export const load: PageServerLoad = ({ params, url }) => {
  */
 function readSourceForm(data: FormData) {
 	const fields = readSourceFields(data);
-	const token = readFormSecret(data, ENCRYPTION_KEY.formSecrets, SOURCE_TOKEN_FIELDS);
+	const token = readFormSecret(data, ENCRYPTION_KEY.formSecrets);
 	const form: SourceForm = { ...fields, token: token.value, removeToken: token.remove };
 	const values = {
 		...fields,

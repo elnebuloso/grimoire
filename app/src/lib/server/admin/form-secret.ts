@@ -1,23 +1,13 @@
 import { decryptSecret, encryptSecret } from '../secret-encryption';
 
-/** The form fields that carry a secret between requests. */
-export interface SecretFields {
-	/** The field the secret is typed into; never sent back. */
-	entered: string;
-	/** The hidden field carrying it encrypted, so the page never holds it in plain text. */
-	sealed: string;
-	/** The checkbox that drops the carried secret, so the form forgets what was entered. */
-	discard: string;
-	/** The checkbox that asks to delete the secret already stored. */
-	remove: string;
-}
-
-export const SOURCE_TOKEN_FIELDS: SecretFields = {
-	entered: 'token',
-	sealed: 'encryptedToken',
-	discard: 'discardToken',
-	remove: 'removeToken'
-};
+/** The field the token is typed into; never sent back. */
+const ENTERED_FIELD = 'token';
+/** The hidden field carrying it encrypted, so the page never holds it in plain text. */
+const SEALED_FIELD = 'encryptedToken';
+/** The checkbox that drops the carried token, so the form forgets what was entered. */
+const DISCARD_FIELD = 'discardToken';
+/** The checkbox that asks to delete the token already stored. */
+const REMOVE_FIELD = 'removeToken';
 
 export interface FormSecret {
 	/** The secret in plain text, empty when there is none. */
@@ -31,16 +21,16 @@ export interface FormSecret {
 }
 
 /**
- * Reads the secret of a form: a newly entered one wins; otherwise the carried one, unless the
+ * Reads the token of the source form: a newly entered one wins; otherwise the carried one, unless the
  * discard checkbox drops it.
  */
-export function readFormSecret(data: FormData, key: Buffer, fields: SecretFields): FormSecret {
+export function readFormSecret(data: FormData, key: Buffer): FormSecret {
 	const field = (name: string) => String(data.get(name) ?? '');
-	const remove = data.get(fields.remove) === 'on';
-	const entered = field(fields.entered).trim();
+	const remove = data.get(REMOVE_FIELD) === 'on';
+	const entered = field(ENTERED_FIELD).trim();
 	if (entered)
 		return { value: entered, sealed: encryptSecret(entered, key), remove, damaged: false };
-	const sealed = data.get(fields.discard) === 'on' ? '' : field(fields.sealed);
+	const sealed = data.get(DISCARD_FIELD) === 'on' ? '' : field(SEALED_FIELD);
 	if (!sealed) return { value: '', sealed: '', remove, damaged: false };
 	try {
 		return { value: decryptSecret(sealed, key), sealed, remove, damaged: false };
