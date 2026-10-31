@@ -100,6 +100,7 @@
 	"source_last_check": "Letzte Prüfung",
 	"source_last_sync": "Letzter Sync",
 	"source_commit": "Commit",
+	"source_totals": "Seiten, Snippets, Tokens",
 	"source_error": "Fehler",
 	"source_warnings": "Warnungen",
 	"source_page_line": "{title}: {snippets} Snippets, {tokens} Tokens",
