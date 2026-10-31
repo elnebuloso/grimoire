@@ -20,9 +20,9 @@
 	}}
 	play={async ({ canvas }) => {
 		const items = canvas.getAllByRole('listitem');
-		await expect(items.map((item) => item.textContent?.replace(/\s+/g, ' ').trim())).toEqual([
-			'auth-service.md#rotating_the_signing_keys → links to auth-service#token-lifetime',
-			'index.md → links to services'
+		await expect(items.map((item) => item.textContent)).toEqual([
+			'auth-service.md#rotating_the_signing_keys → auth-service#token-lifetime',
+			'index.md → services'
 		]);
 	}}
 />
