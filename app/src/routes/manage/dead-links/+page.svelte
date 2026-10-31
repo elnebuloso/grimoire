@@ -8,7 +8,7 @@
 	let { data }: PageProps = $props();
 </script>
 
-<PageHead title={m.dead_links()} />
+<PageHead title={m.dead_links()}>{m.dead_links_lead()}</PageHead>
 
 {#if data.groups.length === 0}
 	<p class="muted">{m.dead_links_none()}</p>
@@ -28,6 +28,10 @@
 {/if}
 
 <style>
+	/* The overview links here by source; the heading should not land flush at the top. */
+	h2 {
+		scroll-margin-top: var(--s5);
+	}
 	.pair {
 		display: grid;
 		gap: var(--s5);

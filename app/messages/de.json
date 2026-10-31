@@ -196,6 +196,8 @@
 	"source_history_synced": "synchronisiert",
 	"source_history_unchanged": "unverändert",
 	"source_history_failed": "fehlgeschlagen",
+	"dead_links_lead": "Links in einer Seite, die zu keiner Seite und keiner Überschrift ihrer Quelle führen. Korrigiere den Link im Repository: sobald der Commit synchronisiert ist, verschwindet er aus der Liste.",
+	"dead_link_to": "verlinkt auf",
 	"dead_links_none": "Keine Quelle hat einen toten Link.",
 	"source_sync_pending_reload": "Lade die Seite neu für das Ergebnis.",
 	"copy_done": "Kopiert.",
