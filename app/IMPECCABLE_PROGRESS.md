@@ -36,7 +36,7 @@ How it is measured:
 | `/manage/missed-queries` | 0/0/1/0 | 7.5 | 0/0 | baseline |
 | `/manage/query` | 0/0/2/0 | 7.5 | 0/0 | baseline |
 | `/manage/settings` | 0/0/1/1 | 7.5 | 0/0 | 8 |
-| `/manage/sources/[id]` | 0/0/1/2 | 7.0 | 0/1 | 6 |
+| `/manage/sources/[id]` | 0/0/0/3 | 7.0 | 0/1 | 9 |
 
 Baseline: detector and audit targets are met everywhere. Critique: four routes are below 7, and
 the average is 7.52.
@@ -57,3 +57,4 @@ page. The table above keeps all four severities.
 | 6 | `/manage/sources/[id]` | adapt (history date range on lines of its own at 390) | P0–P2 1→1 | 6.8→7.0 | 1→1 | kept; the reported P2 is fixed, a different P2 (clipped Error column) takes its place (stagnation 2) |
 | 7 | `/manage/dead-links` | distill (links grouped under their page and section) | P0–P2 0→0 (all 1→0) | 6.8→7.3 | 0→0 | kept: critique +0.5 (stagnation 0); `DeadLinkList` is also on `/manage/sources/[id]`, whose detector stays 0/0 |
 | 8 | `/manage/settings` | polish (h2 head row, hint names where “Sync now” is) | P0–P2 1→1 | 6.9→7.5 | 0→0 | kept: critique +0.6; every route now at least 7, average 7.68 |
+| 9 | `/manage/sources/[id]` | adapt (cause of a failed run in a row under it below 48rem, Error column hidden there) | P0–P2 1→0 | 7.0→7.0 | 1→1 | kept: audit better |

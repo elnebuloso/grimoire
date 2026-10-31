@@ -248,7 +248,7 @@
 									<th scope="col">{m.source_history_when()}</th>
 									<th scope="col">{m.source_history_outcome()}</th>
 									<th scope="col">{m.source_commit()}</th>
-									<th scope="col">{m.source_error()}</th>
+									<th scope="col" class="error">{m.source_error()}</th>
 								</tr>
 							</thead>
 							<tbody>
@@ -263,19 +263,26 @@
 												<DateTime value={run.finishedAt} timeZone={data.timeZone} />
 											{/if}
 										</td>
-										<td class={run.outcome}>
-											{run.outcome === 'synced'
-												? m.source_history_synced()
-												: run.outcome === 'unchanged'
-													? m.source_history_unchanged()
-													: m.source_history_failed()}
+										<td>
+											<span class={run.outcome}
+												>{run.outcome === 'synced'
+													? m.source_history_synced()
+													: run.outcome === 'unchanged'
+														? m.source_history_unchanged()
+														: m.source_history_failed()}</span
+											>
 										</td>
 										<td
 											>{#if run.commit}<code title={run.commit}>{run.commit.slice(0, 12)}</code
 												>{/if}</td
 										>
-										<td>{run.error ?? ''}</td>
+										<td class="error">{run.error ?? ''}</td>
 									</tr>
+									{#if run.error}
+										<tr class="error-below">
+											<td colspan="3"><p>{run.error}</p></td>
+										</tr>
+									{/if}
 								{/each}
 							</tbody>
 						</table>
@@ -446,6 +453,31 @@
 	}
 	.runs {
 		color: var(--ink-2);
+	}
+	/* On a phone the Error column lies past the scroll edge, so the cause of a failed run would be
+	out of sight: it moves under the outcome instead. */
+	.error-below {
+		display: none;
+	}
+	@media (max-width: 48rem) {
+		.error-below {
+			display: table-row;
+		}
+		/* No rule above it: the run and its cause read as one entry. */
+		.error-below td {
+			padding-top: 0;
+			border-top: 0;
+			color: var(--ink-2);
+			font-size: 13px;
+		}
+		/* The table may be wider than the screen; the cause wraps within what is visible: the page
+		padding, the sheet padding and the cell padding, 5rem in all. */
+		.error-below p {
+			max-width: calc(100vw - 5rem);
+		}
+		.error {
+			display: none;
+		}
 	}
 	td:has(code[title]),
 	.synced,
