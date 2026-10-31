@@ -158,7 +158,7 @@
 	"access_unreachable": "The Git server cannot be reached: {detail}",
 	"settings_title": "Settings",
 	"settings_syncs_paused": "Pause all syncs",
-	"settings_syncs_paused_hint": "Polling then checks no source; only “Sync now” on the page of a source syncs it. The settings of each source stay as they are.",
+	"settings_syncs_paused_hint": "No source is checked for new commits until you resume. “Sync now” on a source’s page still syncs that source.",
 	"settings_syncs": "Syncs",
 	"settings_submit": "Save settings",
 	"settings_saved": "Settings saved.",

@@ -100,6 +100,7 @@ Notes on iteration 11:
 | 31 | `/` | harden (connect command one option per line, with a "Copy command" button; copy failure text no longer says "key") | P0–P2 1→1 | 7.3→7.0 | 1→1 | kept: no counted change either way (stagnation 2) |
 | 32 | `/` (`app.css` base `p`) | typeset (`text-wrap: pretty` on paragraphs, no word alone on a last line) | P0–P2 1→1 | 7.0→7.3 | 1→0; also `/manage` 390px 1→0, `/manage/sources/3` 390px 2→1; no new finding on any route | kept: detector better (stagnation 0) |
 | 33 | `/manage/query` (`QueryForm`) | clarify (hints for the sources and the token budget) | P0–P2 0→1 | 7.3→7.0 | 0→0 | worse, reverted (9dba163); 4th edit (26, 27, 28, 33): **plateau** (stagnation 1) |
+| 34 | `/manage/settings` | clarify (pause hint without "polling": "No source is checked for new commits until you resume") | P0–P2 0→0 | 7.2→7.5 | 0→0 | kept, no counted improvement (stagnation 2); 4th edit (2, 8, 23, 34): **plateau** |
 
 ## Summary
 
