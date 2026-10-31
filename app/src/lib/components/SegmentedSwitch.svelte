@@ -72,6 +72,18 @@
 		box-shadow: var(--lift-raised);
 		font-weight: 500;
 	}
+	/* On a phone the two tracks share one row only without their labels; the options name
+	themselves, and the label stays the form's accessible name. */
+	@media (max-width: 40rem) {
+		span {
+			position: absolute;
+			width: 1px;
+			height: 1px;
+			overflow: hidden;
+			clip-path: inset(50%);
+			white-space: nowrap;
+		}
+	}
 	@media (pointer: coarse) {
 		button {
 			min-height: 44px;

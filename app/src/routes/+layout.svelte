@@ -222,6 +222,10 @@
 		header {
 			padding-inline: var(--s4);
 		}
+		/* A row of its own, so Manage and Log out stay together below it. */
+		.session > .muted {
+			flex-basis: 100%;
+		}
 		main {
 			padding: var(--s5) var(--s3) var(--s7);
 		}
