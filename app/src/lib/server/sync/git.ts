@@ -20,7 +20,7 @@ export type RemoteCheck =
 	| { status: 'refused' | 'unreachable'; detail: string };
 
 // Git hosts answer a missing repository and missing access alike, so both count as refused.
-const REFUSED =
+export const REFUSED =
 	/authentication failed|refused the username|asks for a username|\b40[134]\b|not found|does not appear to be a git repository/i;
 // Git wanted to ask for other credentials, which grimoire never lets it do: the server refused
 // the ones it got, or wants some.

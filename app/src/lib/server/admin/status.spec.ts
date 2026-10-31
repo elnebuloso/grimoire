@@ -225,12 +225,19 @@ describe('dashboard', () => {
 
 	it('lists one item per problem, errors first, then warnings and dead links, then paused and never synced', () => {
 		expect(dashboard(db).attention).toEqual([
-			{ sourceId: 3, source: 'broken', kind: 'error', error: 'git ls-remote failed' },
+			{
+				sourceId: 3,
+				source: 'broken',
+				kind: 'error',
+				error: 'git ls-remote failed',
+				errorKind: 'unknown'
+			},
 			{
 				sourceId: 6,
 				source: 'failing',
 				kind: 'error',
-				error: 'source path "docs" does not exist in the repository'
+				error: 'source path "docs" does not exist in the repository',
+				errorKind: 'path'
 			},
 			{ sourceId: 5, source: 'fine', kind: 'deadLinks', count: 1 },
 			{

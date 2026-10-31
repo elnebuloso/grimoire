@@ -4,9 +4,27 @@
 	import DescriptionList from '#lib/components/DescriptionList.svelte';
 	import SourceStatsTable from '#lib/components/SourceStatsTable.svelte';
 	import { m } from '#lib/paraglide/messages.js';
+	import type { SyncErrorKind } from '#lib/server/sync/error-kind.js';
+	import type { Problem } from '#lib/server/admin/status.js';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
+
+	const FIX: Record<SyncErrorKind, () => string> = {
+		path: m.admin_fix_path,
+		branch: m.admin_fix_branch,
+		access: m.admin_fix_access,
+		unreachable: m.admin_fix_unreachable,
+		deadline: m.admin_fix_deadline,
+		aborted: m.admin_fix_aborted,
+		noPage: m.admin_fix_no_page,
+		unknown: m.admin_fix_unknown
+	};
+
+	// Where on the source page a problem is fixed: its settings, or its status for what it reports.
+	function section(problem: Problem): string {
+		return problem.kind === 'error' || problem.kind === 'paused' ? 'settings' : 'status';
+	}
 </script>
 
 <PageHead title={m.admin_title({ name: data.instanceName })} namesInstance />
@@ -50,11 +68,14 @@
 			<ul class="attention">
 				{#each data.attention as item (`${item.sourceId}-${item.kind}`)}
 					<li class:error={item.kind === 'error'}>
-						<a href={resolve('/manage/sources/[id]', { id: String(item.sourceId) })}
-							>{item.source}</a
+						<a
+							href="{resolve('/manage/sources/[id]', { id: String(item.sourceId) })}#{section(
+								item
+							)}">{item.source}</a
 						>
 						{#if item.kind === 'error'}
 							– {m.admin_sync_error({ error: item.error })}
+							<p class="fix">{FIX[item.errorKind]()}</p>
 						{:else if item.kind === 'warnings'}
 							– {item.warnings.length === 1
 								? m.admin_sync_warning()
@@ -150,6 +171,10 @@
 	.attention ul li {
 		padding-inline-start: var(--s3);
 		border-inline-start: 1px solid var(--line);
+		color: var(--ink-2);
+	}
+	.fix {
+		margin-top: var(--s1);
 		color: var(--ink-2);
 	}
 	.attention code {

@@ -2,6 +2,7 @@ import type { DatabaseSync } from 'node:sqlite';
 import { grimoireId } from '../grimoire-id';
 import { readSnippets, renderSnippet } from '../search/query';
 import { sourceStats, type SourceStats } from '../stats';
+import { syncErrorKind, type SyncErrorKind } from '../sync/error-kind';
 
 export interface PageSummary {
 	/** Path relative to the source path, e.g. `deploy.md`. */
@@ -194,7 +195,7 @@ export function sourceHealth(db: DatabaseSync): SourceHealth[] {
 
 /** One problem of one source, as the dashboard lists it under "needs attention". */
 export type Problem = { sourceId: number; source: string } & (
-	| { kind: 'error'; error: string }
+	| { kind: 'error'; error: string; errorKind: SyncErrorKind }
 	| { kind: 'warnings'; warnings: string[] }
 	| { kind: 'deadLinks'; count: number }
 	| { kind: 'paused'; neverSynced: boolean }
@@ -217,7 +218,14 @@ export function problems(sources: (SourceHealth & { deadLinks: number })[]): Pro
 	const found: Problem[] = [];
 	for (const health of sources) {
 		const of = { sourceId: health.sourceId, source: health.source };
-		if (health.error !== null) found.push({ ...of, kind: 'error', error: health.error });
+		if (health.error !== null) {
+			found.push({
+				...of,
+				kind: 'error',
+				error: health.error,
+				errorKind: syncErrorKind(health.error)
+			});
+		}
 		if (health.warnings.length > 0) {
 			found.push({ ...of, kind: 'warnings', warnings: health.warnings });
 		}
