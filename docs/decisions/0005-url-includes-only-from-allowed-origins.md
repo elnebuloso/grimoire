@@ -1,4 +1,4 @@
-# 0004 – URL includes only from origins the operator allows
+# 0005 – URL includes only from origins the operator allows
 
 | | |
 |---|---|
@@ -18,9 +18,9 @@ could make grimoire request any of them and index the answer, where agents then 
 
 ## Decision
 
-- **URL includes are fetched only from origins the operator lists** in the environment variable
-  `INCLUDE_URL_ALLOW`, as `https://` origins. Unset, the list is empty and no URL include is
-  fetched on this instance, whatever a site config says.
+- **URL includes are fetched only from origins the operator lists** in the deployment
+  configuration, as `https://` origins. Without a list, no URL include is fetched on the instance,
+  whatever a site config says.
 - **The site config still has to switch them on** with `url_download: true`, as for pymdownx; the
   operator's list is the limit, not the switch.
 - **A request follows no redirect**, sends no credentials, and stops after a fixed time and size.
@@ -48,8 +48,8 @@ documentation server could then never be listed, which leaves the allowlist with
 **Trust `url_download: true` in the site config.** The site config is written by the same people
 who choose the URLs, so it limits nothing.
 
-**The list as a setting in the admin area.** Which addresses grimoire may reach is a question of
-the network it runs in, answered with the deployment by whoever operates it, not by whoever
+**The list as a setting in the management area.** Which addresses grimoire may reach is a question
+of the network it runs in, answered with the deployment by whoever operates it, not by whoever
 manages sources in the app.
 
 ## Revision

@@ -9,18 +9,17 @@
 
 ## Context
 
-Until now everything grimoire does instance-wide is set by environment variables, which an admin
-can only change by redeploying. The admin area gets a settings page whose values apply to the whole
-instance; the first is a switch that pauses the syncs of all sources. More will follow, each with a
-type of its own: a flag, a number, a cron expression, a name.
+Some settings apply to the whole instance and are changed by an admin in the management area while
+grimoire runs, such as pausing the syncs of all sources. Settings of the deployment — addresses,
+keys, limits — stay environment variables, set by whoever operates grimoire.
 
-Such a setting is real state, like sources and API keys: it exists nowhere else and has to survive
-a restart of the pod.
+An instance setting is real state, like sources and API keys: it exists nowhere else and has to
+survive a restart. Each comes with a type of its own: a flag, a number, a schedule, a name.
 
 ## Decision
 
-- **The settings live in the SQLite database**, in a table `settings` with exactly one row; the
-  schema enforces that there is never a second one.
+- **The settings live in the SQLite database**, in a table with exactly one row; the schema
+  enforces that there is never a second one.
 - **One typed column per setting**, with its default and, where the type allows more values than
   the setting does, a `CHECK` constraint. A fresh database therefore starts with every default.
 - **A new setting is a new migration** adding its column, like any other schema change.
@@ -35,11 +34,11 @@ a restart of the pod.
 
 ## Rejected alternatives
 
-**A key-value table `settings(key, value)`.** The obvious one: a new setting needs no migration,
-just a new key. But every value is text, so type, default and allowed range live only in the
-code, and a key the code no longer knows stays in the table unnoticed. Migrations are already the
-way every schema change is made here and cost one small file; the database checking each value is
-worth more than saving that file.
+**A key-value table.** The obvious one: a new setting needs no migration, just a new key. But every
+value is text, so type, default and allowed range live only in the code, and a key the code no
+longer knows stays in the table unnoticed. Migrations are already the way every schema change is
+made here and cost one small file; the database checking each value is worth more than saving that
+file.
 
 **One JSON column holding all settings.** No migration per setting either, and one row like the
 decision. It shares the drawback of the key-value table: SQLite does not check what is inside, so
