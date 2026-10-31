@@ -22,7 +22,7 @@ How it is measured:
 
 ## Routes
 
-The table shows the final full measurement after iteration 33: the same reviewer split as in
+The table shows the final full measurement after iteration 33 (`/manage/settings`: its re-measure after iteration 34): the same reviewer split as in
 the baseline, one run over all routes, so the values compare with each other. The values each
 iteration measured are in the iteration table further down.
 
@@ -39,7 +39,7 @@ iteration measured are in the iteration table further down.
 | `/manage/dead-links` | 0/0/0/0 | 7.2 | 0/0 | 7 (+ fix after 25) | **plateau** |
 | `/manage/missed-queries` | 0/0/0/1 | 7.2 | 0/0 | 18 | **plateau** |
 | `/manage/query` | 0/0/0/0 | 7.0 | 0/0 | 28 | **plateau** |
-| `/manage/settings` | 0/0/0/0 | 7.2 | 0/0 | 23 | at per-route target |
+| `/manage/settings` | 0/0/0/0 | 7.5 | 0/0 | 34 | **plateau** (at per-route target) |
 | `/manage/sources/[id]` | 0/0/1/3 | 7.3 | 0/1 | 9 | **plateau** |
 
 Baseline: detector and audit targets are met everywhere. Critique: four routes are below 7, and
@@ -101,6 +101,7 @@ Notes on iteration 11:
 | 32 | `/` (`app.css` base `p`) | typeset (`text-wrap: pretty` on paragraphs, no word alone on a last line) | P0–P2 1→1 | 7.0→7.3 | 1→0; also `/manage` 390px 1→0, `/manage/sources/3` 390px 2→1; no new finding on any route | kept: detector better (stagnation 0) |
 | 33 | `/manage/query` (`QueryForm`) | clarify (hints for the sources and the token budget) | P0–P2 0→1 | 7.3→7.0 | 0→0 | worse, reverted (9dba163); 4th edit (26, 27, 28, 33): **plateau** (stagnation 1) |
 | 34 | `/manage/settings` | clarify (pause hint without "polling": "No source is checked for new commits until you resume") | P0–P2 0→0 | 7.2→7.5 | 0→0 | kept, no counted improvement (stagnation 2); 4th edit (2, 8, 23, 34): **plateau** |
+| 35 | `/login` | clarify (without mail the sheet says who can reset the admin account) | P0–P2 0→1 | 7.3→7.5 | 0→0 | worse, reverted (9ca8607); third iteration in a row without improvement (33, 34, 35): **the loop ends** |
 
 ## Summary
 
@@ -119,9 +120,9 @@ Notes on iteration 11:
 | `/manage/dead-links` | 0 → 0 | 6.7 → 7.2 | 0 → 0 |
 | `/manage/missed-queries` | 1 → 0 | 7.5 → 7.2 | 0 → 0 |
 | `/manage/query` | 2 → 0 | 7.5 → 7.0 | 0 → 0 |
-| `/manage/settings` | 1 → 0 | 6.7 → 7.2 | 0 → 0 |
+| `/manage/settings` | 1 → 0 | 6.7 → 7.5 | 0 → 0 |
 | `/manage/sources/[id]` | 1 → 1 | 6.8 → 7.3 | 1 → 1 |
-| **All** | **15 → 4** | **average 7.52 → 7.45** | **3 → 2 routes with a warning** |
+| **All** | **15 → 4** | **average 7.52 → 7.48** | **3 → 2 routes with a warning** |
 
 ### Targets
 
@@ -133,22 +134,29 @@ Notes on iteration 11:
   `/manage/dead-links` on a phone, was caused by iteration 3 and is fixed (`4461433`, with a story).
 - **Critique per route, met everywhere:** every route is at 7.0 or higher. Four routes were below 7
   at the start: `/account`, `/manage/dead-links`, `/manage/settings`, `/manage/sources/[id]`.
-- **Critique average, not met:** 7.45 against the target of 8.0.
+- **Critique average, not met:** 7.48 against the target of 8.0.
 
-### Why the loop ended after 33 of 40 iterations
+### Why the loop ended after 35 of 40 iterations
 
-None of your listed stop conditions applied strictly: the stagnation counter stood at 1. The loop
-ended because the only open target was the average, and continuing would have measured reviewer
-noise rather than the pages:
+Iterations 33 (worse, reverted), 34 (no counted improvement) and 35 (worse, reverted) are three in a
+row without improving a metric. That is the stagnation stop condition.
 
-- Every route not on plateau already meets its per-route targets. Six routes are on plateau after four edits each.
+How each route ends:
+
+| State | Routes |
+|---|---|
+| Plateau, 4 edits without the overall target | `/manage`, `/manage/api-keys`, `/manage/dead-links`, `/manage/missed-queries`, `/manage/query`, `/manage/settings`, `/manage/sources/[id]` |
+| At target (critique ≥ 7, no audit finding ≥ P1, detector 0 errors / ≤ 3 warnings) | `/`, `/login`, `/login/forgot`, `/login/reset/[token]`, `/setup`, `/account` |
+
+The average target of 8.0 is missed, and continuing would not have changed that:
+
 - The critique of a route varies by up to ±0.8 between two reviewer runs on unchanged code. Examples:
   `/manage` 8.0 → 7.2 in the iteration 11 re-measure with only the shared header changed;
   `/manage/sources/[id]` 7.0 → 6.8 with no change at all. That spread is wider than the 0.5 a change
-  must gain to count, and the 0.55 the average still lacks.
+  must gain to count, and the 0.52 the average still lacks.
 - The baseline run scored more leniently than every later full run. The full re-measure after iteration 11 gave
-  7.33 for nearly the same code. Measured against that run, the end is +0.12. Against the baseline
-  run it is −0.07. Both are within the noise.
+  7.33 for nearly the same code. Measured against that run, the end is +0.15. Against the baseline
+  run it is −0.04. Both are within the noise.
 - The costs the reviewers name most often lie outside the allowed scope (next section).
 
 ### Why the plateau routes stopped where they did
@@ -197,7 +205,7 @@ noise rather than the pages:
 
 ### Checks at the end
 
-`npm run check`, `npm run lint` and `npm run build` are green. `make e2e`: 21 of 21 passed. `npm test`:
-one test failed in the run made while four reviewers were driving the dev server and a browser in
-parallel. Three later runs passed 730 of 730, so I could not identify which test it was; it was
-probably a timing-sensitive test under load.
+On the final state of the branch, run one after the other: `npm run check` 0 errors and 0 warnings,
+`npm run lint` green, `npm run build` green, `npm test` 730 of 730, and `make e2e` 21 of 21. After
+iteration 33 a single `npm test` run had one failure. It ran while four reviewers were driving the
+dev server and a browser in parallel; every run since then has passed in full.
