@@ -108,6 +108,7 @@ Iterations 36–40 go past the stagnation stop. The goal condition set for this 
 | # | Route | Command | Audit | Critique | Detector | Result |
 |---|---|---|---|---|---|---|
 | 36 | `/login/forgot` | harden (the sent state links back to Log in instead of ending there) | P0–P2 0→0 | 7.8→7.5 | source 0→0 | kept: no counted change either way |
+| 37 | `/setup` | harden (each refusal marks its field, token, email or password, which points to the message; e2e step with a wrong token) | P0–P2 0→0 | 7.5→7.5 | source 0→0 | kept: no counted change either way |
 
 ## Summary
 

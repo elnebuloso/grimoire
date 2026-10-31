@@ -49,6 +49,13 @@ test('sets up the admin account with the token from the server log', async ({ pa
 	await expect(page.getByLabel('Email address')).toHaveAttribute('autocomplete', 'username');
 	await expect(page.getByLabel('Password')).toHaveAttribute('autocomplete', 'new-password');
 
+	await page.getByLabel('Setup token').fill('not-the-token');
+	await page.getByLabel('Email address').fill(EMAIL);
+	await page.getByLabel('Password').fill(PASSWORD);
+	await page.getByRole('button', { name: 'Create admin account' }).click();
+	await expect(page.getByLabel('Setup token')).toHaveAttribute('aria-invalid', 'true');
+	await expect(page.getByLabel('Email address')).not.toHaveAttribute('aria-invalid');
+
 	await page.getByLabel('Setup token').fill(setupToken());
 	await page.getByLabel('Email address').fill(EMAIL);
 	await page.getByLabel('Password').fill(PASSWORD);
