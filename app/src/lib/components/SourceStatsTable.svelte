@@ -38,7 +38,7 @@
 				<th scope="col" class="num">{m.pages()}</th>
 				<th scope="col" class="num">{m.snippets()}</th>
 				<th scope="col" class="num">{m.tokens()}</th>
-				<th scope="col" class="status">{m.source_status()}</th>
+				<th scope="col">{m.source_status()}</th>
 				<th scope="col">{m.last_sync_in_zone({ zone: timeZone })}</th>
 				<th scope="col" class="num">{m.dead_links()}</th>
 			</tr>
@@ -53,8 +53,6 @@
 							>
 							<code>{source.slug}</code>
 							{#if source.description}<span class="muted">{source.description}</span>{/if}
-							<!-- On a phone the Status column lies past the scroll edge; the state goes here. -->
-							<span class="state-below {state(source).tone}">{state(source).word}</span>
 							{#if source.docsUrl}<a href={source.docsUrl} rel="external">{m.source_docs_link()}</a
 								>{/if}
 						</div>
@@ -63,7 +61,7 @@
 					<td class="num">{count(source.pages)}</td>
 					<td class="num">{count(source.snippets)}</td>
 					<td class="num">{count(source.tokens)}</td>
-					<td class="status {state(source).tone}">{state(source).word}</td>
+					<td class={state(source).tone}>{state(source).word}</td>
 					<td class="when">
 						{#if source.lastSync}
 							<DateTime value={source.lastSync} {timeZone} short />
@@ -100,16 +98,5 @@
 	.error {
 		color: var(--err);
 		font-weight: 600;
-	}
-	.state-below {
-		display: none;
-	}
-	@media (max-width: 40rem) {
-		.state-below {
-			display: inline;
-		}
-		.status {
-			display: none;
-		}
 	}
 </style>
