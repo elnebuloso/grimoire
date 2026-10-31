@@ -43,7 +43,11 @@
 		{:else}
 			<!-- A full request: the login page loads no data, so a client-side navigation would never
 			reach the server hook that sends a first visit on to the setup. -->
-			<a href={resolve('/login')} data-sveltekit-reload>{m.header_log_in()}</a>
+			<a
+				href={resolve('/login')}
+				data-sveltekit-reload
+				aria-current={page.route.id === '/login' ? 'page' : undefined}>{m.header_log_in()}</a
+			>
 		{/if}
 	</div>
 	<div class="switches">

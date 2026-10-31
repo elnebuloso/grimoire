@@ -22,17 +22,17 @@ How it is measured:
 
 ## Routes
 
-The table shows the final full measurement after iteration 33 (`/manage/settings`: its re-measure after iteration 34): the same reviewer split as in
+The table shows the final full measurement after iteration 33. Routes edited after it carry the measurement of their last iteration (34–40): the same reviewer split as in
 the baseline, one run over all routes, so the values compare with each other. The values each
 iteration measured are in the iteration table further down.
 
 | Route | Audit findings (P0/P1/P2/P3) | Critique | Detector (e/w) | Last iteration | State |
 |---|---|---|---|---|---|
-| `/` | 0/0/1/3 | 7.3 | 0/0 | 32 | at per-route target |
-| `/login` | 0/0/0/1 | 7.3 | 0/0 | 24 | at per-route target |
-| `/login/forgot` | 0/0/0/1 | 7.8 | 0/0 | – | at per-route target |
-| `/login/reset/[token]` | 0/0/0/2 | 8.0 | 0/0 | – | at per-route target |
-| `/setup` | 0/0/0/2 | 7.5 | – (source 0/0) | – | at per-route target |
+| `/` | 0/0/1/2 | 7.0 | 0/0 | 39 | at per-route target |
+| `/login` | 0/0/0/1 | 7.5 | 0/0 | 40 | at per-route target |
+| `/login/forgot` | 0/0/0/1 | 7.5 | source 0/0 | 36 | at per-route target |
+| `/login/reset/[token]` | 0/0/0/2 | 8.0 | source 0/0 | 38 reverted | at per-route target |
+| `/setup` | 0/0/0/1 | 7.5 | source 0/0 | 37 | at per-route target |
 | `/account` | 0/0/0/0 | 7.5 | 0/0 | 29 | at per-route target |
 | `/manage` | 0/0/1/2 | 7.5 | 0/1 | 20 | **plateau** |
 | `/manage/api-keys` | 0/0/1/1 | 7.3 | 0/0 | 30 | **plateau** |
@@ -111,6 +111,7 @@ Iterations 36–40 go past the stagnation stop. The goal condition set for this 
 | 37 | `/setup` | harden (each refusal marks its field, token, email or password, which points to the message; e2e step with a wrong token) | P0–P2 0→0 | 7.5→7.5 | source 0→0 | kept: no counted change either way |
 | 38 | `/login/reset/[token]` | harden (a too short password marks the field) | P0–P2 0→1 | 8.0→7.0 | source 0→0 | worse, reverted (b4dbf23) |
 | 39 | `/` (root layout) | adapt (account email and "Log in" in the header reach 44px on `pointer: coarse`) | P0–P2 1→1 | 7.3→7.0 | 0→0, also `/login` and `/account` 0→0 | kept: the touch-target P3 is fixed, no counted change |
+| 40 | `/login` (root layout) | polish (the header's "Log in" link is `aria-current="page"` on the login page) | P0–P2 0→0 | 7.3→7.5 | 0→0, also `/` 0→0 | kept; **40 iterations reached** |
 
 ## Summary
 
@@ -118,9 +119,9 @@ Iterations 36–40 go past the stagnation stop. The goal condition set for this 
 
 | Route | Audit P0–P2, baseline → end | Critique, baseline → end | Detector warnings, baseline → end |
 |---|---|---|---|
-| `/` | 2 → 1 | 7.5 → 7.3 | 1 → 0 |
-| `/login` | 1 → 0 | 8.0 → 7.3 | 0 → 0 |
-| `/login/forgot` | 1 → 0 | 8.5 → 7.8 | 0 → 0 |
+| `/` | 2 → 1 | 7.5 → 7.0 | 1 → 0 |
+| `/login` | 1 → 0 | 8.0 → 7.5 | 0 → 0 |
+| `/login/forgot` | 1 → 0 | 8.5 → 7.5 | 0 → 0 |
 | `/login/reset/[token]` | 1 → 0 | 8.5 → 8.0 | 0 → 0 |
 | `/setup` | 1 → 0 | 7.8 → 7.5 | – |
 | `/account` | 2 → 0 | 6.8 → 7.5 | 0 → 0 |
@@ -131,7 +132,7 @@ Iterations 36–40 go past the stagnation stop. The goal condition set for this 
 | `/manage/query` | 2 → 0 | 7.5 → 7.0 | 0 → 0 |
 | `/manage/settings` | 1 → 0 | 6.7 → 7.5 | 0 → 0 |
 | `/manage/sources/[id]` | 1 → 1 | 6.8 → 7.3 | 1 → 1 |
-| **All** | **15 → 4** | **average 7.52 → 7.42** | **3 → 2 routes with a warning** |
+| **All** | **15 → 4** | **average 7.52 → 7.38** | **3 → 2 routes with a warning** |
 
 ### Targets
 
@@ -143,12 +144,14 @@ Iterations 36–40 go past the stagnation stop. The goal condition set for this 
   `/manage/dead-links` on a phone, was caused by iteration 3 and is fixed (`4461433`, with a story).
 - **Critique per route, met everywhere:** every route is at 7.0 or higher. Four routes were below 7
   at the start: `/account`, `/manage/dead-links`, `/manage/settings`, `/manage/sources/[id]`.
-- **Critique average, not met:** 7.42 against the target of 8.0.
+- **Critique average, not met:** 7.38 against the target of 8.0.
 
-### Why the loop ended after 35 of 40 iterations
+### How the loop ended: 40 of 40 iterations
 
-Iterations 33 (worse, reverted), 34 (no counted improvement) and 35 (worse, reverted) are three in a
-row without improving a metric. That is the stagnation stop condition.
+All 40 iterations ran, which is stop condition (c). Iterations 33, 34 and 35 had already met the
+stagnation rule (three in a row without improvement). Iterations 36 to 40 continued past it because
+the goal condition counts only (a) all targets met, (b) every route at target or plateau, or (c)
+40 iterations.
 
 How each route ends:
 
@@ -162,10 +165,10 @@ The average target of 8.0 is missed, and continuing would not have changed that:
 - The critique of a route varies by up to ±0.8 between two reviewer runs on unchanged code. Examples:
   `/manage` 8.0 → 7.2 in the iteration 11 re-measure with only the shared header changed;
   `/manage/sources/[id]` 7.0 → 6.8 with no change at all. That spread is wider than the 0.5 a change
-  must gain to count, and the 0.58 the average still lacks.
+  must gain to count, and the 0.62 the average still lacks.
 - The baseline run scored more leniently than every later full run. The full re-measure after iteration 11 gave
-  7.33 for nearly the same code. Measured against that run, the end is +0.09. Against the baseline
-  run it is −0.10. Both are within the noise.
+  7.33 for nearly the same code. Measured against that run, the end is +0.05. Against the baseline
+  run it is −0.14. Both are within the noise.
 - The costs the reviewers name most often lie outside the allowed scope (next section).
 
 ### Why the plateau routes stopped where they did
@@ -214,7 +217,8 @@ The average target of 8.0 is missed, and continuing would not have changed that:
 
 ### Checks at the end
 
-On the final state of the branch, run one after the other: `npm run check` 0 errors and 0 warnings,
-`npm run lint` green, `npm run build` green, `npm test` 730 of 730, and `make e2e` 21 of 21. After
-iteration 33 a single `npm test` run had one failure. It ran while four reviewers were driving the
-dev server and a browser in parallel; every run since then has passed in full.
+On the final state of the branch after iteration 40, run one after the other: `npm run check` 0
+errors and 0 warnings, `npm run lint` green, `npm run build` green, `npm test` 730 of 730, and
+`make e2e` 21 of 21. After iteration 33 a single `npm test` run had one failure. It ran while four
+reviewers were driving the dev server and a browser in parallel; every run since then has passed in
+full.
