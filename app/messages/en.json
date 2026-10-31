@@ -65,6 +65,8 @@
 	"apikeys_revoke_named": "Revoke {name}",
 	"apikeys_revoke_question": "Revoke the key {name}? Agents using it lose access at once.",
 	"apikeys_list": "Keys",
+	"apikeys_lead_before": "An agent sends its key in the header",
+	"apikeys_lead_after": "; the command that connects it is under",
 	"apikeys_new": "New key",
 	"apikeys_scope": "Sources the key may read",
 	"apikeys_scope_all": "All sources, including future ones",

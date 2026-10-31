@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import ChoiceField from '#lib/components/ChoiceField.svelte';
 	import ConfirmForm from '#lib/components/ConfirmForm.svelte';
 	import CopyButton from '#lib/components/CopyButton.svelte';
@@ -63,7 +64,12 @@
 	/>
 {/snippet}
 
-<PageHead title={m.api_keys()} />
+<PageHead title={m.api_keys()}>
+	<p>
+		{m.apikeys_lead_before()} <code>Authorization: Bearer &lt;key&gt;</code>{m.apikeys_lead_after()}
+		<a href="{resolve('/')}#connect">{m.start_connect_heading()}</a>.
+	</p>
+</PageHead>
 
 {#if form?.created}
 	<section class="sheet">

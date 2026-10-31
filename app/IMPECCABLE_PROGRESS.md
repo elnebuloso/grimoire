@@ -31,7 +31,7 @@ How it is measured:
 | `/setup` | 0/0/1/1 | 8.0 | – (source 0/0) | 11 (full re-measure) |
 | `/account` | 0/0/1/1 | 7.3 | 0/0 | 11 (full re-measure) |
 | `/manage` | 0/0/1/1 | 7.2 | 0/1 | 11 (full re-measure) |
-| `/manage/api-keys` | 0/0/1/1 | 7.0 | 0/0 | 14 |
+| `/manage/api-keys` | 0/0/1/0 | 7.3 | 0/0 | 17 |
 | `/manage/dead-links` | 0/0/0/0 | 7.2 | 0/0 | 11 (full re-measure) |
 | `/manage/missed-queries` | 0/0/0/2 | 7.0 | 0/0 | 15 |
 | `/manage/query` | 0/0/2/1 | 7.3 | 0/0 | 11 (full re-measure) |
@@ -77,3 +77,5 @@ Notes on iteration 11:
 | 13 | `/manage/api-keys` | layout (key list: h2 head row, name / scope / dated facts on lines of their own, "expired" as a coloured word) | P0–P2 1→1 | 6.8→6.8 | 0→0 | kept, no counted improvement (stagnation 1) |
 | 14 | `/manage/api-keys` | harden (source checkboxes in a fieldset named "Only these sources") | P0–P2 1→1 | 6.8→7.0 | 0→0 | kept: the reported P2 is fixed, the form-error P2 that every form has takes its place (stagnation 2) |
 | 15 | `/manage/missed-queries` | adapt (date may break below 40rem, the table fits 390px) | P0–P2 1→0 | 6.9→7.0 | 0→0 | kept: audit better (stagnation 0) |
+| 16 | `/manage/missed-queries` | polish (short date, zone named in the column head) | – | – | – | discarded before measuring: the head "Last asked (UTC)" does not wrap and pushes the column past the edge at 390px again; area "date column" tried |
+| 17 | `/manage/api-keys` | onboard (lead names the `Authorization: Bearer <key>` header and links to Connect an agent) | P0–P2 1→1 | 7.0→7.3 | 0→0 | kept, no counted improvement (stagnation 2, counting 16) |
