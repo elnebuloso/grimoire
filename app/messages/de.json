@@ -77,7 +77,6 @@
 	"apikeys_error_scope": "Wähle alle Quellen oder mindestens eine.",
 	"admin_title": "{name} verwalten",
 	"admin_overview": "Übersicht",
-	"admin_numbers": "In Zahlen",
 	"admin_attention": "Braucht Aufmerksamkeit",
 	"admin_all_fine": "Alle Quellen sind ohne Fehler und Warnungen gesynct.",
 	"admin_never_synced": "nie gesynct",
