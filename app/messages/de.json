@@ -64,6 +64,7 @@
 	"apikeys_revoke": "Widerrufen",
 	"apikeys_revoke_named": "{name} widerrufen",
 	"apikeys_revoke_question": "Key {name} widerrufen? Agents, die ihn nutzen, verlieren sofort den Zugriff.",
+	"apikeys_list": "Schlüssel",
 	"apikeys_new": "Neuer Key",
 	"apikeys_scope": "Quellen, die der Key lesen darf",
 	"apikeys_scope_all": "Alle Quellen, auch künftige",

@@ -74,30 +74,47 @@
 	</section>
 {/if}
 
-<section class="sheet">
+<section class="sheet" aria-labelledby="keys">
+	<h2 id="keys">{m.apikeys_list()}</h2>
 	{#if data.keys.length === 0}
 		<p class="muted">{m.apikeys_none()}</p>
 	{:else}
-		<ul class="keys">
+		<!-- role="list": WebKit drops the list role of a list without bullets. -->
+		<ul class="keys" role="list">
 			{#each data.keys as key (key.id)}
 				<li>
 					<div class="key">
-						<p>
-							<strong>{key.name}</strong> – {key.sources === 'all'
-								? m.apikeys_all_sources()
-								: key.sources.join(', ') || m.apikeys_no_sources()}, {m.apikeys_created_at()}
-							<DateTime value={key.createdAt} timeZone={data.timeZone} />,
-							{#if key.lastUsedAt}
-								{m.apikeys_last_used()} <DateTime value={key.lastUsedAt} timeZone={data.timeZone} />
-							{:else}
-								{m.apikeys_never_used()}
-							{/if}
-							{#if key.validUntil}
-								– {key.expired
-									? m.apikeys_expired({ date: formatDate(key.validUntil, getLocale()) })
-									: m.apikeys_valid_until_date({ date: formatDate(key.validUntil, getLocale()) })}
-							{/if}
-						</p>
+						<div class="facts">
+							<strong>{key.name}</strong>
+							<p>
+								{#if key.sources === 'all'}{m.apikeys_all_sources()}{:else if key.sources.length > 0}<code
+										>{key.sources.join(', ')}</code
+									>{:else}{m.apikeys_no_sources()}{/if}
+							</p>
+							<p class="meta">
+								<span
+									>{m.apikeys_created_at()}
+									<DateTime value={key.createdAt} timeZone={data.timeZone} /></span
+								>
+								<span>
+									{#if key.lastUsedAt}
+										{m.apikeys_last_used()}
+										<DateTime value={key.lastUsedAt} timeZone={data.timeZone} />
+									{:else}
+										{m.apikeys_never_used()}
+									{/if}
+								</span>
+								{#if key.validUntil}
+									<span class:expired={key.expired}
+										>{key.expired
+											? m.apikeys_expired({ date: formatDate(key.validUntil, getLocale()) })
+											: m.apikeys_valid_until_date({
+													date: formatDate(key.validUntil, getLocale())
+												})}</span
+									>
+								{/if}
+							</p>
+						</div>
 						<ConfirmForm
 							action="?/revoke"
 							question={m.apikeys_revoke_question({ name: key.name })}
@@ -200,11 +217,25 @@
 		align-items: flex-start;
 		gap: var(--s3);
 	}
-	.key p {
+	.facts {
+		display: grid;
 		flex: 1 1 20rem;
+		gap: var(--s1);
 	}
-	.key strong {
+	.facts strong {
 		font-family: var(--mono);
+		font-weight: 500;
+	}
+	/* Created, last used and validity as separate facts on one line, wrapping between them. */
+	.meta {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0 var(--s4);
+		color: var(--ink-2);
+		font-size: 13px;
+	}
+	.expired {
+		color: var(--err);
 		font-weight: 500;
 	}
 	details[open] > summary {

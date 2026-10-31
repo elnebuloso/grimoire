@@ -64,6 +64,7 @@
 	"apikeys_revoke": "Revoke",
 	"apikeys_revoke_named": "Revoke {name}",
 	"apikeys_revoke_question": "Revoke the key {name}? Agents using it lose access at once.",
+	"apikeys_list": "Keys",
 	"apikeys_new": "New key",
 	"apikeys_scope": "Sources the key may read",
 	"apikeys_scope_all": "All sources, including future ones",

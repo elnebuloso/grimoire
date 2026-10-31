@@ -31,7 +31,7 @@ How it is measured:
 | `/setup` | 0/0/1/1 | 8.0 | – (source 0/0) | 11 (full re-measure) |
 | `/account` | 0/0/1/1 | 7.3 | 0/0 | 11 (full re-measure) |
 | `/manage` | 0/0/1/1 | 7.2 | 0/1 | 11 (full re-measure) |
-| `/manage/api-keys` | 0/0/1/2 | 6.8 | 0/0 | 11 (full re-measure) |
+| `/manage/api-keys` | 0/0/1/2 | 6.8 | 0/0 | 13 |
 | `/manage/dead-links` | 0/0/0/0 | 7.2 | 0/0 | 11 (full re-measure) |
 | `/manage/missed-queries` | 0/0/1/0 | 6.9 | 0/0 | 12 |
 | `/manage/query` | 0/0/2/1 | 7.3 | 0/0 | 11 (full re-measure) |
@@ -74,3 +74,4 @@ Notes on iteration 11:
   few lines above it and broke `manage.e2e.ts`. The per-iteration gate ran only `--changed` tests,
   so it did not catch that; root-layout iterations now also run `make test` and `make e2e` in full.
 | 12 | `/manage/missed-queries` | clarify (own column head instead of the form legend, intro names "search terms" as the table does) | P0–P2 2→1 | 6.6→6.9 | 0→0 | kept: audit better. The fixture now holds two missed queries, so the filled table was reviewed |
+| 13 | `/manage/api-keys` | layout (key list: h2 head row, name / scope / dated facts on lines of their own, "expired" as a coloured word) | P0–P2 1→1 | 6.8→6.8 | 0→0 | kept, no counted improvement (stagnation 1) |
