@@ -35,6 +35,15 @@ export function formatDateTime(iso: string, locale: string, timeZone: string): s
 	}).format(new Date(iso));
 }
 
+/** A shorter `formatDateTime` without the zone, for columns whose head names the zone. */
+export function formatShortDateTime(iso: string, locale: string, timeZone: string): string {
+	return new Intl.DateTimeFormat(locale, {
+		timeZone,
+		dateStyle: 'short',
+		timeStyle: 'short'
+	}).format(new Date(iso));
+}
+
 /** The calendar date, `YYYY-MM-DD`, of an instant in a time zone. */
 export function dateIn(timeZone: string, instant: Date): string {
 	// en-CA writes dates as YYYY-MM-DD.

@@ -225,9 +225,6 @@
 	"no_sources_yet": "No sources yet.",
 	"all_sources_link": "All sources",
 	"source_new": "New source",
-	"sync_error": "Sync error",
-	"yes": "yes",
-	"no": "no",
 	"apikeys_all_sources": "all sources",
 	"apikeys_no_sources": "no sources",
 	"apikeys_error_source_gone": "A selected source no longer exists.",
@@ -237,5 +234,8 @@
 	"visibility": "Visibility",
 	"visibility_public": "public",
 	"visibility_private": "private",
-	"start_query_intro": "Shows what an agent without an API key gets back for a question: the same answer as query over HTTP and MCP, from the public sources."
+	"start_query_intro": "Shows what an agent without an API key gets back for a question: the same answer as query over HTTP and MCP, from the public sources.",
+	"skip_to_content": "Skip to content",
+	"state_paused": "paused",
+	"last_sync_in_zone": "Last sync ({zone})"
 }

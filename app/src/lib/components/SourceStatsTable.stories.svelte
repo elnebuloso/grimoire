@@ -19,6 +19,7 @@
 		tokens: 3120,
 		lastSync: '2026-10-29T18:06:56.148Z',
 		error: false,
+		paused: false,
 		deadLinks: 0
 	};
 </script>
@@ -29,7 +30,10 @@
 	play={async ({ canvas }) => {
 		const row = canvas.getByRole('row', { name: /platform-docs/ });
 		await expect(row).toHaveTextContent('Platform team handbook');
-		await expect(canvas.getByText('Oct 29, 2026, 6:06 PM UTC')).toHaveAttribute(
+		await expect(row).toHaveTextContent('synced');
+		await expect(row).toHaveTextContent('3,120');
+		await expect(canvas.getByRole('columnheader', { name: 'Last sync (UTC)' })).toBeVisible();
+		await expect(canvas.getByText('10/29/26, 6:06 PM')).toHaveAttribute(
 			'datetime',
 			synced.lastSync
 		);
@@ -61,17 +65,27 @@
 		]
 	}}
 	play={async ({ canvas }) => {
-		await expect(canvas.getByRole('row', { name: /billing-docs/ })).toHaveTextContent('not synced');
+		const row = canvas.getByRole('row', { name: /billing-docs/ });
+		await expect(row).toHaveTextContent('not synced');
+		await expect(row).toHaveTextContent('never');
 	}}
 />
 
 <Story
 	name="Sync error and dead links"
-	args={{ timeZone: 'UTC', sources: [{ ...synced, error: true, deadLinks: 3 }] }}
+	args={{ timeZone: 'UTC', sources: [{ ...synced, error: true, paused: true, deadLinks: 3 }] }}
 	play={async ({ canvas }) => {
 		const cells = canvas.getAllByRole('cell');
-		await expect(cells[5]).toHaveTextContent('yes');
+		await expect(cells[4]).toHaveTextContent('failed');
 		await expect(cells[6]).toHaveTextContent('3');
+	}}
+/>
+
+<Story
+	name="Paused"
+	args={{ timeZone: 'UTC', sources: [{ ...synced, paused: true }] }}
+	play={async ({ canvas }) => {
+		await expect(canvas.getAllByRole('cell')[4]).toHaveTextContent('paused');
 	}}
 />
 

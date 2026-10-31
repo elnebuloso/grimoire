@@ -169,7 +169,7 @@ test('lists the sources on the public start page without their settings', async 
 	await expect(row).toContainText('Login and billing');
 	// Synced once without success: marked as an error, its message stays hidden.
 	await expect(row.getByRole('cell').nth(0)).toHaveText('private');
-	await expect(row.getByRole('cell').nth(5)).toHaveText('yes');
+	await expect(row.getByRole('cell').nth(4)).toHaveText('failed');
 	const html = await page.content();
 	for (const detail of ['git.e2e.example', 'deploy', 'does not exist', TOKEN]) {
 		expect(html).not.toContain(detail);

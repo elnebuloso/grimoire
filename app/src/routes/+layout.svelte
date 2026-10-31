@@ -26,6 +26,8 @@
 	<link rel="icon" href={favicon} />
 </svelte:head>
 
+<a class="button skip" href="#main">{m.skip_to_content()}</a>
+
 <header>
 	<a class="wordmark" href={resolve('/')}>{data.instanceName}</a>
 	<div class="session">
@@ -70,7 +72,7 @@
 	</div>
 </header>
 
-<main class:narrow>
+<main id="main" class:narrow>
 	{@render children()}
 </main>
 
@@ -107,6 +109,21 @@
 </footer>
 
 <style>
+	/* Off screen until focused, so keyboard users can pass the header and its switches. */
+	.skip:not(:focus) {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip-path: inset(50%);
+		white-space: nowrap;
+	}
+	.skip:focus {
+		position: absolute;
+		top: var(--s2);
+		inset-inline-start: var(--s4);
+		z-index: 1;
+	}
 	header,
 	main,
 	footer {

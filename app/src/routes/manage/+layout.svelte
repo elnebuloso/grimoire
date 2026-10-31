@@ -14,15 +14,24 @@
 		{ href: resolve('/manage/settings'), label: m.settings_title() },
 		{ href: resolve('/account'), label: m.password_title() }
 	]);
+
+	// Pages reached from the overview rather than from the nav: a source and the dead links.
+	const OVERVIEW_CHILDREN = ['/manage/sources/[id]', '/manage/dead-links'];
+
+	function current(href: string): 'page' | 'true' | undefined {
+		if (page.url.pathname === href) return 'page';
+		if (href === resolve('/manage') && OVERVIEW_CHILDREN.includes(page.route.id ?? '')) {
+			return 'true';
+		}
+		return undefined;
+	}
 </script>
 
 <nav aria-label={m.manage_nav()}>
 	<ul>
 		{#each links as link (link.href)}
 			<li class:apart={link.href === resolve('/account')}>
-				<a href={link.href} aria-current={page.url.pathname === link.href ? 'page' : undefined}
-					>{link.label}</a
-				>
+				<a href={link.href} aria-current={current(link.href)}>{link.label}</a>
 			</li>
 		{/each}
 	</ul>
@@ -62,7 +71,7 @@
 	a:hover {
 		color: var(--ink);
 	}
-	a[aria-current='page'] {
+	a[aria-current] {
 		color: var(--ink);
 		background: var(--raised);
 		box-shadow: var(--lift-raised);

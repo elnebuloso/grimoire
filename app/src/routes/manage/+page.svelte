@@ -4,6 +4,7 @@
 	import DescriptionList from '#lib/components/DescriptionList.svelte';
 	import SourceStatsTable from '#lib/components/SourceStatsTable.svelte';
 	import { m } from '#lib/paraglide/messages.js';
+	import { getLocale } from '#lib/paraglide/runtime.js';
 	import type { SyncErrorKind } from '#lib/server/sync/error-kind.js';
 	import type { Problem } from '#lib/server/admin/status.js';
 	import type { PageProps } from './$types';
@@ -40,7 +41,8 @@
 		href={resolve('/manage/dead-links')}
 		aria-label={data.totals.deadLinks === 1
 			? m.admin_dead_link()
-			: m.admin_dead_links({ count: data.totals.deadLinks })}>{data.totals.deadLinks}</a
+			: m.admin_dead_links({ count: data.totals.deadLinks })}
+		>{data.totals.deadLinks.toLocaleString(getLocale())}</a
 	>
 {/snippet}
 
@@ -108,7 +110,9 @@
 <section class="sheet flush" aria-labelledby="sources">
 	<div class="sheet-head">
 		<h2 id="sources">{m.sources()}</h2>
-		<a href={resolve('/manage/sources/[id]', { id: 'new' })}>{m.source_new()}</a>
+		<a class="button primary" href={resolve('/manage/sources/[id]', { id: 'new' })}
+			>{m.source_new()}</a
+		>
 	</div>
 	{#if data.sources.length === 0}
 		<p class="muted">{m.no_sources_yet()}</p>
@@ -123,7 +127,8 @@
 						href="{resolve('/manage/dead-links')}#source-{source.id}"
 						aria-label={source.deadLinks === 1
 							? m.admin_dead_link()
-							: m.admin_dead_links({ count: source.deadLinks })}>{source.deadLinks}</a
+							: m.admin_dead_links({ count: source.deadLinks })}
+						>{source.deadLinks.toLocaleString(getLocale())}</a
 					>
 				{:else}0{/if}
 			{/snippet}

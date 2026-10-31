@@ -65,6 +65,7 @@ describe('sourceStats', () => {
 				tokens: 350,
 				lastSync: '2026-10-28T10:00:00.000Z',
 				error: false,
+				paused: false,
 				deadLinks: 2
 			},
 			{
@@ -79,6 +80,7 @@ describe('sourceStats', () => {
 				tokens: 10,
 				lastSync: '2026-10-27T08:00:00.000Z',
 				error: false,
+				paused: false,
 				deadLinks: 1
 			}
 		]);

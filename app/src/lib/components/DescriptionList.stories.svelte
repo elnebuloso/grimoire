@@ -51,7 +51,7 @@
 	}}
 	play={async ({ canvas }) => {
 		const values = canvas.getAllByRole('definition');
-		await expect(values.map((value) => value.textContent?.trim())).toEqual(['4', '3222']);
+		await expect(values.map((value) => value.textContent?.trim())).toEqual(['4', '3,222']);
 		await expect(getComputedStyle(values[1]).textAlign).toBe('end');
 	}}
 />

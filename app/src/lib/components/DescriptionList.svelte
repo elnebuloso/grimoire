@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
+	import { getLocale } from '#lib/paraglide/runtime.js';
 
 	let {
 		items,
@@ -15,7 +16,9 @@
 	{#each items as [term, description] (term)}
 		<dt>{term}</dt>
 		<dd>
-			{#if typeof description === 'function'}{@render description()}{:else}{description}{/if}
+			{#if typeof description === 'function'}{@render description()}{:else if typeof description === 'number'}{description.toLocaleString(
+					getLocale()
+				)}{:else}{description}{/if}
 		</dd>
 	{/each}
 </dl>

@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { dateIn, formatDate, formatDateTime, parseTimeZone } from './time-zone';
+import {
+	dateIn,
+	formatDate,
+	formatDateTime,
+	formatShortDateTime,
+	parseTimeZone
+} from './time-zone';
 
 describe('parseTimeZone', () => {
 	it('is UTC when not set', () => {
@@ -22,6 +28,13 @@ describe('formatDateTime', () => {
 	it('shows the time in the given zone, with the zone', () => {
 		expect(formatDateTime(instant, 'de', 'Europe/Berlin')).toBe('29. Okt. 2026, 19:06 MEZ');
 		expect(formatDateTime(instant, 'en', 'UTC')).toBe('Oct 29, 2026, 6:06 PM UTC');
+	});
+
+	it('shows a short date and time without the zone', () => {
+		expect(formatShortDateTime('2026-10-29T18:06:56.148Z', 'en', 'UTC')).toBe('10/29/26, 6:06 PM');
+		expect(formatShortDateTime('2026-10-29T18:06:56.148Z', 'de', 'Europe/Berlin')).toBe(
+			'29.10.26, 19:06'
+		);
 	});
 
 	it('follows daylight saving time', () => {

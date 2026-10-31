@@ -225,9 +225,6 @@
 	"no_sources_yet": "Noch keine Quellen.",
 	"all_sources_link": "Alle Quellen",
 	"source_new": "Neue Quelle",
-	"sync_error": "Sync-Fehler",
-	"yes": "ja",
-	"no": "nein",
 	"apikeys_all_sources": "alle Quellen",
 	"apikeys_no_sources": "keine Quellen",
 	"apikeys_error_source_gone": "Eine gewählte Quelle gibt es nicht mehr.",
@@ -237,5 +234,8 @@
 	"visibility": "Sichtbarkeit",
 	"visibility_public": "öffentlich",
 	"visibility_private": "privat",
-	"start_query_intro": "Zeigt, was ein Agent ohne API-Key auf eine Frage bekommt: dieselbe Antwort wie query über HTTP und MCP, aus den öffentlichen Quellen."
+	"start_query_intro": "Zeigt, was ein Agent ohne API-Key auf eine Frage bekommt: dieselbe Antwort wie query über HTTP und MCP, aus den öffentlichen Quellen.",
+	"skip_to_content": "Zum Inhalt springen",
+	"state_paused": "pausiert",
+	"last_sync_in_zone": "Letzter Sync ({zone})"
 }

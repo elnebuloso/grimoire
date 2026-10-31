@@ -16,6 +16,8 @@ export interface SourceStats {
 	/** Null while the source was never synced. */
 	lastSync: string | null;
 	error: boolean;
+	/** Polling skips the source; only "Sync now" syncs it. */
+	paused: boolean;
 	deadLinks: number;
 }
 
@@ -32,14 +34,21 @@ export function sourceStats(db: DatabaseSync): SourceStats[] {
 					WHERE pages.source_id = sources.id) AS tokens,
 				sources.last_synced_at AS lastSync,
 				sources.error IS NOT NULL AS error,
+				sources.paused,
 				(SELECT count(*) FROM links JOIN live_pages AS pages ON pages.id = links.page_id
 					WHERE pages.source_id = sources.id AND links.dead = 1) AS deadLinks
 			FROM sources
 			ORDER BY sources.slug`
 		)
-		.all() as unknown as (Omit<SourceStats, 'error' | 'public'> & {
+		.all() as unknown as (Omit<SourceStats, 'error' | 'public' | 'paused'> & {
 		error: number;
 		public: number;
+		paused: number;
 	})[];
-	return rows.map((row) => ({ ...row, public: row.public === 1, error: row.error === 1 }));
+	return rows.map((row) => ({
+		...row,
+		public: row.public === 1,
+		error: row.error === 1,
+		paused: row.paused === 1
+	}));
 }
