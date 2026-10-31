@@ -318,9 +318,11 @@
 			{/if}
 		</section>
 
-		<div class="side">
-			{@render settings()}
+		<div class="settings">{@render settings()}</div>
 
+		<!-- Rare and breaking: after the status on wide screens, so the column of Settings stays the
+		only tall one beside it; after Settings when the columns stack. -->
+		<div class="danger">
 			<section class="sheet" aria-labelledby="slug">
 				<h2 id="slug">{m.slug_change_heading()}</h2>
 				<SlugChangeForm
@@ -357,7 +359,7 @@
 		color: var(--ok);
 	}
 	.split,
-	.side {
+	.danger {
 		display: grid;
 		gap: var(--s5);
 		align-items: start;
@@ -366,7 +368,27 @@
 	@media (min-width: 64rem) {
 		.split {
 			grid-template-columns: minmax(0, 1fr) 25rem;
+			/* The second row takes what Settings is taller than the status, so the danger area
+			follows the status directly. */
+			grid-template-rows: auto 1fr;
+			grid-template-areas:
+				'status settings'
+				'danger settings';
 		}
+		.split > .sheet {
+			grid-area: status;
+		}
+		.settings {
+			grid-area: settings;
+		}
+		.danger {
+			grid-area: danger;
+		}
+	}
+	/* The width of a single form: in the wide column the text would run past a readable line and
+	the slug fields far past any slug. */
+	.danger :global(form) {
+		max-width: 30rem;
 	}
 	.new {
 		max-width: 52rem;

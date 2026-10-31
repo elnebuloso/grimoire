@@ -121,7 +121,7 @@ It sits in the header of every page, next to the language switch. Both use the s
   - Tables that fill a sheet use a *flush* sheet: no padding, the head row padded, the table head on `--well`.
 - **Page layout on wide screens (from 64rem):**
   - Overview: "Needs attention" first, the numbers ledger (19rem) to its right at the same height, with Sources full width below. Below 64rem they stack in that order.
-  - Source page: status, history, pages and preview on the left; a 25rem column on the right with Settings, Change the slug and Delete.
+  - Source page: status, history, pages and preview on the left, followed by Change the slug and Delete; a 25rem column on the right holds Settings alone, so no column runs far past the other. Change the slug and Delete keep the 30rem width of a single form. Below 64rem they stack: status, Settings, Change the slug, Delete.
   - Start page: Sources full width, then "Try a query" next to "Connect an agent". It has no page title on the canvas: the heading of the Sources sheet is the page's `h1`, set at the `h2` size.
 - **Facts (description list).** A two-column ledger: term in `--ink-2` at 14px, value in ink, hairlines between rows. The numbers variant right-aligns tabular values at weight 500.
 - **Tables:**
