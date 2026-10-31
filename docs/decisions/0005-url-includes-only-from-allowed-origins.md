@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Status | Proposed |
+| Status | Accepted |
 | Date | 2026-10-29 |
 | Deciders | Projectowner |
 | Covers | Which addresses grimoire fetches when a page includes a file by URL (`--8<-- "https://…"`) |

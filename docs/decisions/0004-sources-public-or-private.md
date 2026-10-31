@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Status | Proposed |
+| Status | Accepted |
 | Date | 2026-10-30 |
 | Deciders | Projectowner |
 | Covers | How documentation is organised into sources and who may read each one, with and without an API key |

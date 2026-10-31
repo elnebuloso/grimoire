@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Status | Proposed |
+| Status | Accepted |
 | Date | 2026-10-29 |
 | Deciders | Projectowner |
 | Covers | Where settings an admin changes in the UI for the whole instance are stored, and how a new one is added |

@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Status | Proposed |
+| Status | Accepted |
 | Date | 2026-10-28 |
 | Deciders | Projectowner |
 | Covers | Database engine, how it is accessed, how many instances run, how the schema evolves |

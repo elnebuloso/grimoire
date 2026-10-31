@@ -10,15 +10,6 @@ file in the commit that cuts `1.0.0`.
   doesn't parse it and skips the commit, so the change ships without a release. A change that
   breaks something goes in as `feat` or `fix` and says so in the body.
 
-## ADR status
-
-Ends when the project owner (`Projectowner`, the ADRs' decider) has reviewed the ADRs, at the
-latest with `1.0.0`.
-
-- **Every ADR stays `Proposed`** — whatever it covers, and even when the user agrees with it
-  in chat. The project owner reviews them all before `1.0.0` and is the only one who changes a
-  status. Until then an ADR may be changed or deleted at any time.
-
 ## Database
 
 - Before release 1.0, grimoire runs nowhere in production: change the schema directly, migrations are neither maintained nor considered.

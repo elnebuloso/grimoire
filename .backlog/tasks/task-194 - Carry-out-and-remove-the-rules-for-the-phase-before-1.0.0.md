@@ -4,6 +4,7 @@ title: Carry out and remove the rules for the phase before 1.0.0
 status: To Do
 assignee: []
 created_date: '2026-10-30 23:20'
+updated_date: '2026-10-31 12:04'
 labels: []
 milestone: m-1
 dependencies: []
@@ -26,7 +27,13 @@ The file itself is deleted in the commit that cuts 1.0.0 (the release task). Che
 <!-- AC:BEGIN -->
 - [ ] #1 Migrations are squashed into one `0001`; a fresh database from it equals the current schema, and the user has signed off the schema
 - [ ] #2 `docs/handbook/database.md` describes schema updates on start, their rollback and `MIGRATE_ONLY` again
-- [ ] #3 Every ADR has been reviewed by the project owner, who set its status
+- [x] #3 Every ADR has been reviewed by the project owner, who set its status
 - [ ] #4 No other rule for the phase before 1.0.0 is left; `.claude/rules/until-v1.md` is ready to be deleted with the release commit
 - [ ] #5 `make lint`, `make test`, `make e2e` and `make handbook` pass
 <!-- AC:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+ADRs consolidated to 0001-0005 (commit a0ecb30); the project owner accepted all five on 2026-10-31, status set to Accepted. The 'ADR status' section of .claude/rules/until-v1.md is removed.
+<!-- SECTION:NOTES:END -->
