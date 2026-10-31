@@ -3,6 +3,7 @@ import type { DatabaseSync } from 'node:sqlite';
 import { indexPages } from '../sync/index-pages';
 import { openDatabase } from './schema';
 import {
+	deleteSource,
 	recordSyncError,
 	recordSyncRun,
 	replaceSourceIndex,
@@ -111,6 +112,52 @@ describe('replaceSourceIndex', () => {
 		replaceSourceIndex(db, 1, sourceIndex('new', NEW));
 		expect(liveTitles()).toEqual(['New A', 'New B', 'New C']);
 		expect(count('pages')).toBe(3);
+	});
+});
+
+describe('deleteSource', () => {
+	it('deletes the index in transactions of at most one batch of snippets, then the source', async () => {
+		const sections = (page: string) =>
+			Array.from({ length: 5 }, (_, i) => `## ${page} ${i}\n\n${'word '.repeat(60)}`).join('\n\n');
+		replaceSourceIndex(
+			db,
+			1,
+			sourceIndex('large', { 'a.md': `${sections('A')}\n\n[b](b.md)`, 'b.md': sections('B') })
+		);
+		recordSyncRun(db, 1, {
+			outcome: 'synced',
+			commit: 'large',
+			error: null,
+			startedAt: new Date(),
+			finishedAt: new Date()
+		});
+		db.exec(`INSERT INTO api_keys (id, name, key_hash, all_sources) VALUES (1, 'ci', 'h', 0);
+			INSERT INTO api_key_sources (api_key_id, source_id) VALUES (1, 1);`);
+		expect(count('snippets')).toBe(10);
+		const snippetsAtCommit: number[] = [];
+		const exec = db.exec.bind(db);
+		vi.spyOn(db, 'exec').mockImplementation((sql) => {
+			if (sql === 'COMMIT') snippetsAtCommit.push(count('snippets'));
+			exec(sql);
+		});
+
+		await deleteSource(db, 1, { snippetsPerBatch: 3 });
+
+		const deletedPerCommit = snippetsAtCommit
+			.map((snippets, i) => (snippetsAtCommit[i - 1] ?? 10) - snippets)
+			.filter((deleted) => deleted > 0);
+		expect(deletedPerCommit).toEqual([3, 3, 3, 1]);
+		for (const table of [
+			'sources',
+			'pages',
+			'snippets',
+			'snippets_fts',
+			'links',
+			'sync_runs',
+			'api_key_sources'
+		]) {
+			expect([table, count(table)]).toEqual([table, 0]);
+		}
 	});
 });
 

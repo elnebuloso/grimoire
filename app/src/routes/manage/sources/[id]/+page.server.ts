@@ -3,6 +3,7 @@ import { error, fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { SYNC_SCHEDULE, TOKEN_ENCRYPTION_KEY, TZ } from '$app/env/private';
 import { database } from '#lib/server/db/index.js';
+import { deleteSource } from '#lib/server/db/sources.js';
 import { requestSyncInBackground, syncPending } from '#lib/server/sync/index.js';
 import { redactUrl } from '#lib/server/sync/git.js';
 import { nextRun } from '#lib/server/sync/schedule.js';
@@ -12,7 +13,6 @@ import { readSourceFields } from '#lib/source-fields.js';
 import { m } from '#lib/paraglide/messages.js';
 import {
 	changeSourceSlug,
-	deleteSource,
 	findSource,
 	parseIdParam,
 	saveSource,
@@ -134,9 +134,9 @@ export const actions = {
 		}
 		return { slugChanged: true };
 	},
-	delete: ({ params }) => {
+	delete: async ({ params }) => {
 		const source = sourceFor(params);
-		if (source) deleteSource(database(), source.id);
+		if (source) await deleteSource(database(), source.id);
 		redirect(303, '/manage');
 	}
 } satisfies Actions;

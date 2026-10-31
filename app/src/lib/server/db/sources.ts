@@ -1,4 +1,5 @@
 import type { DatabaseSync } from 'node:sqlite';
+import { setImmediate as nextTurn } from 'node:timers/promises';
 import type { ChunkedPage } from '../parsing/chunk';
 import type { Link } from '../parsing/links';
 import type { PreprocessedPage } from '../parsing/preprocess';
@@ -206,19 +207,50 @@ export function replaceSourceIndex(
 
 /** Deletes the pages of a source that are not live, with their snippets and links. */
 function deleteStalePages(db: DatabaseSync, sourceId: number, snippetsPerBatch: number) {
-	const stalePages = `SELECT pages.id FROM pages JOIN sources ON sources.id = pages.source_id
-		WHERE pages.source_id = ? AND pages.generation != sources.index_generation`;
+	while (deletePageBatch(db, sourceId, 'stale', snippetsPerBatch));
+}
+
+/**
+ * Deletes a source with its index and history. The index goes in short transactions, and other
+ * requests are answered between them: a large source has tens of thousands of snippets.
+ */
+export async function deleteSource(
+	db: DatabaseSync,
+	sourceId: number,
+	{ snippetsPerBatch = SNIPPETS_PER_BATCH } = {}
+) {
+	while (deletePageBatch(db, sourceId, 'all', snippetsPerBatch)) await nextTurn();
+	db.prepare('DELETE FROM sources WHERE id = ?').run(sourceId);
+}
+
+/**
+ * Deletes one batch of the pages of a source, all or those that are not live: first their
+ * snippets, then, once none are left, the pages with their links. False when nothing was left.
+ */
+function deletePageBatch(
+	db: DatabaseSync,
+	sourceId: number,
+	which: 'stale' | 'all',
+	snippetsPerBatch: number
+): boolean {
+	const pages = `SELECT pages.id FROM pages JOIN sources ON sources.id = pages.source_id
+		WHERE pages.source_id = ?
+			${which === 'stale' ? 'AND pages.generation != sources.index_generation' : ''}`;
 	// Snippets first and batched like the inserts: each takes its search entry along, and a single
 	// page can have a thousand of them.
 	const deleteSnippets = db.prepare(
 		`DELETE FROM snippets WHERE id IN (
-			SELECT id FROM snippets WHERE page_id IN (${stalePages}) LIMIT ?)`
+			SELECT id FROM snippets WHERE page_id IN (${pages}) LIMIT ?)`
 	);
-	while (inTransaction(db, () => deleteSnippets.run(sourceId, snippetsPerBatch).changes) > 0);
 	const deletePages = db.prepare(
-		`DELETE FROM pages WHERE id IN (${stalePages} LIMIT ${PAGES_PER_DELETE})`
+		`DELETE FROM pages WHERE id IN (${pages} LIMIT ${PAGES_PER_DELETE})`
 	);
-	while (inTransaction(db, () => deletePages.run(sourceId).changes) > 0);
+	return inTransaction(
+		db,
+		() =>
+			deleteSnippets.run(sourceId, snippetsPerBatch).changes > 0 ||
+			deletePages.run(sourceId).changes > 0
+	);
 }
 
 /** Splits `items` into batches of at most `max` weight, each with at least one item. */

@@ -356,10 +356,6 @@ function checkDocsUrl(docsUrl: string): string | undefined {
 	return undefined;
 }
 
-export function deleteSource(db: DatabaseSync, sourceId: number) {
-	db.prepare('DELETE FROM sources WHERE id = ?').run(sourceId);
-}
-
 /** Reads the id from a route parameter: a number, or `'new'` for a form that creates one. */
 export function parseIdParam(param: string): number | 'new' | undefined {
 	if (param === 'new') return 'new';
