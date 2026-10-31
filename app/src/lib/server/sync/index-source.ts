@@ -45,7 +45,8 @@ export async function prepareCheckout(
 	const read = (path: string) => readInside(root, path);
 	const warnings: string[] = [];
 	const raw = new Map<string, string>();
-	for (const file of listPages(checkout, sourcePath, source.exclusions)) {
+	const listed = listPages(checkout, sourcePath, source.exclusions);
+	for (const file of listed) {
 		if (!hasGrimoireId(file)) {
 			warnings.push(`${posix.join(sourcePath, file)}: "#" in the file name, skipped`);
 			continue;
@@ -56,6 +57,10 @@ export async function prepareCheckout(
 		else raw.set(file, content);
 	}
 	const files = [...raw.keys()];
+	// An empty index would replace the working one.
+	if (listed.length > 0 && files.length === 0) {
+		throw new Error(`no page could be indexed, ${warnings.at(-1)}`);
+	}
 
 	let config: SiteConfig | undefined;
 	try {

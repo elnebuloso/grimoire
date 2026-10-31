@@ -106,6 +106,15 @@ describe('indexCheckout with "#" in a file name', () => {
 		expect(index.pages.map((page) => page.file)).toEqual(['faq.md']);
 		expect(index.warnings).toEqual(['docs/faq#2.md: "#" in the file name, skipped']);
 	});
+
+	// An empty index would replace the working one.
+	it('throws when every page found is skipped, naming the last reason', async () => {
+		write({ 'docs/faq#2.md': '# FAQ 2\n' });
+
+		await expect(indexCheckout(async () => ({ content: '' }))).rejects.toThrow(
+			'no page could be indexed, docs/faq#2.md: "#" in the file name, skipped'
+		);
+	});
 });
 
 describe('indexCheckout with symlinks', () => {

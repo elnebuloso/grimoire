@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@claude'
 created_date: '2026-10-30 23:27'
-updated_date: '2026-10-31 13:38'
+updated_date: '2026-10-31 13:44'
 labels: []
 milestone: m-1
 dependencies:
@@ -47,4 +47,6 @@ The 1.0.0 release publishes the handbook and puts the README in front of everyon
 
 <!-- SECTION:NOTES:BEGIN -->
 Checked against code; fixed: reset-link limit per client answers 429; key with all selected sources deleted reads public sources; missed queries stored up to 500 chars; ADDRESS_HEADER only fails login/setup/password forms (500); reset-admin logs the reset and new token at the next /manage request; ENCRYPTION_KEY also covers the token a source form carries; invalid ENCRYPTION_KEY/BASE_URL/SMTP_PORT stop the start; front matter description/tags are stored but never shown to agents; block splitting has no subheading preference and a single block over 800 tokens stays whole; added XFF_DEPTH, MCP tokens argument, toc slugify warning, Test connection decrypt message, path to Dead links. Removed wording about non-admin users and further admins: only the setup creates a user. Examples use elnebuloso/grimoire:1.0.0 at the user's request. Agent-reported 404 ID text mismatch was wrong (operations.ts:221 matches). Product issue found, not fixed: when every page is skipped before processing ("#" in name, symlink outside), the sync succeeds with an empty index that replaces the previous one (index-pages.ts:60 only throws when job.pages is non-empty).
+
+Empty-index bug fixed separately in TASK-218.
 <!-- SECTION:NOTES:END -->

@@ -69,8 +69,7 @@ with `read`. A link that leaves the source's path is dead, in MkDocs as well.
 ## Sync warnings
 
 A warning skips one page or one include, or a setting of the site config; the rest of the source
-syncs. When no page can be processed (`: skipped, …` on every page), the sync fails and agents keep
-getting the previous index. Admins see the warnings on the source
+syncs. When every page is skipped, the sync fails and agents keep getting the previous index. Admins see the warnings on the source
 page. Fix them in the repository; the next sync clears them.
 
 | Warning | Fix |
