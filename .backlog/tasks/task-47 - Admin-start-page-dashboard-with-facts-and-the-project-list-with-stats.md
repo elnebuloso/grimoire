@@ -5,9 +5,10 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-29T01:09:00Z'
-updated_date: '2026-10-29 01:46'
+updated_date: '2026-10-31 00:17'
 labels:
   - admin
+milestone: m-2
 dependencies:
   - TASK-45
 references:

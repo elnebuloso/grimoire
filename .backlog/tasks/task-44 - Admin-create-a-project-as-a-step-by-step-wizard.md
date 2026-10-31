@@ -5,13 +5,14 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-29T01:04:00Z'
-updated_date: '2026-10-29T01:56:00Z'
+updated_date: '2026-10-31 00:17'
 labels:
   - admin
+milestone: m-2
 dependencies: []
 references:
-  - app/src/routes/admin/projects/[id]/+page.svelte
-  - app/src/routes/admin/projects/[id]/sources/[sourceId]/+page.svelte
+  - 'app/src/routes/admin/projects/[id]/+page.svelte'
+  - 'app/src/routes/admin/projects/[id]/sources/[sourceId]/+page.svelte'
 priority: medium
 type: feature
 ordinal: 106000

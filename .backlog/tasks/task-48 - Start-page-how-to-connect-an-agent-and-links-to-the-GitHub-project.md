@@ -5,8 +5,9 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-29T01:13:00Z'
-updated_date: '2026-10-29 01:40'
+updated_date: '2026-10-31 00:17'
 labels: []
+milestone: m-2
 dependencies: []
 references:
   - app/src/routes/+page.svelte

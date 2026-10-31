@@ -5,9 +5,10 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-29T01:08:00Z'
-updated_date: '2026-10-29T06:16:00Z'
+updated_date: '2026-10-31 00:17'
 labels:
   - admin
+milestone: m-2
 dependencies: []
 references:
   - app/src/routes/admin/login/+page.svelte

@@ -5,10 +5,11 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-30 23:50'
-updated_date: '2026-10-31 00:04'
+updated_date: '2026-10-31 00:17'
 labels:
   - admin
   - impeccable
+milestone: m-2
 dependencies:
   - TASK-197
 priority: medium
