@@ -1,10 +1,23 @@
 <script lang="ts">
+	import CopyButton from '#lib/components/CopyButton.svelte';
 	import QueryForm from '#lib/components/QueryForm.svelte';
 	import SourceStatsTable from '#lib/components/SourceStatsTable.svelte';
 	import { m } from '#lib/paraglide/messages.js';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
+
+	// One option per line: a phone wraps between them, not inside a flag.
+	const connectCommand = $derived(
+		[
+			'claude mcp add \\',
+			'  --transport http \\',
+			'  --scope user \\',
+			`  ${data.mcpName} \\`,
+			`  ${data.origin}/mcp \\`,
+			'  --header "Authorization: Bearer <key>"'
+		].join('\n')
+	);
 </script>
 
 <!-- The one page without a PageHead: no title on the canvas, so the tab gets its own. -->
@@ -31,10 +44,8 @@
 	<section class="sheet" aria-labelledby="connect">
 		<h2 id="connect">{m.start_connect_heading()}</h2>
 		<p>{m.start_connect_intro()}</p>
-		<pre><code
-				>claude mcp add --transport http --scope user {data.mcpName} {data.origin}/mcp \
-  --header "Authorization: Bearer &lt;key&gt;"</code
-			></pre>
+		<pre><code>{connectCommand}</code></pre>
+		<div><CopyButton value={connectCommand} label={m.start_connect_copy()} /></div>
 		<p>
 			{m.start_connect_other()}
 			<a href="https://elnebuloso.github.io/grimoire/agents/">{m.start_connect_handbook_link()}</a>

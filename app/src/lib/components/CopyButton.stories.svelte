@@ -39,7 +39,7 @@
 
 		await waitFor(() =>
 			expect(canvas.getByRole('status')).toHaveTextContent(
-				'Could not copy. Select the key and copy it by hand.'
+				'Could not copy. Select the text and copy it by hand.'
 			)
 		);
 	}}
