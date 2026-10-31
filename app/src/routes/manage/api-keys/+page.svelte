@@ -23,9 +23,21 @@
 	const values = $derived(
 		form?.values ?? { name: '', allSources: true, sources: [] as string[], validUntil: '' }
 	);
+
+	// Every refusal names one field: it is marked, points to the message and takes focus.
+	const SCOPE_ERRORS = [m.apikeys_error_scope(), m.apikeys_error_source_gone()];
+	const DATE_ERRORS = [m.apikeys_error_valid_until(), m.apikeys_error_valid_until_past()];
+	const marked = (error: string | undefined, errorId: string, about: string[]) =>
+		error && about.includes(error) ? { 'aria-invalid': true, 'aria-describedby': errorId } : {};
+
+	$effect(() => {
+		if (form?.error || form?.update?.error) {
+			document.querySelector<HTMLElement>('main [aria-invalid="true"]')?.focus();
+		}
+	});
 </script>
 
-{#snippet accessFields(access: Access)}
+{#snippet accessFields(access: Access, error: string | undefined, errorId: string)}
 	<fieldset>
 		<legend>{m.apikeys_scope()}</legend>
 		<ChoiceField
@@ -41,6 +53,7 @@
 			value="selected"
 			checked={!access.allSources}
 			label={m.apikeys_scope_selected()}
+			{...marked(error, errorId, SCOPE_ERRORS)}
 		/>
 		<!-- Named after the option it belongs to: a screen reader would otherwise announce bare slugs. -->
 		<fieldset class="sources" aria-label={m.apikeys_scope_selected_sources()}>
@@ -61,6 +74,7 @@
 		type="date"
 		min={data.today}
 		value={access.validUntil}
+		{...marked(error, errorId, DATE_ERRORS)}
 	/>
 {/snippet}
 
@@ -137,7 +151,10 @@
 					<details open={form?.update?.id === key.id}>
 						<summary>{m.apikeys_change_named({ name: key.name })}</summary>
 						<form class="inset" method="post" action="?/update">
-							<FormError message={form?.update?.id === key.id ? form.update.error : undefined} />
+							<FormError
+								message={form?.update?.id === key.id ? form.update.error : undefined}
+								id="update-error-{key.id}"
+							/>
 							<input type="hidden" name="id" value={key.id} />
 							{@render accessFields(
 								form?.update?.id === key.id
@@ -146,7 +163,9 @@
 											allSources: key.sources === 'all',
 											sources: key.sources === 'all' ? [] : key.sources,
 											validUntil: key.validUntil ?? ''
-										}
+										},
+								form?.update?.id === key.id ? form.update.error : undefined,
+								`update-error-${key.id}`
 							)}
 							<button>{m.apikeys_change_submit()}</button>
 						</form>
@@ -160,9 +179,16 @@
 <section class="sheet new" aria-labelledby="new-key">
 	<h2 id="new-key">{m.apikeys_new()}</h2>
 	<form method="post" action="?/create">
-		<FormError message={form?.error} />
-		<TextField label={m.field_name()} name="name" required value={values.name} mono />
-		{@render accessFields(values)}
+		<FormError message={form?.error} id="create-error" />
+		<TextField
+			label={m.field_name()}
+			name="name"
+			required
+			value={values.name}
+			mono
+			{...marked(form?.error, 'create-error', [m.apikeys_error_name()])}
+		/>
+		{@render accessFields(values, form?.error, 'create-error')}
 		<button class="primary">{m.apikeys_submit()}</button>
 	</form>
 </section>

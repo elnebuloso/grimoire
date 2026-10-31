@@ -294,7 +294,11 @@ test('creates an API key that works for its source until it is revoked', async (
 	await page.getByRole('link', { name: 'API keys' }).click();
 	await page.getByLabel('Name').fill('ci');
 	await page.getByLabel('Only these:').check();
-	await page.getByLabel('auth-service').check();
+	await page.getByRole('button', { name: 'Create key' }).click();
+	await expect(page.getByRole('alert')).toHaveText('Choose all sources or at least one.');
+	await expect(page.getByLabel('Only these:').last()).toBeFocused();
+
+	await page.getByLabel('auth-service').last().check();
 	await page.getByRole('button', { name: 'Create key' }).click();
 
 	const key = await page.locator('output').textContent();
