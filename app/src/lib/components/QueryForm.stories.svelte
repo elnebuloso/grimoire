@@ -48,7 +48,13 @@
 	}}
 	play={async ({ canvas }) => {
 		await expect(canvas.getByRole('alert')).toHaveTextContent('positive whole number');
-		await expect(canvas.getByRole('spinbutton', { name: 'Token budget' })).toHaveValue(0);
+		const tokens = canvas.getByRole('spinbutton', { name: 'Token budget' });
+		await expect(tokens).toHaveValue(0);
+		await expect(tokens).toHaveAttribute('aria-invalid', 'true');
+		await expect(tokens).toHaveAccessibleDescription(
+			'The token budget must be a positive whole number.'
+		);
+		await expect(canvas.getByRole('searchbox')).not.toHaveAttribute('aria-invalid');
 	}}
 />
 

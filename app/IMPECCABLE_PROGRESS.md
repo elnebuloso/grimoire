@@ -34,7 +34,7 @@ How it is measured:
 | `/manage/api-keys` | 0/0/1/0 | 7.3 | 0/0 | 17 |
 | `/manage/dead-links` | 0/0/0/0 (P1 from iteration 3 fixed after 25) | 7.2 | 0/0 | 11 (full re-measure), **plateau** |
 | `/manage/missed-queries` | 0/0/0/2 | 7.3 | 0/0 | 18, **plateau** |
-| `/manage/query` | 0/0/2/1 | 7.3 | 0/0 | 11 (full re-measure) |
+| `/manage/query` | 0/0/1/1 | 7.0 | 0/0 | 26 |
 | `/manage/settings` | 0/0/0/2 | 7.5 | 0/0 | 23 |
 | `/manage/sources/[id]` | 0/0/0/1 | 6.8 | 0/1 | 11 (full re-measure), **plateau** |
 
@@ -88,3 +88,4 @@ Notes on iteration 11:
 | 24 | `/login` (+ `FormError` `id`) | harden (after a refusal both fields are `aria-invalid` and described by the message; e2e check) | P0–P2 1→1 | 7.3→7.5 | 0→0 | kept: the reported P2 is fixed, a different one (focus after the reload) takes its place (stagnation 1) |
 | 25 | `/manage/dead-links` | harden (each page links to its preview on the source page) | P0–P2 0→1 (a P1) | 7.2→6.9 | 0→0 | worse, reverted (0ac173e); 4th edit of the route (1, 3, 7, 25): **plateau** (stagnation 2). The P1, a long unbroken path widening the page at 390px, comes from iteration 3 and is fixed in the next commit |
 | – | `/manage/dead-links` | fix after 25: `overflow-wrap: anywhere` again in `DeadLinkList`, with a story that fails on a path without a break opportunity | P1 1→0 | – | – | fix, not an iteration: iteration 3 had swapped `anywhere` for `break-word`, which lets a long path widen the page at 390px |
+| 26 | `/manage/query` (`QueryForm`, also on `/`) | harden (the field a refusal is about is `aria-invalid` and described by the message; story checks it) | P0–P2 2→1 | 7.3→7.0 | 0→0 | kept: audit better (stagnation 0); the nav P2 was gone since 23 |
