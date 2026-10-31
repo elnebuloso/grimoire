@@ -136,6 +136,10 @@ ul,
 ol {
 	padding: 0;
 }
+/* No word alone on the last line of a paragraph; a phone's narrow measure makes them common. */
+p {
+	text-wrap: pretty;
+}
 @media (max-width: 40rem) {
 	h1 {
 		font-size: 23px;

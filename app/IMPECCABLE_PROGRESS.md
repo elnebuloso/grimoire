@@ -24,7 +24,7 @@ How it is measured:
 
 | Route | Audit findings (P0/P1/P2/P3) | Critique | Detector (e/w) | Iteration |
 |---|---|---|---|---|
-| `/` | 0/0/1/2 | 7.0 | 0/1 | 31 |
+| `/` | 0/0/1/3 | 7.3 | 0/0 | 32 |
 | `/login` | 0/0/1/2 | 7.5 | 0/0 | 24 |
 | `/login/forgot` | 0/0/1/1 | 8.0 | 0/0 | 11 (full re-measure) |
 | `/login/reset/[token]` | 0/0/1/1 | 8.3 | 0/0 | 11 (full re-measure) |
@@ -94,3 +94,4 @@ Notes on iteration 11:
 | 29 | `/account` | harden ("wrong current password" and "too short" mark their field, which takes focus; e2e step) | P0–P2 1→1 | 7.3→8.0 | 0→0 | kept: critique +0.7 (stagnation 0); remaining P2: the lockout refusal marks no field and focuses nothing |
 | 30 | `/manage/api-keys` | harden (each refusal marks its field, name, scope or date, in the create and change forms; it points to the message and takes focus; e2e step) | P0–P2 1→1 | 7.3→7.5 | 0→0 | kept, no counted improvement (stagnation 1); 4th edit (13, 14, 17, 30): **plateau** |
 | 31 | `/` | harden (connect command one option per line, with a "Copy command" button; copy failure text no longer says "key") | P0–P2 1→1 | 7.3→7.0 | 1→1 | kept: no counted change either way (stagnation 2) |
+| 32 | `/` (`app.css` base `p`) | typeset (`text-wrap: pretty` on paragraphs, no word alone on a last line) | P0–P2 1→1 | 7.0→7.3 | 1→0; also `/manage` 390px 1→0, `/manage/sources/3` 390px 2→1; no new finding on any route | kept: detector better (stagnation 0) |
