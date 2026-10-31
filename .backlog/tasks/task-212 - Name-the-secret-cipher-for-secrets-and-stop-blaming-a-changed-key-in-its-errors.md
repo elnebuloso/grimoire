@@ -3,9 +3,11 @@ id: TASK-212
 title: >-
   Name the secret cipher for secrets and stop blaming a changed key in its
   errors
-status: To Do
-assignee: []
+status: Done
+assignee:
+  - '@claude'
 created_date: '2026-10-31 13:06'
+updated_date: '2026-10-31 13:18'
 labels:
   - admin
   - sync
@@ -36,9 +38,26 @@ Cost: the next secret (an SMTP password, a webhook secret) will call `encryptTok
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 The cipher module and its functions are named for secrets (e.g. `encryptSecret`/`decryptSecret`), and every caller is updated
-- [ ] #2 The error the cipher throws names no particular secret; each caller says which secret failed
-- [ ] #3 The sync error and `error_stored_token_unreadable` (every locale) say the stored token cannot be decrypted with the current key, without claiming that `ENCRYPTION_KEY` changed
-- [ ] #4 The `ENCRYPTION_KEY` description in `app/src/env.ts` covers stored source tokens and form secrets, and does not say "today"
-- [ ] #5 The handbook names the possible causes of an unreadable stored token wherever it explains that error
+- [x] #1 The cipher module and its functions are named for secrets (e.g. `encryptSecret`/`decryptSecret`), and every caller is updated
+- [x] #2 The error the cipher throws names no particular secret; each caller says which secret failed
+- [x] #3 The sync error and `error_stored_token_unreadable` (every locale) say the stored token cannot be decrypted with the current key, without claiming that `ENCRYPTION_KEY` changed
+- [x] #4 The `ENCRYPTION_KEY` description in `app/src/env.ts` covers stored source tokens and form secrets, and does not say "today"
+- [x] #5 The handbook names the possible causes of an unreadable stored token wherever it explains that error
 <!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. git mv token-encryption(.spec).ts -> secret-encryption(.spec).ts; encryptToken/decryptToken -> encryptSecret/decryptSecret; update every importer and docs/ARCHITECTURE.md.
+2. decryptSecret throws a text naming no secret and not blaming ENCRYPTION_KEY.
+3. sync.ts catches the decryption and throws its own access-token text: cannot be decrypted with the current key.
+4. error_stored_token_unreadable (en, de) reworded the same way.
+5. ENCRYPTION_KEY description in env.ts (and its copies in docs/handbook/docker.md, database.md) without 'today', naming stored source tokens and form secrets.
+6. Handbook admin.md sync error table: row for the unreadable token with its causes and fix.
+<!-- SECTION:PLAN:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+token-encryption(.spec).ts renamed to secret-encryption(.spec).ts with encryptSecret/decryptSecret; every importer and docs/ARCHITECTURE.md updated. decryptSecret throws 'cannot be decrypted with the current key', naming no secret; sync.ts wraps it (storedToken) and reports 'the stored access token cannot be decrypted with the current key: enter it again on the source page'. error_stored_token_unreadable (en, de) no longer claims ENCRYPTION_KEY changed. ENCRYPTION_KEY description in env.ts names source tokens and form secrets without 'today'; the copies in docs/handbook/docker.md and database.md dropped 'today' too. docs/handbook/admin.md sync error table has a row for the unreadable token with its causes (other key, damaged value) and the fix. make test --changed: 11 files, 192 tests pass.
+<!-- SECTION:FINAL_SUMMARY:END -->

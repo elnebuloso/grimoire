@@ -20,8 +20,8 @@ bind-mounted host directory must be writable for uid 1000.
 
 ## Encryption key
 
-`ENCRYPTION_KEY` encrypts every secret grimoire stores, today the Git access token of every
-source; the database alone does not reveal them. Generate it once:
+`ENCRYPTION_KEY` encrypts the Git access token of every source; the database alone does not
+reveal them. Generate it once:
 
 ```bash
 openssl rand -base64 32

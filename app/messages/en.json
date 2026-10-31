@@ -124,7 +124,7 @@
 	"error_schedule": "Schedule: {detail}",
 	"error_token_other_server": "The Git URL points to another server: enter the token again or remove it.",
 	"error_token_damaged": "The entered access token could not be read back. Enter it again.",
-	"error_stored_token_unreadable": "The stored access token cannot be decrypted: ENCRYPTION_KEY has changed since it was saved. Enter the token again or remove it.",
+	"error_stored_token_unreadable": "The stored access token cannot be decrypted with the current key. Enter the token again or remove it.",
 	"error_git_url": "Enter the Git URL, e.g. https://gitlab.example.com/platform/docs.git.",
 	"error_git_url_https": "The Git URL must start with https://.",
 	"error_git_url_credentials": "Enter the username and token in their own fields, not in the Git URL.",

@@ -1,7 +1,7 @@
 import type { DatabaseSync } from 'node:sqlite';
 import { m } from '#lib/paraglide/messages.js';
 import { checkRemote, type GitRemote } from '../sync/git';
-import { decryptToken } from '../token-encryption';
+import { decryptSecret } from '../secret-encryption';
 import { remoteProblem, storedSource, type SourceForm, type StoredSource } from './sources';
 
 // The admin waits for this in the browser; a server that is up answers within a second or two.
@@ -43,7 +43,7 @@ export async function checkAccess(
 	// entering the token again is how the admin repairs the source.
 	if (!enteredToken && !form.removeToken && stored?.encryptedToken) {
 		try {
-			storedToken = decryptToken(stored.encryptedToken, key);
+			storedToken = decryptSecret(stored.encryptedToken, key);
 		} catch {
 			return { error: m.error_stored_token_unreadable() };
 		}

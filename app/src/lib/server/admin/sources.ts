@@ -2,7 +2,7 @@ import type { DatabaseSync } from 'node:sqlite';
 import { redactUrl } from '../sync/git';
 import { parseSchedule } from '../sync/schedule';
 import type { SourceFields, StoredSourceFields } from '#lib/source-fields.js';
-import { encryptToken } from '../token-encryption';
+import { encryptSecret } from '../secret-encryption';
 import { m } from '#lib/paraglide/messages.js';
 import { isSlug, MAX_NAME_LENGTH, MAX_SLUG_LENGTH, slugify } from '../../slug';
 
@@ -278,7 +278,7 @@ export function saveSource(
 		public: form.public ? 1 : 0,
 		username: form.username.trim() || null
 	};
-	const encryptedToken = token ? encryptToken(token, key) : null;
+	const encryptedToken = token ? encryptSecret(token, key) : null;
 	// The keys of `values` are the column names, so a new setting cannot be left out of one statement.
 	const columns = Object.keys(values);
 

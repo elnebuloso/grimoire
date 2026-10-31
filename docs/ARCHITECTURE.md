@@ -102,7 +102,7 @@ logs or the API. Git URLs are always shown without credentials.
 **Encryption.** One key per instance, `ENCRYPTION_KEY`, protects every secret grimoire stores. It
 is never used directly: each purpose encrypts under a key derived from it with HKDF-SHA256 and a
 fixed label (`source-tokens` for the stored Git tokens, `form-secrets` for a token carried between
-form requests), in `app/src/lib/server/token-encryption.ts`. Derived keys are computed on start and
+form requests), in `app/src/lib/server/secret-encryption.ts`. Derived keys are computed on start and
 never stored. No two purposes share key material, so a value encrypted for one is never accepted by
 another. A new purpose gets a new label; a label is never reused or renamed, since every value
 stored under it would become unreadable. Values are encrypted with AES-256-GCM.

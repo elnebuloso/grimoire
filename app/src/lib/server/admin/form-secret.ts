@@ -1,4 +1,4 @@
-import { decryptToken, encryptToken } from '../token-encryption';
+import { decryptSecret, encryptSecret } from '../secret-encryption';
 
 /** The form fields that carry a secret between requests. */
 export interface SecretFields {
@@ -39,11 +39,11 @@ export function readFormSecret(data: FormData, key: Buffer, fields: SecretFields
 	const remove = data.get(fields.remove) === 'on';
 	const entered = field(fields.entered).trim();
 	if (entered)
-		return { value: entered, sealed: encryptToken(entered, key), remove, damaged: false };
+		return { value: entered, sealed: encryptSecret(entered, key), remove, damaged: false };
 	const sealed = data.get(fields.discard) === 'on' ? '' : field(fields.sealed);
 	if (!sealed) return { value: '', sealed: '', remove, damaged: false };
 	try {
-		return { value: decryptToken(sealed, key), sealed, remove, damaged: false };
+		return { value: decryptSecret(sealed, key), sealed, remove, damaged: false };
 	} catch {
 		return { value: '', sealed: '', remove, damaged: true };
 	}

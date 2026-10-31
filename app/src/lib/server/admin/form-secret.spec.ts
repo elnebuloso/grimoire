@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { encryptToken } from '../token-encryption';
+import { encryptSecret } from '../secret-encryption';
 import { readFormSecret, SOURCE_TOKEN_FIELDS } from './form-secret';
 
 const KEY = Buffer.alloc(32, 7);
@@ -19,7 +19,7 @@ describe('readFormSecret', () => {
 	});
 
 	it('opens the carried secret and keeps its sealed form', () => {
-		const sealed = encryptToken('glpat-carried', KEY);
+		const sealed = encryptSecret('glpat-carried', KEY);
 
 		expect(read({ encryptedToken: sealed })).toEqual({
 			value: 'glpat-carried',
@@ -30,13 +30,13 @@ describe('readFormSecret', () => {
 	});
 
 	it('prefers a newly entered secret over the carried one', () => {
-		const sealed = encryptToken('glpat-carried', KEY);
+		const sealed = encryptSecret('glpat-carried', KEY);
 
 		expect(read({ token: 'glpat-new', encryptedToken: sealed }).value).toBe('glpat-new');
 	});
 
 	it('drops the carried secret when asked to discard it', () => {
-		const sealed = encryptToken('glpat-carried', KEY);
+		const sealed = encryptSecret('glpat-carried', KEY);
 
 		expect(read({ encryptedToken: sealed, discardToken: 'on' })).toEqual({
 			value: '',
@@ -47,7 +47,7 @@ describe('readFormSecret', () => {
 	});
 
 	it('keeps the carried secret when only the stored one is to be removed', () => {
-		const sealed = encryptToken('glpat-carried', KEY);
+		const sealed = encryptSecret('glpat-carried', KEY);
 
 		expect(read({ encryptedToken: sealed, removeToken: 'on' })).toEqual({
 			value: 'glpat-carried',
@@ -58,7 +58,7 @@ describe('readFormSecret', () => {
 	});
 
 	it('reports a changed or foreign carried value as damaged instead of throwing', () => {
-		const foreign = encryptToken('glpat-carried', Buffer.alloc(32, 8));
+		const foreign = encryptSecret('glpat-carried', Buffer.alloc(32, 8));
 
 		expect(read({ encryptedToken: 'tampered' })).toMatchObject({ value: '', damaged: true });
 		expect(read({ encryptedToken: foreign })).toMatchObject({ value: '', damaged: true });

@@ -8,7 +8,7 @@ import { saveSource, savingChanges, storedSource, type SourceForm } from '../adm
 import { openDatabase } from '../db/schema';
 import { saveSettings } from '../settings';
 import { listSchedules, replaceSourceIndex } from '../db/sources';
-import { encryptToken } from '../token-encryption';
+import { encryptSecret } from '../secret-encryption';
 import { headCommit, remoteCommit } from './git';
 import { indexPages } from './index-pages';
 import type { IndexJob, IndexOutcome } from './index-worker';
@@ -76,7 +76,7 @@ function addSource(token?: string) {
 				`INSERT INTO sources (slug, name, git_url, branch, path, username, encrypted_token)
 				VALUES (?, 'Docs', 'https://git.example.com/auth.git', 'main', 'docs/', 'deploy', ?)`
 			)
-			.run(`auth-${Math.random().toString(36).slice(2)}`, token ? encryptToken(token, key) : null)
+			.run(`auth-${Math.random().toString(36).slice(2)}`, token ? encryptSecret(token, key) : null)
 			.lastInsertRowid
 	);
 }
@@ -218,7 +218,12 @@ describe('syncSource', () => {
 
 		expect(
 			await syncSource(db, withToken, { key: Buffer.alloc(32, 9), workDirectory: work })
-		).toMatchObject({ status: 'failed', error: expect.stringMatching(/ENCRYPTION_KEY differs/) });
+		).toMatchObject({
+			status: 'failed',
+			error: expect.stringMatching(
+				/^the stored access token cannot be decrypted with the current key/
+			)
+		});
 		expect(remoteCommit).not.toHaveBeenCalled();
 	});
 

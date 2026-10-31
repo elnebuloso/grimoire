@@ -1,6 +1,6 @@
 import { defineEnvVars } from '@sveltejs/kit/env';
 import { building } from '$app/env';
-import { parseEncryptionKey } from '#lib/server/token-encryption.js';
+import { parseEncryptionKey } from '#lib/server/secret-encryption.js';
 import { parseSchedule } from '#lib/server/sync/schedule.js';
 import { parseAllowedOrigins } from '#lib/server/sync/url-include.js';
 import { parseLogFormat, parseLogLevel } from '#lib/server/log.js';
@@ -23,7 +23,7 @@ export const variables = defineEnvVars({
 	},
 	ENCRYPTION_KEY: {
 		description:
-			'Key encrypting the secrets grimoire stores, today the Git access tokens of sources; 32 bytes, base64',
+			'Key encrypting the Git access tokens of sources and the secrets forms carry between requests; 32 bytes, base64',
 		schema: (value) =>
 			building
 				? { sourceTokens: Buffer.alloc(0), formSecrets: Buffer.alloc(0) }

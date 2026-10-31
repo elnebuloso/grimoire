@@ -34,19 +34,19 @@ export function deriveKeys(instanceKey: Buffer): EncryptionKeys {
 	return { sourceTokens: derive('source-tokens'), formSecrets: derive('form-secrets') };
 }
 
-/** Encrypts a source access token for storage: base64 of IV, authentication tag and ciphertext. */
-export function encryptToken(token: string, key: Buffer): string {
+/** Encrypts a secret under the key of its purpose: base64 of IV, authentication tag and ciphertext. */
+export function encryptSecret(secret: string, key: Buffer): string {
 	const iv = randomBytes(IV_BYTES);
 	const cipher = createCipheriv(ALGORITHM, key, iv);
-	const ciphertext = Buffer.concat([cipher.update(token, 'utf8'), cipher.final()]);
+	const ciphertext = Buffer.concat([cipher.update(secret, 'utf8'), cipher.final()]);
 	return Buffer.concat([iv, cipher.getAuthTag(), ciphertext]).toString('base64');
 }
 
 /**
- * Decrypts a token stored by `encryptToken`. Throws when the key is not the one it was encrypted
- * with or the stored value was changed; the error names neither the key nor the token.
+ * Decrypts a value from `encryptSecret`. Throws when the key is not the one it was encrypted with
+ * or the value was changed; the error names neither key nor secret, so the caller says which failed.
  */
-export function decryptToken(stored: string, key: Buffer): string {
+export function decryptSecret(stored: string, key: Buffer): string {
 	const data = Buffer.from(stored, 'base64');
 	try {
 		const decipher = createDecipheriv(ALGORITHM, key, data.subarray(0, IV_BYTES));
@@ -56,8 +56,6 @@ export function decryptToken(stored: string, key: Buffer): string {
 			decipher.final()
 		]).toString('utf8');
 	} catch {
-		throw new Error(
-			'access token cannot be decrypted: ENCRYPTION_KEY differs from the key it was stored with, or the stored value is damaged'
-		);
+		throw new Error('cannot be decrypted with the current key');
 	}
 }

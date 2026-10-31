@@ -143,6 +143,7 @@ page and under **Needs attention**.
 | `source path "docs" does not exist in the repository` | Correct **Path in the repository**. |
 | `no page could be indexed, docs/deploy.md: skipped, …` | Every page failed, so the previous index stays. Ask the authors to fix what the message names (see [Writing documentation](writing.md#sync-warnings)). |
 | `invalid cron expression "0 25 * * *": …` | Correct **Schedule**. |
+| `the stored access token cannot be decrypted with the current key: …` | Enter the token again, or remove it. The instance's encryption key is not the one the token was stored with, or the stored value is damaged. If every source with a token shows this, ask the operator whether the key was replaced. |
 | `indexing took longer than 10 minutes` | Split the source into smaller paths, ask authors to look for a huge or generated page, or ask the operator for a longer indexing deadline (see [Memory and CPU limits](docker.md#memory-and-cpu-limits)). |
 | `indexing ended with … before it finished, out of memory for example` | Ask the operator for more memory (see [Memory and CPU limits](docker.md#memory-and-cpu-limits)). |
 

@@ -11,7 +11,7 @@ import {
 	recordSyncRun,
 	sourceForSync
 } from '../db/sources';
-import { decryptToken } from '../token-encryption';
+import { decryptSecret } from '../secret-encryption';
 import { headCommit, redact, remoteCommit, sparseClone, type GitRemote } from './git';
 import type { IndexJob, IndexOutcome } from './index-worker';
 import type { SyncLanes } from './queue';
@@ -82,8 +82,7 @@ async function checkAndSync(
 	let indexingCommit: string | undefined;
 
 	try {
-		const token = source.encryptedToken && decryptToken(source.encryptedToken, options.key);
-		remote = { ...remote, token };
+		remote = { ...remote, token: storedToken(source.encryptedToken, options.key) };
 
 		const latest = await lanes.check(() => {
 			checkedAt = new Date();
@@ -132,6 +131,17 @@ async function checkAndSync(
 		return { status: 'failed', error: message, commit: indexingCommit };
 	} finally {
 		recordCheck(db, sourceId, checkedAt);
+	}
+}
+
+function storedToken(encryptedToken: string | null, key: Buffer): string | undefined {
+	if (!encryptedToken) return undefined;
+	try {
+		return decryptSecret(encryptedToken, key);
+	} catch {
+		throw new Error(
+			'the stored access token cannot be decrypted with the current key: enter it again on the source page'
+		);
 	}
 }
 

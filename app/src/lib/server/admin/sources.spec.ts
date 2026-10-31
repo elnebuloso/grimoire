@@ -3,7 +3,7 @@ import type { DatabaseSync } from 'node:sqlite';
 import { openDatabase } from '../db/schema';
 import { listSchedules, recordCheck } from '../db/sources';
 import { saveSettings } from '../settings';
-import { decryptToken } from '../token-encryption';
+import { decryptSecret } from '../secret-encryption';
 import {
 	changeSourceSlug,
 	findSource,
@@ -43,7 +43,7 @@ function storedToken(sourceId: number): string | null {
 	const row = db.prepare('SELECT encrypted_token FROM sources WHERE id = ?').get(sourceId) as {
 		encrypted_token: string | null;
 	};
-	return row.encrypted_token && decryptToken(row.encrypted_token, KEY);
+	return row.encrypted_token && decryptSecret(row.encrypted_token, KEY);
 }
 
 /** Checks and saves `form` as the source page does, without asking the Git server. */

@@ -1,37 +1,41 @@
 import { describe, it, expect } from 'vitest';
-import { decryptToken, deriveKeys, encryptToken, parseEncryptionKey } from './token-encryption';
+import { decryptSecret, deriveKeys, encryptSecret, parseEncryptionKey } from './secret-encryption';
 
 const key = Buffer.alloc(32, 1);
 const otherKey = Buffer.alloc(32, 2);
 const token = 'glpat-secret-token';
 
-describe('token encryption', () => {
+describe('secret encryption', () => {
 	it('decrypts what it encrypted, and the stored value does not contain the token', () => {
-		const stored = encryptToken(token, key);
+		const stored = encryptSecret(token, key);
 		expect(stored).not.toContain(token);
 		expect(Buffer.from(stored, 'base64').toString('utf8')).not.toContain(token);
-		expect(decryptToken(stored, key)).toBe(token);
+		expect(decryptSecret(stored, key)).toBe(token);
 	});
 
 	it('stores the same token differently each time', () => {
-		expect(encryptToken(token, key)).not.toBe(encryptToken(token, key));
+		expect(encryptSecret(token, key)).not.toBe(encryptSecret(token, key));
 	});
 
 	it('refuses a wrong key without revealing key or token', () => {
-		const error = catchError(() => decryptToken(encryptToken(token, key), otherKey));
-		expect(error.message).toMatch(/ENCRYPTION_KEY differs/);
+		const error = catchError(() => decryptSecret(encryptSecret(token, key), otherKey));
+		expect(error.message).toBe('cannot be decrypted with the current key');
 		expect(error.message).not.toContain(token);
 		expect(error.message).not.toContain(otherKey.toString('base64'));
 	});
 
 	it('refuses a tampered value', () => {
-		const data = Buffer.from(encryptToken(token, key), 'base64');
+		const data = Buffer.from(encryptSecret(token, key), 'base64');
 		data[data.length - 1] ^= 1;
-		expect(() => decryptToken(data.toString('base64'), key)).toThrow(/stored value is damaged/);
+		expect(() => decryptSecret(data.toString('base64'), key)).toThrow(
+			'cannot be decrypted with the current key'
+		);
 	});
 
 	it('refuses a value too short to hold IV and tag', () => {
-		expect(() => decryptToken('c2hvcnQ=', key)).toThrow(/stored value is damaged/);
+		expect(() => decryptSecret('c2hvcnQ=', key)).toThrow(
+			'cannot be decrypted with the current key'
+		);
 	});
 });
 
@@ -63,8 +67,8 @@ describe('deriveKeys', () => {
 
 	it('refuses a value encrypted for one purpose under the key of another', () => {
 		const { sourceTokens, formSecrets } = deriveKeys(key);
-		expect(() => decryptToken(encryptToken(token, sourceTokens), formSecrets)).toThrow(
-			/ENCRYPTION_KEY differs/
+		expect(() => decryptSecret(encryptSecret(token, sourceTokens), formSecrets)).toThrow(
+			'cannot be decrypted with the current key'
 		);
 	});
 });
