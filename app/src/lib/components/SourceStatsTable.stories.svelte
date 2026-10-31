@@ -76,7 +76,7 @@
 	args={{ timeZone: 'UTC', sources: [{ ...synced, error: true, paused: true, deadLinks: 3 }] }}
 	play={async ({ canvas }) => {
 		const cells = canvas.getAllByRole('cell');
-		await expect(cells[0]).toHaveTextContent('failed');
+		await expect(cells[4]).toHaveTextContent('failed');
 		await expect(cells[6]).toHaveTextContent('3');
 	}}
 />
@@ -85,7 +85,7 @@
 	name="Paused"
 	args={{ timeZone: 'UTC', sources: [{ ...synced, paused: true }] }}
 	play={async ({ canvas }) => {
-		await expect(canvas.getAllByRole('cell')[0]).toHaveTextContent('paused');
+		await expect(canvas.getAllByRole('cell')[4]).toHaveTextContent('paused');
 	}}
 />
 

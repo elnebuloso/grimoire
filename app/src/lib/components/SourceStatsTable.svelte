@@ -34,12 +34,11 @@
 		<thead>
 			<tr>
 				<th scope="col">{m.source()}</th>
-				<!-- Next to the source: on a phone the state is what must not lie past the scroll edge. -->
-				<th scope="col">{m.source_status()}</th>
 				<th scope="col">{m.visibility()}</th>
 				<th scope="col" class="num">{m.pages()}</th>
 				<th scope="col" class="num">{m.snippets()}</th>
 				<th scope="col" class="num">{m.tokens()}</th>
+				<th scope="col">{m.source_status()}</th>
 				<th scope="col">{m.last_sync_in_zone({ zone: timeZone })}</th>
 				<th scope="col" class="num">{m.dead_links()}</th>
 			</tr>
@@ -58,11 +57,11 @@
 								>{/if}
 						</div>
 					</th>
-					<td class={state(source).tone}>{state(source).word}</td>
 					<td>{source.public ? m.visibility_public() : m.visibility_private()}</td>
 					<td class="num">{count(source.pages)}</td>
 					<td class="num">{count(source.snippets)}</td>
 					<td class="num">{count(source.tokens)}</td>
+					<td class={state(source).tone}>{state(source).word}</td>
 					<td class="when">
 						{#if source.lastSync}
 							<DateTime value={source.lastSync} {timeZone} short />
