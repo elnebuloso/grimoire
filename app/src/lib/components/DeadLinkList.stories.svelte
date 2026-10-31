@@ -9,7 +9,6 @@
 <Story
 	name="With and without a section"
 	args={{
-		sourceId: 2,
 		links: [
 			{
 				file: 'auth-service.md',
@@ -31,7 +30,6 @@
 <Story
 	name="Several links from one section"
 	args={{
-		sourceId: 2,
 		links: [
 			{ file: 'invoices.md', anchor: 'payment-provider-outages', target: 'invoices#late-fees' },
 			{ file: 'invoices.md', anchor: 'payment-provider-outages', target: 'refunds' },
@@ -40,10 +38,6 @@
 	}}
 	play={async ({ canvas }) => {
 		const pages = canvas.getAllByRole('list')[0].querySelectorAll(':scope > li');
-		await expect(canvas.getAllByRole('link').map((link) => link.getAttribute('href'))).toEqual([
-			'/manage/sources/2?preview=invoices.md',
-			'/manage/sources/2?preview=invoices.md'
-		]);
 		await expect([...pages].map((page) => page.querySelector('.from')?.textContent)).toEqual([
 			'invoices.md#payment-provider-outages',
 			'invoices.md'

@@ -233,7 +233,7 @@
 			{#if data.status.deadLinks.length > 0}
 				<div class="part">
 					<h3>{m.dead_links()}</h3>
-					<DeadLinkList links={data.status.deadLinks} sourceId={data.source.id} />
+					<DeadLinkList links={data.status.deadLinks} />
 				</div>
 			{/if}
 			<div class="part">
