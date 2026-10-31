@@ -1,18 +1,26 @@
 <script lang="ts">
 	import type { DeadLink } from '#lib/server/admin/status.js';
+	import { resolve } from '$app/paths';
 	import { m } from '#lib/paraglide/messages.js';
 
 	/** Dead links as the page and section holding them, and where they point. */
-	let { links }: { links: DeadLink[] } = $props();
+	let {
+		links,
+		sourceId
+	}: {
+		links: DeadLink[];
+		/** Links each page to its preview on the source page, where it is checked after the fix. */
+		sourceId: number;
+	} = $props();
 
 	// One entry per page and section, its targets below: a page with five dead links names itself
 	// once. The links come sorted by page and section.
 	const groups = $derived(
-		links.reduce<{ from: string; targets: string[] }[]>((groups, link) => {
+		links.reduce<{ file: string; from: string; targets: string[] }[]>((groups, link) => {
 			const from = link.anchor ? `${link.file}#${link.anchor}` : link.file;
 			const last = groups.at(-1);
 			if (last?.from === from) last.targets.push(link.target);
-			else groups.push({ from, targets: [link.target] });
+			else groups.push({ file: link.file, from, targets: [link.target] });
 			return groups;
 		}, [])
 	);
@@ -22,7 +30,12 @@
 <ul role="list">
 	{#each groups as group, index (index)}
 		<li>
-			<code class="from">{group.from}</code>
+			<a
+				class="from"
+				href="{resolve('/manage/sources/[id]', {
+					id: String(sourceId)
+				})}?preview={encodeURIComponent(group.file)}"><code>{group.from}</code></a
+			>
 			<ul role="list">
 				{#each group.targets as target, index (index)}
 					<li>
@@ -58,7 +71,7 @@
 		font-size: 13px;
 	}
 	.from {
-		color: var(--ink-2);
+		justify-self: start;
 	}
 	li li code {
 		font-weight: 500;

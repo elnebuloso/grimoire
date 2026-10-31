@@ -21,7 +21,7 @@
 						><code>{group.source}</code></a
 					>
 				</h2>
-				<DeadLinkList links={group.links} />
+				<DeadLinkList links={group.links} sourceId={group.sourceId} />
 			</section>
 		{/each}
 	</div>
