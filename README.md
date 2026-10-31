@@ -87,21 +87,34 @@ key and backups in [docs/handbook/database.md](docs/handbook/database.md).
 
 ## Development
 
-`make help` lists all targets; `make image` builds the image `grimoire:latest` from the checkout,
-to try unreleased changes. `make test` runs the unit tests and the component stories,
-`make e2e` the browser tests of the management area against the production build (both download
-Chromium on first use), `make lint` checks formatting, lint rules and types. `make storybook`
-opens the component catalog; [.claude/rules/ui-components.md](.claude/rules/ui-components.md) says
-how components and their stories are written. `make mail-catcher` receives the mails of `make dev`
-(see `app/.env.example`); `make e2e` starts its own. Both need Docker.
+`make help` lists every target. The ones for daily work:
 
-A schema change is a new migration file in `app/src/lib/server/db/migrations/`; released
-migrations are never edited, since they have already run on every installation.
+| Target | Does |
+|---|---|
+| `make setup` | Checks Node, creates `app/.env` with a new `ENCRYPTION_KEY`, installs the dependencies |
+| `make dev` | Dev server at `http://localhost:5173` |
+| `make test` | Unit tests and component stories; `TEST=<file>` runs one file |
+| `make e2e` | Browser tests against the production build with a fresh database; `E2E=<file>` runs one file |
+| `make lint` | Formatting, lint rules and types; `make format` fixes the formatting |
+| `make storybook` | Component catalog at `http://localhost:6006` |
+| `make mail-catcher` | Receives the mails of `make dev` at `http://localhost:8025` (see `app/.env.example`) |
+| `make image` | Builds the image `grimoire:latest` from the checkout |
 
-Commits follow [Conventional Commits](https://www.conventionalcommits.org). Releases are cut from
-them by the `CI` workflow on every push to `main`, once lint, unit and browser tests passed:
-`feat` raises the minor version, `fix` the patch version, other types release nothing. Pull
-requests run the same checks without releasing.
+`make test` and `make e2e` download Chromium on first use. `make e2e`, `make mail-catcher` and
+`make image` need Docker. How components and their stories are written:
+[.claude/rules/ui-components.md](.claude/rules/ui-components.md).
+
+### Schema changes
+
+A schema change is a new migration file in `app/src/lib/server/db/migrations/`. A released
+migration is never edited: it has already run on every installation.
+
+### Commits and releases
+
+Commits follow [Conventional Commits](https://www.conventionalcommits.org). On every push to
+`main`, the `CI` workflow runs lint, unit and browser tests and then cuts a release from the
+commits: `feat` raises the minor version, `fix` the patch version, other types release nothing.
+Pull requests run the same checks without releasing.
 
 ## License
 
