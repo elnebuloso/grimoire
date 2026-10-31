@@ -190,7 +190,7 @@
 	"apikeys_error_valid_until": "Gib das Datum als JJJJ-MM-TT ein.",
 	"apikeys_error_valid_until_past": "Das Datum muss heute oder später sein.",
 	"missed_title": "Abfragen ohne Treffer",
-	"missed_intro": "Suchbegriffe, die Agenten über HTTP oder MCP geschickt haben und die nichts gefunden haben, 30 Tage aufbewahrt. Ein Begriff öffnet sich in Suche ausprobieren.",
+	"missed_intro": "Suchbegriffe, die Agenten über HTTP oder MCP geschickt haben und die nichts gefunden haben, 30 Tage aufbewahrt. Jeder ist ein Thema, das der Dokumentation fehlt oder das sie anders nennt: Ergänze es oder verwende die Wörter, nach denen Agenten suchen. Ein Begriff öffnet sich in Suche ausprobieren.",
 	"missed_none": "Keine Abfrage ohne Treffer in den letzten 30 Tagen.",
 	"missed_count": "Wie oft",
 	"missed_last_asked": "Zuletzt gefragt",

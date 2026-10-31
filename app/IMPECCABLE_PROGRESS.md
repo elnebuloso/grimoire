@@ -33,7 +33,7 @@ How it is measured:
 | `/manage` | 0/0/1/1 | 7.2 | 0/1 | 11 (full re-measure) |
 | `/manage/api-keys` | 0/0/1/0 | 7.3 | 0/0 | 17 |
 | `/manage/dead-links` | 0/0/0/0 | 7.2 | 0/0 | 11 (full re-measure) |
-| `/manage/missed-queries` | 0/0/0/2 | 7.0 | 0/0 | 15 |
+| `/manage/missed-queries` | 0/0/0/2 | 7.3 | 0/0 | 18 |
 | `/manage/query` | 0/0/2/1 | 7.3 | 0/0 | 11 (full re-measure) |
 | `/manage/settings` | 0/0/1/1 | 7.2 | 0/0 | 11 (full re-measure) |
 | `/manage/sources/[id]` | 0/0/0/1 | 6.8 | 0/1 | 11 (full re-measure), **plateau** |
@@ -79,3 +79,4 @@ Notes on iteration 11:
 | 15 | `/manage/missed-queries` | adapt (date may break below 40rem, the table fits 390px) | P0–P2 1→0 | 6.9→7.0 | 0→0 | kept: audit better (stagnation 0) |
 | 16 | `/manage/missed-queries` | polish (short date, zone named in the column head) | – | – | – | discarded before measuring: the head "Last asked (UTC)" does not wrap and pushes the column past the edge at 390px again; area "date column" tried |
 | 17 | `/manage/api-keys` | onboard (lead names the `Authorization: Bearer <key>` header and links to Connect an agent) | P0–P2 1→1 | 7.0→7.3 | 0→0 | kept, no counted improvement (stagnation 2, counting 16) |
+| 18 | `/manage/missed-queries` (+ `PageHead`) | clarify (intro says what to do about a term; lead measure 60ch, about 78 characters, `text-wrap: pretty`) | P0–P2 0→0 | 7.0→7.3 | 1→0 (advisory gone, line-length kept away) | kept: detector better (stagnation 0). The detector ran on every route, since `PageHead` reaches all of them: no new finding anywhere |
