@@ -53,7 +53,7 @@
 		await expect(tokens).toHaveValue(0);
 		await expect(tokens).toHaveAttribute('aria-invalid', 'true');
 		await expect(tokens).toHaveAccessibleDescription(
-			'The token budget must be a positive whole number.'
+			/^The token budget must be a positive whole number\. The most the answer may hold/
 		);
 		await expect(canvas.getByRole('searchbox')).not.toHaveAttribute('aria-invalid');
 		await expect(tokens).toHaveFocus();

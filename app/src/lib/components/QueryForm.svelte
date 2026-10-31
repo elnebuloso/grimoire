@@ -35,8 +35,9 @@
 			{...marked(m.query_error_question())}
 		/>
 		{#if sources.length > 0}
-			<fieldset>
+			<fieldset aria-describedby="query-sources-hint">
 				<legend>{m.query_sources()}</legend>
+				<p class="hint" id="query-sources-hint">{m.query_sources_hint()}</p>
 				<div class="checks">
 					{#each sources as source (source)}
 						<ChoiceField
@@ -56,8 +57,12 @@
 			type="number"
 			min="1"
 			value={values.tokens}
-			{...marked(m.query_error_tokens())}
+			aria-invalid={error === m.query_error_tokens() || undefined}
+			aria-describedby={error === m.query_error_tokens()
+				? 'query-error query-tokens-hint'
+				: 'query-tokens-hint'}
 		/>
+		<p class="hint" id="query-tokens-hint">{m.query_tokens_hint()}</p>
 		<button class="primary">{m.query_submit()}</button>
 	</form>
 
@@ -80,6 +85,15 @@
 		display: flex;
 		flex-wrap: wrap;
 		gap: var(--s2) var(--s5);
+	}
+	/* Under the field or legend it explains, closer than the next field. */
+	.hint {
+		margin-top: calc(var(--s2) * -1);
+		color: var(--ink-2);
+		font-size: 13px;
+	}
+	legend + .hint {
+		margin: 0 0 var(--s2);
 	}
 	.answer {
 		gap: var(--s3);
