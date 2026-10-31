@@ -14,10 +14,6 @@
   <a href="https://github.com/elnebuloso/grimoire/releases">Releases</a>
 </p>
 
-Inspired by [Context7](https://context7.com), which does this for public libraries. grimoire does
-it for the internal knowledge of an organisation: how your services, tools and processes work and
-how to use them.
-
 ## How it works
 
 - **Git is the source of truth.** People and agents write Markdown in Git repositories (GitLab,
@@ -116,3 +112,9 @@ requests run the same checks without releasing.
 ## License
 
 [MIT](LICENSE)
+
+## Acknowledgements
+
+Inspired by [Context7](https://context7.com), which serves the documentation of public libraries
+to AI agents. grimoire does it for the internal knowledge of an organisation: how your services,
+tools and processes work and how to use them.
