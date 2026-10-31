@@ -36,12 +36,16 @@ How it is measured:
 | `/manage/missed-queries` | 0/0/1/0 | 7.5 | 0/0 | baseline |
 | `/manage/query` | 0/0/2/0 | 7.5 | 0/0 | baseline |
 | `/manage/settings` | 0/0/1/1 | 6.9 | 0/0 | 2 |
-| `/manage/sources/[id]` | 0/0/1/1 | 6.8 | 0/1 | baseline |
+| `/manage/sources/[id]` | 0/0/1/2 | 7.0 | 0/1 | 6 |
 
 Baseline: detector and audit targets are met everywhere. Critique: four routes are below 7, and
 the average is 7.52.
 
 ## Iterations
+
+From iteration 6 on, the audit column of this table counts only P0–P2 findings. The reviewers
+change with every run and each finds different P3 nits, so a P3 count measures noise more than the
+page. The table above keeps all four severities.
 
 | # | Route | Command | Audit | Critique | Detector | Result |
 |---|---|---|---|---|---|---|
@@ -49,3 +53,5 @@ the average is 7.52.
 | 2 | `/manage/settings` | clarify (short label, linked hint, paused state as a notice) | 3→2 | 6.7→6.9 | 0→0 | kept (audit better; critique change within noise) |
 | 3 | `/manage/dead-links` | typeset (target on its own line, source quiet, spoken "links to", lead) | 1→1 | 6.7→6.8 | 0→0 | kept, no counted improvement (stagnation 1) |
 | 4 | `/account` | clarify (consequence as lead before the form, way back to Manage) | 2→3 | 6.8→7.3 | 0→0 | kept: critique +0.5; the extra audit entry is the shared mobile header (layout), already counted on every route |
+| 5 | `/manage/sources/[id]` | clarify (candid delete copy, totals as a numbers ledger) | 2→3 | 6.8→6.8 | 1→1 | worse, reverted (e51099b); area "Delete + totals" tried (stagnation 1) |
+| 6 | `/manage/sources/[id]` | adapt (history date range on lines of its own at 390) | P0–P2 1→1 | 6.8→7.0 | 1→1 | kept; the reported P2 is fixed, a different P2 (clipped Error column) takes its place (stagnation 2) |

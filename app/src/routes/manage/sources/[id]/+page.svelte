@@ -254,11 +254,11 @@
 							<tbody>
 								{#each data.status.history as run, index (index)}
 									<tr>
-										<td>
+										<td class="when">
 											{#if run.runs > 1}
-												<DateTime value={run.startedAt} timeZone={data.timeZone} /> –
-												<DateTime value={run.finishedAt} timeZone={data.timeZone} />
-												({m.source_history_runs({ runs: run.runs })})
+												<span><DateTime value={run.startedAt} timeZone={data.timeZone} /> –</span>
+												<span><DateTime value={run.finishedAt} timeZone={data.timeZone} /></span>
+												<span class="runs">({m.source_history_runs({ runs: run.runs })})</span>
 											{:else}
 												<DateTime value={run.finishedAt} timeZone={data.timeZone} />
 											{/if}
@@ -435,6 +435,17 @@
 	}
 	.warnings code {
 		font-size: 13px;
+	}
+	/* A date breaks between its parts, never inside them: a run range is start, end and count on
+	lines of their own instead of one word per line in a narrow column. */
+	.when {
+		white-space: nowrap;
+	}
+	.when span {
+		display: block;
+	}
+	.runs {
+		color: var(--ink-2);
 	}
 	td:has(code[title]),
 	.synced,
