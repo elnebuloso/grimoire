@@ -41,7 +41,8 @@
 			checked={!access.allSources}
 			label={m.apikeys_scope_selected()}
 		/>
-		<div class="sources">
+		<!-- Named after the option it belongs to: a screen reader would otherwise announce bare slugs. -->
+		<fieldset class="sources" aria-label={m.apikeys_scope_selected_sources()}>
 			{#each data.sources as source (source)}
 				<ChoiceField
 					name="sources"
@@ -51,7 +52,7 @@
 					mono
 				/>
 			{/each}
-		</div>
+		</fieldset>
 	</fieldset>
 	<TextField
 		label={m.apikeys_valid_until()}

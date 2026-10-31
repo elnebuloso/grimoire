@@ -69,6 +69,7 @@
 	"apikeys_scope": "Quellen, die der Key lesen darf",
 	"apikeys_scope_all": "Alle Quellen, auch künftige",
 	"apikeys_scope_selected": "Nur diese:",
+	"apikeys_scope_selected_sources": "Nur diese Quellen",
 	"apikeys_submit": "Key anlegen",
 	"apikeys_error_name": "Gib einen Namen ein.",
 	"apikeys_error_scope": "Wähle alle Quellen oder mindestens eine.",

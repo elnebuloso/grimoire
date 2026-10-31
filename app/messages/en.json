@@ -69,6 +69,7 @@
 	"apikeys_scope": "Sources the key may read",
 	"apikeys_scope_all": "All sources, including future ones",
 	"apikeys_scope_selected": "Only these:",
+	"apikeys_scope_selected_sources": "Only these sources",
 	"apikeys_submit": "Create key",
 	"apikeys_error_name": "Enter a name.",
 	"apikeys_error_scope": "Choose all sources or at least one.",
