@@ -118,7 +118,7 @@ describe('sync state of a source', () => {
 	const state = (id = 1) =>
 		db
 			.prepare('SELECT last_commit, last_synced_at, error, failed_commit FROM sources WHERE id = ?')
-			.get(id);
+			.get(id) as Record<string, string | null>;
 
 	it('sets last_synced_at only when an index is swapped in, never on a failure', () => {
 		db.exec(`INSERT INTO sources (id, slug, name, git_url, branch, path)

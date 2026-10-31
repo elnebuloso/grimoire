@@ -1,11 +1,11 @@
 ---
 id: TASK-191
 title: Speed up the test suites along the testing strategy
-status: In Progress
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-30 23:20'
-updated_date: '2026-10-31 01:17'
+updated_date: '2026-10-31 01:29'
 labels: []
 milestone: m-1
 dependencies: []
@@ -22,9 +22,9 @@ Apply what `.claude/rules/testing-strategy.md` measured. The biggest single cost
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 The slowest spec files are profiled and the found waste is removed; every test still fails when the code it covers breaks
-- [ ] #2 The durations in `.claude/rules/testing-strategy.md` are measured again and updated
-- [ ] #3 `make lint`, `make test` and `make e2e` pass
+- [x] #1 The slowest spec files are profiled and the found waste is removed; every test still fails when the code it covers breaks
+- [x] #2 The durations in `.claude/rules/testing-strategy.md` are measured again and updated
+- [x] #3 `make lint`, `make test` and `make e2e` pass
 <!-- AC:END -->
 
 ## Implementation Plan
@@ -48,4 +48,12 @@ Step 2, `chunk.spec.ts`: about 3.3 s -> 0.7 s. `assignAnchors` is exported and i
 Step 3, `migrate.spec.ts`: running the 20 race rounds in parallel batches of 4 cut the test from 6.2 s to 2.8 s, but with the WAL retry in `enableWriteAheadLog` removed it failed in 0 of 8 runs, against 3 of 8 for the sequential version. Reverted; the test stays sequential. Also found: even sequentially it catches a missing WAL retry only in about 40 % of runs, not "almost every run" as its comment says. A deterministic test of the retry would fix both; not done here, needs the user's decision.
 
 Step 4, e2e: `manage.e2e.ts` 17 -> 15 tests, 45 s -> 39 s alone; `make e2e` 54 s -> about 42 s, green twice in a row, each file green alone. The session of the login flow is reused where a test needs an admin but no login (7 logins fewer). Dropped as covered lower: the robots test (new `handleRobots` unit test in `access.spec.ts`, seen failing with the header removed; the 403 test still checks the header end to end), 11 of 15 title pages (PageHead stories cover the composition; one page per kind of title stays), the start-page cells (`SourceStatsTable` stories), the failed create with an unreachable repository (`sources.spec.ts`), the wrong current password (`access.spec.ts`), and the used reset link and old password (`password-reset.spec.ts`). The empty start page and the login link to the setup are one test now. The `missing.git` mapping in `playwright.config.ts` went with its last user. `language.e2e.ts` stays: its fallback is Paraglide's own negotiation through the real server, and the file costs about 3 s.
+
+Step 5: re-measured with the same script as the baseline. `make test` 84 s -> 63 s (server project 45 s -> 32 s), `make e2e` 54 s -> 43 s (a later run took 59 s; e2e times vary with Docker and the machine load). Table in `.claude/rules/testing-strategy.md` updated, and the sync row now points to `sync-logic.spec.ts`. A type error in the new `db/sources.spec.ts` test (svelte-check) fixed. After the last change: `make lint` clean, `make test` 716 passed, `make e2e` 21 passed.
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+The slow tests were profiled and moved down the test pyramid. `sync.spec.ts` keeps the six tests that need real Git, the forked indexer and SQLite (28 s -> 14.5 s alone); the orchestration runs in the new `sync-logic.spec.ts` against the real `sync.ts` with Git and the indexer mocked, pure checks went to `index-source`, `index-pages` and `db/sources` specs. `chunk.spec.ts` tests `assignAnchors` directly instead of through a 20,000-heading page. `manage.e2e.ts` reuses the session of its login flow and leaves to specs and stories what they already check; `handleRobots` has a unit test. Every moved check was first seen failing on a deliberately broken line. `make test` 84 s -> 63 s, `make e2e` 54 s -> 43 s. Not changed: the race test in `migrate.spec.ts` - parallel rounds were faster but stopped catching a missing WAL retry (0 of 8 runs against 3 of 8); even sequentially it catches that only in about 40 % of runs, which a deterministic test would fix. The out-of-memory sync test stays at about 8 s.
+<!-- SECTION:FINAL_SUMMARY:END -->

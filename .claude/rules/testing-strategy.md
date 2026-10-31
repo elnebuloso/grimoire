@@ -10,21 +10,22 @@ Measured in the agent's shell (4 cores):
 
 | Run | Time |
 |---|---|
-| `make lint` (prettier and eslint 38 s, then svelte-check 26 s) | 54 s |
-| `make test`, all 55 specs and 17 story files | 84 s |
-| `make test TEST=--project=server` | 45 s; `sync.spec.ts` is the slowest file, 33 s on its own |
-| `make test TEST=--project=storybook` | 25 s |
-| `make test TEST=<one spec file>` | 8–10 s |
-| `make test TEST="<one spec file> -t '<test name>'"` | 10 s |
+| `make lint` (prettier and eslint 34 s, then svelte-check 25 s) | 57 s |
+| `make test`, all 57 specs and 17 story files | 63 s |
+| `make test TEST=--project=server` | 32 s; `sync.spec.ts` is the slowest file, 14 s on its own |
+| `make test TEST=--project=storybook` | 26 s |
+| `make test TEST=<one spec file>` | 9 s |
+| `make test TEST="<one spec file> -t '<test name>'"` | 9 s |
 | `make test TEST=<one *.stories.svelte>` | 13–20 s |
-| `make test TEST=--changed` | what the changed files reach: nothing changed 8 s, one component (1 story file) 17 s, `src/lib/slug.ts` (11 files) 18 s |
-| `make build` | 20 s |
-| `make e2e`, production build plus all browser tests | 54 s, of which `manage.e2e.ts` takes 35 s |
-| `make e2e E2E=<one *.e2e.ts>` | 22 s for `theme` or `language`, 45 s for `manage`, the build included |
-| `make format` | 7 s; fixes what the prettier part of `make lint` would report |
+| `make test TEST=--changed` | what the changed files reach: nothing changed 9 s, one component (1 story file) 17 s, `src/lib/slug.ts` (11 files) 23 s |
+| `make build` | 18 s |
+| `make e2e`, production build plus all browser tests | 43 s, of which `manage.e2e.ts` takes 22 s |
+| `make e2e E2E=<one *.e2e.ts>` | 19–21 s for `theme` or `language`, 39 s for `manage`, the build included |
+| `make format` | 5 s; fixes what the prettier part of `make lint` would report |
 
-Next slowest spec files after `sync.spec.ts`: `migrate.spec.ts` (20 s within the full run) and
-`chunk.spec.ts` (14 s). Every spec, story and e2e file also passes on its own.
+Next slowest spec files after `sync.spec.ts`: `migrate.spec.ts` (12 s within the full run, a race
+between real processes) and `access.spec.ts` (8 s). Every spec, story and e2e file also passes on
+its own.
 
 ## Pick the run by the change
 
@@ -33,8 +34,9 @@ Next slowest spec files after `sync.spec.ts`: `migrate.spec.ts` (20 s within the
   own runs just that file: name it in `TEST`.
 - **A component or its stories:** `make test TEST=<Component>.stories.svelte`. Look at it in the
   agent environment in light and dark; axe runs in the stories.
-- **A server module with specs:** its spec file, or `--changed`. Leave `src/lib/server/sync/` alone
-  unless the change is there: its spec is the slowest file by far. One failing test:
+- **A server module with specs:** its spec file, or `--changed`. In `src/lib/server/sync/`, run
+  `sync-logic.spec.ts` for what a sync decides and `sync.spec.ts`, the slowest file, only when the
+  change reaches Git, the indexing process or the database it writes. One failing test:
   `make test TEST="<spec file> -t '<test name>'"`.
 - **A page, a load or a form action:** its route spec if there is one, then try it in the agent
   environment with curl or the browser (`.claude/rules/agent-environment.md`). Run the e2e file
