@@ -8,6 +8,9 @@ bun.lockb
 # Miscellaneous
 /static/
 
+# State of the Impeccable design tool, written by its hooks; not source
+/.impeccable/
+
 # inlang writes generated files next to settings.json
 /project.inlang/
 

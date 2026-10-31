@@ -11,6 +11,8 @@ const gitignorePath = path.resolve(import.meta.dirname, '.gitignore');
 
 export default defineConfig(
 	includeIgnoreFile(gitignorePath),
+	// State of the Impeccable design tool, written by its hooks; not source.
+	{ ignores: ['.impeccable/'] },
 	js.configs.recommended,
 	ts.configs.recommended,
 	svelte.configs.recommended,
