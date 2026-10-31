@@ -194,10 +194,12 @@ function collectSnippets(
 	titlePath: string[],
 	file: string,
 	definitions: Map<string, Definition>,
-	out: Snippet[]
+	out: Snippet[],
+	anchorsAbove: string[] = []
 ) {
 	const path = [...titlePath, section.title];
 	const parts = splitAtBlocks(section.nodes);
+	const aliases = [...anchorsAbove, ...section.aliases];
 
 	parts.forEach((part, index) => {
 		const content = stringifyMarkdown({
@@ -206,7 +208,7 @@ function collectSnippets(
 		});
 		out.push({
 			anchor: section.anchor,
-			aliases: section.aliases,
+			aliases,
 			titlePath: path,
 			part: index + 1,
 			parts: parts.length,
@@ -216,9 +218,13 @@ function collectSnippets(
 		});
 	});
 
-	for (const child of section.children) {
-		collectSnippets(child, section.heading ? path : titlePath, file, definitions, out);
-	}
+	// A heading with only subheadings below it has no snippet of its own, but MkDocs renders its
+	// anchor: the first subsection answers to it, so links to it and `read` find that.
+	const passedOn = parts.length === 0 && section.anchor ? [...aliases, section.anchor] : [];
+	section.children.forEach((child, index) => {
+		const childPath = section.heading ? path : titlePath;
+		collectSnippets(child, childPath, file, definitions, out, index === 0 ? passedOn : []);
+	});
 }
 
 // Code blocks, tables and lists are single nodes, so cutting between nodes never splits them.

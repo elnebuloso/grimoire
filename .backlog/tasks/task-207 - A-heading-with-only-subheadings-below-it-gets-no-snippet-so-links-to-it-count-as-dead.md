@@ -3,9 +3,11 @@ id: TASK-207
 title: >-
   A heading with only subheadings below it gets no snippet, so links to it count
   as dead
-status: To Do
-assignee: []
+status: Done
+assignee:
+  - '@claude'
 created_date: '2026-10-31 01:41'
+updated_date: '2026-10-31 01:48'
 labels:
   - parsing
 dependencies: []
@@ -52,9 +54,29 @@ Found in the code audit of 2026-10-31.
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 The anchor of a heading that has subheadings but no content of its own is found by `read` and by `GET /p/<source>/<page>?section=<anchor>`
-- [ ] #2 A link to such an anchor, from the same page or another page of the source, is not reported as dead and is rewritten into a grimoire ID
-- [ ] #3 Nested cases work too: a chain of headings without own content above the first heading with content
-- [ ] #4 Anchors and snippets of pages without such headings stay unchanged
-- [ ] #5 Tests in `app/src/lib/server/parsing/chunk.spec.ts` and `app/src/lib/server/parsing/links.spec.ts` cover the page shape above and fail before the fix
+- [x] #1 The anchor of a heading that has subheadings but no content of its own is found by `read` and by `GET /p/<source>/<page>?section=<anchor>`
+- [x] #2 A link to such an anchor, from the same page or another page of the source, is not reported as dead and is rewritten into a grimoire ID
+- [x] #3 Nested cases work too: a chain of headings without own content above the first heading with content
+- [x] #4 Anchors and snippets of pages without such headings stay unchanged
+- [x] #5 Tests in `app/src/lib/server/parsing/chunk.spec.ts` and `app/src/lib/server/parsing/links.spec.ts` cover the page shape above and fail before the fix
 <!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. collectSnippets in chunk.ts passes the anchor of a section without own content (and the anchors it inherited) to its first child, which takes them as aliases on every part.
+2. Reading (readSnippets), link checking (hasAnchor) and search already honour aliases, so nothing else changes.
+3. Tests: chunk.spec.ts (simple, chain, split first subsection), links.spec.ts (same page and other page), operations.spec.ts (read by the anchor through the database).
+<!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+All new tests failed before the fix. The fixture docs repository has no heading of this shape, so the agent environment could not show it; operations.spec.ts covers read through the database, and GET /p/<source>/<page>?section= calls the same readById. The index operation still lists only snippets, so the empty heading appears there only through the title paths of its subsections; not part of the acceptance criteria.
+<!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+A heading with only subheadings below it now hands its anchor (and those of empty headings above it) to its first subsection as an alias, on every part of that subsection. Links to such an anchor are no longer reported dead and are rewritten into grimoire IDs; read and GET /p/...?section= return the first subsection. Pages without such headings produce the same snippets as before (all 213 tests reached by the change pass). Tests added in chunk.spec.ts, links.spec.ts and operations.spec.ts, all failing before the fix. Not changed: the index operation does not list the empty heading as its own entry.
+<!-- SECTION:FINAL_SUMMARY:END -->

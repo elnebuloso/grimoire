@@ -325,6 +325,17 @@ describe('readById', () => {
 		expect(merged).toContain('Small.');
 	});
 
+	it('returns the first subsection for a heading with only subheadings below it', () => {
+		addSource('setup-docs', {
+			'setup.md': `# Setup\n\n## Install\n\n### Linux\n\n${paragraph(60)}\n\n### macOS\n\n${paragraph(60)}\n`
+		});
+
+		const result = readById(db, parseGrimoireId('setup-docs/setup#install')!, 'all');
+
+		expect(result.found).toBe(true);
+		expect(sourceIds(result.markdown)).toEqual(['setup-docs/setup#linux']);
+	});
+
 	it('reads pages in subdirectories', () => {
 		expect(
 			sourceIds(readById(db, parseGrimoireId('platform-docs/guide/start')!, 'all').markdown)

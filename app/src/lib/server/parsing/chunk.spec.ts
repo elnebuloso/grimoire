@@ -77,6 +77,36 @@ describe('chunkPage', () => {
 		});
 	});
 
+	describe('headings with only subheadings below them', () => {
+		it('gives their anchor to the first subsection as an alias', () => {
+			const page = chunk(
+				`# Setup\n\n## Install\n\n### Linux\n\n${text(100)}\n\n### macOS\n\n${text(100)}\n`
+			);
+			expect(page.snippets.map((s) => [s.anchor, s.aliases])).toEqual([
+				['linux', ['install']],
+				['macos', []]
+			]);
+		});
+
+		it('passes the anchors of a chain of them on to the first heading with content', () => {
+			const page = chunk(
+				`# Setup\n\n## Install\n\n### Linux\n\n#### Debian\n\n${text(100)}\n\n${'#### Arch'}\n\n${text(100)}\n`
+			);
+			expect(page.snippets.map((s) => [s.anchor, s.aliases])).toEqual([
+				['debian', ['install', 'linux']],
+				['arch', []]
+			]);
+		});
+
+		it('gives the alias to every part of a split first subsection', () => {
+			const page = chunk(`# Setup\n\n## Install\n\n### Linux\n\n${text(600)}\n\n${text(600)}\n`);
+			expect(page.snippets.map((s) => [s.anchor, s.part, s.aliases])).toEqual([
+				['linux', 1, ['install']],
+				['linux', 2, ['install']]
+			]);
+		});
+	});
+
 	describe('large sections', () => {
 		it('splits at paragraph boundaries and numbers the parts', () => {
 			const page = chunk(`# Guide\n\n## Long\n\n${text(500)}\n\n${text(500)}\n`);

@@ -67,6 +67,20 @@ describe('resolveLinks', () => {
 		expect(result.links.map((link) => link.dead)).toEqual([false, false]);
 	});
 
+	it('accepts the anchor of a heading with only subheadings below it, from any page', () => {
+		const setupPage = `# Setup\n\n[up](#install) ${text(60)}\n\n## Install\n\n### Linux\n\n${text(100)}\n\n### macOS\n\n${text(100)}\n`;
+		const result = resolve({
+			'setup.md': setupPage,
+			'index.md': '# Home\n\n[install](setup.md#install)\n'
+		});
+		expect(contentOf(result, 'index.md')).toBe('[install](grimoire:setup#install)\n');
+		expect(contentOf(result, 'setup.md')).toContain('[up](grimoire:setup#install)');
+		expect(result.links.map(({ target, dead }) => [target, dead])).toEqual([
+			['setup#install', false],
+			['setup#install', false]
+		]);
+	});
+
 	it('records missing files, missing anchors and paths leaving the source as dead, text unchanged', () => {
 		const source = '# Home\n\n[a](missing.md#x) [b](deploy.md#nope) [c](../other/page.md)\n';
 		const result = resolve({ 'deploy.md': deployPage, 'index.md': source });
