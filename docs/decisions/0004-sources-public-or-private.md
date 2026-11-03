@@ -6,6 +6,7 @@
 | Date | 2026-10-30 |
 | Deciders | Projectowner |
 | Covers | How documentation is organised into sources and who may read each one, with and without an API key |
+| Superseded by | 0007, for who may read a source |
 
 ## Context
 

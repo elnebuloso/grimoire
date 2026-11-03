@@ -1,9 +1,11 @@
 ---
 id: TASK-221
 title: 'ADR: users own sources and keys, sources are private, internal or public'
-status: To Do
-assignee: []
+status: Done
+assignee:
+  - '@claude'
 created_date: '2026-11-03 00:29'
+updated_date: '2026-11-03 00:32'
 labels:
   - admin
 milestone: m-2
@@ -24,8 +26,14 @@ Until now only admins exist: API keys belong to the instance, and ADR 0004 makes
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 A new ADR records owners of sources and keys, the three visibility levels and who may read, list, change and delete a source
-- [ ] #2 It states that admin keys do not read other users' private sources, with the reasoning, and names "admin keys read everything" as a rejected alternative
-- [ ] #3 ADR 0004 carries a `Superseded by` line pointing to the new ADR
-- [ ] #4 The new ADR follows the ADR rules (metadata table, no project-internal names) and stays `Proposed` until the user accepts it
+- [x] #1 A new ADR records owners of sources and keys, the three visibility levels and who may read, list, change and delete a source
+- [x] #2 It states that admin keys do not read other users' private sources, with the reasoning, and names "admin keys read everything" as a rejected alternative
+- [x] #3 ADR 0004 carries a `Superseded by` line pointing to the new ADR
+- [x] #4 The new ADR follows the ADR rules (metadata table, no project-internal names) and stays `Proposed` until the user accepts it
 <!-- AC:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Added docs/decisions/0007-users-own-sources-and-keys.md (Proposed): owners for sources and keys, private/internal/public, admin keys follow the same rule, deletion hands sources to the deleting admin. ADR 0004 gains a 'Superseded by' row for who may read a source; its decision that sources are the only unit stays.
+<!-- SECTION:FINAL_SUMMARY:END -->
