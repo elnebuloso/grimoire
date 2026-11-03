@@ -19,7 +19,7 @@
 		{ route: '/manage/dead-links', href: resolve('/manage/dead-links'), label: m.dead_links() },
 		...(page.data.user?.isAdmin
 			? [
-					{ route: '/manage/api-keys', href: resolve('/manage/api-keys'), label: m.api_keys() },
+					{ route: '/manage/api-keys', href: resolve('/manage/api-keys'), label: m.api_keys_all() },
 					{
 						route: '/manage/settings',
 						href: resolve('/manage/settings'),
@@ -27,6 +27,7 @@
 					}
 				]
 			: []),
+		{ route: '/account/api-keys', href: resolve('/account/api-keys'), label: m.api_keys_own() },
 		{ route: '/account', href: resolve('/account'), label: m.password_title() }
 	]);
 
@@ -43,7 +44,7 @@
 <nav aria-label={m.manage_nav()}>
 	<ul>
 		{#each links as link (link.href)}
-			<li class:apart={link.route === '/account'}>
+			<li class:apart={link.route === '/account/api-keys'}>
 				<a href={link.href} aria-current={current(link.route)}>{link.label}</a>
 			</li>
 		{/each}

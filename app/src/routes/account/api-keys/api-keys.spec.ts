@@ -1,0 +1,357 @@
+import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest';
+import type { DatabaseSync } from 'node:sqlite';
+import { openDatabase } from '#lib/server/db/schema.js';
+import { isHttpError } from '@sveltejs/kit';
+import { listApiKeys, revokeApiKey, scopeForKey } from '#lib/server/api-keys.js';
+import * as page from './+page.server';
+
+let db: DatabaseSync;
+
+vi.mock('#lib/server/db/index.js', () => ({ database: () => db }));
+vi.mock('$app/env/private', () => ({ TZ: 'UTC' }));
+
+const WRITER = { id: 1, email: 'writer@example.com', roles: [] };
+const OTHER = { id: 2, email: 'ops@example.com', roles: [] };
+const CLOCK = { now: new Date('2026-10-30T12:00:00.000Z'), today: '2026-10-30' };
+
+function formRequest(fields: [string, string][]) {
+	return new Request('https://grimoire.example/account/api-keys', {
+		method: 'POST',
+		body: new URLSearchParams(fields)
+	});
+}
+
+async function create(fields: [string, string][], user = WRITER) {
+	return page.actions.create({ request: formRequest(fields), locals: { user } } as never);
+}
+
+beforeEach(() => {
+	vi.useFakeTimers({ toFake: ['Date'] });
+	vi.setSystemTime(CLOCK.now);
+	db = openDatabase(':memory:');
+	db.exec(`INSERT INTO users (id, email, password_hash) VALUES
+		(1, 'writer@example.com', 'hash'), (2, 'ops@example.com', 'hash')`);
+	db.exec(`INSERT INTO sources (slug, name, git_url, branch, path, visibility) VALUES
+		('billing-docs', 'Billing docs', 'https://git.example/x.git', 'main', 'docs/', 'internal'),
+		('platform-docs', 'Platform docs', 'https://git.example/x.git', 'main', 'docs/', 'internal')`);
+});
+
+afterEach(() => {
+	vi.useRealTimers();
+});
+
+describe('create', () => {
+	it('returns the key once, scoped to the selected sources, and lists it without the key', async () => {
+		const result = (await create([
+			['name', ' ci '],
+			['scope', 'selected'],
+			['sources', 'platform-docs']
+		])) as { created: { name: string; key: string } };
+
+		expect(result.created.name).toBe('ci');
+		expect(scopeForKey(db, result.created.key, CLOCK)).toEqual({ scope: ['platform-docs'] });
+		const data = page.load({ locals: { user: WRITER } } as never);
+		expect(data).toMatchObject({
+			keys: [{ name: 'ci', sources: ['platform-docs'] }],
+			sources: ['billing-docs', 'platform-docs']
+		});
+		expect(JSON.stringify(data)).not.toContain(result.created.key);
+	});
+
+	it('creates a key for all sources', async () => {
+		const result = (await create([
+			['name', 'agent'],
+			['scope', 'all'],
+			['sources', 'platform-docs']
+		])) as { created: { key: string } };
+
+		expect(scopeForKey(db, result.created.key, CLOCK)).toEqual({
+			scope: ['billing-docs', 'platform-docs']
+		});
+	});
+
+	it('creates a key valid until a date, shown as expired once the date has passed', async () => {
+		await create([
+			['name', 'trial'],
+			['scope', 'all'],
+			['validUntil', '2026-10-30']
+		]);
+		expect(page.load({ locals: { user: WRITER } } as never)).toMatchObject({
+			keys: [{ name: 'trial', validUntil: '2026-10-30', expired: false, lastUsedAt: null }],
+			today: '2026-10-30'
+		});
+
+		vi.setSystemTime(new Date('2026-10-31T00:00:00.000Z'));
+		expect(page.load({ locals: { user: WRITER } } as never)).toMatchObject({
+			keys: [{ expired: true }]
+		});
+	});
+
+	it('accepts 29 February of a leap year', async () => {
+		await create([
+			['name', 'leap'],
+			['scope', 'all'],
+			['validUntil', '2028-02-29']
+		]);
+
+		expect(listApiKeys(db)).toMatchObject([{ name: 'leap', validUntil: '2028-02-29' }]);
+	});
+
+	it.each([
+		[
+			[
+				['name', ' '],
+				['scope', 'all']
+			],
+			'Enter a name.'
+		],
+		[
+			[
+				['name', 'ci'],
+				['scope', 'selected']
+			],
+			'Choose all sources or at least one.'
+		],
+		[
+			[
+				['name', 'ci'],
+				['scope', 'selected'],
+				['sources', 'gone']
+			],
+			'A selected source no longer exists or you may no longer read it.'
+		],
+		[
+			[
+				['name', 'ci'],
+				['scope', 'all'],
+				['validUntil', '30.11.2026']
+			],
+			'Enter the date as YYYY-MM-DD.'
+		],
+		[
+			[
+				['name', 'ci'],
+				['scope', 'all'],
+				['validUntil', '2027-02-31']
+			],
+			'Enter the date as YYYY-MM-DD.'
+		],
+		[
+			[
+				['name', 'ci'],
+				['scope', 'all'],
+				['validUntil', '2027-02-29']
+			],
+			'Enter the date as YYYY-MM-DD.'
+		],
+		[
+			[
+				['name', 'ci'],
+				['scope', 'all'],
+				['validUntil', '2026-13-01']
+			],
+			'Enter the date as YYYY-MM-DD.'
+		],
+		[
+			[
+				['name', 'ci'],
+				['scope', 'all'],
+				['validUntil', '2026-10-29']
+			],
+			'The date must be today or later.'
+		]
+	] as [[string, string][], string][])(
+		'rejects %j with "%s" and stores nothing',
+		async (fields, error) => {
+			expect(await create(fields)).toMatchObject({ status: 400, data: { error } });
+			expect(db.prepare('SELECT count(*) AS n FROM api_keys').get()).toEqual({ n: 0 });
+		}
+	);
+});
+
+describe('revoke', () => {
+	it('deletes the key, so it is rejected from then on', async () => {
+		const { created } = (await create([
+			['name', 'ci'],
+			['scope', 'all']
+		])) as { created: { key: string } };
+		const [{ id }] = listApiKeys(db);
+
+		await page.actions.revoke({
+			request: formRequest([['id', String(id)]]),
+			locals: { user: WRITER }
+		} as never);
+
+		expect(scopeForKey(db, created.key, CLOCK)).toBeUndefined();
+		expect(listApiKeys(db)).toEqual([]);
+	});
+});
+
+describe('update', () => {
+	async function update(fields: [string, string][], user = WRITER) {
+		return page.actions.update({ request: formRequest(fields), locals: { user } } as never);
+	}
+
+	it('changes scope and expiry of a key that keeps working', async () => {
+		const { created } = (await create([
+			['name', 'ci'],
+			['scope', 'all']
+		])) as { created: { key: string } };
+		const [{ id }] = listApiKeys(db);
+
+		expect(
+			await update([
+				['id', String(id)],
+				['scope', 'selected'],
+				['sources', 'billing-docs'],
+				['validUntil', '2026-12-31']
+			])
+		).toEqual({ updated: id });
+
+		expect(scopeForKey(db, created.key, CLOCK)).toEqual({ scope: ['billing-docs'] });
+		expect(listApiKeys(db)[0].validUntil).toBe('2026-12-31');
+
+		await update([
+			['id', String(id)],
+			['scope', 'all'],
+			['validUntil', '']
+		]);
+		expect(listApiKeys(db)[0]).toMatchObject({ sources: 'all', validUntil: null });
+	});
+
+	it('rejects an invalid change for that key and keeps what the form sent', async () => {
+		await create([
+			['name', 'ci'],
+			['scope', 'all']
+		]);
+		const [{ id }] = listApiKeys(db);
+
+		expect(
+			await update([
+				['id', String(id)],
+				['scope', 'selected']
+			])
+		).toMatchObject({
+			status: 400,
+			data: {
+				update: {
+					id,
+					error: 'Choose all sources or at least one.',
+					values: { allSources: false, sources: [], validUntil: '' }
+				}
+			}
+		});
+		expect(
+			await update([
+				['id', String(id)],
+				['scope', 'selected'],
+				['sources', 'gone']
+			])
+		).toMatchObject({
+			status: 400,
+			data: {
+				update: { error: 'A selected source no longer exists or you may no longer read it.' }
+			}
+		});
+		expect(listApiKeys(db)[0].sources).toBe('all');
+	});
+
+	it('answers 404 for a key that no longer exists, and changes nothing', async () => {
+		await create([
+			['name', 'ci'],
+			['scope', 'all']
+		]);
+		const [{ id }] = listApiKeys(db);
+		revokeApiKey(db, id);
+
+		// The revoked id, one that is not a number, and none at all.
+		for (const idFields of [[['id', String(id)]], [['id', 'x']], []] as [string, string][][]) {
+			const thrown = await update([
+				...idFields,
+				['scope', 'selected'],
+				['sources', 'billing-docs']
+			]).catch((error: unknown) => error);
+			expect(isHttpError(thrown, 404)).toBe(true);
+		}
+		expect(db.prepare('SELECT count(*) AS n FROM api_key_sources').get()).toEqual({ n: 0 });
+	});
+});
+
+describe('a broken database', () => {
+	it('is not reported as a deleted source', async () => {
+		db.close();
+
+		await expect(
+			create([
+				['name', 'ci'],
+				['scope', 'all']
+			])
+		).rejects.toThrow();
+		await expect(
+			page.actions.update({
+				request: formRequest([
+					['id', '1'],
+					['scope', 'all']
+				]),
+				locals: { user: WRITER }
+			} as never)
+		).rejects.toThrow();
+	});
+});
+
+describe('keys of other users', () => {
+	it("are neither listed, changed nor revoked, and another user's private source is not offered", async () => {
+		db.exec(`INSERT INTO sources (slug, name, git_url, branch, path, owner_id)
+			VALUES ('ops-runbooks', 'Runbooks', 'https://git.example/r.git', 'main', 'docs/', 2)`);
+		await create([
+			['name', 'ci'],
+			['scope', 'all']
+		]);
+		const [{ id }] = listApiKeys(db);
+		const asOther = { locals: { user: OTHER } };
+
+		expect(page.load(asOther as never)).toMatchObject({
+			keys: [],
+			sources: ['billing-docs', 'ops-runbooks', 'platform-docs']
+		});
+		expect(page.load({ locals: { user: WRITER } } as never)).toMatchObject({
+			sources: ['billing-docs', 'platform-docs']
+		});
+		const changed = await thrownStatus(() =>
+			page.actions.update({
+				request: formRequest([
+					['id', String(id)],
+					['scope', 'selected'],
+					['sources', 'billing-docs']
+				]),
+				...asOther
+			} as never)
+		);
+		expect(changed).toBe(404);
+		await page.actions.revoke({ request: formRequest([['id', String(id)]]), ...asOther } as never);
+		expect(listApiKeys(db)).toMatchObject([{ id, sources: 'all' }]);
+	});
+
+	it("refuses another user's private source in a new key", async () => {
+		db.exec(`INSERT INTO sources (slug, name, git_url, branch, path, owner_id)
+			VALUES ('ops-runbooks', 'Runbooks', 'https://git.example/r.git', 'main', 'docs/', 2)`);
+		expect(
+			await create([
+				['name', 'ci'],
+				['scope', 'selected'],
+				['sources', 'ops-runbooks']
+			])
+		).toMatchObject({ status: 400 });
+		expect(listApiKeys(db)).toEqual([]);
+	});
+});
+
+async function thrownStatus(run: () => unknown): Promise<number | undefined> {
+	try {
+		await run();
+	} catch (error) {
+		if (isHttpError(error)) return error.status;
+		throw error;
+	}
+	return undefined;
+}

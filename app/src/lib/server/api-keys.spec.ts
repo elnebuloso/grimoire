@@ -15,6 +15,7 @@ import {
 let db: DatabaseSync;
 
 const ALL = ['billing-docs', 'platform-docs', 'search-docs'];
+const OWNER = 1;
 
 const CLOCK = { now: new Date('2026-10-30T12:00:00.000Z'), today: '2026-10-30' };
 
@@ -28,6 +29,9 @@ function lastUsed(id: number) {
 
 beforeEach(() => {
 	db = openDatabase(':memory:');
+	db.prepare(
+		"INSERT INTO users (id, email, password_hash) VALUES (1, 'owner@example.com', 'hash')"
+	).run();
 	for (const slug of ['billing-docs', 'platform-docs', 'search-docs']) {
 		db.prepare(
 			"INSERT INTO sources (slug, name, git_url, branch, path, visibility) VALUES (?, 'Docs', 'https://git.example/x.git', 'main', 'docs/', 'internal')"
@@ -35,11 +39,61 @@ beforeEach(() => {
 	}
 });
 
-function newKey(...args: Parameters<typeof createApiKey>) {
-	const created = createApiKey(...args);
+// Keys belong to the first user unless a test names another owner, or none.
+function newKey(
+	...[database, name, sources, validUntil = null, ownerId = OWNER]: Parameters<typeof createApiKey>
+) {
+	const created = createApiKey(database, name, sources, validUntil, ownerId);
 	if ('error' in created) throw new Error(created.error);
 	return created;
 }
+
+describe('keys of several users', () => {
+	let other: number;
+
+	beforeEach(() => {
+		other = Number(
+			db
+				.prepare("INSERT INTO users (email, password_hash) VALUES ('ops@example.com', 'hash')")
+				.run().lastInsertRowid
+		);
+	});
+
+	it("lists only the owner's keys when asked for an owner, with the owner of each", () => {
+		newKey(db, 'laptop', 'all');
+		newKey(db, 'ci', 'all', null, other);
+		expect(listApiKeys(db, other).map((key) => [key.name, key.owner])).toEqual([
+			['ci', 'ops@example.com']
+		]);
+		expect(listApiKeys(db).map((key) => key.owner)).toEqual([
+			'ops@example.com',
+			'owner@example.com'
+		]);
+	});
+
+	it("neither changes nor revokes another user's key, but revokes any key without an owner given", () => {
+		const { id } = newKey(db, 'laptop', 'all');
+		expect(updateApiKey(db, id, ['billing-docs'], null, other)).toEqual({ error: 'unknown-key' });
+		revokeApiKey(db, id, other);
+		expect(listApiKeys(db)).toHaveLength(1);
+		revokeApiKey(db, id);
+		expect(listApiKeys(db)).toEqual([]);
+	});
+
+	it("refuses another user's private source in a selection", () => {
+		db.prepare(
+			"UPDATE sources SET visibility = 'private', owner_id = ? WHERE slug = 'search-docs'"
+		).run(other);
+		expect(createApiKey(db, 'laptop', ['search-docs'], null, OWNER)).toEqual({
+			error: 'unknown-source'
+		});
+		const { id } = newKey(db, 'laptop', ['billing-docs']);
+		expect(updateApiKey(db, id, ['search-docs'], null, OWNER)).toEqual({
+			error: 'unknown-source'
+		});
+		expect(newKey(db, 'ops', ['search-docs'], null, other).key).toMatch(/^grimoire_/);
+	});
+});
 
 describe('createApiKey', () => {
 	it('belongs to the user who creates it', () => {
@@ -101,8 +155,9 @@ describe('scopeForKey by visibility', () => {
 
 	it("never reads another user's private source, not with an admin's key either", () => {
 		expect(scopeOf(admin)).toEqual(['billing-docs', 'platform-docs']);
-		expect(scopeOf(admin, ['search-docs'])).toEqual([]);
-		expect(listVisibleSources(db, scopeOf(admin, ['search-docs'])).markdown).toBe('- billing-docs');
+		expect(createApiKey(db, 'admin', ['search-docs'], null, admin)).toEqual({
+			error: 'unknown-source'
+		});
 	});
 
 	it('reads no private source with a key that belongs to nobody', () => {
@@ -170,6 +225,7 @@ describe('listApiKeys', () => {
 			'id',
 			'lastUsedAt',
 			'name',
+			'owner',
 			'sources',
 			'validUntil'
 		]);
@@ -245,11 +301,11 @@ describe('updateApiKey', () => {
 	it('changes scope and expiry while the same key keeps working', () => {
 		const { id, key } = newKey(db, 'ci', ['billing-docs'], '2026-10-31');
 
-		updateApiKey(db, id, ['platform-docs', 'search-docs'], null);
+		updateApiKey(db, id, ['platform-docs', 'search-docs'], null, OWNER);
 		expect(scopeForKey(db, key, CLOCK)).toEqual({ scope: ['platform-docs', 'search-docs'] });
 		expect(listApiKeys(db)[0].validUntil).toBeNull();
 
-		updateApiKey(db, id, 'all', '2026-10-29');
+		updateApiKey(db, id, 'all', '2026-10-29', OWNER);
 		expect(listApiKeys(db)[0].sources).toBe('all');
 		expect(scopeForKey(db, key, CLOCK)).toBeUndefined();
 		expect(db.prepare('SELECT count(*) AS n FROM api_key_sources').get()).toEqual({ n: 0 });
@@ -258,14 +314,16 @@ describe('updateApiKey', () => {
 	it('narrows a key for all sources to a selection', () => {
 		const { id, key } = newKey(db, 'ci', 'all');
 
-		updateApiKey(db, id, ['billing-docs'], null);
+		updateApiKey(db, id, ['billing-docs'], null, OWNER);
 		expect(scopeForKey(db, key, CLOCK)).toEqual({ scope: ['billing-docs'] });
 	});
 
 	it('changes nothing when a source does not exist', () => {
 		const { id, key } = newKey(db, 'ci', ['billing-docs']);
 
-		expect(updateApiKey(db, id, ['nope'], '2026-12-31')).toEqual({ error: 'unknown-source' });
+		expect(updateApiKey(db, id, ['nope'], '2026-12-31', OWNER)).toEqual({
+			error: 'unknown-source'
+		});
 		expect(scopeForKey(db, key, CLOCK)).toEqual({ scope: ['billing-docs'] });
 		expect(listApiKeys(db)[0].validUntil).toBeNull();
 	});
@@ -274,7 +332,7 @@ describe('updateApiKey', () => {
 		const { id } = newKey(db, 'ci', 'all');
 		revokeApiKey(db, id);
 
-		expect(updateApiKey(db, id, ['billing-docs'], null)).toEqual({ error: 'unknown-key' });
+		expect(updateApiKey(db, id, ['billing-docs'], null, OWNER)).toEqual({ error: 'unknown-key' });
 		expect(db.prepare('SELECT count(*) AS n FROM api_key_sources').get()).toEqual({ n: 0 });
 	});
 });

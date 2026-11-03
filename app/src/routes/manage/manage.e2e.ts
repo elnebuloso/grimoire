@@ -184,7 +184,12 @@ test('keeps a tested token that is not saved yet when syncing now', async ({ pag
 	expect(await page.content()).not.toContain(rotated);
 });
 
-test('lists the sources on the public start page without their settings', async ({ page }) => {
+test('lists a private source on the start page to its owner only, without its settings', async ({
+	page
+}) => {
+	await page.goto('/');
+	await expect(page.getByRole('row', { name: /auth-service/ })).toHaveCount(0);
+	await asAdmin(page);
 	await page.goto('/');
 	await expect(page.getByRole('row', { name: /auth-service/ })).toContainText('Login and billing');
 	// Synced once without success: its error message stays hidden, like the settings.
@@ -258,7 +263,7 @@ test('leads through the management area with one navigation that marks the curre
 	await expect(navigation.getByRole('link', { name: 'Overview' })).not.toHaveAttribute(
 		'aria-current'
 	);
-	await navigation.getByRole('link', { name: 'API keys' }).click();
+	await navigation.getByRole('link', { name: 'All API keys' }).click();
 	await expect(page).toHaveURL('/manage/api-keys');
 	await navigation.getByRole('link', { name: 'Dead links' }).click();
 	await expect(page).toHaveURL('/manage/dead-links');
@@ -310,7 +315,7 @@ test('shows the error page in the layout to a user without the role and on a fin
 	await expect(page).toHaveTitle('Page not found – grimoire');
 
 	await logIn(page, PASSWORD, editor);
-	await expect(page).toHaveURL('/');
+	await expect(page).toHaveURL('/manage');
 	const forbidden = await page.goto('/manage/settings');
 	expect(forbidden?.status()).toBe(403);
 	expect(forbidden?.headers()['x-robots-tag']).toBe('noindex, nofollow');
@@ -325,7 +330,7 @@ test('creates an API key that works for its source until it is revoked', async (
 	request
 }) => {
 	await asAdmin(page);
-	await page.getByRole('link', { name: 'API keys' }).click();
+	await page.getByRole('link', { name: 'My API keys' }).click();
 	await page.getByLabel('Name').fill('ci');
 	await page.getByLabel('Only these:').check();
 	await page.getByRole('button', { name: 'Create key' }).click();
@@ -341,6 +346,8 @@ test('creates an API key that works for its source until it is revoked', async (
 	expect(await (await sources()).text()).toBe('- auth-service: Login and billing');
 
 	await page.goto('/manage/api-keys');
+	await expect(page.getByRole('row', { name: /ci/ })).toContainText(EMAIL);
+	await page.goto('/account/api-keys');
 	expect(await page.content()).not.toContain(key!);
 	const keyEntry = page
 		.getByRole('listitem')

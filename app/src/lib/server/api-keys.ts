@@ -21,6 +21,8 @@ export type SourceScope = KeyScope | 'public';
 export interface ApiKey {
 	id: number;
 	name: string;
+	/** The email address of the owner; null for a key that belongs to nobody. */
+	owner: string | null;
 	createdAt: string;
 	/** Null for a key that never authenticated a request. */
 	lastUsedAt: string | null;
@@ -50,7 +52,7 @@ export type ApiKeyRefusal = { error: 'unknown-source' } | { error: 'unknown-key'
 /**
  * Creates a key for all sources or a selection of source slugs, accepted through `validUntil`
  * when given, owned by `ownerId`. The returned key is the only copy: the database keeps just its
- * hash. An unknown source stores nothing.
+ * hash. A source that does not exist or that the owner may not read stores nothing.
  */
 export function createApiKey(
 	db: DatabaseSync,
@@ -61,7 +63,7 @@ export function createApiKey(
 ): { id: number; key: string } | { error: 'unknown-source' } {
 	const key = KEY_PREFIX + randomBytes(KEY_BYTES).toString('base64url');
 	return inTransaction(db, () => {
-		const sourceIds = findSourceIds(db, sources);
+		const sourceIds = findSourceIds(db, sources, ownerId);
 		if (!sourceIds) return { error: 'unknown-source' };
 		const id = Number(
 			db
@@ -76,36 +78,51 @@ export function createApiKey(
 }
 
 /**
- * Changes the sources a key sees and how long it is accepted; the key itself stays the same.
- * An unknown source or key changes nothing.
+ * Changes the sources a key of `ownerId` sees and how long it is accepted; the key itself stays
+ * the same. A key of someone else counts as unknown; an unknown key or source changes nothing.
  */
 export function updateApiKey(
 	db: DatabaseSync,
 	id: number,
 	sources: KeyScope,
-	validUntil: string | null
+	validUntil: string | null,
+	ownerId: number
 ): { id: number } | ApiKeyRefusal {
 	return inTransaction(db, () => {
-		const sourceIds = findSourceIds(db, sources);
+		const owned = db
+			.prepare('SELECT 1 FROM api_keys WHERE id = ? AND owner_id = ?')
+			.get(id, ownerId);
+		if (!owned) return { error: 'unknown-key' };
+		const sourceIds = findSourceIds(db, sources, ownerId);
 		if (!sourceIds) return { error: 'unknown-source' };
 		// The old selection goes first: the schema refuses a key for all sources that still has one.
 		db.prepare('DELETE FROM api_key_sources WHERE api_key_id = ?').run(id);
-		const { changes } = db
-			.prepare('UPDATE api_keys SET all_sources = ?, valid_until = ? WHERE id = ?')
-			.run(sources === 'all' ? 1 : 0, validUntil, id);
-		if (changes === 0) return { error: 'unknown-key' };
+		db.prepare('UPDATE api_keys SET all_sources = ?, valid_until = ? WHERE id = ?').run(
+			sources === 'all' ? 1 : 0,
+			validUntil,
+			id
+		);
 		insertScope(db, id, sourceIds);
 		return { id };
 	});
 }
 
-/** The IDs of the selected sources, none for all sources, undefined if a slug is unknown. */
-function findSourceIds(db: DatabaseSync, sources: KeyScope): number[] | undefined {
+/**
+ * The IDs of the selected sources, none for all sources, undefined if a slug is unknown or names
+ * a private source of someone other than `ownerId`.
+ */
+function findSourceIds(
+	db: DatabaseSync,
+	sources: KeyScope,
+	ownerId: number | null
+): number[] | undefined {
 	if (sources === 'all') return [];
-	const findSource = db.prepare('SELECT id FROM sources WHERE slug = ?');
+	const findSource = db.prepare(
+		"SELECT id FROM sources WHERE slug = ? AND (visibility <> 'private' OR owner_id = ?)"
+	);
 	const ids: number[] = [];
 	for (const slug of sources) {
-		const source = findSource.get(slug) as { id: number } | undefined;
+		const source = findSource.get(slug, ownerId) as { id: number } | undefined;
 		if (!source) return undefined;
 		ids.push(source.id);
 	}
@@ -119,23 +136,26 @@ function insertScope(db: DatabaseSync, id: number, sourceIds: number[]) {
 	for (const sourceId of sourceIds) insertSource.run(id, sourceId);
 }
 
-/** All keys with their scope; neither the key nor its hash. */
-export function listApiKeys(db: DatabaseSync): ApiKey[] {
+/** The keys of `ownerId`, or every key, with their scope and owner; neither the key nor its hash. */
+export function listApiKeys(db: DatabaseSync, ownerId?: number): ApiKey[] {
 	const rows = db
 		.prepare(
-			`SELECT api_keys.id, api_keys.name, api_keys.created_at AS createdAt,
+			`SELECT api_keys.id, api_keys.name, users.email AS owner, api_keys.created_at AS createdAt,
 				api_keys.last_used_at AS lastUsedAt, api_keys.valid_until AS validUntil,
 				api_keys.all_sources,
 				json_group_array(sources.slug) FILTER (WHERE sources.slug IS NOT NULL) AS slugs
 			FROM api_keys
+			LEFT JOIN users ON users.id = api_keys.owner_id
 			LEFT JOIN api_key_sources ON api_key_sources.api_key_id = api_keys.id
 			LEFT JOIN sources ON sources.id = api_key_sources.source_id
+			WHERE :owner IS NULL OR api_keys.owner_id = :owner
 			GROUP BY api_keys.id
 			ORDER BY api_keys.name, api_keys.id`
 		)
-		.all() as {
+		.all({ owner: ownerId ?? null }) as {
 		id: number;
 		name: string;
+		owner: string | null;
 		createdAt: string;
 		lastUsedAt: string | null;
 		validUntil: string | null;
@@ -145,6 +165,7 @@ export function listApiKeys(db: DatabaseSync): ApiKey[] {
 	return rows.map((row) => ({
 		id: row.id,
 		name: row.name,
+		owner: row.owner,
 		createdAt: row.createdAt,
 		lastUsedAt: row.lastUsedAt,
 		validUntil: row.validUntil,
@@ -152,9 +173,15 @@ export function listApiKeys(db: DatabaseSync): ApiKey[] {
 	}));
 }
 
-/** Deletes a key; nothing caches keys, so the next request with it is rejected. */
-export function revokeApiKey(db: DatabaseSync, id: number) {
-	db.prepare('DELETE FROM api_keys WHERE id = ?').run(id);
+/**
+ * Deletes a key, only one of `ownerId` when given; nothing caches keys, so the next request with
+ * it is rejected.
+ */
+export function revokeApiKey(db: DatabaseSync, id: number, ownerId?: number) {
+	db.prepare('DELETE FROM api_keys WHERE id = :id AND (:owner IS NULL OR owner_id = :owner)').run({
+		id,
+		owner: ownerId ?? null
+	});
 }
 
 /**
