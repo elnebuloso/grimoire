@@ -48,7 +48,8 @@ claude mcp add --transport http --scope user grimoire https://grimoire.example.c
 it to the current project only.
 
 The start page `/` of the instance shows this command with its address and server name filled in,
-and, once a source is public, **Try a query** answers what an agent without a key gets.
+and **Try a query** answers what an agent gets: without logging in from the public sources,
+logged in from what an API key of yours reads.
 
 The server sends its instructions on connect: when to search, how to read on, how to change
 documentation. An agent connected over MCP needs nothing about grimoire in its `CLAUDE.md`.

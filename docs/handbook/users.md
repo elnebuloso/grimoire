@@ -46,7 +46,7 @@ everyone, internal ones and your own private ones once you are logged in.
   **Needs attention**.
 - **Dead links** lists those of your own sources.
 - **Queries without results** lists questions that named one of your own sources.
-- **Try a query** searches what your API keys would read.
+- **Try a query** on the start page searches every source your API keys would read.
 
 ## API keys
 

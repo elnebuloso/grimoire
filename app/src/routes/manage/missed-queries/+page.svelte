@@ -8,11 +8,8 @@
 
 	let { data }: PageProps = $props();
 
-	const tryQuery = (question: string, sources: string[] | null) =>
-		new URLSearchParams([
-			['q', question],
-			...(sources ?? []).map((source) => ['source', source])
-		]).toString();
+	// The start page searches everything the admin may read; the sources asked for narrow nothing.
+	const tryQuery = (question: string) => new URLSearchParams({ q: question }).toString();
 </script>
 
 <PageHead title={m.missed_title()}><p>{m.missed_intro()}</p></PageHead>
@@ -35,9 +32,7 @@
 					{#each data.queries as query (`${query.sources}\n${query.question}`)}
 						<tr>
 							<td>
-								<a href="{resolve('/manage/query')}?{tryQuery(query.question, query.sources)}"
-									>{query.question}</a
-								>
+								<a href="{resolve('/')}?{tryQuery(query.question)}#query">{query.question}</a>
 							</td>
 							<td>
 								{#if query.sources}<code>{query.sources.join(', ')}</code

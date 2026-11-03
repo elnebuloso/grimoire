@@ -68,7 +68,7 @@ describe('start page', () => {
 		expect(slugs(other)).toEqual(['billing-docs', 'platform-docs']);
 	});
 
-	it('offers no query while no source is public', () => {
+	it('offers no query to a visitor while no source is public', () => {
 		expect(load('?q=rollback').query).toBeUndefined();
 	});
 
@@ -77,24 +77,27 @@ describe('start page', () => {
 			addSourceWithPage('billing-docs', '# Invoices\n\nA rollback of an invoice.', true);
 		});
 
-		it('offers only the public sources to tick', () => {
-			expect(load('').query).toEqual({
-				sources: ['billing-docs'],
-				values: { question: '', sources: [], tokens: '3000' }
-			});
+		it('offers the form without a source selection', () => {
+			expect(load('').query).toEqual({ values: { question: '', tokens: '3000' } });
 		});
 
-		it('answers from the public sources only', () => {
-			const answer = load('?q=rollback').query?.answer;
-
-			expect(answer).toContain('Source: billing-docs/index');
-			expect(answer).not.toContain('platform-docs');
+		it('answers a visitor from the public sources only, ignoring a source in the URL', () => {
+			expect(load('?q=rollback').query?.answer).toContain('Source: billing-docs/index');
+			expect(load('?q=rollback').query?.answer).not.toContain('platform-docs');
+			expect(load('?q=rollback&source=platform-docs').query?.answer).not.toContain('platform-docs');
 		});
 
-		it('treats a private source named in the form like an unknown one', () => {
-			expect(load('?q=rollback&source=platform-docs').query?.answer).toBe(
-				'Source "platform-docs" not found. See `sources`.'
-			);
+		it("answers a user from what they may read: internal and own private, not another user's", () => {
+			const insertUser = db.prepare("INSERT INTO users (email, password_hash) VALUES (?, 'hash')");
+			const writer = Number(insertUser.run('writer@example.com').lastInsertRowid);
+			const admin = Number(insertUser.run('admin@example.com').lastInsertRowid);
+			db.prepare("INSERT INTO user_roles (user_id, role) VALUES (?, 'admin')").run(admin);
+			addSourceWithPage('release-drafts', '# Drafts\n\nA rollback plan.', false, writer);
+
+			const asWriter = load('?q=rollback', writer).query?.answer;
+			expect(asWriter).toContain('Source: platform-docs/index');
+			expect(asWriter).toContain('Source: release-drafts/index');
+			expect(load('?q=rollback', admin).query?.answer).not.toContain('release-drafts');
 		});
 
 		it('searches only the first 500 characters of an over-long question', () => {

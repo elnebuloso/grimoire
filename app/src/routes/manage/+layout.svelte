@@ -10,7 +10,6 @@
 	// the pathname, so the current item would only be marked once the page hydrates.
 	const links = $derived([
 		{ route: '/manage', href: resolve('/manage'), label: m.admin_overview() },
-		{ route: '/manage/query', href: resolve('/manage/query'), label: m.query_title() },
 		{
 			route: '/manage/missed-queries',
 			href: resolve('/manage/missed-queries'),

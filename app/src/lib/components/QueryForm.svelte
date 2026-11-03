@@ -1,12 +1,11 @@
 <script lang="ts">
 	import { m } from '#lib/paraglide/messages.js';
 	import type { QueryFormState } from '#lib/server/query-form.js';
-	import ChoiceField from './ChoiceField.svelte';
 	import FormError from './FormError.svelte';
 	import TextField from './TextField.svelte';
 
 	/** A GET form that asks like the agent operation `query`, and the answer below it. */
-	let { sources, values, error, answer }: QueryFormState = $props();
+	let { values, error, answer }: QueryFormState = $props();
 
 	// The two refusals each concern one field; the field points to the message that explains it.
 	const marked = (message: string) =>
@@ -34,22 +33,6 @@
 			value={values.question}
 			{...marked(m.query_error_question())}
 		/>
-		{#if sources.length > 0}
-			<fieldset>
-				<legend>{m.query_sources()}</legend>
-				<div class="checks">
-					{#each sources as source (source)}
-						<ChoiceField
-							name="source"
-							value={source}
-							checked={values.sources.includes(source)}
-							label={source}
-							mono
-						/>
-					{/each}
-				</div>
-			</fieldset>
-		{/if}
 		<TextField
 			label={m.query_tokens()}
 			name="tokens"
@@ -75,11 +58,6 @@
 		display: grid;
 		gap: var(--s4);
 		min-width: 0;
-	}
-	.checks {
-		display: flex;
-		flex-wrap: wrap;
-		gap: var(--s2) var(--s5);
 	}
 	.answer {
 		gap: var(--s3);

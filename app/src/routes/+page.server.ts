@@ -14,13 +14,10 @@ export const load: PageServerLoad = ({ url, locals }) => {
 	const sources = sourceStats(db).filter((source) =>
 		readable ? readable.includes(source.slug) : source.visibility === 'public'
 	);
-	const publicSources = sources
-		.filter((source) => source.visibility === 'public')
-		.map((source) => source.slug);
 	return {
 		sources,
-		// Only public sources are searched here, whoever is logged in.
-		query: publicSources.length > 0 ? answerQueryForm(db, url, publicSources, 'public') : undefined,
+		// Everything listed, the same as an API key of the user reads; for a visitor the public sources.
+		query: sources.length > 0 ? answerQueryForm(db, url, readable ?? 'public') : undefined,
 		origin: publicOrigin(url),
 		// The server name in the `claude mcp add` example: one word the CLI takes as it is.
 		mcpName: slugify(INSTANCE_NAME) || 'grimoire'

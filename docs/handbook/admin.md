@@ -61,7 +61,7 @@ sessions are logged out; the browser you changed it in stays logged in.
     internal ones and their own private ones: name, slug, short description, visibility, counts of
     pages, snippets, tokens and dead links, last sync and whether it has a sync error. It shows
     neither Git URLs nor error texts. For public sources it links the **Documentation** site and
-    offers **Try a query** to everyone, searching the public sources only.
+    offers **Try a query**, which searches what the viewer may read.
 
 You manage every source: the overview lists all of them, also other users' private ones, and you
 may change, sync, rename and delete each. A source you create is yours; users manage their own
@@ -183,9 +183,9 @@ It keeps the newest 100 lines.
 - Every page of a source links to a preview: the page exactly as `read` returns it, split into
   snippets with ID and estimated tokens. Use it to find sections that came out too large, too small
   or under a misleading title.
-- `Manage > Try a query` answers exactly like the agent operation `query`, with a line naming the
-  hits that did not fit the budget. It searches what your own API keys would read, not other
-  users' private sources, or the ones ticked; it needs no API key and is not recorded.
+- **Try a query** on the start page answers exactly like the agent operation `query`, with a line
+  naming the hits that did not fit the budget. Logged in, it searches every source your own API
+  keys would read, not other users' private sources; it needs no API key and is not recorded.
   Its address can be shared as a link.
 
 ## Queries without results
@@ -193,7 +193,8 @@ It keeps the newest 100 lines.
 `Manage > Queries without results` lists questions agents asked with `query` that found nothing,
 once per set of sources asked for, with how often and when last. Search matches words, not synonyms: such a question
 means the documentation lacks the topic or names it differently. Open a question in
-**Try a query** to check it again after the docs changed.
+**Try a query** on the start page to check it again after the docs changed; it searches all your
+sources, not only the ones the agent asked for.
 
 - Questions are stored as the agent sent them, up to 500 characters, and may contain whatever the
   agent put in.
