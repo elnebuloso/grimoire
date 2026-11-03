@@ -32,6 +32,9 @@ vi.mock('$app/env/private', () => ({
 }));
 
 const TOKEN = 'glpat-very-secret';
+const ADMIN = { id: 1, email: 'admin@example.com', roles: ['admin'] };
+const WRITER = { id: 2, email: 'writer@example.com', roles: [] };
+const OTHER = { id: 3, email: 'ops@example.com', roles: [] };
 
 function formRequest(fields: Record<string, string>) {
 	return new Request('https://grimoire.example/manage/sources', {
@@ -50,24 +53,26 @@ async function thrown(run: () => unknown): Promise<unknown> {
 	throw new Error('expected the handler to throw');
 }
 
-async function saveSource(id: string, fields: Record<string, string>) {
+async function saveSource(id: string, fields: Record<string, string>, user = ADMIN) {
 	return sourcePage.actions.save({
 		request: formRequest(fields),
 		params: { id },
-		locals: {}
+		locals: { user }
 	} as never);
 }
 
-function syncNow(id: string) {
+function syncNow(id: string, user = ADMIN) {
 	return sourcePage.actions.sync({
 		params: { id },
+		locals: { user },
 		url: new URL(`https://grimoire.example/manage/sources/${id}?/sync`)
 	} as never);
 }
 
-function loadSource(id: string, search = '') {
+function loadSource(id: string, search = '', user = ADMIN) {
 	return sourcePage.load({
 		params: { id },
+		locals: { user },
 		url: new URL(`https://grimoire.example/manage/sources/${id}${search}`)
 	} as never);
 }
@@ -85,9 +90,64 @@ const SOURCE = {
 
 beforeEach(() => {
 	db = openDatabase(':memory:');
+	db.exec(`INSERT INTO users (id, email, password_hash) VALUES
+		(1, 'admin@example.com', 'hash'), (2, 'writer@example.com', 'hash'), (3, 'ops@example.com', 'hash');
+		INSERT INTO user_roles VALUES (1, 'admin');`);
 	requestSyncInBackground.mockClear();
 	checkAccess.mockClear();
 	checkSourceAccess.mockClear();
+});
+
+describe('source page by owner', () => {
+	beforeEach(async () => {
+		await thrown(() => saveSource('new', SOURCE, WRITER));
+	});
+
+	function status(error: unknown) {
+		return (error as { status: number }).status;
+	}
+
+	it('opens and saves a source for its owner and for an admin, and gives it the creator as owner', async () => {
+		expect(db.prepare('SELECT owner_id FROM sources').get()).toEqual({ owner_id: 2 });
+		for (const user of [WRITER, ADMIN]) {
+			expect(loadSource('1', '', user)).toMatchObject({ source: { slug: 'auth-service' } });
+			expect(isRedirect(await thrown(() => saveSource('1', SOURCE, user)))).toBe(true);
+		}
+		expect(db.prepare('SELECT owner_id FROM sources').get()).toEqual({ owner_id: 2 });
+	});
+
+	it('refuses every action on the source to another user with 403', async () => {
+		const actions = [
+			() => loadSource('1', '', OTHER),
+			() => saveSource('1', SOURCE, OTHER),
+			() => syncNow('1', OTHER),
+			() =>
+				sourcePage.actions.test({
+					request: formRequest(SOURCE),
+					params: { id: '1' },
+					locals: { user: OTHER }
+				} as never),
+			() =>
+				sourcePage.actions.slug({
+					request: formRequest({ slug: 'login', confirmation: 'auth-service' }),
+					params: { id: '1' },
+					locals: { user: OTHER }
+				} as never),
+			() => sourcePage.actions.delete({ params: { id: '1' }, locals: { user: OTHER } } as never)
+		];
+		for (const action of actions) expect(status(await thrown(action))).toBe(403);
+		expect(db.prepare('SELECT slug FROM sources').get()).toEqual({ slug: 'auth-service' });
+		expect(requestSyncInBackground).toHaveBeenCalledTimes(1);
+	});
+
+	it('lets every user create a source', async () => {
+		expect(
+			isRedirect(await thrown(() => saveSource('new', { ...SOURCE, name: 'Ops' }, OTHER)))
+		).toBe(true);
+		expect(db.prepare("SELECT owner_id FROM sources WHERE slug = 'ops'").get()).toEqual({
+			owner_id: 3
+		});
+	});
 });
 
 describe('source page', () => {
@@ -219,7 +279,8 @@ describe('source page', () => {
 		requestSyncInBackground.mockClear();
 		const result = await sourcePage.actions.slug({
 			request: formRequest({ slug: 'login', confirmation: 'auth-service' }),
-			params: { id: '1' }
+			params: { id: '1' },
+			locals: { user: ADMIN }
 		} as never);
 
 		expect(result).toEqual({ slugChanged: true });
@@ -291,7 +352,8 @@ describe('source page', () => {
 	it('tests the connection and keeps an entered token, only encrypted', async () => {
 		const result = (await sourcePage.actions.test({
 			request: formRequest(SOURCE),
-			params: { id: 'new' }
+			params: { id: 'new' },
+			locals: { user: ADMIN }
 		} as never)) as { access: unknown; values: { encryptedToken: string } };
 
 		expect(result.access).toEqual({ message: 'Reachable: branch main is at commit abc.' });
@@ -316,7 +378,8 @@ describe('source page', () => {
 	async function carriedToken(sourceId: string, token: string) {
 		const result = (await sourcePage.actions.test({
 			request: formRequest({ ...SOURCE, token }),
-			params: { id: sourceId }
+			params: { id: sourceId },
+			locals: { user: ADMIN }
 		} as never)) as { values: { encryptedToken: string } };
 		return result.values.encryptedToken;
 	}
@@ -352,7 +415,8 @@ describe('source page', () => {
 		const fields = { ...SOURCE, token: '', encryptedToken: 'tampered' };
 		const tested = await sourcePage.actions.test({
 			request: formRequest(fields),
-			params: { id: 'new' }
+			params: { id: 'new' },
+			locals: { user: ADMIN }
 		} as never);
 		const saved = await saveSource('new', fields);
 
@@ -406,7 +470,9 @@ describe('source page', () => {
 
 	it('deletes the source and redirects to the overview', async () => {
 		await thrown(() => saveSource('new', SOURCE));
-		const result = await thrown(() => sourcePage.actions.delete({ params: { id: '1' } } as never));
+		const result = await thrown(() =>
+			sourcePage.actions.delete({ params: { id: '1' }, locals: { user: ADMIN } } as never)
+		);
 
 		expect(isRedirect(result) && result.location).toBe('/manage');
 		expect(db.prepare('SELECT count(*) AS n FROM sources').get()).toEqual({ n: 0 });

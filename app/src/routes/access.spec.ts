@@ -167,8 +167,16 @@ describe('header', () => {
 				}
 			).user;
 
-		expect(header(adminSession)).toEqual({ name: 'admin@example.com', mayManage: true });
-		expect(header(login.session)).toEqual({ name: 'editor@example.com', mayManage: false });
+		expect(header(adminSession)).toEqual({
+			name: 'admin@example.com',
+			mayManage: true,
+			isAdmin: true
+		});
+		expect(header(login.session)).toEqual({
+			name: 'editor@example.com',
+			mayManage: true,
+			isAdmin: false
+		});
 		expect(header()).toBeUndefined();
 	});
 });
@@ -192,7 +200,7 @@ describe('login action', () => {
 		]);
 	});
 
-	it('sends a user without the role admin to the start page instead of a 403', async () => {
+	it('sends a user without the role admin to the management area too', async () => {
 		await admin.auth.createUser(db, { email: 'editor@example.com', password: PASSWORD, roles: [] });
 		const result = await thrown(() =>
 			admin.login({
@@ -202,7 +210,7 @@ describe('login action', () => {
 			} as never)
 		);
 
-		expect(isRedirect(result) && result.location).toBe('/');
+		expect(isRedirect(result) && result.location).toBe('/manage');
 	});
 
 	it('answers wrong credentials with 400 and the email address, without a cookie', async () => {
@@ -312,8 +320,8 @@ describe('admin access guard', () => {
 		expect(await request('/setup').run()).toBe(served);
 	});
 
-	it('answers 403 to a user without the role admin', async () => {
-		const result = await thrown(request('/manage', await editorSession()).run);
+	it('answers 403 to a user without the role admin on an admin page', async () => {
+		const result = await thrown(request('/manage/settings', await editorSession()).run);
 
 		expect(isHttpError(result) && result.status).toBe(403);
 	});

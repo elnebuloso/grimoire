@@ -7,6 +7,8 @@ import { dashboard, deadLinks, previewPage, sourceHealth, sourceStatus } from '.
 
 let db: DatabaseSync;
 
+const ADMIN = { id: 1, email: 'admin@example.com', roles: ['admin' as const] };
+
 function insertPage(
 	sourceId: number,
 	file: string,
@@ -212,8 +214,24 @@ describe('dashboard', () => {
 		insertLink(deploy, null, 'fine/index', false);
 	});
 
+	it('shows a user the sources they may read, but problems and keys only of their own', () => {
+		db.exec(`
+			INSERT INTO users (id, email, password_hash) VALUES (9, 'writer@example.com', 'hash');
+			UPDATE sources SET visibility = 'internal' WHERE slug IN ('auth', 'fine');
+			UPDATE sources SET owner_id = 9 WHERE slug IN ('fine', 'noisy');
+			UPDATE api_keys SET owner_id = 9 WHERE name = 'ci';
+		`);
+		const writer = { id: 9, email: 'writer@example.com', roles: [] };
+		const overview = dashboard(db, writer);
+
+		expect(overview.sources.map((source) => source.slug)).toEqual(['auth', 'fine', 'noisy']);
+		expect(overview.managed).toEqual([5, 4]);
+		expect(overview.attention.map((problem) => problem.source)).toEqual(['fine', 'noisy']);
+		expect(overview.totals).toMatchObject({ sources: 3, deadLinks: 1, apiKeys: 1 });
+	});
+
 	it('adds up the figures of all sources and counts the API keys', () => {
-		expect(dashboard(db).totals).toEqual({
+		expect(dashboard(db, ADMIN).totals).toEqual({
 			sources: 7,
 			pages: 2,
 			snippets: 3,
@@ -224,7 +242,7 @@ describe('dashboard', () => {
 	});
 
 	it('lists one item per problem, errors first, then warnings and dead links, then paused and never synced', () => {
-		expect(dashboard(db).attention).toEqual([
+		expect(dashboard(db, ADMIN).attention).toEqual([
 			{
 				sourceId: 3,
 				source: 'broken',
@@ -273,7 +291,7 @@ describe('dashboard', () => {
 	});
 
 	it('lists the sources with the figures of the public start page', () => {
-		expect(dashboard(db).sources.map((source) => [source.slug, source.pages])).toEqual([
+		expect(dashboard(db, ADMIN).sources.map((source) => [source.slug, source.pages])).toEqual([
 			['auth', 1],
 			['billing', 0],
 			['broken', 0],

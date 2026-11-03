@@ -24,18 +24,27 @@ import {
 } from '#lib/server/admin/sources.js';
 import { previewPage, sourceStatus } from '#lib/server/admin/status.js';
 import { readSettings, syncsAutomatically } from '#lib/server/settings.js';
+import { mayManageSource } from '#lib/server/admin/access.js';
+import type { SessionUser } from '#lib/server/admin/auth.js';
 
-/** The source of the page; undefined for `/manage/sources/new`. */
-function sourceFor(params: { id: string }): SourceSettings | undefined {
+/**
+ * The source of the page; undefined for `/manage/sources/new`. A 403 for a source the user may not
+ * manage, for every action and the page itself: its settings name the repository and its account.
+ */
+function sourceFor(
+	params: { id: string },
+	user: SessionUser | undefined
+): SourceSettings | undefined {
 	const id = parseIdParam(params.id);
 	if (id === 'new') return undefined;
 	const source = id && findSource(database(), id);
 	if (!source) error(404);
+	if (!user || !mayManageSource(user, source)) error(403);
 	return source;
 }
 
-export const load: PageServerLoad = ({ params, url }) => {
-	const source = sourceFor(params);
+export const load: PageServerLoad = ({ params, url, locals }) => {
+	const source = sourceFor(params, locals.user);
 	const schedule = source?.schedule ?? SYNC_SCHEDULE;
 	const previewFile = url.searchParams.get('preview');
 	const { syncsPaused } = readSettings(database());
@@ -85,7 +94,7 @@ async function accessProblem(
 
 export const actions = {
 	save: async ({ request, params, locals }) => {
-		const source = sourceFor(params);
+		const source = sourceFor(params, locals.user);
 		const { form, values, damaged } = readSourceForm(await request.formData());
 		const db = database();
 		const stored = storedSource(db, source?.id);
@@ -113,9 +122,9 @@ export const actions = {
 			requestSyncInBackground(result.id, { force: changes.reindex });
 		redirect(303, `/manage/sources/${result.id}`);
 	},
-	test: async ({ request, params }) => {
+	test: async ({ request, params, locals }) => {
 		// Only the remote, not `sourceProblem`: access can be tested before the source is named.
-		const source = sourceFor(params);
+		const source = sourceFor(params, locals.user);
 		const { form, values, damaged } = readSourceForm(await request.formData());
 		if (damaged) return fail(400, { error: damaged, values });
 		const access = await checkSourceAccess(
@@ -126,8 +135,8 @@ export const actions = {
 		);
 		return { access, values };
 	},
-	sync: async ({ params, url }) => {
-		const source = sourceFor(params);
+	sync: async ({ params, url, locals }) => {
+		const source = sourceFor(params, locals.user);
 		if (!source) error(404);
 		// Not awaited: the sync waits for every one queued before it, longer than a reverse proxy
 		// keeps a request open. The page shows that it is pending, and its outcome in the status.
@@ -135,8 +144,8 @@ export const actions = {
 		// Back to the page by GET, so reloading it for the outcome does not queue another sync.
 		redirect(303, url.pathname);
 	},
-	slug: async ({ request, params }) => {
-		const source = sourceFor(params);
+	slug: async ({ request, params, locals }) => {
+		const source = sourceFor(params, locals.user);
 		if (!source) error(404);
 		const data = await request.formData();
 		const form = {
@@ -150,8 +159,8 @@ export const actions = {
 		}
 		return { slugChanged: true };
 	},
-	delete: async ({ params }) => {
-		const source = sourceFor(params);
+	delete: async ({ params, locals }) => {
+		const source = sourceFor(params, locals.user);
 		if (source) await deleteSource(database(), source.id);
 		redirect(303, '/manage');
 	}

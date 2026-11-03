@@ -32,7 +32,8 @@
 
 {#if data.syncsPaused}
 	<p class="notice warn" role="status">
-		{m.syncs_paused_notice()} <a href={resolve('/manage/settings')}>{m.settings_title()}</a>
+		{m.syncs_paused_notice()}
+		{#if data.user?.isAdmin}<a href={resolve('/manage/settings')}>{m.settings_title()}</a>{/if}
 	</p>
 {/if}
 
@@ -119,10 +120,12 @@
 	{:else}
 		<SourceStatsTable sources={data.sources} timeZone={data.timeZone}>
 			{#snippet name(source)}
-				<a href={resolve('/manage/sources/[id]', { id: String(source.id) })}>{source.name}</a>
+				{#if data.managed.includes(source.id)}
+					<a href={resolve('/manage/sources/[id]', { id: String(source.id) })}>{source.name}</a>
+				{:else}{source.name}{/if}
 			{/snippet}
 			{#snippet deadLinks(source)}
-				{#if source.deadLinks > 0}
+				{#if source.deadLinks > 0 && data.managed.includes(source.id)}
 					<a
 						href="{resolve('/manage/dead-links')}#source-{source.id}"
 						aria-label={source.deadLinks === 1
@@ -130,7 +133,7 @@
 							: m.admin_dead_links({ count: source.deadLinks })}
 						>{source.deadLinks.toLocaleString(getLocale())}</a
 					>
-				{:else}0{/if}
+				{:else}{source.deadLinks.toLocaleString(getLocale())}{/if}
 			{/snippet}
 		</SourceStatsTable>
 	{/if}

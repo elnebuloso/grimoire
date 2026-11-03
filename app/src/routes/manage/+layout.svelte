@@ -17,8 +17,16 @@
 			label: m.missed_title()
 		},
 		{ route: '/manage/dead-links', href: resolve('/manage/dead-links'), label: m.dead_links() },
-		{ route: '/manage/api-keys', href: resolve('/manage/api-keys'), label: m.api_keys() },
-		{ route: '/manage/settings', href: resolve('/manage/settings'), label: m.settings_title() },
+		...(page.data.user?.isAdmin
+			? [
+					{ route: '/manage/api-keys', href: resolve('/manage/api-keys'), label: m.api_keys() },
+					{
+						route: '/manage/settings',
+						href: resolve('/manage/settings'),
+						label: m.settings_title()
+					}
+				]
+			: []),
 		{ route: '/account', href: resolve('/account'), label: m.password_title() }
 	]);
 

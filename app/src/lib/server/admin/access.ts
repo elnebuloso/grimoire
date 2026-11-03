@@ -1,10 +1,15 @@
 import type { DatabaseSync } from 'node:sqlite';
 import { checkAdminAccount, sessionUser, type Role, type SessionUser } from './auth.ts';
 
-// The role each page needs, the first matching prefix decides; pages under no prefix need none.
-// Today the whole management area needs `admin`; a page another role may open gets its own,
+// The roles each page needs, the first matching prefix decides; pages under no prefix need no
+// login. The management area is open to every user; what in it is the admin's alone gets its own,
 // longer prefix before that line.
-const PAGE_ROLES: [prefix: string, role: Role][] = [['/manage', 'admin']];
+const PAGE_ROLES: [prefix: string, roles: Role[]][] = [
+	['/manage/settings', ['admin']],
+	['/manage/users', ['admin']],
+	['/manage/api-keys', ['admin']],
+	['/manage', []]
+];
 
 // Pages of the accounts themselves: they guide through setup and login whatever the roles.
 const ACCOUNT_PAGES = ['/setup', '/login', '/logout', '/account'];
@@ -13,10 +18,20 @@ function isUnder(pathname: string, prefix: string): boolean {
 	return pathname === prefix || pathname.startsWith(`${prefix}/`);
 }
 
-/** Whether the user has the role `pathname` needs. */
+/** Whether the user holds every role in `roles`. */
+export function hasRoles(user: SessionUser, roles: Role[]): boolean {
+	return roles.every((role) => user.roles.includes(role));
+}
+
+/** Whether the user has the roles `pathname` needs. */
 export function mayOpen(user: SessionUser, pathname: string): boolean {
-	const role = PAGE_ROLES.find(([prefix]) => isUnder(pathname, prefix))?.[1];
-	return role === undefined || user.roles.includes(role);
+	const roles = PAGE_ROLES.find(([prefix]) => isUnder(pathname, prefix))?.[1];
+	return roles === undefined || hasRoles(user, roles);
+}
+
+/** Whether the user may change, sync and delete a source: its owner and every admin may. */
+export function mayManageSource(user: SessionUser, source: { ownerId: number | null }): boolean {
+	return hasRoles(user, ['admin']) || source.ownerId === user.id;
 }
 
 /** Where a user goes after logging in: the management area when they may open it. */

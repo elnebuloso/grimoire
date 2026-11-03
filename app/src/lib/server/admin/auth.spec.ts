@@ -340,15 +340,18 @@ describe('several users', () => {
 		).toBe(true);
 	});
 
-	it('keeps a user without the role admin out of the management area, but lets them log out or in', async () => {
+	it('lets a user without the role admin into the management area, but not into its settings or users', async () => {
 		const editor = sessionOf(
 			await auth.login(db, 'b', { email: 'editor@example.com', password: EDITOR_PASSWORD })
 		);
 
-		expect(access.accessRedirect(db, '/manage', editor)).toBe('forbidden');
-		expect(access.accessRedirect(db, '/manage/sources/1', editor)).toBe('forbidden');
+		expect(access.accessRedirect(db, '/manage', editor)).toBeUndefined();
+		expect(access.accessRedirect(db, '/manage/sources/[id]', editor)).toBeUndefined();
+		expect(access.accessRedirect(db, '/manage/settings', editor)).toBe('forbidden');
+		expect(access.accessRedirect(db, '/manage/users', editor)).toBe('forbidden');
+		expect(access.accessRedirect(db, '/manage/api-keys', editor)).toBe('forbidden');
 		expect(access.accessRedirect(db, '/logout', editor)).toBeUndefined();
-		expect(access.accessRedirect(db, '/login', editor)).toBeUndefined();
+		expect(access.accessRedirect(db, '/login', editor)).toBe('/manage');
 		expect(access.accessRedirect(db, '/account', editor)).toBeUndefined();
 	});
 
@@ -364,11 +367,12 @@ describe('several users', () => {
 			)
 		)!;
 
-		expect([access.homeOf(admin), access.homeOf(editor)]).toEqual(['/manage', '/']);
+		expect([access.homeOf(admin), access.homeOf(editor)]).toEqual(['/manage', '/manage']);
 		expect([
-			access.mayOpen(editor, '/manage/api-keys'),
+			access.mayOpen(editor, '/manage/settings'),
+			access.mayOpen(admin, '/manage/settings'),
 			access.mayOpen(editor, '/account')
-		]).toEqual([false, true]);
+		]).toEqual([false, true, true]);
 	});
 
 	it('offers the setup again while no user has the role admin, even with other users', async () => {
