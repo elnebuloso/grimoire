@@ -28,7 +28,7 @@
 	name="Instance with a name of its own"
 	args={{ title: 'API keys' }}
 	parameters={{
-		sveltekit_experimental: { state: { page: { data: { instanceName: 'Acme Docs' } } } }
+		sveltekit_experimental: { state: { page: { data: { instanceTitle: 'Acme Docs' } } } }
 	}}
 	play={async () => {
 		await expect(document.title).toBe('API keys – Acme Docs');

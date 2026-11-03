@@ -14,7 +14,7 @@
 	);
 </script>
 
-<PageHead title={m.login_title({ name: data.instanceName })} namesInstance />
+<PageHead title={m.login_title({ name: data.instanceTitle })} namesInstance />
 
 <section class="sheet">
 	<form method="post">

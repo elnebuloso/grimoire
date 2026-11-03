@@ -102,7 +102,12 @@ export const variables = defineEnvVars({
 	},
 	INSTANCE_NAME: {
 		description:
-			'Name the instance shows to people and agents: header, page titles, mails, MCP server; default `grimoire`',
+			'Name agents see: MCP server, agent instructions, the server name in `claude mcp add`; default `grimoire`',
+		schema: (value) => value?.trim() || 'grimoire'
+	},
+	INSTANCE_TITLE: {
+		description:
+			'Title the instance shows to people: page titles, start page heading, mails; default `grimoire`',
 		schema: (value) => value?.trim() || 'grimoire'
 	},
 	LOG_LEVEL: {

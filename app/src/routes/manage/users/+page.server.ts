@@ -1,6 +1,6 @@
 import { error, fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
-import { INSTANCE_NAME } from '$app/env/private';
+import { INSTANCE_TITLE } from '$app/env/private';
 import { database } from '#lib/server/db/index.js';
 import { authMessage } from '#lib/server/admin/auth-messages.js';
 import {
@@ -51,8 +51,8 @@ async function deliver(link: InvitationLink, url: URL) {
 	if (mail) {
 		const sent = await mail.send({
 			to: link.to,
-			subject: m.mail_invite_subject({ name: INSTANCE_NAME }),
-			text: m.mail_invite_text({ email: link.to, url: mail.link(path), name: INSTANCE_NAME })
+			subject: m.mail_invite_subject({ name: INSTANCE_TITLE }),
+			text: m.mail_invite_text({ email: link.to, url: mail.link(path), name: INSTANCE_TITLE })
 		});
 		if (sent) return { email: link.to, sent: true as const };
 		return { email: link.to, link: mail.link(path), mailFailed: true };

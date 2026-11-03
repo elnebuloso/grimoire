@@ -10,8 +10,8 @@ declare global {
 			user?: import('#lib/server/admin/auth.js').SessionUser;
 		}
 		interface PageData {
-			/** The name of the instance, from `INSTANCE_NAME`; the root layout provides it. */
-			instanceName: string;
+			/** The title of the instance for people, from `INSTANCE_TITLE`; the root layout provides it. */
+			instanceTitle: string;
 		}
 		// interface PageState {}
 		// interface Platform {}

@@ -28,7 +28,7 @@
 	}
 </script>
 
-<PageHead title={m.admin_title({ name: data.instanceName })} namesInstance />
+<PageHead title={m.admin_title({ name: data.instanceTitle })} namesInstance />
 
 {#if data.syncsPaused}
 	<p class="notice warn" role="status">

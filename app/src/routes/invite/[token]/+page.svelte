@@ -11,7 +11,7 @@
 	const MIN_LENGTH = 12;
 </script>
 
-<PageHead title={m.invite_title({ name: data.instanceName })} namesInstance
+<PageHead title={m.invite_title({ name: data.instanceTitle })} namesInstance
 	><p>{m.invite_intro()}</p></PageHead
 >
 

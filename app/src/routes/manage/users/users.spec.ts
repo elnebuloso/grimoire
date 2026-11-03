@@ -10,7 +10,7 @@ let db: DatabaseSync;
 
 vi.mock('#lib/server/db/index.js', () => ({ database: () => db }));
 vi.mock('#lib/server/mail/index.js', () => ({ mailer: () => undefined }));
-vi.mock('$app/env/private', () => ({ INSTANCE_NAME: 'Acme Docs', BASE_URL: '' }));
+vi.mock('$app/env/private', () => ({ INSTANCE_TITLE: 'Acme Docs', BASE_URL: '' }));
 
 const ADMIN = { id: 1, email: 'admin@example.com', roles: ['admin'] };
 

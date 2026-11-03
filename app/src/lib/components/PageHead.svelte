@@ -30,7 +30,7 @@
 	<title
 		>{namesInstance
 			? documentTitle
-			: m.document_title({ page: documentTitle, name: page.data.instanceName })}</title
+			: m.document_title({ page: documentTitle, name: page.data.instanceTitle })}</title
 	>
 </svelte:head>
 

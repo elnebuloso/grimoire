@@ -1,5 +1,5 @@
 import type { LayoutServerLoad } from './$types';
-import { GRIMOIRE_VERSION, INSTANCE_NAME, TZ } from '$app/env/private';
+import { GRIMOIRE_VERSION, INSTANCE_TITLE, TZ } from '$app/env/private';
 import { database } from '#lib/server/db/index.js';
 import { hasRoles, mayOpen } from '#lib/server/admin/access.js';
 import { SESSION_COOKIE, sessionUser } from '#lib/server/admin/auth.js';
@@ -19,7 +19,7 @@ export const load: LayoutServerLoad = ({ cookies }) => {
 		timeZone: TZ,
 		// What the theme switch shows as picked; the page itself gets it from the server hook.
 		theme: isTheme(theme) ? theme : 'system',
-		instanceName: INSTANCE_NAME,
+		instanceTitle: INSTANCE_TITLE,
 		version: GRIMOIRE_VERSION
 	};
 };

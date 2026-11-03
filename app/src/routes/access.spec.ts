@@ -15,7 +15,7 @@ vi.mock('$app/env/private', () => ({
 	LOG_FORMAT: 'ecs',
 	LOG_LEVEL: 'info',
 	TZ: 'UTC',
-	INSTANCE_NAME: 'grimoire',
+	INSTANCE_TITLE: 'grimoire',
 	GRIMOIRE_VERSION: '0.0.0'
 }));
 

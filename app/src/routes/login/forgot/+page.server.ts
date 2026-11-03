@@ -1,6 +1,6 @@
 import { error, fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
-import { INSTANCE_NAME } from '$app/env/private';
+import { INSTANCE_TITLE } from '$app/env/private';
 import { database } from '#lib/server/db/index.js';
 import { requestPasswordReset } from '#lib/server/admin/password-reset.js';
 import { authMessage } from '#lib/server/admin/auth-messages.js';
@@ -29,8 +29,8 @@ export const actions = {
 			// Not awaited: the answer must not take longer for an address that has an account.
 			void mail.send({
 				to: result.to,
-				subject: m.mail_reset_subject({ name: INSTANCE_NAME }),
-				text: m.mail_reset_text({ email: result.to, url, name: INSTANCE_NAME })
+				subject: m.mail_reset_subject({ name: INSTANCE_TITLE }),
+				text: m.mail_reset_text({ email: result.to, url, name: INSTANCE_TITLE })
 			});
 		}
 		return { sent: true };

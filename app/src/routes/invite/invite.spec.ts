@@ -14,7 +14,7 @@ const send = vi.fn(async () => true);
 vi.mock('#lib/server/db/index.js', () => ({ database: () => db }));
 // The SMTP server is outside the test; whether a mailer exists and accepts is what matters here.
 vi.mock('#lib/server/mail/index.js', () => ({ mailer: () => mail }));
-vi.mock('$app/env/private', () => ({ INSTANCE_NAME: 'Acme Docs', BASE_URL: '' }));
+vi.mock('$app/env/private', () => ({ INSTANCE_TITLE: 'Acme Docs', BASE_URL: '' }));
 
 const ADMIN = { id: 1, email: 'admin@example.com', roles: ['admin'] };
 const PASSWORD = 'correct horse battery';

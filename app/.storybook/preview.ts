@@ -11,7 +11,7 @@ const preview: Preview = {
 		},
 
 		// What the root layout provides every page in the product.
-		sveltekit_experimental: { state: { page: { data: { instanceName: 'grimoire' } } } },
+		sveltekit_experimental: { state: { page: { data: { instanceTitle: 'grimoire' } } } },
 
 		// An accessibility violation fails the story's test, in `make test` and in CI.
 		a11y: { test: 'error' }

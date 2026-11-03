@@ -29,7 +29,9 @@
 <a class="button skip" href="#main">{m.skip_to_content()}</a>
 
 <header>
-	<a class="wordmark" href={resolve('/')}>{data.instanceName}</a>
+	<a class="logo" href={resolve('/')}
+		><img src={favicon} alt={data.instanceTitle} width="32" height="32" /></a
+	>
 	<div class="session">
 		{#if data.user}
 			<span class="muted"
@@ -82,7 +84,7 @@
 
 <footer>
 	<div class="links">
-		<!-- The product, whatever INSTANCE_NAME calls this instance. -->
+		<!-- The product, whatever INSTANCE_TITLE calls this instance. -->
 		<span class="product"
 			>grimoire
 			<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- a page on GitHub -->
@@ -142,13 +144,9 @@
 		gap: var(--s3) var(--s5);
 		padding-block: var(--s4);
 	}
-	.wordmark {
+	.logo {
+		display: flex;
 		margin-inline-end: auto;
-		color: var(--ink);
-		font-size: 17px;
-		font-weight: 600;
-		letter-spacing: -0.02em;
-		text-decoration: none;
 	}
 	.session {
 		display: flex;

@@ -14,7 +14,7 @@
 		form?.error === message ? { 'aria-invalid': true, 'aria-describedby': 'setup-error' } : {};
 </script>
 
-<PageHead title={m.setup_title({ name: data.instanceName })} namesInstance
+<PageHead title={m.setup_title({ name: data.instanceTitle })} namesInstance
 	><p>{m.setup_intro()}</p></PageHead
 >
 

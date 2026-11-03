@@ -1,5 +1,6 @@
 <script lang="ts">
 	import CopyButton from '#lib/components/CopyButton.svelte';
+	import PageHead from '#lib/components/PageHead.svelte';
 	import QueryForm from '#lib/components/QueryForm.svelte';
 	import SourceStatsTable from '#lib/components/SourceStatsTable.svelte';
 	import { m } from '#lib/paraglide/messages.js';
@@ -20,11 +21,10 @@
 	);
 </script>
 
-<!-- The one page without a PageHead: no title on the canvas, so the tab gets its own. -->
-<svelte:head><title>{data.instanceName}</title></svelte:head>
+<PageHead title={data.instanceTitle} namesInstance />
 
 <section class="sheet flush" aria-labelledby="sources">
-	<div class="sheet-head"><h1 id="sources">{m.sources()}</h1></div>
+	<div class="sheet-head"><h2 id="sources">{m.sources()}</h2></div>
 	{#if data.sources.length === 0}
 		<p class="muted">{m.no_sources_yet()}</p>
 	{:else}
@@ -55,10 +55,6 @@
 </div>
 
 <style>
-	h1 {
-		font-size: 18px;
-		letter-spacing: normal;
-	}
 	.pair {
 		display: grid;
 		gap: var(--s5);

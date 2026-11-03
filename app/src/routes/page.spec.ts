@@ -12,7 +12,12 @@ import * as page from './+page.server';
 let db: DatabaseSync;
 
 vi.mock('#lib/server/db/index.js', () => ({ database: () => db }));
-vi.mock('$app/env/private', () => ({ TZ: 'UTC', BASE_URL: '', INSTANCE_NAME: 'Acme Docs' }));
+vi.mock('$app/env/private', () => ({
+	TZ: 'UTC',
+	BASE_URL: '',
+	INSTANCE_TITLE: 'Acme Docs',
+	INSTANCE_NAME: 'Acme Agents'
+}));
 
 function addSourceWithPage(slug: string, markdown: string, isPublic: boolean, privateTo?: number) {
 	const visibility = isPublic ? 'public' : privateTo ? 'private' : 'internal';
@@ -51,8 +56,8 @@ beforeEach(() => {
 });
 
 describe('start page', () => {
-	it('names the MCP server in the connect example after the instance, as one word', () => {
-		expect(load('').mcpName).toBe('acme-docs');
+	it('names the MCP server in the connect example after INSTANCE_NAME, not the title, as one word', () => {
+		expect(load('').mcpName).toBe('acme-agents');
 	});
 
 	it('lists the public sources to a visitor, and to a user also internal and their own private ones', () => {
