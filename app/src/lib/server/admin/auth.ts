@@ -43,7 +43,10 @@ export type AuthProblem =
 	| 'wrong-current-password'
 	| 'new-password-too-short'
 	| 'reset-blocked'
-	| 'reset-link-invalid';
+	| 'reset-link-invalid'
+	| 'invite-link-invalid'
+	| 'account-exists'
+	| 'invitation-exists';
 
 // Kept in memory only: it exists solely to prove access to the server log, so it is never stored.
 let setupTokenValue: string | undefined;
@@ -117,7 +120,7 @@ export function normalizeEmail(email: string): string {
 }
 
 // Only what tells a typo from an address; whether mail arrives there only sending can tell.
-function looksLikeEmail(email: string): boolean {
+export function looksLikeEmail(email: string): boolean {
 	return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
@@ -141,7 +144,13 @@ export async function createUser(
 	return inTransaction(db, () => insertUser(db, form.email, passwordHash, form.roles));
 }
 
-function insertUser(db: DatabaseSync, email: string, passwordHash: string, roles: Role[]): number {
+/** Stores a user with an already hashed password; callers check the address and run it in a transaction. */
+export function insertUser(
+	db: DatabaseSync,
+	email: string,
+	passwordHash: string,
+	roles: Role[]
+): number {
 	const { lastInsertRowid } = db
 		.prepare('INSERT INTO users (email, password_hash) VALUES (?, ?)')
 		.run(normalizeEmail(email), passwordHash);

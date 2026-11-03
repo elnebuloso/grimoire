@@ -19,6 +19,7 @@
 		{ route: '/manage/dead-links', href: resolve('/manage/dead-links'), label: m.dead_links() },
 		...(page.data.user?.isAdmin
 			? [
+					{ route: '/manage/users', href: resolve('/manage/users'), label: m.users_title() },
 					{ route: '/manage/api-keys', href: resolve('/manage/api-keys'), label: m.api_keys_all() },
 					{
 						route: '/manage/settings',

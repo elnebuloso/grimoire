@@ -11,7 +11,10 @@ const MESSAGES: Record<AuthProblem, () => string> = {
 	'wrong-current-password': () => m.auth_wrong_current_password(),
 	'new-password-too-short': () => m.auth_new_password_too_short({ min: MIN_PASSWORD_LENGTH }),
 	'reset-blocked': () => m.auth_reset_blocked(),
-	'reset-link-invalid': () => m.auth_reset_link_invalid()
+	'reset-link-invalid': () => m.auth_reset_link_invalid(),
+	'invite-link-invalid': () => m.auth_invite_link_invalid(),
+	'account-exists': () => m.auth_account_exists(),
+	'invitation-exists': () => m.auth_invitation_exists()
 };
 
 /** The message for the form, in the language of the request. */

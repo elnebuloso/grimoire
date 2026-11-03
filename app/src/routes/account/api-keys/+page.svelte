@@ -2,9 +2,9 @@
 	import { resolve } from '$app/paths';
 	import ChoiceField from '#lib/components/ChoiceField.svelte';
 	import ConfirmForm from '#lib/components/ConfirmForm.svelte';
-	import CopyButton from '#lib/components/CopyButton.svelte';
 	import DateTime from '#lib/components/DateTime.svelte';
 	import PageHead from '#lib/components/PageHead.svelte';
+	import ShownOnce from '#lib/components/ShownOnce.svelte';
 	import RequestsPerDay from '#lib/components/RequestsPerDay.svelte';
 	import FormError from '#lib/components/FormError.svelte';
 	import TextField from '#lib/components/TextField.svelte';
@@ -89,10 +89,7 @@
 {#if form?.created}
 	<section class="sheet">
 		<p class="notice" role="status">{m.apikeys_created({ name: form.created.name })}</p>
-		<div class="secret">
-			<output>{form.created.key}</output>
-			<CopyButton value={form.created.key} label={m.apikeys_copy()} />
-		</div>
+		<ShownOnce value={form.created.key} copyLabel={m.apikeys_copy()} />
 	</section>
 {/if}
 
@@ -205,28 +202,6 @@
 		flex-wrap: wrap;
 		gap: var(--s2) var(--s5);
 		padding-inline-start: 30px;
-	}
-	/* The key is shown once: it sits sunk in a well, dashed, to be selected or copied. */
-	.secret {
-		display: flex;
-		flex-wrap: wrap;
-		align-items: center;
-		gap: var(--s3);
-		padding: var(--s4);
-		background: var(--well);
-		border-radius: var(--r-control);
-		box-shadow: var(--sink);
-	}
-	output {
-		flex: 1 1 18rem;
-		padding: var(--s3);
-		font-family: var(--mono);
-		font-size: 14px;
-		background: var(--sheet);
-		border: 1px dashed var(--edge);
-		border-radius: var(--r-control);
-		overflow-wrap: anywhere;
-		user-select: all;
 	}
 	.keys {
 		display: grid;
