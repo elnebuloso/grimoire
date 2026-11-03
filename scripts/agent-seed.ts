@@ -1,4 +1,4 @@
-// Resets the database of the agent environment to the fixture data: an admin account, an API key
+// Resets the database of the agent environment to the fixture data: an admin and a user, a key each
 // and sources in every state the admin area shows. The schema is built again from the migrations,
 // which change in place until 1.0. Safe while the server runs: the file is kept and rewritten in
 // one transaction, so the server's connection stays valid.
@@ -22,6 +22,7 @@ db.exec('PRAGMA journal_mode = WAL');
 const migrations = readdirSync(MIGRATIONS).sort();
 
 const agentPasswordHash = await hashPassword('agent-password');
+const userPasswordHash = await hashPassword('user-password');
 
 db.exec('BEGIN IMMEDIATE');
 try {
@@ -49,14 +50,18 @@ try {
 	db.prepare("INSERT INTO user_roles (user_id, role) VALUES (?, 'admin')").run(
 		agent.lastInsertRowid
 	);
-	db.prepare('INSERT INTO api_keys (name, key_hash, all_sources) VALUES (?, ?, 1)').run(
-		'agent',
-		sha256('grimoire_agent-fixture-key')
+	const user = db
+		.prepare('INSERT INTO users (email, password_hash) VALUES (?, ?)')
+		.run('user@example.com', userPasswordHash);
+	const insertKey = db.prepare(
+		'INSERT INTO api_keys (name, key_hash, all_sources, owner_id) VALUES (?, ?, 1, ?)'
 	);
+	insertKey.run('agent', sha256('grimoire_agent-fixture-key'), agent.lastInsertRowid);
+	insertKey.run('user', sha256('grimoire_user-fixture-key'), user.lastInsertRowid);
 
 	const insertSource = db.prepare(
-		`INSERT INTO sources (slug, name, description, git_url, branch, path, paused, public)
-		 VALUES (?, ?, ?, ?, 'main', ?, ?, ?)`
+		`INSERT INTO sources (slug, name, description, git_url, branch, path, paused, visibility, owner_id)
+		 VALUES (?, ?, ?, ?, 'main', ?, ?, ?, ?)`
 	);
 	insertSource.run(
 		'platform-docs',
@@ -65,10 +70,11 @@ try {
 		FIXTURE_REPOSITORY,
 		'zensical/docs',
 		0,
-		0
+		'internal',
+		agent.lastInsertRowid
 	);
 	// Public, so keyless MCP and HTTP and the query form on the start page can be tried without
-	// changing a source by hand; platform-docs stays private to check the boundary against.
+	// changing a source by hand; platform-docs stays internal to check the boundary against.
 	insertSource.run(
 		'billing-docs',
 		'Billing docs',
@@ -76,7 +82,8 @@ try {
 		FIXTURE_REPOSITORY,
 		'mkdocs/docs',
 		0,
-		1
+		'public',
+		agent.lastInsertRowid
 	);
 	// The path does not exist in the repository, so every sync fails.
 	insertSource.run(
@@ -86,10 +93,21 @@ try {
 		FIXTURE_REPOSITORY,
 		'archive/docs',
 		0,
-		0
+		'private',
+		agent.lastInsertRowid
 	);
-	// Paused before its first check: polling never syncs it, only "sync now" does.
-	insertSource.run('platform-next', 'Platform next', '', FIXTURE_REPOSITORY, 'zensical/docs', 1, 0);
+	// Paused before its first check: polling never syncs it, only "sync now" does. Private to the
+	// user, so neither the admin's key nor the admin's query reads it.
+	insertSource.run(
+		'platform-next',
+		'Platform next',
+		'',
+		FIXTURE_REPOSITORY,
+		'zensical/docs',
+		1,
+		'private',
+		user.lastInsertRowid
+	);
 	db.exec('COMMIT');
 } catch (error) {
 	if (db.isTransaction) db.exec('ROLLBACK');

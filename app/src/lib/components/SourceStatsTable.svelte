@@ -20,6 +20,12 @@
 
 	const count = (value: number) => value.toLocaleString(getLocale());
 
+	const VISIBILITY_LABELS = {
+		private: m.visibility_private,
+		internal: m.visibility_internal,
+		public: m.visibility_public
+	};
+
 	// One word per source, the most pressing first.
 	function state(source: SourceStats): { word: string; tone?: 'error' | 'muted' } {
 		if (source.error) return { word: m.source_history_failed(), tone: 'error' };
@@ -57,7 +63,7 @@
 								>{/if}
 						</div>
 					</th>
-					<td>{source.public ? m.visibility_public() : m.visibility_private()}</td>
+					<td>{VISIBILITY_LABELS[source.visibility]()}</td>
 					<td class="num">{count(source.pages)}</td>
 					<td class="num">{count(source.snippets)}</td>
 					<td class="num">{count(source.tokens)}</td>

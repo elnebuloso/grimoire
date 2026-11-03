@@ -18,10 +18,10 @@ function addSourceWithPage(slug: string, markdown: string, isPublic: boolean) {
 	const sourceId = Number(
 		db
 			.prepare(
-				`INSERT INTO sources (slug, name, git_url, branch, path, public)
+				`INSERT INTO sources (slug, name, git_url, branch, path, visibility)
 				VALUES (?, 'Docs', 'https://git.internal.example/x.git', 'main', 'docs/', ?)`
 			)
-			.run(slug, isPublic ? 1 : 0).lastInsertRowid
+			.run(slug, isPublic ? 'public' : 'internal').lastInsertRowid
 	);
 	const metadata = preprocessPage(markdown);
 	const chunked = chunkPage(metadata, 'index.md');

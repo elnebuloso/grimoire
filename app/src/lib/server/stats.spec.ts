@@ -50,7 +50,7 @@ describe('sourceStats', () => {
 		addPage(auth, 'deploy.md', [100, 200], 2);
 		addPage(auth, 'index.md', [50]);
 		addPage(gateway, 'index.md', [10], 1);
-		db.prepare('UPDATE sources SET public = 1 WHERE id = ?').run(gateway);
+		db.prepare("UPDATE sources SET visibility = 'public' WHERE id = ?").run(gateway);
 
 		expect(sourceStats(db)).toEqual([
 			{
@@ -58,7 +58,8 @@ describe('sourceStats', () => {
 				slug: 'auth-docs',
 				name: 'Name',
 				description: 'Login',
-				public: false,
+				visibility: 'private',
+				ownerId: null,
 				docsUrl: null,
 				pages: 2,
 				snippets: 3,
@@ -73,7 +74,8 @@ describe('sourceStats', () => {
 				slug: 'gateway-docs',
 				name: 'Name',
 				description: 'Login',
-				public: true,
+				visibility: 'public',
+				ownerId: null,
 				docsUrl: null,
 				pages: 1,
 				snippets: 1,
@@ -113,9 +115,9 @@ describe('sourceStats', () => {
 	it('gives the documentation URL of public sources only', () => {
 		const open = addSource('open-docs', null);
 		const closed = addSource('closed-docs', null);
-		const setDocs = db.prepare('UPDATE sources SET docs_url = ?, public = ? WHERE id = ?');
-		setDocs.run('https://docs.example.com/open/', 1, open);
-		setDocs.run('https://docs.internal.example/closed/', 0, closed);
+		const setDocs = db.prepare('UPDATE sources SET docs_url = ?, visibility = ? WHERE id = ?');
+		setDocs.run('https://docs.example.com/open/', 'public', open);
+		setDocs.run('https://docs.internal.example/closed/', 'internal', closed);
 
 		expect(sourceStats(db).map(({ slug, docsUrl }) => ({ slug, docsUrl }))).toEqual([
 			{ slug: 'closed-docs', docsUrl: null },

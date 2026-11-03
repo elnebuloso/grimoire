@@ -12,7 +12,8 @@
 		slug: 'platform-docs',
 		name: 'Platform docs',
 		description: 'Platform team handbook',
-		public: false,
+		visibility: 'internal',
+		ownerId: 1,
 		docsUrl: null,
 		pages: 7,
 		snippets: 24,
@@ -90,7 +91,7 @@
 />
 
 <Story
-	name="Public and private"
+	name="Visibility levels"
 	args={{
 		timeZone: 'UTC',
 		sources: [
@@ -100,13 +101,15 @@
 				id: 2,
 				slug: 'billing-docs',
 				name: 'Billing docs',
-				public: true,
+				visibility: 'public',
 				docsUrl: 'https://docs.example.com/billing/'
-			}
+			},
+			{ ...synced, id: 3, slug: 'release-drafts', name: 'Release drafts', visibility: 'private' }
 		]
 	}}
 	play={async ({ canvas }) => {
-		await expect(canvas.getByRole('row', { name: /platform-docs/ })).toHaveTextContent('private');
+		await expect(canvas.getByRole('row', { name: /platform-docs/ })).toHaveTextContent('internal');
+		await expect(canvas.getByRole('row', { name: /release-drafts/ })).toHaveTextContent('private');
 		await expect(canvas.getByRole('row', { name: /billing-docs/ })).toHaveTextContent('public');
 		await expect(canvas.getByRole('link')).toHaveAttribute(
 			'href',

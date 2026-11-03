@@ -1,7 +1,7 @@
 import type { DatabaseSync } from 'node:sqlite';
 import { redactUrl } from '../sync/git';
 import { parseSchedule } from '../sync/schedule';
-import type { SourceFields, StoredSourceFields } from '#lib/source-fields.js';
+import type { SourceFields, StoredSourceFields, Visibility } from '#lib/source-fields.js';
 import { encryptSecret } from '../secret-encryption';
 import { m } from '#lib/paraglide/messages.js';
 import { isSlug, MAX_NAME_LENGTH, MAX_SLUG_LENGTH, slugify } from '../../slug';
@@ -16,6 +16,8 @@ export interface SlugChangeForm {
 export interface SourceSettings extends StoredSourceFields {
 	id: number;
 	slug: string;
+	/** Null while the source belongs to nobody, until the next setup hands it to the new admin. */
+	ownerId: number | null;
 	hasToken: boolean;
 }
 
@@ -59,13 +61,14 @@ interface SourceRow {
 	exclusions: string;
 	sync_schedule: string | null;
 	paused: number;
-	public: number;
+	visibility: Visibility;
+	owner_id: number | null;
 	username: string | null;
 	has_token: number;
 }
 
 const SOURCE_COLUMNS = `id, slug, name, description, git_url, docs_url, branch, path, exclusions, sync_schedule, paused,
-	public, username, encrypted_token IS NOT NULL AS has_token`;
+	visibility, owner_id, username, encrypted_token IS NOT NULL AS has_token`;
 
 function toSettings(row: SourceRow): SourceSettings {
 	return {
@@ -80,7 +83,8 @@ function toSettings(row: SourceRow): SourceSettings {
 		exclusions: JSON.parse(row.exclusions) as string[],
 		schedule: row.sync_schedule,
 		paused: row.paused === 1,
-		public: row.public === 1,
+		visibility: row.visibility,
+		ownerId: row.owner_id,
 		username: row.username,
 		hasToken: row.has_token === 1
 	};
@@ -250,14 +254,15 @@ export function remoteProblem(
  * Creates a source when `sourceId` is undefined, otherwise updates it; `'not-found'` when the
  * source to update no longer exists. Saves `form` as it is: `sourceProblem` checks it first.
  * A new token is stored encrypted with `key`; an empty one keeps the stored token unless
- * `removeToken` is set.
+ * `removeToken` is set. A new source belongs to `ownerId`.
  */
 export function saveSource(
 	db: DatabaseSync,
 	key: Buffer,
 	sourceId: number | undefined,
 	form: SourceForm,
-	changes: SavingChanges
+	changes: SavingChanges,
+	ownerId: number | null = null
 ): { id: number } | 'not-found' {
 	const name = form.name.trim();
 	const gitUrl = form.gitUrl.trim();
@@ -275,7 +280,7 @@ export function saveSource(
 		exclusions: exclusionsJson(form.exclusions),
 		sync_schedule: schedule,
 		paused: form.paused ? 1 : 0,
-		public: form.public ? 1 : 0,
+		visibility: form.visibility,
 		username: form.username.trim() || null
 	};
 	const encryptedToken = token ? encryptSecret(token, key) : null;
@@ -283,7 +288,7 @@ export function saveSource(
 	const columns = Object.keys(values);
 
 	if (sourceId === undefined) {
-		const inserted = [...columns, 'slug', 'encrypted_token'];
+		const inserted = [...columns, 'slug', 'encrypted_token', 'owner_id'];
 		const result = db
 			.prepare(
 				`INSERT INTO sources (${inserted.join(', ')})
@@ -292,7 +297,8 @@ export function saveSource(
 			.run({
 				...values,
 				slug: slugify(name),
-				encrypted_token: encryptedToken
+				encrypted_token: encryptedToken,
+				owner_id: ownerId
 			});
 		return { id: Number(result.lastInsertRowid) };
 	}

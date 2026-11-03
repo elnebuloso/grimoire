@@ -275,7 +275,7 @@ describe('syncSource', () => {
 				exclusions: '',
 				schedule: '',
 				paused: false,
-				public: false,
+				visibility: 'private',
 				username: 'deploy',
 				token: '',
 				removeToken: false,

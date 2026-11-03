@@ -1,3 +1,11 @@
+/** Who reads a source: only keys of its owner, the key of any user, or anyone without a key. */
+export const VISIBILITIES = ['private', 'internal', 'public'] as const;
+export type Visibility = (typeof VISIBILITIES)[number];
+
+function isVisibility(value: unknown): value is Visibility {
+	return VISIBILITIES.includes(value as Visibility);
+}
+
 /** The settings of a source as the source page sends them. */
 export interface SourceFields {
 	name: string;
@@ -11,8 +19,7 @@ export interface SourceFields {
 	exclusions: string;
 	schedule: string;
 	paused: boolean;
-	/** Readable without an API key. */
-	public: boolean;
+	visibility: Visibility;
 	username: string;
 }
 
@@ -26,7 +33,7 @@ export const NEW_SOURCE_FIELDS: SourceFields = {
 	exclusions: '',
 	schedule: '',
 	paused: false,
-	public: false,
+	visibility: 'private',
 	username: ''
 };
 
@@ -42,7 +49,7 @@ export interface StoredSourceFields {
 	exclusions: string[];
 	schedule: string | null;
 	paused: boolean;
-	public: boolean;
+	visibility: Visibility;
 	username: string | null;
 }
 
@@ -58,13 +65,14 @@ export function toSourceFields(source: StoredSourceFields): SourceFields {
 		exclusions: source.exclusions.join('\n'),
 		schedule: source.schedule ?? '',
 		paused: source.paused,
-		public: source.public,
+		visibility: source.visibility,
 		username: source.username ?? ''
 	};
 }
 
 export function readSourceFields(data: FormData): SourceFields {
 	const field = (name: string) => String(data.get(name) ?? '');
+	const visibility = data.get('visibility');
 	return {
 		name: field('name'),
 		description: field('description'),
@@ -75,7 +83,8 @@ export function readSourceFields(data: FormData): SourceFields {
 		exclusions: field('exclusions'),
 		schedule: field('schedule'),
 		paused: data.get('paused') === 'on',
-		public: data.get('public') === 'on',
+		// Anything but a known level is the safest one.
+		visibility: isVisibility(visibility) ? visibility : 'private',
 		username: field('username')
 	};
 }

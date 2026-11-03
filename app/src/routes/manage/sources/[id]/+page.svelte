@@ -111,11 +111,30 @@
 					<DateTime value={data.nextCheck} timeZone={data.timeZone} />
 				</p>
 			{/if}
-			<ChoiceField
-				name="public"
-				checked={values.public}
-				label={m.field_public({ name: data.instanceName })}
-			/>
+			<fieldset>
+				<legend>{m.visibility()}</legend>
+				<ChoiceField
+					type="radio"
+					name="visibility"
+					value="private"
+					checked={values.visibility === 'private'}
+					label={m.field_visibility_private()}
+				/>
+				<ChoiceField
+					type="radio"
+					name="visibility"
+					value="internal"
+					checked={values.visibility === 'internal'}
+					label={m.field_visibility_internal({ name: data.instanceName })}
+				/>
+				<ChoiceField
+					type="radio"
+					name="visibility"
+					value="public"
+					checked={values.visibility === 'public'}
+					label={m.field_visibility_public({ name: data.instanceName })}
+				/>
+			</fieldset>
 			<ChoiceField name="paused" checked={values.paused} label={m.field_paused()} />
 			<div class="fields">
 				<TextField label={m.field_username()} name="username" value={values.username} />

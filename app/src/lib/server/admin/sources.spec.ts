@@ -31,7 +31,7 @@ function sourceForm(changes: Partial<SourceForm> = {}): SourceForm {
 		exclusions: '',
 		schedule: '',
 		paused: false,
-		public: false,
+		visibility: 'private',
 		username: '',
 		token: '',
 		removeToken: false,
@@ -79,7 +79,8 @@ describe('saveSource', () => {
 			exclusions: ['a/**', 'b.md'],
 			schedule: null,
 			paused: false,
-			public: false,
+			visibility: 'private',
+			ownerId: null,
 			username: null,
 			hasToken: false
 		});
@@ -116,15 +117,14 @@ describe('saveSource', () => {
 		});
 	});
 
-	it('creates a source private and switches it public and back', () => {
+	it('creates a source private and switches it through every level', () => {
 		const id = created(trySave(undefined, sourceForm()));
-		expect(findSource(db, id)).toMatchObject({ public: false });
+		expect(findSource(db, id)).toMatchObject({ visibility: 'private' });
 
-		trySave(id, sourceForm({ public: true }));
-		expect(findSource(db, id)).toMatchObject({ public: true });
-
-		trySave(id, sourceForm({ public: false }));
-		expect(findSource(db, id)).toMatchObject({ public: false });
+		for (const visibility of ['internal', 'public', 'private'] as const) {
+			trySave(id, sourceForm({ visibility }));
+			expect(findSource(db, id)).toMatchObject({ visibility });
+		}
 	});
 
 	it('leaves a paused source out of polling and brings it back with its last check', () => {
@@ -240,7 +240,7 @@ describe('saveSource', () => {
 			exclusions: 'drafts/**',
 			schedule: '0 2 * * *',
 			paused: true,
-			public: true,
+			visibility: 'public' as const,
 			username: 'ci'
 		};
 
@@ -250,9 +250,24 @@ describe('saveSource', () => {
 			...edited,
 			id,
 			slug: 'auth-service',
+			ownerId: null,
 			exclusions: ['drafts/**'],
 			hasToken: false
 		});
+	});
+
+	it('gives a new source its owner and keeps the owner when another user saves it', () => {
+		const insertUser = db.prepare("INSERT INTO users (email, password_hash) VALUES (?, 'hash')");
+		const writer = Number(insertUser.run('writer@example.com').lastInsertRowid);
+		const admin = Number(insertUser.run('admin@example.com').lastInsertRowid);
+		const form = sourceForm();
+		const id = created(
+			saveSource(db, KEY, undefined, form, savingChanges(undefined, form), writer)
+		);
+
+		const stored = storedSource(db, id);
+		saveSource(db, KEY, id, form, savingChanges(stored, form), admin);
+		expect(findSource(db, id)?.ownerId).toBe(writer);
 	});
 
 	it('stores the description trimmed and changes it', () => {
@@ -369,7 +384,7 @@ describe('savingChanges', () => {
 					description: 'Login',
 					schedule: '0 2 * * *',
 					paused: true,
-					public: true
+					visibility: 'public'
 				})
 			)
 		).toEqual({ access: false, index: false, reindex: false });

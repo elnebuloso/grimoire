@@ -40,6 +40,20 @@ function newKey(...args: Parameters<typeof createApiKey>) {
 }
 
 describe('createApiKey', () => {
+	it('belongs to the user who creates it', () => {
+		const owner = Number(
+			db
+				.prepare("INSERT INTO users (email, password_hash) VALUES ('writer@example.com', 'hash')")
+				.run().lastInsertRowid
+		);
+		const { id } = newKey(db, 'laptop', 'all', null, owner);
+		expect(db.prepare('SELECT owner_id FROM api_keys WHERE id = ?').get(id)).toEqual({
+			owner_id: owner
+		});
+	});
+});
+
+describe('createApiKey', () => {
 	it('returns the key once and stores only its SHA-256', () => {
 		const { key } = newKey(db, 'ci', 'all');
 

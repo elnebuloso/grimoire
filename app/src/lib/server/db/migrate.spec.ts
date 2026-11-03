@@ -176,3 +176,54 @@ async function holdWriteLock(path: string, sql: string) {
 	await once(worker, 'message');
 	return { released: once(worker, 'exit') };
 }
+
+describe('0002-owners-and-visibility', () => {
+	function databaseAt(version: number) {
+		const db = new DatabaseSync(':memory:');
+		migrate(db, shippedMigrations.slice(0, version));
+		return db;
+	}
+
+	function addSource(db: DatabaseSync, slug: string, isPublic: number) {
+		db.prepare(
+			`INSERT INTO sources (slug, name, git_url, branch, path, public)
+			VALUES (?, 'Docs', 'https://git.example.com/docs.git', 'main', 'docs', ?)`
+		).run(slug, isPublic);
+	}
+
+	it('keeps what existing keys read and hands sources and keys to the first admin', () => {
+		const db = databaseAt(1);
+		db.exec(`INSERT INTO users (id, email, password_hash) VALUES
+			(1, 'writer@example.com', 'hash'), (2, 'admin@example.com', 'hash'), (3, 'ops@example.com', 'hash');
+			INSERT INTO user_roles VALUES (2, 'admin'), (3, 'admin');
+			INSERT INTO api_keys (name, key_hash, all_sources) VALUES ('ci', 'hash', 1);`);
+		addSource(db, 'billing-docs', 1);
+		addSource(db, 'platform-docs', 0);
+
+		migrate(db, shippedMigrations.slice(0, 2));
+		expect(rows(db, 'SELECT slug, visibility, owner_id FROM sources ORDER BY slug')).toEqual([
+			{ slug: 'billing-docs', visibility: 'public', owner_id: 2 },
+			{ slug: 'platform-docs', visibility: 'internal', owner_id: 2 }
+		]);
+		expect(rows(db, 'SELECT owner_id FROM api_keys')).toEqual([{ owner_id: 2 }]);
+	});
+
+	it('leaves sources and keys without owner on an instance without admin', () => {
+		const db = databaseAt(1);
+		db.exec("INSERT INTO api_keys (name, key_hash, all_sources) VALUES ('ci', 'hash', 1)");
+		addSource(db, 'platform-docs', 0);
+
+		migrate(db, shippedMigrations.slice(0, 2));
+		expect(
+			rows(db, 'SELECT owner_id FROM sources UNION ALL SELECT owner_id FROM api_keys')
+		).toEqual([{ owner_id: null }, { owner_id: null }]);
+	});
+
+	it('creates a new source private', () => {
+		const db = databaseAt(2);
+		db.exec(`INSERT INTO sources (slug, name, git_url, branch, path)
+			VALUES ('drafts', 'Drafts', 'https://git.example.com/drafts.git', 'main', 'docs')`);
+		expect(rows(db, 'SELECT visibility FROM sources')).toEqual([{ visibility: 'private' }]);
+		expect(() => db.exec("UPDATE sources SET visibility = 'everyone'")).toThrow(/CHECK/);
+	});
+});

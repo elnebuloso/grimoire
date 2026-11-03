@@ -11,7 +11,7 @@ import { configureLog, log, routeConsoleToLog } from '#lib/server/log.js';
 import { startSyncPolling } from '#lib/server/sync/index.js';
 import { mailer } from '#lib/server/mail/index.js';
 import { accessRedirect } from '#lib/server/admin/access.js';
-import { checkAdminAccount, SESSION_COOKIE } from '#lib/server/admin/auth.js';
+import { checkAdminAccount, SESSION_COOKIE, sessionUser } from '#lib/server/admin/auth.js';
 import { THEME_COOKIE, themeAttribute } from '#lib/theme.js';
 import { getTextDirection } from '#lib/paraglide/runtime.js';
 import { paraglideMiddleware } from '#lib/paraglide/server.js';
@@ -62,7 +62,9 @@ const PAGE_ROUTES = new Set(
 // A path without a route has nothing to guard and ends in a 404.
 export const handleAccess: Handle = async ({ event, resolve }) => {
 	if (event.route.id === null) return resolve(event);
-	const target = accessRedirect(database(), event.route.id, event.cookies.get(SESSION_COOKIE));
+	const db = database();
+	event.locals.user = sessionUser(db, event.cookies.get(SESSION_COOKIE));
+	const target = accessRedirect(db, event.route.id, event.cookies.get(SESSION_COOKIE));
 	if (target === 'not-found' || target === 'forbidden') {
 		const status = target === 'not-found' ? 404 : 403;
 		// Thrown here, SvelteKit answers with its bare fallback page; thrown by a page's load, it

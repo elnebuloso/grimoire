@@ -18,15 +18,17 @@ without a restart. It runs beside `make dev` (5173) and `make e2e` (4173).
 | What | Value |
 |---|---|
 | Admin login | `agent@example.com` / `agent-password` |
-| API key (all sources) | `grimoire_agent-fixture-key` |
+| User login (no role) | `user@example.com` / `user-password` |
+| API key of the admin (all sources) | `grimoire_agent-fixture-key` |
+| API key of the user (all sources) | `grimoire_user-fixture-key` |
 | Settings | defaults: syncs not paused |
 
-| Source | Path in the fixture repository | Visibility | State after a reset |
+| Source | Path in the fixture repository | Visibility, owner | State after a reset |
 |---|---|---|---|
-| `platform-docs` | `zensical/docs` | private | synced within about 15 s of a reset, pages, snippets and 3 dead links |
-| `billing-docs` | `mkdocs/docs` | public | synced within about 15 s of a reset, pages, snippets and 3 dead links |
-| `billing-archive` | `archive/docs` (does not exist) | private | sync fails with an error |
-| `platform-next` | `zensical/docs` | private | paused and never synced; only "sync now" syncs it |
+| `platform-docs` | `zensical/docs` | internal, admin | synced within about 15 s of a reset, pages, snippets and 3 dead links |
+| `billing-docs` | `mkdocs/docs` | public, admin | synced within about 15 s of a reset, pages, snippets and 3 dead links |
+| `billing-archive` | `archive/docs` (does not exist) | private, admin | sync fails with an error |
+| `platform-next` | `zensical/docs` | private, user | paused and never synced; only "sync now" syncs it |
 
 The dev server runs over plain `http`, so curl needs no `X-Forwarded-Proto` header here; the
 other curl notes in `memory.md` apply.

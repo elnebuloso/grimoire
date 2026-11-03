@@ -187,7 +187,10 @@ export async function setupAdmin(
 	// was hashing.
 	const created = inTransaction(db, () => {
 		if (adminExists(db)) return false;
-		insertUser(db, form.email, passwordHash, ['admin']);
+		const id = insertUser(db, form.email, passwordHash, ['admin']);
+		// What a reset admin left behind, or what predates owners, needs someone to manage it.
+		db.prepare('UPDATE sources SET owner_id = ? WHERE owner_id IS NULL').run(id);
+		db.prepare('UPDATE api_keys SET owner_id = ? WHERE owner_id IS NULL').run(id);
 		return true;
 	});
 	checkAdminAccount(db);
@@ -293,8 +296,9 @@ export function deleteSession(db: DatabaseSync, token: string) {
 
 /**
  * Deletes a user with the role `admin` and their sessions, but only when `email` names one, so
- * a reset needs to know whose account it removes. Returns whether it did. Without another admin,
- * the management area offers the setup again.
+ * a reset needs to know whose account it removes. Returns whether it did. Their sources and keys
+ * belong to nobody until the next setup. Without another admin, the management area offers the
+ * setup again.
  */
 export function resetAdmin(db: DatabaseSync, email: string): boolean {
 	const admin = db
@@ -309,6 +313,10 @@ export function resetAdmin(db: DatabaseSync, email: string): boolean {
 		for (const table of ['sessions', 'user_roles', 'password_resets']) {
 			db.prepare(`DELETE FROM ${table} WHERE user_id = ?`).run(admin.id);
 		}
+		// Kept for whoever sets up the next admin: the reset is for an admin who lost access, and
+		// their sources and the keys in their tools are still in use.
+		db.prepare('UPDATE sources SET owner_id = NULL WHERE owner_id = ?').run(admin.id);
+		db.prepare('UPDATE api_keys SET owner_id = NULL WHERE owner_id = ?').run(admin.id);
 		db.prepare('DELETE FROM users WHERE id = ?').run(admin.id);
 	});
 	return true;

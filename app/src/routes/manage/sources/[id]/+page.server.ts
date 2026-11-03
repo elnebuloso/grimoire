@@ -84,7 +84,7 @@ async function accessProblem(
 }
 
 export const actions = {
-	save: async ({ request, params }) => {
+	save: async ({ request, params, locals }) => {
 		const source = sourceFor(params);
 		const { form, values, damaged } = readSourceForm(await request.formData());
 		const db = database();
@@ -96,7 +96,14 @@ export const actions = {
 			(changes.access ? await accessProblem(stored, form) : undefined);
 		if (problem) return fail(400, { error: problem, values });
 
-		const result = saveSource(db, ENCRYPTION_KEY.sourceTokens, source?.id, form, changes);
+		const result = saveSource(
+			db,
+			ENCRYPTION_KEY.sourceTokens,
+			source?.id,
+			form,
+			changes,
+			locals.user?.id ?? null
+		);
 		// Deleted in another tab while the Git server was asked.
 		if (result === 'not-found') error(404);
 

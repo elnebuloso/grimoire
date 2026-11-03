@@ -36,7 +36,9 @@ export function scopeForRequest(
 }
 
 function hasPublicSource(db: DatabaseSync): boolean {
-	return db.prepare('SELECT 1 FROM sources WHERE public = 1 LIMIT 1').get() !== undefined;
+	return (
+		db.prepare("SELECT 1 FROM sources WHERE visibility = 'public' LIMIT 1").get() !== undefined
+	);
 }
 
 /** The 401 for a request without a valid API key. */

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { toSourceFields } from './source-fields';
+import { readSourceFields, toSourceFields } from './source-fields';
 
 describe('toSourceFields', () => {
 	const stored = {
@@ -12,7 +12,7 @@ describe('toSourceFields', () => {
 		exclusions: ['drafts/**', 'old/*.md'],
 		schedule: '0 * * * *',
 		paused: true,
-		public: true,
+		visibility: 'internal' as const,
 		username: 'deploy'
 	};
 
@@ -33,5 +33,25 @@ describe('toSourceFields', () => {
 		});
 
 		expect(fields).toMatchObject({ docsUrl: '', exclusions: '', schedule: '', username: '' });
+	});
+});
+
+describe('readSourceFields', () => {
+	function visibilityOf(value?: string) {
+		const data = new FormData();
+		if (value !== undefined) data.set('visibility', value);
+		return readSourceFields(data).visibility;
+	}
+
+	it('reads each visibility level', () => {
+		expect([visibilityOf('private'), visibilityOf('internal'), visibilityOf('public')]).toEqual([
+			'private',
+			'internal',
+			'public'
+		]);
+	});
+
+	it('reads a missing or unknown level as private', () => {
+		expect([visibilityOf(), visibilityOf('everyone')]).toEqual(['private', 'private']);
 	});
 });

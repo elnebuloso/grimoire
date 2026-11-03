@@ -51,7 +51,11 @@ async function thrown(run: () => unknown): Promise<unknown> {
 }
 
 async function saveSource(id: string, fields: Record<string, string>) {
-	return sourcePage.actions.save({ request: formRequest(fields), params: { id } } as never);
+	return sourcePage.actions.save({
+		request: formRequest(fields),
+		params: { id },
+		locals: {}
+	} as never);
 }
 
 function syncNow(id: string) {
@@ -195,7 +199,9 @@ describe('source page', () => {
 			return requestSyncInBackground.mock.calls[0][1].force;
 		};
 
-		expect(await forcedAfter({ name: 'Login', description: 'Sign-in', public: 'on' })).toBe(false);
+		expect(await forcedAfter({ name: 'Login', description: 'Sign-in', visibility: 'public' })).toBe(
+			false
+		);
 		expect(await forcedAfter({ gitUrl: 'https://gitlab.example.com/platform/login.git' })).toBe(
 			true
 		);

@@ -49,14 +49,15 @@ export type ApiKeyRefusal = { error: 'unknown-source' } | { error: 'unknown-key'
 
 /**
  * Creates a key for all sources or a selection of source slugs, accepted through `validUntil`
- * when given. The returned key is the only copy: the database keeps just its hash. An unknown
- * source stores nothing.
+ * when given, owned by `ownerId`. The returned key is the only copy: the database keeps just its
+ * hash. An unknown source stores nothing.
  */
 export function createApiKey(
 	db: DatabaseSync,
 	name: string,
 	sources: KeyScope,
-	validUntil: string | null = null
+	validUntil: string | null = null,
+	ownerId: number | null = null
 ): { id: number; key: string } | { error: 'unknown-source' } {
 	const key = KEY_PREFIX + randomBytes(KEY_BYTES).toString('base64url');
 	return inTransaction(db, () => {
@@ -65,9 +66,9 @@ export function createApiKey(
 		const id = Number(
 			db
 				.prepare(
-					'INSERT INTO api_keys (name, key_hash, all_sources, valid_until) VALUES (?, ?, ?, ?)'
+					'INSERT INTO api_keys (name, key_hash, all_sources, valid_until, owner_id) VALUES (?, ?, ?, ?, ?)'
 				)
-				.run(name, sha256(key), sources === 'all' ? 1 : 0, validUntil).lastInsertRowid
+				.run(name, sha256(key), sources === 'all' ? 1 : 0, validUntil, ownerId).lastInsertRowid
 		);
 		insertScope(db, id, sourceIds);
 		return { id, key };

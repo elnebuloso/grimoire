@@ -50,7 +50,7 @@ function isDate(value: string): boolean {
 }
 
 export const actions = {
-	create: async ({ request }) => {
+	create: async ({ request, locals }) => {
 		const data = await request.formData();
 		const name = String(data.get('name') ?? '').trim();
 		const access = readAccess(data);
@@ -62,7 +62,8 @@ export const actions = {
 			database(),
 			name,
 			values.allSources ? 'all' : values.sources,
-			values.validUntil || null
+			values.validUntil || null,
+			locals.user?.id ?? null
 		);
 		// A source deleted while the form was open.
 		if ('error' in created) return fail(400, { error: m.apikeys_error_source_gone(), values });

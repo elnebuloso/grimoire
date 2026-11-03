@@ -139,7 +139,7 @@ describe('every route', () => {
 
 describe('public sources', () => {
 	beforeEach(() => {
-		db.prepare("UPDATE sources SET public = 1 WHERE slug = 'platform-docs'").run();
+		db.prepare("UPDATE sources SET visibility = 'public' WHERE slug = 'platform-docs'").run();
 	});
 
 	it('lists, searches and reads only the public sources without a key', async () => {
@@ -363,7 +363,7 @@ describe('POST /mcp', () => {
 	});
 
 	it('answers without a key within the public sources once there is one', async () => {
-		db.prepare("UPDATE sources SET public = 1 WHERE slug = 'billing-docs'").run();
+		db.prepare("UPDATE sources SET visibility = 'public' WHERE slug = 'billing-docs'").run();
 
 		expect(await tool('sources', {}, null)).toEqual({ error: false, text: '- billing-docs' });
 	});

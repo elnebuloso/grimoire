@@ -380,6 +380,32 @@ describe('several users', () => {
 		await setUp('new-admin@example.com');
 		expect(auth.checkAdminAccount(db)).toBe(true);
 	});
+	it('hands the sources and keys of a reset admin to the next admin', async () => {
+		const adminId = auth.sessionUser(
+			db,
+			sessionOf(await auth.login(db, 'a', { email: 'admin@example.com', password: PASSWORD }))
+		)!.id;
+		db.prepare(
+			`INSERT INTO sources (slug, name, git_url, branch, path, owner_id)
+			VALUES ('auth-service', 'Auth service', 'https://git.example.com/auth.git', 'main', 'docs', ?)`
+		).run(adminId);
+		db.prepare(
+			"INSERT INTO api_keys (name, key_hash, all_sources, owner_id) VALUES ('laptop', 'hash', 1, ?)"
+		).run(adminId);
+
+		auth.resetAdmin(db, 'admin@example.com');
+		const owners = () =>
+			db
+				.prepare('SELECT owner_id FROM sources UNION ALL SELECT owner_id FROM api_keys')
+				.all()
+				.map((row) => row.owner_id);
+		expect(owners()).toEqual([null, null]);
+
+		await setUp('new-admin@example.com');
+		const newAdmin = db.prepare("SELECT id FROM users WHERE email = 'new-admin@example.com'").get()!
+			.id;
+		expect(owners()).toEqual([newAdmin, newAdmin]);
+	});
 });
 
 describe('changePassword', () => {

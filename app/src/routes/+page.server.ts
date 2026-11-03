@@ -9,7 +9,9 @@ import { publicOrigin } from '#lib/server/public-origin.js';
 export const load: PageServerLoad = ({ url }) => {
 	const db = database();
 	const sources = sourceStats(db);
-	const publicSources = sources.filter((source) => source.public).map((source) => source.slug);
+	const publicSources = sources
+		.filter((source) => source.visibility === 'public')
+		.map((source) => source.slug);
 	return {
 		sources,
 		// Only public sources are searched here, whoever is logged in.

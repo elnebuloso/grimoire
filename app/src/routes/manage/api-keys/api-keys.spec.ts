@@ -20,7 +20,7 @@ function formRequest(fields: [string, string][]) {
 }
 
 async function create(fields: [string, string][]) {
-	return page.actions.create({ request: formRequest(fields) } as never);
+	return page.actions.create({ request: formRequest(fields), locals: {} } as never);
 }
 
 beforeEach(() => {
