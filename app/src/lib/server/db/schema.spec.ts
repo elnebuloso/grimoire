@@ -83,8 +83,10 @@ describe('openDatabase', () => {
 			.all()
 			.map((row) => row.name);
 		expect(tables).toEqual([
+			'api_key_requests',
 			'api_key_sources',
 			'api_keys',
+			'invitations',
 			'links',
 			'missed_queries',
 			'pages',
