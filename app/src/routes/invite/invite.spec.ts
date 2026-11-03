@@ -78,7 +78,7 @@ describe('inviting', () => {
 				text: expect.stringContaining('https://grimoire.example.com/invite/')
 			})
 		);
-		expect(users.load({} as never)).toMatchObject({
+		expect(users.load({ locals: { user: ADMIN } } as never)).toMatchObject({
 			invitations: [{ email: 'writer@example.com' }]
 		});
 	});

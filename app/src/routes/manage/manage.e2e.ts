@@ -360,6 +360,59 @@ test('creates an API key that works for its source until it is revoked', async (
 	expect((await sources()).status()).toBe(401);
 });
 
+test('invites a user who manages their own source and key, but not the sources of others', async ({
+	page
+}) => {
+	const writer = 'writer@example.com';
+	await fetch(`${MAIL_API}/messages`, { method: 'DELETE' });
+	await asAdmin(page);
+	await page.getByRole('link', { name: 'Users' }).click();
+	await page.getByLabel('Email address').fill(writer);
+	await page.getByRole('button', { name: 'Send invitation' }).click();
+	await expect(page.getByRole('status')).toContainText(`Invitation sent to ${writer}.`);
+	await expect(page.getByRole('row', { name: new RegExp(writer) })).toContainText('Send again');
+
+	const link = await linkFromMail(writer, '/invite/');
+	await page.context().clearCookies();
+	await page.goto(link);
+	await expect(page.getByLabel('Email address')).toHaveValue(writer);
+	await page.getByLabel('Password').fill('writer battery horse');
+	await page.getByRole('button', { name: 'Create account' }).click();
+	await expect(page).toHaveURL('/manage');
+	await expect(page.getByRole('link', { name: 'Settings' })).toHaveCount(0);
+
+	// The admin's source is private: neither listed nor open to the writer.
+	await expect(page.getByRole('row', { name: /auth-service/ })).toHaveCount(0);
+	expect((await page.goto('/manage/sources/1'))?.status()).toBe(403);
+
+	await page.goto('/manage/sources/new');
+	await page.getByLabel('Name', { exact: true }).fill('Writer notes');
+	await page.getByLabel('Git URL').fill(GIT_URL);
+	await page.getByRole('button', { name: 'Create source' }).click();
+	await expect(page.getByRole('heading', { name: 'Source Writer notes' })).toBeVisible();
+
+	await page.goto('/account/api-keys');
+	await page.getByLabel('Name').fill('writer-laptop');
+	await page.getByRole('button', { name: 'Create key' }).click();
+	const key = await page.locator('output').textContent();
+	const sources = await page.request.get('/sources', {
+		headers: { Authorization: `Bearer ${key}` }
+	});
+	expect(await sources.text()).toBe('- writer-notes');
+
+	await page.context().clearCookies();
+	await page.context().addCookies(adminSession);
+	await page.goto('/manage/users');
+	page.once('dialog', (dialog) => dialog.accept());
+	await page.getByRole('button', { name: `Delete ${writer}` }).click();
+	await expect(page.getByRole('row', { name: new RegExp(writer) })).toHaveCount(0);
+	expect(
+		(await page.request.get('/sources', { headers: { Authorization: `Bearer ${key}` } })).status()
+	).toBe(401);
+	await page.goto('/manage');
+	await expect(page.getByRole('link', { name: 'Writer notes', exact: true })).toBeVisible();
+});
+
 // Near the end, because every test before it logs in with the old password.
 test('changes the password and logs in with the new one', async ({ page }) => {
 	const newPassword = 'staple battery horse';
@@ -391,7 +444,7 @@ test('changes the password and logs in with the new one', async ({ page }) => {
 // The mail catcher started in `playwright.config.ts`.
 const MAIL_API = 'http://localhost:4825/api/v1';
 
-async function resetLinkFromMail(): Promise<string> {
+async function linkFromMail(to: string, path: string): Promise<string> {
 	let text = '';
 	// Sending is not awaited by the server, so the mail arrives some time after the answer.
 	await expect
@@ -399,15 +452,15 @@ async function resetLinkFromMail(): Promise<string> {
 			async () => {
 				const { messages } = await (await fetch(`${MAIL_API}/messages`)).json();
 				const mail = messages.find((message: { To: { Address: string }[] }) =>
-					message.To.some((to) => to.Address === EMAIL)
+					message.To.some((recipient) => recipient.Address === to)
 				);
 				if (mail) text = (await (await fetch(`${MAIL_API}/message/${mail.ID}`)).json()).Text;
 				return text;
 			},
 			{ timeout: 15_000 }
 		)
-		.toContain('/login/reset/');
-	return text.match(/http:\/\/localhost:4173\/login\/reset\/[\w-]+/)![0];
+		.toContain(path);
+	return text.match(new RegExp(`http://localhost:4173${path}[\\w-]+`))![0];
 }
 
 test('sets a forgotten password through the link in the mail', async ({ page }) => {
@@ -421,7 +474,7 @@ test('sets a forgotten password through the link in the mail', async ({ page }) 
 		'a link to set a new password is on its way'
 	);
 
-	const link = await resetLinkFromMail();
+	const link = await linkFromMail(EMAIL, '/login/reset/');
 	await page.goto(link);
 	await page.getByLabel('Password').fill(newPassword);
 	await page.getByRole('button', { name: 'Set password' }).click();

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import ConfirmForm from '#lib/components/ConfirmForm.svelte';
 	import DateTime from '#lib/components/DateTime.svelte';
 	import FormError from '#lib/components/FormError.svelte';
 	import PageHead from '#lib/components/PageHead.svelte';
@@ -9,6 +10,8 @@
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
+
+	const isAdmin = (user: { roles: string[] }) => user.roles.includes('admin');
 </script>
 
 <PageHead title={m.users_title()} />
@@ -28,8 +31,66 @@
 	</section>
 {/if}
 
-<section class="sheet" aria-labelledby="pending">
-	<h2 id="pending">{m.invitations_pending()}</h2>
+{#if form?.userError}
+	<p class="notice alert" role="alert">{form.userError}</p>
+{/if}
+
+<section class="sheet flush" aria-labelledby="users">
+	<div class="sheet-head"><h2 id="users">{m.users_title()}</h2></div>
+	<TableScroll label={m.users_title()}>
+		<table>
+			<thead>
+				<tr>
+					<th scope="col">{m.field_email()}</th>
+					<th scope="col">{m.users_role()}</th>
+					<th scope="col">{m.users_actions()}</th>
+				</tr>
+			</thead>
+			<tbody>
+				{#each data.users as user (user.id)}
+					<tr>
+						<th scope="row">{user.email}</th>
+						<td>{isAdmin(user) ? m.users_role_admin() : m.users_role_user()}</td>
+						<td>
+							<div class="actions">
+								{#if isAdmin(user)}
+									<ConfirmForm
+										action="?/demote"
+										question={m.users_demote_question({ email: user.email })}
+										label={m.users_demote()}
+										buttonLabel={m.users_demote_named({ email: user.email })}
+									>
+										<input type="hidden" name="id" value={user.id} />
+									</ConfirmForm>
+								{:else}
+									<form method="post" action="?/promote">
+										<input type="hidden" name="id" value={user.id} />
+										<button aria-label={m.users_promote_named({ email: user.email })}
+											>{m.users_promote()}</button
+										>
+									</form>
+								{/if}
+								{#if user.id !== data.me}
+									<ConfirmForm
+										action="?/delete"
+										question={m.users_delete_question({ email: user.email })}
+										label={m.users_delete()}
+										buttonLabel={m.users_delete_named({ email: user.email })}
+									>
+										<input type="hidden" name="id" value={user.id} />
+									</ConfirmForm>
+								{/if}
+							</div>
+						</td>
+					</tr>
+				{/each}
+			</tbody>
+		</table>
+	</TableScroll>
+</section>
+
+<section class="sheet flush" aria-labelledby="pending">
+	<div class="sheet-head"><h2 id="pending">{m.invitations_pending()}</h2></div>
 	{#if data.invitations.length === 0}
 		<p class="muted">{m.invitations_none()}</p>
 	{:else}
@@ -39,13 +100,37 @@
 					<tr>
 						<th scope="col">{m.field_email()}</th>
 						<th scope="col">{m.invitations_sent_at()}</th>
+						<th scope="col">{m.users_actions()}</th>
 					</tr>
 				</thead>
 				<tbody>
 					{#each data.invitations as invitation (invitation.id)}
 						<tr>
 							<th scope="row">{invitation.email}</th>
-							<td><DateTime value={invitation.sentAt} timeZone={data.timeZone} short /></td>
+							<td>
+								<DateTime value={invitation.sentAt} timeZone={data.timeZone} short />
+								{#if invitation.expiresAt <= data.now}<span class="expired"
+										>{m.invitations_expired()}</span
+									>{/if}
+							</td>
+							<td>
+								<div class="actions">
+									<form method="post" action="?/resend">
+										<input type="hidden" name="id" value={invitation.id} />
+										<button aria-label={m.invitations_resend_named({ email: invitation.email })}
+											>{m.invitations_resend()}</button
+										>
+									</form>
+									<ConfirmForm
+										action="?/withdraw"
+										question={m.invitations_withdraw_question({ email: invitation.email })}
+										label={m.invitations_withdraw()}
+										buttonLabel={m.invitations_withdraw_named({ email: invitation.email })}
+									>
+										<input type="hidden" name="id" value={invitation.id} />
+									</ConfirmForm>
+								</div>
+							</td>
 						</tr>
 					{/each}
 				</tbody>
@@ -72,6 +157,16 @@
 </section>
 
 <style>
+	.actions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--s2);
+	}
+	.expired {
+		margin-inline-start: var(--s2);
+		color: var(--err);
+		font-weight: 500;
+	}
 	.new {
 		max-width: 40rem;
 	}
