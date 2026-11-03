@@ -29,6 +29,14 @@ export interface ApiKey {
 	/** The last day, `YYYY-MM-DD` in the time zone of the instance, the key is accepted; null for no expiry. */
 	validUntil: string | null;
 	sources: KeyScope;
+	/** Requests per day over the last 90 days, the latest day first; days without one are left out. */
+	requests: DailyRequests[];
+}
+
+export interface DailyRequests {
+	/** `YYYY-MM-DD` in the time zone of the instance. */
+	day: string;
+	requests: number;
 }
 
 /** The moment of a request, and its calendar date in the time zone of the instance. */
@@ -40,6 +48,45 @@ export interface Clock {
 
 // A burst of agent requests writes the last use once, not once per request.
 const LAST_USE_PRECISION_MS = 60_000;
+const KEEP_REQUEST_DAYS = 90;
+
+// Requests counted since they were last written, by key and day; written with the last use. Per
+// database, so connections never mix their keys.
+// shortcut: what was counted in the minute before a restart is lost; flush on shutdown once
+// exact counts matter.
+const unwrittenRequests = new WeakMap<DatabaseSync, Map<number, Map<string, number>>>();
+
+function unwrittenFor(db: DatabaseSync): Map<number, Map<string, number>> {
+	let byKey = unwrittenRequests.get(db);
+	if (!byKey) unwrittenRequests.set(db, (byKey = new Map()));
+	return byKey;
+}
+
+function countRequest(db: DatabaseSync, keyId: number, day: string) {
+	const byKey = unwrittenFor(db);
+	const days = byKey.get(keyId) ?? new Map<string, number>();
+	days.set(day, (days.get(day) ?? 0) + 1);
+	byKey.set(keyId, days);
+}
+
+/** Writes the counted requests of a key and removes the days that are no longer kept. */
+function writeRequests(db: DatabaseSync, keyId: number, today: string) {
+	const days = unwrittenFor(db).get(keyId);
+	unwrittenFor(db).delete(keyId);
+	const add = db.prepare(
+		`INSERT INTO api_key_requests (api_key_id, day, requests) VALUES (?, ?, ?)
+		ON CONFLICT (api_key_id, day) DO UPDATE SET requests = requests + excluded.requests`
+	);
+	for (const [day, requests] of days ?? []) add.run(keyId, day, requests);
+	db.prepare('DELETE FROM api_key_requests WHERE day <= ?').run(
+		daysBefore(today, KEEP_REQUEST_DAYS)
+	);
+}
+
+/** The calendar date `days` before `day`, both `YYYY-MM-DD`. */
+function daysBefore(day: string, days: number): string {
+	return new Date(Date.parse(`${day}T00:00:00Z`) - days * 86_400_000).toISOString().slice(0, 10);
+}
 
 /** Whether a key valid until `validUntil` is rejected on `today`; both are `YYYY-MM-DD`. */
 export function isExpired(validUntil: string | null, today: string): boolean {
@@ -143,7 +190,9 @@ export function listApiKeys(db: DatabaseSync, ownerId?: number): ApiKey[] {
 			`SELECT api_keys.id, api_keys.name, users.email AS owner, api_keys.created_at AS createdAt,
 				api_keys.last_used_at AS lastUsedAt, api_keys.valid_until AS validUntil,
 				api_keys.all_sources,
-				json_group_array(sources.slug) FILTER (WHERE sources.slug IS NOT NULL) AS slugs
+				json_group_array(sources.slug) FILTER (WHERE sources.slug IS NOT NULL) AS slugs,
+				(SELECT json_group_object(day, requests) FROM api_key_requests
+					WHERE api_key_id = api_keys.id) AS requests
 			FROM api_keys
 			LEFT JOIN users ON users.id = api_keys.owner_id
 			LEFT JOIN api_key_sources ON api_key_sources.api_key_id = api_keys.id
@@ -161,6 +210,7 @@ export function listApiKeys(db: DatabaseSync, ownerId?: number): ApiKey[] {
 		validUntil: string | null;
 		all_sources: number;
 		slugs: string;
+		requests: string;
 	}[];
 	return rows.map((row) => ({
 		id: row.id,
@@ -169,8 +219,24 @@ export function listApiKeys(db: DatabaseSync, ownerId?: number): ApiKey[] {
 		createdAt: row.createdAt,
 		lastUsedAt: row.lastUsedAt,
 		validUntil: row.validUntil,
-		sources: row.all_sources === 1 ? 'all' : (JSON.parse(row.slugs) as string[]).sort()
+		sources: row.all_sources === 1 ? 'all' : (JSON.parse(row.slugs) as string[]).sort(),
+		requests: dailyRequests(db, row.id, JSON.parse(row.requests) as Record<string, number>)
 	}));
+}
+
+/** The written counts of a key with what is counted but not written yet, the latest day first. */
+function dailyRequests(
+	db: DatabaseSync,
+	keyId: number,
+	written: Record<string, number>
+): DailyRequests[] {
+	const counts = new Map(Object.entries(written));
+	for (const [day, requests] of unwrittenFor(db).get(keyId) ?? []) {
+		counts.set(day, (counts.get(day) ?? 0) + requests);
+	}
+	return [...counts]
+		.map(([day, requests]) => ({ day, requests }))
+		.sort((a, b) => (a.day < b.day ? 1 : -1));
 }
 
 /**
@@ -182,6 +248,7 @@ export function revokeApiKey(db: DatabaseSync, id: number, ownerId?: number) {
 		id,
 		owner: ownerId ?? null
 	});
+	if (!db.prepare('SELECT 1 FROM api_keys WHERE id = ?').get(id)) unwrittenFor(db).delete(id);
 }
 
 /**
@@ -197,7 +264,8 @@ export function readableSlugs(db: DatabaseSync, userId: number | null): string[]
 
 /**
  * The sources a key may see, within what its owner may read, or undefined when the key is unknown
- * or expired and must be rejected. Records the use of an accepted key, at most once a minute.
+ * or expired and must be rejected. Counts the request of an accepted key and writes its last use
+ * and counts at most once a minute.
  */
 export function scopeForKey(
 	db: DatabaseSync,
@@ -218,6 +286,7 @@ export function scopeForKey(
 		  }
 		| undefined;
 	if (!row || isExpired(row.valid_until, clock.today)) return undefined;
+	countRequest(db, row.id, clock.today);
 	// Decided here, not in the UPDATE's WHERE: an UPDATE takes the write lock even when it
 	// changes no row.
 	if (
@@ -228,6 +297,7 @@ export function scopeForKey(
 			clock.now.toISOString(),
 			row.id
 		);
+		writeRequests(db, row.id, clock.today);
 	}
 	// Decided on every request: a source made private later drops out of other users' keys.
 	const readable = readableSlugs(db, row.owner_id);

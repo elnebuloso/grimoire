@@ -5,6 +5,7 @@
 	import CopyButton from '#lib/components/CopyButton.svelte';
 	import DateTime from '#lib/components/DateTime.svelte';
 	import PageHead from '#lib/components/PageHead.svelte';
+	import RequestsPerDay from '#lib/components/RequestsPerDay.svelte';
 	import FormError from '#lib/components/FormError.svelte';
 	import TextField from '#lib/components/TextField.svelte';
 	import { m } from '#lib/paraglide/messages.js';
@@ -135,6 +136,7 @@
 									>
 								{/if}
 							</p>
+							<RequestsPerDay days={key.requests} />
 						</div>
 						<ConfirmForm
 							action="?/revoke"

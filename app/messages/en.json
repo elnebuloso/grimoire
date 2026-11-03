@@ -257,5 +257,10 @@
 	"apikeys_admin_lead": "Every key of every user. Revoke one that leaked or is no longer needed; its owner changes it under My API keys.",
 	"apikeys_owner": "Owner",
 	"apikeys_no_owner": "nobody",
-	"apikeys_last_used_heading": "Last used"
+	"apikeys_last_used_heading": "Last used",
+	"requests_none": "No requests in the last 90 days",
+	"requests_summary": "{count} requests in the last 90 days",
+	"requests_per_day": "Requests per day",
+	"requests_day": "Day",
+	"requests_count": "Requests"
 }

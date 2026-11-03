@@ -2,6 +2,7 @@
 	import ConfirmForm from '#lib/components/ConfirmForm.svelte';
 	import DateTime from '#lib/components/DateTime.svelte';
 	import PageHead from '#lib/components/PageHead.svelte';
+	import RequestsPerDay from '#lib/components/RequestsPerDay.svelte';
 	import TableScroll from '#lib/components/TableScroll.svelte';
 	import { m } from '#lib/paraglide/messages.js';
 	import type { PageProps } from './$types';
@@ -23,6 +24,7 @@
 						<th scope="col">{m.apikeys_owner()}</th>
 						<th scope="col">{m.sources()}</th>
 						<th scope="col">{m.apikeys_last_used_heading()}</th>
+						<th scope="col">{m.requests_count()}</th>
 						<th scope="col">{m.apikeys_revoke()}</th>
 					</tr>
 				</thead>
@@ -43,6 +45,7 @@
 										short
 									/>{:else}{m.apikeys_never_used()}{/if}
 							</td>
+							<td><RequestsPerDay days={key.requests} /></td>
 							<td class="action">
 								<ConfirmForm
 									action="?/revoke"

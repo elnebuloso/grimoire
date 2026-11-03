@@ -257,5 +257,10 @@
 	"apikeys_admin_lead": "Jeder Key jedes Users. Widerrufe einen, der geleakt ist oder nicht mehr gebraucht wird; ändern kann ihn sein Owner unter Meine API-Keys.",
 	"apikeys_owner": "Owner",
 	"apikeys_no_owner": "niemand",
-	"apikeys_last_used_heading": "Zuletzt benutzt"
+	"apikeys_last_used_heading": "Zuletzt benutzt",
+	"requests_none": "Keine Anfragen in den letzten 90 Tagen",
+	"requests_summary": "{count} Anfragen in den letzten 90 Tagen",
+	"requests_per_day": "Anfragen pro Tag",
+	"requests_day": "Tag",
+	"requests_count": "Anfragen"
 }

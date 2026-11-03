@@ -226,6 +226,7 @@ describe('listApiKeys', () => {
 			'lastUsedAt',
 			'name',
 			'owner',
+			'requests',
 			'sources',
 			'validUntil'
 		]);
@@ -354,5 +355,68 @@ describe('the schema', () => {
 		expect(() => db.prepare('UPDATE api_keys SET all_sources = 1 WHERE id = ?').run(id)).toThrow(
 			refusal
 		);
+	});
+});
+
+describe('requests per day', () => {
+	function written() {
+		return db
+			.prepare('SELECT day, requests FROM api_key_requests ORDER BY day')
+			.all()
+			.map((row) => ({ ...row }));
+	}
+
+	function requestsOf(id: number) {
+		return listApiKeys(db).find((key) => key.id === id)!.requests;
+	}
+
+	it('counts every request, but writes the counts at most once a minute', () => {
+		const { id, key } = newKey(db, 'ci', 'all');
+		scopeForKey(db, key, CLOCK);
+		scopeForKey(db, key, later(10));
+		scopeForKey(db, key, later(20));
+
+		expect(written()).toEqual([{ day: '2026-10-30', requests: 1 }]);
+		expect(requestsOf(id)).toEqual([{ day: '2026-10-30', requests: 3 }]);
+
+		scopeForKey(db, key, later(60));
+		expect(written()).toEqual([{ day: '2026-10-30', requests: 4 }]);
+	});
+
+	it('counts on the calendar day of the instance, the latest day first', () => {
+		const { id, key } = newKey(db, 'ci', 'all');
+		scopeForKey(db, key, CLOCK);
+		scopeForKey(db, key, later(3_600, '2026-10-31'));
+		scopeForKey(db, key, later(3_660, '2026-10-31'));
+
+		expect(requestsOf(id)).toEqual([
+			{ day: '2026-10-31', requests: 2 },
+			{ day: '2026-10-30', requests: 1 }
+		]);
+	});
+
+	it('removes days older than 90 days and the counts of a revoked key', () => {
+		const { id, key } = newKey(db, 'ci', 'all');
+		const other = newKey(db, 'laptop', 'all');
+		db.prepare(
+			"INSERT INTO api_key_requests (api_key_id, day, requests) VALUES (?, '2026-08-01', 7), (?, '2026-08-02', 9)"
+		).run(id, id);
+		scopeForKey(db, key, CLOCK);
+		expect(requestsOf(id)).toEqual([
+			{ day: '2026-10-30', requests: 1 },
+			{ day: '2026-08-02', requests: 9 }
+		]);
+
+		scopeForKey(db, other.key, CLOCK);
+		revokeApiKey(db, id);
+		expect(written()).toEqual([{ day: '2026-10-30', requests: 1 }]);
+		expect(requestsOf(other.id)).toEqual([{ day: '2026-10-30', requests: 1 }]);
+	});
+
+	it('counts no request with an unknown or expired key', () => {
+		const { id, key } = newKey(db, 'ci', 'all', '2026-10-29');
+		scopeForKey(db, key, CLOCK);
+		scopeForKey(db, 'grimoire_unknown', CLOCK);
+		expect(requestsOf(id)).toEqual([]);
 	});
 });
