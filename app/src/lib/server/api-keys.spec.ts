@@ -14,6 +14,8 @@ import {
 
 let db: DatabaseSync;
 
+const ALL = ['billing-docs', 'platform-docs', 'search-docs'];
+
 const CLOCK = { now: new Date('2026-10-30T12:00:00.000Z'), today: '2026-10-30' };
 
 function later(seconds: number, today = CLOCK.today) {
@@ -28,7 +30,7 @@ beforeEach(() => {
 	db = openDatabase(':memory:');
 	for (const slug of ['billing-docs', 'platform-docs', 'search-docs']) {
 		db.prepare(
-			"INSERT INTO sources (slug, name, git_url, branch, path) VALUES (?, 'Docs', 'https://git.example/x.git', 'main', 'docs/')"
+			"INSERT INTO sources (slug, name, git_url, branch, path, visibility) VALUES (?, 'Docs', 'https://git.example/x.git', 'main', 'docs/', 'internal')"
 		).run(slug);
 	}
 });
@@ -74,11 +76,57 @@ describe('createApiKey', () => {
 	});
 });
 
+describe('scopeForKey by visibility', () => {
+	let writer: number;
+	let admin: number;
+
+	beforeEach(() => {
+		const insertUser = db.prepare("INSERT INTO users (email, password_hash) VALUES (?, 'hash')");
+		writer = Number(insertUser.run('writer@example.com').lastInsertRowid);
+		admin = Number(insertUser.run('admin@example.com').lastInsertRowid);
+		db.prepare("INSERT INTO user_roles (user_id, role) VALUES (?, 'admin')").run(admin);
+		db.prepare(
+			"UPDATE sources SET visibility = 'private', owner_id = ? WHERE slug = 'search-docs'"
+		).run(writer);
+		db.prepare("UPDATE sources SET visibility = 'public' WHERE slug = 'billing-docs'").run();
+	});
+
+	function scopeOf(owner: number | null, sources: 'all' | string[] = 'all') {
+		return scopeForKey(db, newKey(db, 'laptop', sources, null, owner).key, CLOCK)!.scope;
+	}
+
+	it("reads public, internal and the owner's private sources with the owner's key", () => {
+		expect(scopeOf(writer)).toEqual(ALL);
+	});
+
+	it("never reads another user's private source, not with an admin's key either", () => {
+		expect(scopeOf(admin)).toEqual(['billing-docs', 'platform-docs']);
+		expect(scopeOf(admin, ['search-docs'])).toEqual([]);
+		expect(listVisibleSources(db, scopeOf(admin, ['search-docs'])).markdown).toBe('- billing-docs');
+	});
+
+	it('reads no private source with a key that belongs to nobody', () => {
+		expect(scopeOf(null)).toEqual(['billing-docs', 'platform-docs']);
+	});
+
+	it('drops a source from other keys once its owner makes it private', () => {
+		const key = newKey(db, 'ci', 'all', null, admin).key;
+		db.prepare(
+			"UPDATE sources SET visibility = 'private', owner_id = ? WHERE slug = 'platform-docs'"
+		).run(writer);
+		expect(scopeForKey(db, key, CLOCK)!.scope).toEqual(['billing-docs']);
+	});
+
+	it('reads only public sources without a key', () => {
+		expect(listVisibleSources(db, 'public').markdown).toBe('- billing-docs');
+	});
+});
+
 describe('scopeForKey', () => {
 	it('gives an all-sources key every source', () => {
 		const { key } = newKey(db, 'ci', 'all');
 
-		expect(scopeForKey(db, key, CLOCK)).toEqual({ scope: 'all' });
+		expect(scopeForKey(db, key, CLOCK)).toEqual({ scope: ALL });
 	});
 
 	it('gives a key with a selection only those sources', () => {
@@ -144,7 +192,7 @@ describe('revokeApiKey', () => {
 		revokeApiKey(db, revoked.id);
 
 		expect(scopeForKey(db, revoked.key, CLOCK)).toBeUndefined();
-		expect(scopeForKey(db, kept.key, CLOCK)).toEqual({ scope: 'all' });
+		expect(scopeForKey(db, kept.key, CLOCK)).toEqual({ scope: ALL });
 		expect(db.prepare('SELECT count(*) AS n FROM api_key_sources').get()).toEqual({ n: 0 });
 	});
 });
@@ -174,7 +222,7 @@ describe('expiry', () => {
 	it('accepts a key through its last valid day and rejects it the day after', () => {
 		const { id, key } = newKey(db, 'trial', 'all', '2026-10-30');
 
-		expect(scopeForKey(db, key, CLOCK)).toEqual({ scope: 'all' });
+		expect(scopeForKey(db, key, CLOCK)).toEqual({ scope: ALL });
 		expect(scopeForKey(db, key, later(86_400, '2026-10-31'))).toBeUndefined();
 		// A rejected request is no use of the key.
 		expect(lastUsed(id)).toBe('2026-10-30T12:00:00.000Z');

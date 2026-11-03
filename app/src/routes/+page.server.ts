@@ -4,11 +4,16 @@ import { slugify } from '#lib/slug.js';
 import { database } from '#lib/server/db/index.js';
 import { answerQueryForm } from '#lib/server/query-form.js';
 import { sourceStats } from '#lib/server/stats.js';
+import { readableSlugs } from '#lib/server/api-keys.js';
 import { publicOrigin } from '#lib/server/public-origin.js';
 
-export const load: PageServerLoad = ({ url }) => {
+export const load: PageServerLoad = ({ url, locals }) => {
 	const db = database();
-	const sources = sourceStats(db);
+	// A visitor sees the public sources, a user also the ones they may read with their keys.
+	const readable = locals.user ? readableSlugs(db, locals.user.id) : undefined;
+	const sources = sourceStats(db).filter((source) =>
+		readable ? readable.includes(source.slug) : source.visibility === 'public'
+	);
 	const publicSources = sources
 		.filter((source) => source.visibility === 'public')
 		.map((source) => source.slug);

@@ -158,8 +158,19 @@ export function revokeApiKey(db: DatabaseSync, id: number) {
 }
 
 /**
- * The sources a key may see, or undefined when the key is unknown or expired and must be
- * rejected. Records the use of an accepted key, at most once a minute.
+ * The slugs of the sources `userId` may read: the public and internal ones and their own private
+ * ones. Null for no user, such as a key whose owner was reset: it reads no private source.
+ */
+export function readableSlugs(db: DatabaseSync, userId: number | null): string[] {
+	const rows = db
+		.prepare("SELECT slug FROM sources WHERE visibility <> 'private' OR owner_id = ? ORDER BY slug")
+		.all(userId) as { slug: string }[];
+	return rows.map((row) => row.slug);
+}
+
+/**
+ * The sources a key may see, within what its owner may read, or undefined when the key is unknown
+ * or expired and must be rejected. Records the use of an accepted key, at most once a minute.
  */
 export function scopeForKey(
 	db: DatabaseSync,
@@ -167,9 +178,17 @@ export function scopeForKey(
 	clock: Clock
 ): { scope: SourceScope } | undefined {
 	const row = db
-		.prepare(`SELECT id, all_sources, last_used_at, valid_until FROM api_keys WHERE key_hash = ?`)
+		.prepare(
+			`SELECT id, all_sources, last_used_at, valid_until, owner_id FROM api_keys WHERE key_hash = ?`
+		)
 		.get(sha256(key)) as
-		| { id: number; all_sources: number; last_used_at: string | null; valid_until: string | null }
+		| {
+				id: number;
+				all_sources: number;
+				last_used_at: string | null;
+				valid_until: string | null;
+				owner_id: number | null;
+		  }
 		| undefined;
 	if (!row || isExpired(row.valid_until, clock.today)) return undefined;
 	// Decided here, not in the UPDATE's WHERE: an UPDATE takes the write lock even when it
@@ -183,7 +202,9 @@ export function scopeForKey(
 			row.id
 		);
 	}
-	if (row.all_sources === 1) return { scope: 'all' };
+	// Decided on every request: a source made private later drops out of other users' keys.
+	const readable = readableSlugs(db, row.owner_id);
+	if (row.all_sources === 1) return { scope: readable };
 	const slugs = db
 		.prepare(
 			`SELECT sources.slug FROM api_key_sources
@@ -192,5 +213,7 @@ export function scopeForKey(
 			ORDER BY sources.slug`
 		)
 		.all(row.id) as { slug: string }[];
-	return { scope: slugs.map((source) => source.slug) };
+	return {
+		scope: slugs.map((source) => source.slug).filter((slug) => readable.includes(slug))
+	};
 }

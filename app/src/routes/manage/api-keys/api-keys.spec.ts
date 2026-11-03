@@ -27,9 +27,9 @@ beforeEach(() => {
 	vi.useFakeTimers({ toFake: ['Date'] });
 	vi.setSystemTime(CLOCK.now);
 	db = openDatabase(':memory:');
-	db.exec(`INSERT INTO sources (slug, name, git_url, branch, path) VALUES
-		('billing-docs', 'Billing docs', 'https://git.example/x.git', 'main', 'docs/'),
-		('platform-docs', 'Platform docs', 'https://git.example/x.git', 'main', 'docs/')`);
+	db.exec(`INSERT INTO sources (slug, name, git_url, branch, path, visibility) VALUES
+		('billing-docs', 'Billing docs', 'https://git.example/x.git', 'main', 'docs/', 'internal'),
+		('platform-docs', 'Platform docs', 'https://git.example/x.git', 'main', 'docs/', 'internal')`);
 });
 
 afterEach(() => {
@@ -61,7 +61,9 @@ describe('create', () => {
 			['sources', 'platform-docs']
 		])) as { created: { key: string } };
 
-		expect(scopeForKey(db, result.created.key, CLOCK)).toEqual({ scope: 'all' });
+		expect(scopeForKey(db, result.created.key, CLOCK)).toEqual({
+			scope: ['billing-docs', 'platform-docs']
+		});
 	});
 
 	it('creates a key valid until a date, shown as expired once the date has passed', async () => {

@@ -12,14 +12,19 @@ let db: DatabaseSync;
 
 vi.mock('#lib/server/db/index.js', () => ({ database: () => db }));
 
-function addSourceWithPage(slug: string, markdown: string) {
+function addSourceWithPage(
+	slug: string,
+	markdown: string,
+	visibility = 'internal',
+	ownerId: number | null = null
+) {
 	const sourceId = Number(
 		db
 			.prepare(
-				`INSERT INTO sources (slug, name, git_url, branch, path)
-				VALUES (?, 'Docs', 'https://git.example/x.git', 'main', 'docs/')`
+				`INSERT INTO sources (slug, name, git_url, branch, path, visibility, owner_id)
+				VALUES (?, 'Docs', 'https://git.example/x.git', 'main', 'docs/', ?, ?)`
 			)
-			.run(slug).lastInsertRowid
+			.run(slug, visibility, ownerId).lastInsertRowid
 	);
 	const metadata = preprocessPage(markdown);
 	const chunked = chunkPage(metadata, 'index.md');
@@ -39,9 +44,9 @@ interface QueryPage {
 	answer?: string;
 }
 
-function load(search: string): QueryPage {
+function load(search: string, userId = 1): QueryPage {
 	const url = new URL(`https://grimoire.example/manage/query${search}`);
-	return page.load({ url } as never) as QueryPage;
+	return page.load({ url, locals: { user: { id: userId } } } as never) as QueryPage;
 }
 
 beforeEach(() => {
@@ -57,6 +62,18 @@ describe('query page', () => {
 			sources: ['billing-archive', 'billing-docs', 'platform-docs'],
 			values: { question: '', sources: [], tokens: '3000' }
 		});
+	});
+
+	it("searches the user's own private sources and leaves out those of others", () => {
+		const insertUser = db.prepare("INSERT INTO users (email, password_hash) VALUES (?, 'hash')");
+		const writer = Number(insertUser.run('writer@example.com').lastInsertRowid);
+		const admin = Number(insertUser.run('admin@example.com').lastInsertRowid);
+		db.prepare("INSERT INTO user_roles (user_id, role) VALUES (?, 'admin')").run(admin);
+		addSourceWithPage('release-drafts', '# Drafts\n\nA rollback plan.', 'private', writer);
+
+		expect(load('?q=rollback&tokens=3000', writer).answer).toContain('release-drafts');
+		expect(load('', admin).sources).not.toContain('release-drafts');
+		expect(load('?q=rollback&tokens=3000', admin).answer).not.toContain('release-drafts');
 	});
 
 	it('answers with what query returns to an agent, across all sources', () => {

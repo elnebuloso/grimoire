@@ -43,8 +43,8 @@ function addSource(source: string, description: string, file: string, markdown: 
 	const sourceId = Number(
 		db
 			.prepare(
-				`INSERT INTO sources (slug, name, description, git_url, branch, path)
-				VALUES (?, 'Docs', ?, 'https://git.example/x.git', 'main', 'docs/')`
+				`INSERT INTO sources (slug, name, description, git_url, branch, path, visibility)
+				VALUES (?, 'Docs', ?, 'https://git.example/x.git', 'main', 'docs/', 'internal')`
 			)
 			.run(source, description).lastInsertRowid
 	);

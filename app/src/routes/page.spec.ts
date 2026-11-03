@@ -14,14 +14,15 @@ let db: DatabaseSync;
 vi.mock('#lib/server/db/index.js', () => ({ database: () => db }));
 vi.mock('$app/env/private', () => ({ TZ: 'UTC', BASE_URL: '', INSTANCE_NAME: 'Acme Docs' }));
 
-function addSourceWithPage(slug: string, markdown: string, isPublic: boolean) {
+function addSourceWithPage(slug: string, markdown: string, isPublic: boolean, privateTo?: number) {
+	const visibility = isPublic ? 'public' : privateTo ? 'private' : 'internal';
 	const sourceId = Number(
 		db
 			.prepare(
-				`INSERT INTO sources (slug, name, git_url, branch, path, visibility)
-				VALUES (?, 'Docs', 'https://git.internal.example/x.git', 'main', 'docs/', ?)`
+				`INSERT INTO sources (slug, name, git_url, branch, path, visibility, owner_id)
+				VALUES (?, 'Docs', 'https://git.internal.example/x.git', 'main', 'docs/', ?, ?)`
 			)
-			.run(slug, isPublic ? 'public' : 'internal').lastInsertRowid
+			.run(slug, visibility, privateTo ?? null).lastInsertRowid
 	);
 	const metadata = preprocessPage(markdown);
 	const chunked = chunkPage(metadata, 'index.md');
@@ -34,9 +35,14 @@ function addSourceWithPage(slug: string, markdown: string, isPublic: boolean) {
 	});
 }
 
-function load(search: string) {
+function load(search: string, userId?: number) {
 	const url = new URL(`https://grimoire.example/${search}`);
-	return page.load({ url } as never) as { query?: QueryFormState; mcpName: string };
+	const locals = userId ? { user: { id: userId } } : {};
+	return page.load({ url, locals } as never) as {
+		query?: QueryFormState;
+		mcpName: string;
+		sources: { slug: string }[];
+	};
 }
 
 beforeEach(() => {
@@ -47,6 +53,19 @@ beforeEach(() => {
 describe('start page', () => {
 	it('names the MCP server in the connect example after the instance, as one word', () => {
 		expect(load('').mcpName).toBe('acme-docs');
+	});
+
+	it('lists the public sources to a visitor, and to a user also internal and their own private ones', () => {
+		const insertUser = db.prepare("INSERT INTO users (email, password_hash) VALUES (?, 'hash')");
+		const writer = Number(insertUser.run('writer@example.com').lastInsertRowid);
+		const other = Number(insertUser.run('ops@example.com').lastInsertRowid);
+		addSourceWithPage('billing-docs', '# Invoices', true);
+		addSourceWithPage('release-drafts', '# Drafts', false, writer);
+		const slugs = (userId?: number) => load('', userId).sources.map((source) => source.slug);
+
+		expect(slugs()).toEqual(['billing-docs']);
+		expect(slugs(writer)).toEqual(['billing-docs', 'platform-docs', 'release-drafts']);
+		expect(slugs(other)).toEqual(['billing-docs', 'platform-docs']);
 	});
 
 	it('offers no query while no source is public', () => {
