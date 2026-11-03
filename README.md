@@ -28,9 +28,9 @@
 
 ## Connecting agents
 
-Without an API key, agents read and search the public sources. A key adds private sources: send it
-as `Authorization: Bearer <key>`. Keys are created in the management area under **API keys**; a key
-opens all sources or a selection of them.
+Without an API key, agents read and search the public sources. A key adds the internal sources and
+its owner's private ones: send it as `Authorization: Bearer <key>`. Every user creates their own
+keys in the management area under **My API keys**; a key opens all of these or a selection.
 
 ### MCP
 

@@ -2,7 +2,8 @@
 
 !!! info "Prerequisites"
     - Reader: admin.
-    - Required permissions: the admin account, set up once at the first start.
+    - Required permissions: the admin role. The first admin account is set up at the first start;
+      further admins are users an admin made admin.
 
     New to grimoire? Read [Concepts](index.md) first.
 
@@ -55,12 +56,16 @@ sessions are logged out; the browser you changed it in stays logged in.
 
 ## Sources
 
-!!! note "Public"
-    The start page `/` shows every source's name, slug and short description without a login,
-    with whether it is public or private, its counts of pages, snippets, tokens and dead links, its
-    last sync and whether it has a sync error. It shows neither Git URLs nor error texts. For
-    public sources it links the **Documentation** site and offers **Try a query** to everyone,
-    searching the public sources only.
+!!! note "Shown on the start page"
+    The start page `/` lists the public sources to everyone, and to a logged-in user also the
+    internal ones and their own private ones: name, slug, short description, visibility, counts of
+    pages, snippets, tokens and dead links, last sync and whether it has a sync error. It shows
+    neither Git URLs nor error texts. For public sources it links the **Documentation** site and
+    offers **Try a query** to everyone, searching the public sources only.
+
+You manage every source: the overview lists all of them, also other users' private ones, and you
+may change, sync, rename and delete each. A source you create is yours; users manage their own
+(see [Your sources and API keys](users.md#sources)).
 
 To serve two paths of one repository, add it twice, as two sources, and name each for what it
 holds, such as `Billing API` and `Billing runbooks`.
@@ -74,7 +79,7 @@ holds, such as `Billing API` and `Billing runbooks`.
 | **Path in the repository** | Relative to the repository root, such as `docs`; a trailing slash is dropped; empty for the whole repository; no `..`. |
 | **Exclusions** | Glob patterns relative to the repository root, one per line, such as `docs/drafts/**`. |
 | **Schedule** | Cron with five fields in the instance's time zone, such as `0 6 * * 1-5` for weekdays at 6:00; empty uses the global schedule the label shows. A schedule that never runs, such as `0 0 30 2 *`, is rejected. |
-| **Public** | Off for a new source. On, anyone who can reach grimoire searches and reads the source without an API key, over MCP and HTTP; content read in the meantime cannot be taken back by switching it off. Off, only API keys for all sources or for this one read it. |
+| **Visibility** | **Private** for a new source: only the owner's API keys read it, an admin's keys neither. **Internal**: the API key of every user. **Public**: anyone who can reach grimoire, without an API key, over MCP and HTTP. Content read in the meantime cannot be taken back by choosing a narrower level. |
 | **Paused** | Polling skips the source; only **Sync now** syncs it. |
 | **Username**, **Access token** | A read-only token of the Git host, see the table below. |
 
@@ -115,7 +120,8 @@ a new commit, so other sources do not wait behind a full index. A paused source,
 while **Pause all syncs** is on, is saved without either.
 
 !!! danger "Irreversible"
-    Deleting a source deletes its index. API keys limited to a deleted source lose it.
+    Deleting a source deletes its index, also of a source another user owns. API keys limited to a
+    deleted source lose it.
 
 ### Changing a slug
 
@@ -178,7 +184,8 @@ It keeps the newest 100 lines.
   snippets with ID and estimated tokens. Use it to find sections that came out too large, too small
   or under a misleading title.
 - `Manage > Try a query` answers exactly like the agent operation `query`, with a line naming the
-  hits that did not fit the budget. It searches every source, or the ones ticked, needs no API key and is not recorded.
+  hits that did not fit the budget. It searches what your own API keys would read, not other
+  users' private sources, or the ones ticked; it needs no API key and is not recorded.
   Its address can be shared as a link.
 
 ## Queries without results
@@ -192,19 +199,50 @@ means the documentation lacks the topic or names it differently. Open a question
   agent put in.
 - Entries are deleted after 30 days and beyond the newest 10,000.
 - Questions naming an unknown source are not recorded, nor questions sent without an API key.
+- Users see the questions that named one of their own sources; questions across all sources only
+  admins see.
 
 ## API keys
 
-`Manage > API keys`. A key reads all sources, including future ones, or a selection; public sources need no key.
+Your own keys: `Manage > My API keys`, as for every user (see
+[API keys](users.md#api-keys)).
 
-- The key is shown once, right after **Create key**; grimoire cannot show it again. A lost key
-  cannot be recovered: revoke it and create a new one.
-- **Revoke** takes effect with the next request.
-- **Change** followed by the key's name edits sources and expiry without replacing the key;
-  agents keep using it.
-- **Valid until** is optional. The key works through that day in the instance's time zone and is
-  rejected from the next day on; the list shows it as expired.
-- The list shows when a key last authenticated a request, to the minute. Revoke keys unused for a
-  long time.
-- A key limited to a selection loses a source when it is deleted; once all are gone, it reads the
-  public sources only, like a request without a key.
+`Manage > All API keys` lists every key with its owner, sources, last use and requests per day
+for the last 90 days. **Revoke** stops a key with the next request, whoever owns it; only the owner
+changes its sources or expiry. Revoke keys that leaked or have not been used for a long time.
+
+## Users
+
+`Manage > Users`.
+
+### Inviting
+
+Enter the address and **Send invitation**. The invited person chooses a password through the link
+and has an account without the admin role.
+
+- With mail set up, the link goes out by mail. Without mail, or when the mail server refuses it,
+  the page shows the link once, to send yourself; grimoire cannot show it again.
+- The link works once and for 7 days. **Pending invitations** shows when it was sent and marks it
+  as expired after that.
+- **Send again** replaces the link and its 7 days; the link sent before stops working.
+  **Withdraw** stops it without a new one.
+- `This email address already has an account.`, `An invitation to this address is waiting already;
+  send it again from the list.`: nothing to invite; use **Send again** for the waiting one.
+
+### Roles
+
+**Make admin** gives a user everything this page describes. **Remove admin role** leaves the
+account, its sources and keys as they are.
+
+`The last admin keeps the role: make another user an admin first.`: an instance without admin
+offers the setup again to whoever has the server log, so the last one stays.
+
+### Deleting a user
+
+!!! danger "Irreversible"
+    The user's sources become yours, their API keys stop working at once, their sessions end.
+    The account cannot be restored; invite the address again to give it a new one.
+
+Your own account cannot be deleted here (`You cannot delete your own account.`), nor the last
+admin.
+

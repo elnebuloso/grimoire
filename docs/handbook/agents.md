@@ -3,12 +3,13 @@
 !!! info "Prerequisites"
     - Reader: agent developer.
     - Required access: the address of the instance, such as `https://grimoire.example.com`, and
-      for private sources an API key from an admin.
+      for sources that are not public an API key, created under `Manage > My API keys` (see
+      [API keys](users.md#api-keys)).
 
     New to grimoire? Read [Concepts](index.md) first.
 
-Without a key, an agent sees the public sources. A key adds the private sources it was created
-for; it never hides a public one. Send the key with every request as
+Without a key, an agent sees the public sources. A key adds the internal sources and the private
+sources of its owner, all of them or the ones it was created for; it never hides a public one. Send the key with every request as
 `Authorization: Bearer <YOUR_API_KEY>`. Keep it in an environment variable such as `GRIMOIRE_KEY`,
 never in a file you commit.
 
@@ -78,7 +79,7 @@ curl -H "Authorization: Bearer $GRIMOIRE_KEY" \
 
 | Status | Text | Fix |
 |---|---|---|
-| `401` | ``Missing or invalid API key. Send `Authorization: Bearer <key>`.`` | Send the header; without one this comes only while the instance has no public source. A key sent is checked even when public sources exist: it may be revoked or past its expiry date, ask the admin. |
+| `401` | ``Missing or invalid API key. Send `Authorization: Bearer <key>`.`` | Send the header; without one this comes only while the instance has no public source. A key sent is checked even when public sources exist: it may be revoked, by its owner or an admin, or past its expiry date. |
 | `400` | ``Missing search terms. Send `?q=<terms>`.`` | Add `q`. |
 | `400` | `` `tokens` must be a positive whole number. `` | Send a whole number, such as `tokens=3000`. |
 | `404` | ``Source "billing" not found. See `sources`.`` | Use a source from `sources`; the key may not include it. |
