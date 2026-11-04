@@ -69,8 +69,8 @@
 					<td class="num">{count(source.tokens)}</td>
 					<td class={state(source).tone}>{state(source).word}</td>
 					<td class="when">
-						{#if source.lastSync}
-							<DateTime value={source.lastSync} {timeZone} short />
+						{#if source.lastCheck}
+							<DateTime value={source.lastCheck} {timeZone} short />
 						{:else}
 							{m.never()}
 						{/if}

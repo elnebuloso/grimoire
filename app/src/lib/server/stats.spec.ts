@@ -65,6 +65,7 @@ describe('sourceStats', () => {
 				snippets: 3,
 				tokens: 350,
 				lastSync: '2026-10-28T10:00:00.000Z',
+				lastCheck: null,
 				error: false,
 				paused: false,
 				deadLinks: 2
@@ -81,6 +82,7 @@ describe('sourceStats', () => {
 				snippets: 1,
 				tokens: 10,
 				lastSync: '2026-10-27T08:00:00.000Z',
+				lastCheck: null,
 				error: false,
 				paused: false,
 				deadLinks: 1
@@ -110,6 +112,19 @@ describe('sourceStats', () => {
 			},
 			{ slug: 'new-docs', pages: 0, tokens: 0, lastSync: null, error: false }
 		]);
+	});
+
+	it('gives the last run as lastCheck, also when it found nothing new to index', () => {
+		const source = addSource('auth-docs', '2026-11-02T10:42:00.000Z');
+		db.prepare('UPDATE sources SET last_checked_at = ? WHERE id = ?').run(
+			'2026-11-04T09:20:00.000Z',
+			source
+		);
+
+		expect(sourceStats(db)[0]).toMatchObject({
+			lastSync: '2026-11-02T10:42:00.000Z',
+			lastCheck: '2026-11-04T09:20:00.000Z'
+		});
 	});
 
 	it('gives the documentation URL of public sources only', () => {

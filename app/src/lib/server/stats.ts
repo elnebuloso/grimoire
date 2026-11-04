@@ -17,6 +17,8 @@ export interface SourceStats {
 	tokens: number;
 	/** Null while the source was never synced. */
 	lastSync: string | null;
+	/** The latest sync run, whatever came of it, unchanged included; null while never run. */
+	lastCheck: string | null;
 	error: boolean;
 	/** Polling skips the source; only "Sync now" syncs it. */
 	paused: boolean;
@@ -36,6 +38,7 @@ export function sourceStats(db: DatabaseSync): SourceStats[] {
 					JOIN live_pages AS pages ON pages.id = snippets.page_id
 					WHERE pages.source_id = sources.id) AS tokens,
 				sources.last_synced_at AS lastSync,
+				sources.last_checked_at AS lastCheck,
 				sources.error IS NOT NULL AS error,
 				sources.paused,
 				(SELECT count(*) FROM links JOIN live_pages AS pages ON pages.id = links.page_id

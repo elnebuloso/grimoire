@@ -19,6 +19,7 @@
 		snippets: 24,
 		tokens: 3120,
 		lastSync: '2026-10-29T18:06:56.148Z',
+		lastCheck: '2026-10-29T18:06:56.148Z',
 		error: false,
 		paused: false,
 		deadLinks: 0
@@ -36,7 +37,7 @@
 		await expect(canvas.getByRole('columnheader', { name: 'Last sync (UTC)' })).toBeVisible();
 		await expect(canvas.getByText('10/29/26, 6:06 PM')).toHaveAttribute(
 			'datetime',
-			synced.lastSync
+			synced.lastCheck
 		);
 	}}
 />
@@ -61,6 +62,7 @@
 				name: 'Billing docs',
 				description: '',
 				lastSync: null,
+				lastCheck: null,
 				pages: 0
 			}
 		]
