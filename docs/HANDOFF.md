@@ -18,9 +18,11 @@
   EMAIL=… [PASSWORD=1]` runs it locally; handbook `docs/handbook/docker.md` "Lost admin access".
 
 Since 1.9.0, nothing that ships: the handbook sentence under "Lost admin access" is corrected,
-`make dev` loads `app/.env` into its environment (variables exported in the shell win), and the
-rules in `.claude/rules/` were checked against the code; they now hold the lasting facts that
-used to sit in this handoff.
+the rules in `.claude/rules/` were checked against the code, and `make dev` and
+`make admin-grant` load `app/.env` if it exists (variables exported in the shell win). Both
+were tried through `make`: `admin-grant` in every case, `--password` included; `make dev` with
+`OIDC_<KEY>_*` in `app/.env` end to end for GitLab (sign-up) and Entra (`_REQUIRED_CLAIMS`, no
+sign-up).
 
 The backlog has no open task.
 
@@ -45,11 +47,6 @@ hand: whether GitLab or Entra send `WWW-Authenticate` on errors at the token end
 
 ## Watch out
 
-- **`make admin-grant EMAIL=… PASSWORD=1` was never run through `make`**; only the script itself,
-  with `--password` once in a pseudo terminal (`script -qec`). Try it before relying on it.
 - **Every push to `main` runs the release pipeline;** it releases only when a `feat` or `fix`
   commit is among the new ones.
-- **`make dev` with `app/.env` loaded was never started**; only Node's `--env-file-if-exists` was
-  tried on its own (file read, shell wins, missing file tolerated). The first run with a real
-  `OIDC_<KEY>_*` in `app/.env` should confirm the provider's login button appears.
 - Durable facts about the code and the tools are in `.claude/rules/`.
