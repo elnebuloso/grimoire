@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Status | Proposed |
+| Status | Accepted |
 | Date | 2026-11-05 |
 | Deciders | Projectowner |
 | Covers | How users log in through external identity providers, how such a login finds its account, when it creates one, and what grimoire keeps from the provider |
