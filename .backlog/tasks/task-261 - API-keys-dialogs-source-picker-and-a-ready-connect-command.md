@@ -4,6 +4,7 @@ title: 'API keys: dialogs, source picker and a ready connect command'
 status: To Do
 assignee: []
 created_date: '2026-11-05 20:46'
+updated_date: '2026-11-05 20:57'
 labels:
   - admin
 milestone: m-3
@@ -29,7 +30,7 @@ Measure M14 in the concept. Work on the branch `redesign`; it ships in one merge
 <!-- AC:BEGIN -->
 - [ ] #1 Creating and changing a key happen in a dialog; choosing sources uses a searchable `SourcePicker` that shows the chosen ones
 - [ ] #2 With 500 sources a key for three given sources can be created by search without scrolling a list
-- [ ] #3 After creating, a result shows the key once and the connect command with the key filled in; a reload does not create a second key
-- [ ] #4 The admin list of all keys shows expiry and expired state, links the owner and filters by owner
-- [ ] #5 `SourcePicker` has stories with axe
+- [ ] #3 The admin list of all keys shows expiry and expired state, links the owner and filters by owner
+- [ ] #4 `SourcePicker` has stories with axe
+- [ ] #5 After creating, the dialog shows the key once and the connect command with the key filled in; the key cannot be created twice by accident
 <!-- AC:END -->
