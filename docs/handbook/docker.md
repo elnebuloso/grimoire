@@ -282,6 +282,7 @@ recipient address.
 | `ADDRESS_HEADER` | none | Header carrying the client address, such as `x-forwarded-for`. Logins and password forms without it fail. |
 | `XFF_DEPTH` | `1` | With `ADDRESS_HEADER=x-forwarded-for`: which address, counted from the right, is the client's. Behind two proxies, such as a CDN and Caddy, `2`; otherwise every client counts as the inner proxy for the login limits. |
 | `HOST_HEADER` | `Host` | Header carrying the host the browser asked for, for a proxy that rewrites `Host`. |
+| `OIDC_PROVIDERS` | none | Identity providers users may log in with, and their `OIDC_<KEY>_…` settings: see [Single sign-on](sso.md). |
 | `BASE_URL` | none | Where grimoire is reached, such as `https://grimoire.example.com`. Reset links, the `claude mcp add` command on the start page and the links in `llms.txt` use it; without it the last two use the address of the request. A request to another address is logged once as a warning. |
 | `SMTP_HOST` | none | SMTP server for mail. Without it no mail is sent. |
 | `SMTP_PORT` | `587` | `465` uses TLS from the start, other ports STARTTLS. |

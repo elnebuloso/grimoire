@@ -12,9 +12,9 @@ and agents change it there, and grimoire only reads it.
 
 | Role | Does | Reads |
 |---|---|---|
-| Operator | Runs the container, sets its environment, keeps the database and its backups. | [Running grimoire](docker.md), [Database](database.md) |
+| Operator | Runs the container, sets its environment, keeps the database and its backups. | [Running grimoire](docker.md), [Database](database.md), [Single sign-on](sso.md) |
 | Admin | Invites and manages users, manages every source and the instance's settings, watches syncs. | [Management area](admin.md) |
-| User | Reads the internal sources and creates their own API keys. | [Your API keys](users.md) |
+| User | Reads the internal sources and creates their own API keys. | [Your account and API keys](users.md) |
 | Agent developer | Connects an agent, with an own API key for sources that are not public. | [Connecting agents](agents.md) |
 | Author | Writes the documentation in Git, as a person or an agent. | [Writing documentation](writing.md) |
 
@@ -51,7 +51,7 @@ Git repository ──sync──▶ source ─┴─▶ search, read ──▶ ag
 2. The admin creates the admin account and invites the other users
    ([Management area](admin.md)).
 3. The admin adds the sources ([Management area](admin.md)); users create their API keys
-   ([Your API keys](users.md)).
+   ([Your account and API keys](users.md)).
 4. The agent developer connects an agent with such a key ([Connecting agents](agents.md)).
 5. Authors keep writing in Git; every sync brings their changes to the agents
    ([Writing documentation](writing.md)).

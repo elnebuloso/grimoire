@@ -13,7 +13,7 @@ export instead: a backup copied there would leave every access token unreadable.
 ## What an export carries
 
 An export is one file with the sources with their access tokens and visibility, the users
-with their roles and passwords, the API keys with their owners and the sources they reach, and the
+with their roles, passwords and linked identity providers, the API keys with their owners and the sources they reach, and the
 settings. It leaves behind:
 
 - the pages, snippets and links: they come back with the first sync of each source on the new
@@ -22,6 +22,10 @@ settings. It leaves behind:
 - the sessions: everybody logs in again;
 - invitations and password reset links not used yet: send them again;
 - the sync history, the queries without results, and the request counts of the API keys.
+
+A user linked to an identity provider logs in through it on the new instance only if it configures
+that provider with the same issuer (see [Single sign-on](sso.md)); otherwise they log in with their
+password, or set one through **Forgot your password?**, and link the provider again.
 
 ## Export
 

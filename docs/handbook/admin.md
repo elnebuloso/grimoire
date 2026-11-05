@@ -67,7 +67,7 @@ sessions are logged out; the browser you changed it in stays logged in.
     offers **Try a query**, which searches what the viewer may read.
 
 Only admins add, change, sync, rename and delete sources; users read them and create their own API
-keys (see [Your API keys](users.md)).
+keys (see [Your account and API keys](users.md)).
 
 To serve two paths of one repository, add it twice, as two sources, and name each for what it
 holds, such as `Billing API` and `Billing runbooks`. The same repository and path cannot be added a
@@ -263,6 +263,15 @@ and has an account without the admin role.
   **Withdraw** stops it without a new one.
 - `This email address already has an account.`, `An invitation to this address is waiting already;
   send it again from the list.`: nothing to invite; use **Send again** for the waiting one.
+
+### Login methods
+
+**Logs in with** shows whether a user has a password and which identity providers are linked;
+`(no longer offered here)` marks a link to a provider the instance no longer configures.
+**Remove** takes a link away, also the last way the user logs in, and ends every session of
+theirs. With mail set up, a user without a password regains access through **Forgot your
+password?**. Which providers exist and who gets an account through them is set by the operator
+(see [Single sign-on](sso.md)).
 
 ### Roles
 
