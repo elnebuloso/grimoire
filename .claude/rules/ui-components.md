@@ -20,12 +20,13 @@ next to it.
 
 ## Styling
 
-`docs/DESIGN.md` is the binding source of the visual design; a value it doesn't name isn't used.
+The custom properties in `app/src/app.css` are the binding source of the visual design; a value
+they don't define isn't used.
 
 - **Design values only through tokens.** Colours, shadows, radii, spacing, fonts and the transition
   are custom properties in `app/src/app.css`; components and pages use `var(--…)` and contain no
-  raw colour value. A new token comes into `docs/DESIGN.md` first, with a light and a dark value
-  that pass its contrast check.
+  raw colour value. A new token comes into `app/src/app.css` with a light and a dark value; text
+  colours keep a contrast of at least 4.5:1 against the backgrounds they are used on.
 - **`app/src/app.css` holds what every page shares:** the tokens, the fonts, the base of native
   elements (type, links, focus ring, inputs, buttons, tables, code) and the page primitives
   `.sheet`, `.notice`, `.table-scroll` and `.muted`. Nothing else goes there.

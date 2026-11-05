@@ -1,8 +1,7 @@
 # grimoire – Architecture
 
 How grimoire works and why it is built this way. The decisions behind single parts are in
-`docs/decisions/`, the visual design in `docs/DESIGN.md`, the product context for UI work in
-`docs/PRODUCT.md`.
+`docs/decisions/`, the design tokens of the UI in `app/src/app.css`.
 
 ## Idea
 
