@@ -520,8 +520,8 @@ test('creates an API key that works for its source until it is revoked', async (
 		.filter({ has: page.getByText('ci', { exact: true }) });
 	await expect(keyEntry).toContainText('auth-service');
 
-	page.once('dialog', (dialog) => dialog.accept());
 	await page.getByRole('button', { name: 'Revoke ci' }).click();
+	await page.getByRole('dialog').getByRole('button', { name: 'Revoke' }).click();
 	await expect(page.getByText('No API keys yet.')).toBeVisible();
 	expect((await sources()).status()).toBe(401);
 });
@@ -566,8 +566,8 @@ test('invites a user who reads internal sources with their own key, but manages 
 	await page.context().clearCookies();
 	await page.context().addCookies(adminSession);
 	await page.goto('/manage/users');
-	page.once('dialog', (dialog) => dialog.accept());
 	await page.getByRole('button', { name: `Delete ${writer}` }).click();
+	await page.getByRole('dialog').getByRole('button', { name: 'Delete' }).click();
 	await expect(page.getByRole('row', { name: new RegExp(writer) })).toHaveCount(0);
 	expect(
 		(await page.request.get('/sources', { headers: { Authorization: `Bearer ${key}` } })).status()
@@ -603,8 +603,8 @@ test('accepts an invitation through an identity provider for the invited address
 	const row = page.getByRole('row', { name: new RegExp(partner) });
 	await expect(row).toContainText('GitLab');
 	await expect(row).not.toContainText('Password');
-	page.once('dialog', (dialog) => dialog.accept());
 	await page.getByRole('button', { name: `Remove GitLab from ${partner}` }).click();
+	await page.getByRole('dialog').getByRole('button', { name: 'Remove' }).click();
 	await expect(row).not.toContainText('GitLab');
 });
 
@@ -633,6 +633,7 @@ test('links a provider to an existing account with its password, and removes it 
 	await expect(elsewhere.getByRole('link', { name: EMAIL })).toBeVisible();
 
 	await page.getByRole('button', { name: 'Remove GitLab' }).click();
+	await page.getByRole('dialog').getByRole('button', { name: 'Remove GitLab' }).click();
 	await expect(toasts(page)).toContainText(
 		'The link was removed. Your sessions in other browsers have ended; this one stays logged in.'
 	);

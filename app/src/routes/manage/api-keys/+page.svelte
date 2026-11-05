@@ -1,5 +1,5 @@
 <script lang="ts">
-	import ConfirmForm from '#lib/components/ConfirmForm.svelte';
+	import ConfirmAction from '#lib/components/ConfirmAction.svelte';
 	import DateTime from '#lib/components/DateTime.svelte';
 	import PageHead from '#lib/components/PageHead.svelte';
 	import RequestsPerDay from '#lib/components/RequestsPerDay.svelte';
@@ -47,15 +47,17 @@
 							</td>
 							<td><RequestsPerDay days={key.requests} /></td>
 							<td class="action">
-								<ConfirmForm
+								<ConfirmAction
 									action="?/revoke"
-									question={m.apikeys_revoke_question({ name: key.name })}
+									title={m.apikeys_revoke_title({ name: key.name })}
+									consequence={m.apikeys_revoke_consequence()}
+									danger
 									label={m.apikeys_revoke()}
 									buttonLabel={m.apikeys_revoke_named({ name: key.name })}
 									success={m.apikeys_revoked({ name: key.name })}
 								>
 									<input type="hidden" name="id" value={key.id} />
-								</ConfirmForm>
+								</ConfirmAction>
 							</td>
 						</tr>
 					{/each}

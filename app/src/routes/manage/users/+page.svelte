@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import ConfirmForm from '#lib/components/ConfirmForm.svelte';
+	import ConfirmAction from '#lib/components/ConfirmAction.svelte';
 	import DateTime from '#lib/components/DateTime.svelte';
 	import FormError from '#lib/components/FormError.svelte';
 	import PageHead from '#lib/components/PageHead.svelte';
@@ -60,12 +60,11 @@
 										{#if !link.configured}<span class="muted"
 												>{m.account_provider_unconfigured()}</span
 											>{/if}
-										<ConfirmForm
+										<ConfirmAction
 											action="?/unlink"
-											question={m.users_unlink_question({
-												provider: link.label,
-												email: user.email
-											})}
+											title={m.users_unlink_title({ provider: link.label, email: user.email })}
+											consequence={m.users_unlink_consequence()}
+											danger
 											label={m.users_unlink()}
 											buttonLabel={m.users_unlink_named({
 												provider: link.label,
@@ -78,7 +77,7 @@
 										>
 											<input type="hidden" name="id" value={user.id} />
 											<input type="hidden" name="issuer" value={link.issuer} />
-										</ConfirmForm>
+										</ConfirmAction>
 									</li>
 								{/each}
 							</ul>
@@ -86,39 +85,41 @@
 						<td>
 							<div class="actions">
 								{#if isAdmin(user)}
-									<ConfirmForm
+									<ConfirmAction
 										action="?/demote"
-										question={m.users_demote_question({ email: user.email })}
+										title={m.users_demote_title({ email: user.email })}
+										consequence={m.users_demote_consequence()}
+										danger
 										label={m.users_demote()}
 										buttonLabel={m.users_demote_named({ email: user.email })}
 										success={m.users_demoted({ email: user.email })}
 									>
 										<input type="hidden" name="id" value={user.id} />
-									</ConfirmForm>
+									</ConfirmAction>
 								{:else}
-									<form
-										method="post"
+									<ConfirmAction
 										action="?/promote"
-										use:enhance={submitWithToast({
-											success: () => m.users_promoted({ email: user.email })
-										})}
+										title={m.users_promote_title({ email: user.email })}
+										consequence={m.users_promote_consequence()}
+										label={m.users_promote()}
+										buttonLabel={m.users_promote_named({ email: user.email })}
+										success={m.users_promoted({ email: user.email })}
 									>
 										<input type="hidden" name="id" value={user.id} />
-										<button aria-label={m.users_promote_named({ email: user.email })}
-											>{m.users_promote()}</button
-										>
-									</form>
+									</ConfirmAction>
 								{/if}
 								{#if user.id !== data.me}
-									<ConfirmForm
+									<ConfirmAction
 										action="?/delete"
-										question={m.users_delete_question({ email: user.email })}
+										title={m.users_delete_title({ email: user.email })}
+										consequence={m.users_delete_consequence()}
+										danger
 										label={m.users_delete()}
 										buttonLabel={m.users_delete_named({ email: user.email })}
 										success={m.users_deleted({ email: user.email })}
 									>
 										<input type="hidden" name="id" value={user.id} />
-									</ConfirmForm>
+									</ConfirmAction>
 								{/if}
 							</div>
 						</td>
@@ -155,32 +156,32 @@
 							</td>
 							<td>
 								<div class="actions">
-									<form
-										method="post"
+									<ConfirmAction
 										action="?/resend"
-										use:enhance={submitWithToast({
-											success: (result) =>
-												result.type === 'success' &&
-												result.data?.invited &&
-												'sent' in result.data.invited
-													? m.invite_sent({ email: invitation.email })
-													: m.invitations_link_created({ email: invitation.email })
-										})}
+										title={m.invitations_resend_title({ email: invitation.email })}
+										consequence={m.invitations_resend_consequence()}
+										label={m.invitations_resend()}
+										buttonLabel={m.invitations_resend_named({ email: invitation.email })}
+										success={(result) =>
+											result.type === 'success' &&
+											result.data?.invited &&
+											'sent' in result.data.invited
+												? m.invite_sent({ email: invitation.email })
+												: m.invitations_link_created({ email: invitation.email })}
 									>
 										<input type="hidden" name="id" value={invitation.id} />
-										<button aria-label={m.invitations_resend_named({ email: invitation.email })}
-											>{m.invitations_resend()}</button
-										>
-									</form>
-									<ConfirmForm
+									</ConfirmAction>
+									<ConfirmAction
 										action="?/withdraw"
-										question={m.invitations_withdraw_question({ email: invitation.email })}
+										title={m.invitations_withdraw_title({ email: invitation.email })}
+										consequence={m.invitations_withdraw_consequence()}
+										danger
 										label={m.invitations_withdraw()}
 										buttonLabel={m.invitations_withdraw_named({ email: invitation.email })}
 										success={m.invitations_withdrawn({ email: invitation.email })}
 									>
 										<input type="hidden" name="id" value={invitation.id} />
-									</ConfirmForm>
+									</ConfirmAction>
 								</div>
 							</td>
 						</tr>

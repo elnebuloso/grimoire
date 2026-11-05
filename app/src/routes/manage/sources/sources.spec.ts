@@ -416,14 +416,29 @@ describe('source page', () => {
 		expect(loadSource('1')).toMatchObject({ preview: undefined });
 	});
 
-	it('deletes the source and redirects to the overview', async () => {
+	const deleteSource = (confirmation: string) =>
+		sourcePage.actions.delete({
+			request: formRequest({ confirmation }),
+			params: { id: '1' },
+			locals: { user: ADMIN }
+		} as never);
+
+	it('deletes the source once its slug is typed, and redirects to the overview', async () => {
 		await thrown(() => saveSource('new', SOURCE));
-		const result = await thrown(() =>
-			sourcePage.actions.delete({ params: { id: '1' }, locals: { user: ADMIN } } as never)
-		);
+		const result = await thrown(() => deleteSource('auth-service'));
 
 		expect(isRedirect(result) && result.location).toBe('/manage');
 		expect(db.prepare('SELECT count(*) AS n FROM sources').get()).toEqual({ n: 0 });
+	});
+
+	it('keeps the source when another slug is typed', async () => {
+		await thrown(() => saveSource('new', SOURCE));
+
+		expect(await deleteSource('auth')).toMatchObject({
+			status: 400,
+			data: { error: 'Type the current slug auth-service to confirm.' }
+		});
+		expect(db.prepare('SELECT count(*) AS n FROM sources').get()).toEqual({ n: 1 });
 	});
 });
 

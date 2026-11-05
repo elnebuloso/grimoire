@@ -1,4 +1,5 @@
 <script lang="ts">
+	import ConfirmAction from '#lib/components/ConfirmAction.svelte';
 	import FormError from '#lib/components/FormError.svelte';
 	import PageHead from '#lib/components/PageHead.svelte';
 	import TextField from '#lib/components/TextField.svelte';
@@ -87,7 +88,7 @@
 	<section class="sheet" aria-labelledby="providers-title">
 		<h2 id="providers-title">{m.account_providers_title()}</h2>
 		<p class="muted">{m.account_providers_lead()}</p>
-		<FormError message={form?.problem ?? data.problem} id="providers-error" />
+		<FormError message={data.problem} id="providers-error" />
 		{#if data.links.length > 0}
 			<ul class="links">
 				{#each data.links as link (link.issuer)}
@@ -97,14 +98,16 @@
 							{#if !link.configured}<span class="muted">{m.account_provider_unconfigured()}</span
 								>{/if}
 						</span>
-						<form
-							method="post"
+						<ConfirmAction
 							action="?/unlink"
-							use:enhance={submitWithToast({ success: () => m.account_provider_unlinked() })}
+							title={m.account_unlink_title({ provider: link.label })}
+							consequence={m.account_unlink_consequence({ provider: link.label })}
+							danger
+							label={m.account_provider_unlink({ provider: link.label })}
+							success={m.account_provider_unlinked()}
 						>
 							<input type="hidden" name="issuer" value={link.issuer} />
-							<button>{m.account_provider_unlink({ provider: link.label })}</button>
-						</form>
+						</ConfirmAction>
 					</li>
 				{/each}
 			</ul>

@@ -12,6 +12,13 @@ interface SubmitOptions {
 	success?: (result: ActionResult) => string | undefined;
 	/** Empty the form after success, for forms that create something. */
 	reset?: boolean;
+	/** Runs after a successful result was applied. */
+	onsuccess?: () => void;
+	/**
+	 * Takes a refusal instead of the page: given, the page's `form` stays as it was, e.g. for a
+	 * dialog that shows the refusal itself.
+	 */
+	onfailure?: (data: Record<string, unknown> | undefined) => void;
 }
 
 /**
@@ -19,7 +26,12 @@ interface SubmitOptions {
  * running, the page stays where it is and only refreshes its data, and success shows as a toast.
  * On the same page the toast is taken after the refresh, so it can read the page's new data.
  */
-export function submitWithToast({ success, reset = false }: SubmitOptions = {}): SubmitFunction {
+export function submitWithToast({
+	success,
+	reset = false,
+	onsuccess,
+	onfailure
+}: SubmitOptions = {}): SubmitFunction {
 	return ({ submitter }) => {
 		const button = submitter instanceof HTMLButtonElement ? submitter : null;
 		button?.setAttribute('aria-busy', 'true');
@@ -39,10 +51,14 @@ export function submitWithToast({ success, reset = false }: SubmitOptions = {}):
 					// To another page: the toast is taken before this form and its texts are gone.
 					toast();
 					await update({ reset });
+				} else if (result.type === 'failure' && onfailure) {
+					onfailure(result.data);
+					return;
 				} else {
 					await update({ reset, navigate: false });
 					if (result.type === 'success') toast();
 				}
+				if (result.type === 'success' || result.type === 'redirect') onsuccess?.();
 			} finally {
 				button?.removeAttribute('aria-busy');
 				if (button) button.disabled = false;

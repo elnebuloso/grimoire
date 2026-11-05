@@ -4,7 +4,8 @@
 	import CircleCheck from '@lucide/svelte/icons/circle-check';
 	import { resolve } from '$app/paths';
 	import ChoiceField from '#lib/components/ChoiceField.svelte';
-	import ConfirmForm from '#lib/components/ConfirmForm.svelte';
+	import ConfirmAction from '#lib/components/ConfirmAction.svelte';
+	import ConfirmDialog from '#lib/components/ConfirmDialog.svelte';
 	import DeadLinkList from '#lib/components/DeadLinkList.svelte';
 	import DateTime from '#lib/components/DateTime.svelte';
 	import DescriptionList from '#lib/components/DescriptionList.svelte';
@@ -12,19 +13,27 @@
 	import NameField from '#lib/components/NameField.svelte';
 	import PageHead from '#lib/components/PageHead.svelte';
 	import PageList from '#lib/components/PageList.svelte';
-	import SlugChangeForm from '#lib/components/SlugChangeForm.svelte';
 	import TableScroll from '#lib/components/TableScroll.svelte';
 	import TextAreaField from '#lib/components/TextAreaField.svelte';
 	import TextField from '#lib/components/TextField.svelte';
 	import { m } from '#lib/paraglide/messages.js';
 	import { submitWithToast, type SubmitResult } from '#lib/forms.js';
-	import { MAX_NAME_LENGTH } from '#lib/slug.js';
+	import { MAX_NAME_LENGTH, MAX_SLUG_LENGTH } from '#lib/slug.js';
 	import { NEW_SOURCE_FIELDS, toSourceFields } from '#lib/source-fields.js';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
 
 	let testPending = $state(false);
+
+	// Saving a source as public opens it to everyone: asked once, then the same submit again.
+	let askPublic = $state(false);
+	let publicConfirmed = false;
+	let pendingSave: { form: HTMLFormElement; submitter: HTMLElement | null } | undefined;
+	const becomesPublic = (formData: FormData) =>
+		formData.get('visibility') === 'public' && data.source?.visibility !== 'public';
+
+	let newSlug = $state('');
 
 	// Polls for the end of a queued sync, then reloads the page once to show its outcome. The poll
 	// does not keep an idle session alive; a page reload would.
@@ -70,6 +79,12 @@
 			action="?/save"
 			use:enhance={(input) => {
 				const testing = input.action.search === '?/test';
+				if (!testing && !publicConfirmed && becomesPublic(input.formData)) {
+					pendingSave = { form: input.formElement, submitter: input.submitter };
+					askPublic = true;
+					return input.cancel();
+				}
+				publicConfirmed = false;
 				const isNew = !data.source;
 				const name = String(input.formData.get('name'));
 				if (testing) testPending = true;
@@ -198,6 +213,17 @@
 			</div>
 		</form>
 	</section>
+	<ConfirmDialog
+		bind:open={askPublic}
+		title={m.source_public_title({ name: values.name || m.source_new() })}
+		consequence={m.source_public_consequence({ instance: data.instanceTitle })}
+		confirmLabel={m.source_public_confirm()}
+		onconfirm={() => {
+			askPublic = false;
+			publicConfirmed = true;
+			pendingSave?.form.requestSubmit(pendingSave.submitter);
+		}}
+	/>
 {/snippet}
 
 {#if data.source && data.status}
@@ -377,20 +403,42 @@
 		<div class="danger">
 			<section class="sheet" aria-labelledby="slug">
 				<h2 id="slug">{m.slug_change_heading()}</h2>
-				<SlugChangeForm
-					current={data.source.slug}
-					effects={m.slug_change_source_effects({ slug: data.source.slug })}
-					value={form?.slugValues?.slug}
-					error={form?.slugError}
-				/>
+				<p class="muted">{m.slug_change_source_effects({ slug: data.source.slug })}</p>
+				<ConfirmAction
+					action="?/slug"
+					label={m.slug_change_submit()}
+					title={m.slug_change_title({ name: data.source.name, slug: newSlug || data.source.slug })}
+					consequence={m.slug_change_source_effects({ slug: data.source.slug })}
+					typed={{
+						value: data.source.slug,
+						label: m.confirm_type_slug({ slug: data.source.slug })
+					}}
+					success={m.slug_changed()}
+				>
+					<TextField
+						label={m.slug_change_new()}
+						name="slug"
+						required
+						maxlength={MAX_SLUG_LENGTH}
+						value={data.source.slug}
+						mono
+						oninput={(event) => (newSlug = event.currentTarget.value)}
+					/>
+				</ConfirmAction>
 			</section>
 
 			<section class="sheet" aria-labelledby="delete">
 				<h2 id="delete">{m.delete()}</h2>
-				<ConfirmForm
+				<ConfirmAction
 					action="?/delete"
-					question={m.source_delete_question({ name: data.source.name })}
 					label={m.source_delete()}
+					title={m.source_delete_title({ name: data.source.name })}
+					consequence={m.source_delete_consequence()}
+					danger
+					typed={{
+						value: data.source.slug,
+						label: m.confirm_type_slug({ slug: data.source.slug })
+					}}
 					success={m.source_deleted({ name: data.source.name })}
 				/>
 			</section>

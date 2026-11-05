@@ -2,7 +2,7 @@
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
 	import ChoiceField from '#lib/components/ChoiceField.svelte';
-	import ConfirmForm from '#lib/components/ConfirmForm.svelte';
+	import ConfirmAction from '#lib/components/ConfirmAction.svelte';
 	import DateTime from '#lib/components/DateTime.svelte';
 	import PageHead from '#lib/components/PageHead.svelte';
 	import ShownOnce from '#lib/components/ShownOnce.svelte';
@@ -130,15 +130,17 @@
 							</p>
 							<RequestsPerDay days={key.requests} />
 						</div>
-						<ConfirmForm
+						<ConfirmAction
 							action="?/revoke"
-							question={m.apikeys_revoke_question({ name: key.name })}
+							title={m.apikeys_revoke_title({ name: key.name })}
+							consequence={m.apikeys_revoke_consequence()}
+							danger
 							label={m.apikeys_revoke()}
 							buttonLabel={m.apikeys_revoke_named({ name: key.name })}
 							success={m.apikeys_revoked({ name: key.name })}
 						>
 							<input type="hidden" name="id" value={key.id} />
-						</ConfirmForm>
+						</ConfirmAction>
 					</div>
 					<details open={form?.update?.id === key.id}>
 						<summary>{m.apikeys_change_named({ name: key.name })}</summary>
