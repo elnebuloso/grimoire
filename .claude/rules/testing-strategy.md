@@ -75,6 +75,9 @@ Measured on 2026-11-05 after 1.8.0. Every spec, story and e2e file also passes o
   4125/4825 (mail catcher) and 4580 (OIDC mock).
 - `getByRole('button', { name: 'Log in' })` also matches the provider buttons
   (`Log in with GitLab`); use `exact: true`.
+- A run keeps the server's log and database in `$TMPDIR/grimoire-e2e-*` (the newest directory is
+  the last run); `app/test-results` is overwritten by the next run. After a failure, look there
+  before rerunning.
 - A new e2e file must not depend on the state another file leaves behind: files run in parallel
   workers, in no fixed order.
 

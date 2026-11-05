@@ -17,11 +17,25 @@ Facts learned while building grimoire.
   derived per request with protocol `https` unless `PROTOCOL_HEADER` names a header. Form POSTs
   over plain `http` therefore fail the CSRF check; test locally with
   `PROTOCOL_HEADER=x-forwarded-proto` and `X-Forwarded-Proto: http`.
+- The dev server skips the CSRF origin check (`!__SVELTEKIT_DEV__` in SvelteKit's `respond.js`): a
+  form POST with a foreign `Origin` passes there. Try CSRF against the build, never against
+  `make dev` or the agent environment.
+- `redirect()` to another origin throws unless it names it:
+  `redirect(303, url, { external: [origin] })`.
 
 ## Runtime
 
 - Node 24: `node:sqlite` with FTS5 is built in; `node` loads `.ts` files directly (type
   stripping), which tests use to run code in child processes.
+- What Node loads without a build (`scripts/` and everything they import) uses no TypeScript
+  parameter properties, which type stripping rejects, and imports relatively with the `.ts`
+  extension.
+
+## Formatting
+
+- Format with `make format`, never with `npx prettier` from `app/` on `../scripts`: outside `app/`
+  Prettier finds no config and rewrites the scripts in its defaults, which `make lint` then
+  rejects.
 
 ## Dependencies
 
@@ -36,7 +50,8 @@ Facts learned while building grimoire.
 - MCP with curl needs `Accept: application/json, text/event-stream`, or the transport rejects the
   request.
 - Stop a test server by the PID `ss -ltnp` shows for its port, not by `$!`, which is the PID of
-  the wrapping shell or npm.
+  the wrapping shell or npm. `pkill -f <pattern>` kills the agent's own shell, whose command line
+  contains the pattern.
 - `docker exec -it` needs a terminal; without one:
   `printf 'new password\nnew password\n' | script -qec "docker exec -it <container> node scripts/grant-admin.ts <email> --password" /dev/null`.
 - `backlog task list --plain | head` crashes (Bun, "Error is not a constructor"); use `--limit`
