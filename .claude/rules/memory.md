@@ -22,9 +22,6 @@ Facts learned while building grimoire.
 
 - Node 24: `node:sqlite` with FTS5 is built in; `node` loads `.ts` files directly (type
   stripping), which tests use to run code in child processes.
-- The agent's Bash shell starts on Node 24.21.0 although nvm's `default` is 24.22.1. Before
-  `npm`, `make build` or `make e2e`: `source ~/.nvm/nvm.sh && nvm use 24.22.1`; `npm ci` fails
-  on `engine-strict` otherwise.
 
 ## Dependencies
 

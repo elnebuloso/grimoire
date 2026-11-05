@@ -5,8 +5,7 @@
   an add-on, and no hand-written `svelte.config.js`, `vite.config.ts` or other boilerplate the CLI
   generates.
 - **Run it with `npx`, at a pinned version** at least two weeks old, like any dependency:
-  `npx sv@<version> …`; `npm view sv time` lists the releases. Switch Node first
-  (`source ~/.nvm/nvm.sh && nvm use 24.22.1`).
+  `npx sv@<version> …`; `npm view sv time` lists the releases.
 - **Without prompts.** The agent's shell has no terminal, so every choice goes on the command line:
   - new project: `npx sv@<version> create --template minimal --types ts --no-add-ons --install npm <path>`
   - add-on: `npx sv@<version> add <addon>=<option>:<value>+<option>:<value> --install npm`, with

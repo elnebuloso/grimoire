@@ -3,7 +3,7 @@
 Try changes by hand in the agent environment, never in `make dev`: that one is the developer's,
 with their `app/.env` and their database. The agent environment is a dev server with its own
 settings, database and generated files in `app/.agent/` (not committed); code changes show up
-without a restart. It runs beside `make dev` (5173) and `make e2e` (4173).
+without a restart. It runs beside `make dev` (5173) and `make e2e` (4173, 4174).
 
 - `make agent-start` starts it in the background at `http://localhost:5174`, log in
   `app/.agent/server.log`. `make agent-stop` stops it.

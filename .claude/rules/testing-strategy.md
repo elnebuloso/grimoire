@@ -25,6 +25,9 @@ Measured in the agent's shell (4 cores):
 
 Measured on 2026-11-05 after 1.8.0. Every spec, story and e2e file also passes on its own.
 
+`make test` prints a "JavaScript heap out of memory" crash even when everything passes:
+`sync.spec.ts` runs an indexing child out of memory on purpose. Only the summary at the end counts.
+
 ## Pick the run by the change
 
 - **`make test TEST=--changed` is the default** after editing code. Vitest follows the imports
