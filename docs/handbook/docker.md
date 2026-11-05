@@ -274,6 +274,7 @@ recipient address.
 | `INSTANCE_TITLE` | `grimoire` | Title people see: the start page heading, page titles, the name of the logo in the header, and the password reset and invitation mails, such as `Acme Docs`. Before this variable existed, `INSTANCE_NAME` set it: after an upgrade, set `INSTANCE_TITLE` to keep your title. |
 | `INSTANCE_NAME` | `grimoire` | Name agents see: the MCP server name and the instructions it sends, such as `acme-docs`. The `claude mcp add` command on the start page names the server as one word derived from it. Changing it later breaks no connection or key, but agents see the new name from their next connect, `CLAUDE.md` files naming the old one are out of date, and people connecting later are offered the new name. |
 | `TZ` | UTC | IANA time zone, such as `Europe/Berlin`. Schedules run in it, including summer time, and the UI shows every time in it, whatever the browser's time zone. API key expiry dates end at midnight in it. |
+| `GIT_ALLOWED_HOSTS` | none | Git hosts grimoire may reach although they are not public, such as an internal GitLab: exact host names, separated by commas, such as `gitlab.acme.example,git.acme.example`; no scheme, port or wildcard. See [Git servers](#git-servers). |
 | `INCLUDE_URL_ALLOW` | none | Origins pages may include files from by URL, separated by commas, such as `https://docs.example.com,https://raw.githubusercontent.com`. `https://` only, nothing after host and port. Nothing else is requested for an include, and no redirect is followed. |
 | `LOG_FORMAT` | `ecs` | `ecs`: one JSON object per line (see [Logs](#logs)). `pretty`: readable text for local use. |
 | `LOG_LEVEL` | `info` | Lowest level written: `error`, `warn`, `info` or `debug`. |
@@ -293,8 +294,8 @@ recipient address.
 ### The server does not start: `Invalid environment variables`
 
 A missing `ENCRYPTION_KEY`, or an invalid value of `ENCRYPTION_KEY`, `SYNC_SCHEDULE`,
-`INDEXING_DEADLINE_MINUTES`, `TZ`, `INCLUDE_URL_ALLOW`, `LOG_FORMAT`, `LOG_LEVEL`, `BASE_URL` or
-`SMTP_PORT`, stops the start. The log names every such variable with the reason below it:
+`INDEXING_DEADLINE_MINUTES`, `TZ`, `GIT_ALLOWED_HOSTS`, `INCLUDE_URL_ALLOW`, `LOG_FORMAT`,
+`LOG_LEVEL`, `BASE_URL` or `SMTP_PORT`, stops the start. The log names every such variable with the reason below it:
 
 ```text
 Invalid environment variables:
@@ -304,6 +305,38 @@ ENCRYPTION_KEY
 ```
 
 Correct the value and start again.
+
+## Git servers
+
+Every user may add a source, so grimoire decides where it connects, not the address typed into the
+form. For the connection test and every sync it reaches a Git server only:
+
+- over `https`, on port 443, at a host name – an IP address such as `https://10.0.0.5/` is refused;
+- when every address the name resolves to is a public internet address – private, loopback,
+  link-local and cloud metadata addresses are refused;
+- at exactly the address it checked, without following a redirect.
+
+`GIT_ALLOWED_HOSTS` lists hosts that skip the address check: they are reached on any address and
+port, still only over `https`. Public Git servers keep working without being listed. This is the
+only way to reach a Git server inside your network; there is no setting that turns the check off.
+Users get `The server may not connect to <host>. If it is your organisation's Git server, ask the
+person running grimoire to add it to GIT_ALLOWED_HOSTS.` for a host that is refused.
+
+- **Behind a proxy** – any of `HTTPS_PROXY`, `https_proxy`, `ALL_PROXY` or `all_proxy` set –
+  grimoire cannot see where the proxy connects, so it reaches only the listed hosts, public ones
+  included: list every Git host your sources use. `NO_PROXY` makes no difference to this.
+- **Git configuration** of the system or a user in the container, such as `url.<base>.insteadOf` or
+  `http.proxy`, is ignored.
+- **A Git server with a certificate of your own CA:** mount a file with the CA certificates and set
+  `GIT_SSL_CAINFO` to its path. It replaces the CAs of the image for Git, so it has to hold the
+  public CAs as well when sources also live on public hosts, such as the image's
+  `/etc/ssl/certs/ca-certificates.crt` with your CA appended.
+
+!!! warning "Updating with an internal Git server"
+    From 1.2.0 on, sources on a Git server inside your network fail their syncs until its host is
+    in `GIT_ALLOWED_HOSTS`. Set it before or with the update. At every start, grimoire logs a
+    warning `source <slug> cannot sync: The server may not connect to <host>. …` for each source
+    whose host it would refuse.
 
 ## Logs
 

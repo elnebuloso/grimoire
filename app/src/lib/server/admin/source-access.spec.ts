@@ -29,6 +29,7 @@ vi.mock('../sync/git', async (original) => {
 });
 
 const KEY = Buffer.alloc(32, 7);
+const LOCAL = { allowedHosts: [], proxy: false, allowLocal: true };
 let directory: string;
 const url = 'https://git.example/docs.git';
 let db: DatabaseSync;
@@ -80,7 +81,7 @@ function storedSource(token = 'glpat-stored') {
 
 describe('checkSourceAccess', () => {
 	it('reports the branch and its commit when the repository can be read', async () => {
-		expect(await checkSourceAccess(db, KEY, undefined, form())).toEqual({
+		expect(await checkSourceAccess(db, KEY, undefined, form(), LOCAL)).toEqual({
 			message: expect.stringMatching(/^Reachable: branch main is at commit [0-9a-f]{12}\.$/)
 		});
 	});
@@ -89,7 +90,7 @@ describe('checkSourceAccess', () => {
 		[{ branch: 'develop' }, 'The repository has no branch develop.'],
 		[{ gitUrl: 'https://git.example/nowhere.git' }, 'Access refused, or there is no repository']
 	])('says why it cannot read %j', async (changes, message) => {
-		const result = await checkSourceAccess(db, KEY, undefined, form(changes));
+		const result = await checkSourceAccess(db, KEY, undefined, form(changes), LOCAL);
 
 		expect(result).toEqual({ error: expect.stringContaining(message) });
 	});
@@ -98,11 +99,11 @@ describe('checkSourceAccess', () => {
 		const id = storedSource();
 		const tokenUsed = () => vi.mocked(git.checkRemote).mock.lastCall?.[0].token;
 
-		await checkSourceAccess(db, KEY, id, form());
+		await checkSourceAccess(db, KEY, id, form(), LOCAL);
 		expect(tokenUsed()).toBe('glpat-stored');
-		await checkSourceAccess(db, KEY, id, form({ token: 'glpat-new' }));
+		await checkSourceAccess(db, KEY, id, form({ token: 'glpat-new' }), LOCAL);
 		expect(tokenUsed()).toBe('glpat-new');
-		await checkSourceAccess(db, KEY, id, form({ removeToken: true }));
+		await checkSourceAccess(db, KEY, id, form({ removeToken: true }), LOCAL);
 		expect(tokenUsed()).toBeUndefined();
 	});
 
@@ -112,7 +113,7 @@ describe('checkSourceAccess', () => {
 		it('reads the source with a newly entered token', async () => {
 			const id = storedSource();
 
-			const result = await checkSourceAccess(db, otherKey, id, form({ token: 'glpat-new' }));
+			const result = await checkSourceAccess(db, otherKey, id, form({ token: 'glpat-new' }), LOCAL);
 
 			expect(result).toEqual({ message: expect.stringContaining('Reachable') });
 			expect(vi.mocked(git.checkRemote).mock.lastCall?.[0].token).toBe('glpat-new');
@@ -121,7 +122,7 @@ describe('checkSourceAccess', () => {
 		it('asks for the token again instead of failing without a new one', async () => {
 			const id = storedSource();
 
-			const result = await checkSourceAccess(db, otherKey, id, form());
+			const result = await checkSourceAccess(db, otherKey, id, form(), LOCAL);
 
 			expect(result).toEqual({ error: expect.stringContaining('Enter the token again') });
 			expect(git.checkRemote).not.toHaveBeenCalled();
@@ -134,7 +135,7 @@ describe('checkSourceAccess', () => {
 		['https://deploy:secret@git.example/docs.git', 'own fields'],
 		['--upload-pack=touch /tmp/pwned', 'Enter the Git URL']
 	])('contacts no server for %s, which could not be saved', async (gitUrl, message) => {
-		const result = await checkSourceAccess(db, KEY, undefined, form({ gitUrl }));
+		const result = await checkSourceAccess(db, KEY, undefined, form({ gitUrl }), LOCAL);
 
 		expect(result).toEqual({ error: expect.stringContaining(message) });
 		expect(git.checkRemote).not.toHaveBeenCalled();
@@ -147,10 +148,27 @@ describe('checkSourceAccess', () => {
 			db,
 			KEY,
 			id,
-			form({ gitUrl: 'https://attacker.example/x' })
+			form({ gitUrl: 'https://attacker.example/x' }),
+			LOCAL
 		);
 
 		expect(result).toEqual({ error: expect.stringContaining('token') });
 		expect(git.checkRemote).not.toHaveBeenCalled();
+	});
+
+	it('says that the server may not connect to an internal address', async () => {
+		const policy = { allowedHosts: [], proxy: false };
+
+		const result = await checkSourceAccess(
+			db,
+			KEY,
+			undefined,
+			form({ gitUrl: 'https://10.0.0.5/docs.git' }),
+			policy
+		);
+
+		expect(result).toEqual({
+			error: expect.stringContaining('may not connect to 10.0.0.5. If it is')
+		});
 	});
 });

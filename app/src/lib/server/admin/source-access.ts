@@ -1,5 +1,6 @@
 import type { DatabaseSync } from 'node:sqlite';
 import { m } from '#lib/paraglide/messages.js';
+import type { ConnectionPolicy } from '../sync/connection-policy';
 import { checkRemote, type GitRemote } from '../sync/git';
 import { decryptSecret } from '../secret-encryption';
 import { remoteProblem, storedSource, type SourceForm, type StoredSource } from './sources';
@@ -18,24 +19,26 @@ export async function checkSourceAccess(
 	db: DatabaseSync,
 	key: Buffer,
 	sourceId: number | undefined,
-	form: SourceForm
+	form: SourceForm,
+	policy: ConnectionPolicy
 ): Promise<AccessResult> {
 	const stored = storedSource(db, sourceId);
 	const problem = remoteProblem(stored, form);
 	if (problem) return { error: problem };
-	return checkAccess(key, stored, form);
+	return checkAccess(key, stored, form, policy);
 }
 
 /**
  * Asks the Git server whether the source in `form` can be read: the server answers, the
- * credentials are accepted and the branch exists. Uses the token of `stored`, the source as
+ * credentials are accepted and the branch exists, if the server may connect to it at all. Uses the token of `stored`, the source as
  * `storedSource` read it, unless a new one is entered or its removal is asked for. Contacts the
  * URL without checking it: `remoteProblem` must have passed it.
  */
 export async function checkAccess(
 	key: Buffer,
 	stored: StoredSource | undefined,
-	form: SourceForm
+	form: SourceForm,
+	policy: ConnectionPolicy
 ): Promise<AccessResult> {
 	const enteredToken = form.token.trim();
 	let storedToken: string | undefined;
@@ -51,7 +54,8 @@ export async function checkAccess(
 	const remote: GitRemote = {
 		url: form.gitUrl.trim(),
 		username: form.username.trim() || null,
-		token: enteredToken || storedToken
+		token: enteredToken || storedToken,
+		policy
 	};
 	const branch = form.branch.trim();
 	const check = await checkRemote(remote, branch, ACCESS_TIMEOUT_MS);
@@ -64,5 +68,7 @@ export async function checkAccess(
 			return { error: m.access_refused({ detail: check.detail }) };
 		case 'unreachable':
 			return { error: m.access_unreachable({ detail: check.detail }) };
+		case 'forbidden':
+			return { error: m.error_git_host_refused({ host: check.host }) };
 	}
 }

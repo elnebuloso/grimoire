@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# Starts a built image and runs what plain Node loads from source in it: the child process that
-# indexes a source, and the reset and backup scripts. Both only work when everything they import was copied
-# into the image, which no other check sees, because tests and e2e run in the full checkout.
+# Starts a built image and runs what plain Node loads from source in it: the checked Git calls, the
+# child process that indexes a source, and the reset and backup scripts. They only work when
+# everything they import was copied into the image, which no other check sees, because tests and
+# e2e run in the full checkout.
 set -euo pipefail
 
 IMAGE="${1:-grimoire:latest}"
@@ -18,29 +19,45 @@ fi
 echo 'version: ok'
 MIGRATE_ONLY=true node app/build
 
-fixture=/tmp/fixture
-mkdir -p "$fixture/docs"
-printf '# Start\n\n## Setup\n\n--8<-- "docs/shared.md"\n' > "$fixture/docs/index.md"
-printf 'Included text from the fixture.\n' > "$fixture/docs/shared.md"
-git -C "$fixture" init --quiet
-git -C "$fixture" -c user.name=smoke -c user.email=smoke@example.com add --all
-git -C "$fixture" -c user.name=smoke -c user.email=smoke@example.com commit --quiet -m fixture
+# The source comes from a local https Git server, through the same checked and pinned Git calls a
+# sync makes: its page includes a file outside the source path, which the indexing process fetches.
+work=/tmp/fixture
+mkdir -p "$work/docs" "$work/shared" /tmp/repositories
+printf '# Start\n\n## Setup\n\n--8<-- "shared/included.md"\n' > "$work/docs/index.md"
+printf 'Included text from the fixture.\n' > "$work/shared/included.md"
+git -C "$work" init --quiet --initial-branch=main
+git -C "$work" -c user.name=smoke -c user.email=smoke@example.com add --all
+git -C "$work" -c user.name=smoke -c user.email=smoke@example.com commit --quiet -m fixture
+git clone --quiet --bare "$work" /tmp/repositories/fixture.git
+node /smoke/git-https-server.ts /tmp/repositories 4443 /smoke/cert.pem /smoke/key.pem >/tmp/git-server.log 2>&1 &
+for _ in $(seq 50); do
+	node -e "require('node:net').connect(4443, 'localhost').on('connect', () => process.exit(0)).on('error', () => process.exit(1))" && break
+	sleep 0.2
+done
+export GIT_SSL_CAINFO=/smoke/cert.pem
 
 cd app
 node --input-type=module -e "
 import { fork } from 'node:child_process';
 import { DatabaseSync } from 'node:sqlite';
 import { fileURLToPath } from 'node:url';
+const { sparseClone } = await import('#lib/server/sync/git.ts');
 const db = new DatabaseSync(process.env.DATABASE_PATH);
-db.exec(\"INSERT INTO sources (id, slug, name, git_url, branch, path) VALUES (1, 'smoke', 'Smoke', 'file:///tmp/fixture', 'main', 'docs/')\");
+const remote = {
+	url: 'https://localhost:4443/fixture.git',
+	username: null,
+	policy: { allowedHosts: ['localhost'], proxy: false }
+};
+db.exec(\"INSERT INTO sources (id, slug, name, git_url, branch, path) VALUES (1, 'smoke', 'Smoke', 'https://localhost:4443/fixture.git', 'main', 'docs/')\");
+await sparseClone(remote, 'main', 'docs/', '/tmp/checkout');
 // Not --input-type from this eval, which a process started from a file refuses.
 const child = fork(fileURLToPath(import.meta.resolve('#lib/server/sync/index-worker.ts')), {
 	execArgv: []
 });
 child.send({
-	checkout: '/tmp/fixture',
-	source: { path: 'docs/', exclusions: ['docs/shared.md'] },
-	remote: { url: 'file:///tmp/fixture', username: null },
+	checkout: '/tmp/checkout',
+	source: { path: 'docs/', exclusions: [] },
+	remote,
 	allowedIncludeOrigins: [],
 	databasePath: process.env.DATABASE_PATH,
 	sourceId: 1,
@@ -55,7 +72,7 @@ const snippet = db.prepare('SELECT content FROM snippets').all().map((row) => ro
 if (result.pages !== 1 || !snippet.includes('Included text from the fixture.')) {
 	throw new Error('indexing in the image went wrong: ' + JSON.stringify(result));
 }
-console.log('indexing process: ok');
+console.log('git over https and indexing process: ok');
 "
 
 # Without a terminal the script stops at its first question, after all of its imports loaded.
@@ -75,7 +92,17 @@ if (count === 0) throw new Error('the backup has no snippets');
 echo 'backup script: ok'
 EOF
 
+# A certificate of its own for the Git server in the container; readable for the user `node` there.
+certificates="$(mktemp -d)"
+trap 'rm -rf "$certificates"' EXIT
+openssl req -x509 -newkey rsa:2048 -nodes -days 2 -subj /CN=localhost \
+	-addext subjectAltName=DNS:localhost,IP:127.0.0.1,IP:::1 \
+	-keyout "$certificates/key.pem" -out "$certificates/cert.pem" 2>/dev/null
+chmod a+rx "$certificates" && chmod a+r "$certificates"/*.pem
+cp "$(dirname "$0")/git-https-server.ts" "$certificates/"
+
 docker run --rm \
+	--volume "$certificates:/smoke:ro" \
 	--env ENCRYPTION_KEY="$(head -c 32 /dev/urandom | base64)" \
 	--env LOG_LEVEL=error \
 	--env EXPECTED_VERSION="$VERSION" \

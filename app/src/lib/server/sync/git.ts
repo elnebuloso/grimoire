@@ -1,5 +1,11 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+import {
+	checkConnection,
+	ConnectionRefused,
+	type CheckedRemote,
+	type ConnectionPolicy
+} from './connection-policy.ts';
 
 const run = promisify(execFile);
 
@@ -12,12 +18,16 @@ export interface GitRemote {
 	url: string;
 	username?: string | null;
 	token?: string | null;
+	/** Where the server may connect; checked before every call that reaches the remote. */
+	policy: ConnectionPolicy;
 }
 
 export type RemoteCheck =
 	| { status: 'ok'; commit: string }
 	| { status: 'no-branch' }
-	| { status: 'refused' | 'unreachable'; detail: string };
+	| { status: 'refused' | 'unreachable'; detail: string }
+	/** The server may not connect to `host` at all. */
+	| { status: 'forbidden'; host: string; detail: string };
 
 // Git hosts answer a missing repository and missing access alike, so both count as refused.
 export const REFUSED =
@@ -34,10 +44,18 @@ export async function checkRemote(
 ): Promise<RemoteCheck> {
 	let output: string;
 	try {
+		const connection = await connect(remote);
 		// `--` keeps a URL that starts with `-` from being read as an option such as `--upload-pack`.
-		output = await git(['ls-remote', '--', remote.url, `refs/heads/${branch}`], remote, timeoutMs);
+		output = await git(
+			['ls-remote', '--', connection.url, `refs/heads/${branch}`],
+			connection,
+			timeoutMs
+		);
 	} catch (error) {
 		const detail = (error as Error).message;
+		if (error instanceof ConnectionRefused) {
+			return { status: 'forbidden', host: error.host, detail };
+		}
 		return { status: REFUSED.test(detail) ? 'refused' : 'unreachable', detail };
 	}
 	const commit = output.split('\t')[0].trim();
@@ -65,6 +83,7 @@ export async function remoteCommit(
 export async function sparseClone(remote: GitRemote, branch: string, path: string, dir: string) {
 	const wholeRepository = path === '' || path === '.';
 	const sparse = wholeRepository ? [] : ['--sparse'];
+	const connection = await connect(remote);
 	await git(
 		[
 			'clone',
@@ -75,32 +94,48 @@ export async function sparseClone(remote: GitRemote, branch: string, path: strin
 			'--branch',
 			branch,
 			'--',
-			remote.url,
+			connection.url,
 			dir
 		],
-		remote
+		connection
 	);
-	if (!wholeRepository) await git(['-C', dir, 'sparse-checkout', 'set', '--', path], remote);
+	// Fetches the blobs of `path` lazily, from the URL the clone stored.
+	if (!wholeRepository) {
+		await git(['-C', dir, 'sparse-checkout', 'set', '--', path], await connect(remote));
+	}
 }
 
 /** Checks out further directories of a sparse clone, fetching their files from the remote. */
 export async function addSparseDirectories(remote: GitRemote, dir: string, directories: string[]) {
-	await git(['-C', dir, 'sparse-checkout', 'add', '--', ...directories], remote);
+	await git(['-C', dir, 'sparse-checkout', 'add', '--', ...directories], await connect(remote));
 }
 
 export async function headCommit(dir: string): Promise<string> {
 	return (await git(['-C', dir, 'rev-parse', 'HEAD'])).trim();
 }
 
+/** A remote checked against its policy, with the environment that holds Git to that check. */
+interface Connection {
+	remote: GitRemote;
+	url: string;
+	environment: Record<string, string>;
+}
+
+async function connect(remote: GitRemote): Promise<Connection> {
+	const checked = await checkConnection(remote.url, remote.policy);
+	return { remote, url: checked.url, environment: gitEnvironment(remote, checked) };
+}
+
 async function git(
 	args: string[],
-	remote?: GitRemote,
+	connection?: Connection,
 	timeoutMs = GIT_TIMEOUT_MS
 ): Promise<string> {
 	const command = args[0] === '-C' ? args[2] : args[0];
+	const remote = connection?.remote;
 	try {
 		const { stdout } = await run('git', args, {
-			env: { ...process.env, ...credentialEnvironment(remote) },
+			env: { ...process.env, ...(connection?.environment ?? gitEnvironment()) },
 			timeout: timeoutMs,
 			maxBuffer: 16 * 1024 * 1024
 		});
@@ -130,18 +165,37 @@ function credentialsProblem(remote?: GitRemote): string {
 }
 
 /**
- * Passes the credentials as a header scoped to the remote URL through git's environment
- * configuration, so they appear neither in the process arguments nor in `.git/config`.
+ * The environment of a Git call: no system or user configuration (an `insteadOf` or `http.proxy`
+ * there would change what was checked), no prompt, and for a remote its configuration through
+ * `GIT_CONFIG_COUNT`, which also reaches the fetches Git makes lazily later in the same call. The
+ * credentials go in as a header scoped to the URL, so they appear neither in the process arguments
+ * nor in `.git/config`.
  */
-export function credentialEnvironment(remote?: GitRemote): Record<string, string> {
-	const environment: Record<string, string> = { GIT_TERMINAL_PROMPT: '0' };
-	if (!remote?.token) return environment;
-	return {
-		...environment,
-		GIT_CONFIG_COUNT: '1',
-		GIT_CONFIG_KEY_0: `http.${remote.url}.extraHeader`,
-		GIT_CONFIG_VALUE_0: `Authorization: Basic ${basicCredentials(remote)}`
+export function gitEnvironment(
+	remote?: GitRemote,
+	checked?: CheckedRemote
+): Record<string, string> {
+	const environment: Record<string, string> = {
+		GIT_TERMINAL_PROMPT: '0',
+		GIT_CONFIG_NOSYSTEM: '1',
+		GIT_CONFIG_GLOBAL: '/dev/null'
 	};
+	if (!remote || !checked) return environment;
+	const config: [string, string][] = [['http.followRedirects', 'false']];
+	if (checked.pin) config.push(['http.curloptResolve', checked.pin]);
+	if (!checked.local) config.push(['protocol.allow', 'never'], ['protocol.https.allow', 'always']);
+	if (remote.token) {
+		config.push([
+			`http.${checked.url}.extraHeader`,
+			`Authorization: Basic ${basicCredentials(remote)}`
+		]);
+	}
+	environment.GIT_CONFIG_COUNT = String(config.length);
+	config.forEach(([key, value], index) => {
+		environment[`GIT_CONFIG_KEY_${index}`] = key;
+		environment[`GIT_CONFIG_VALUE_${index}`] = value;
+	});
+	return environment;
 }
 
 /** Removes the token, its encoded header value and credentials embedded in URLs from a message. */

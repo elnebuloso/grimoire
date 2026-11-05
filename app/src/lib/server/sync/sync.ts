@@ -12,6 +12,7 @@ import {
 	sourceForSync
 } from '../db/sources';
 import { decryptSecret } from '../secret-encryption';
+import type { ConnectionPolicy } from './connection-policy';
 import { headCommit, redact, remoteCommit, sparseClone, type GitRemote } from './git';
 import type { IndexJob, IndexOutcome } from './index-worker';
 import type { SyncLanes } from './queue';
@@ -21,6 +22,8 @@ const IMMEDIATELY: SyncLanes = { check: (work) => work(), sync: (work) => work()
 export interface SyncOptions {
 	/** The key of the stored access tokens, derived from `ENCRYPTION_KEY`. */
 	key: Buffer;
+	/** Where Git may connect: `connectionPolicy` of the running server. */
+	policy: ConnectionPolicy;
 	/** Sync even when the branch has not moved, e.g. after the source settings changed. */
 	force?: boolean;
 	/** Directory for the temporary clone; defaults to the system temp directory. */
@@ -75,7 +78,11 @@ async function checkAndSync(
 ): Promise<SyncResult> {
 	const source = sourceForSync(db, sourceId);
 	const lanes = options.lanes ?? IMMEDIATELY;
-	let remote: GitRemote = { url: source.gitUrl, username: source.username };
+	let remote: GitRemote = {
+		url: source.gitUrl,
+		username: source.username,
+		policy: options.policy
+	};
 	// Set again when the check really starts; also recorded when it never got that far, so a
 	// broken source waits for its next scheduled run instead of being retried on every tick.
 	let checkedAt = new Date();

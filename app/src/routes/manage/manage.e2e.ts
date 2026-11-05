@@ -7,8 +7,9 @@ import { createUser } from '../../lib/server/admin/auth.ts';
 const EMAIL = 'admin@example.com';
 const PASSWORD = 'correct horse battery';
 const TOKEN = 'glpat-e2e-secret';
-// `playwright.config.ts` has the server's git map these to local repositories.
-const GIT_URL = 'https://git.e2e.example/platform/auth.git';
+// The local https Git server `playwright.config.ts` starts.
+const GIT_HOST = 'localhost:4443';
+const GIT_URL = `https://${GIT_HOST}/platform/auth.git`;
 
 // Each test builds on the account and data the one before it created.
 test.describe.configure({ mode: 'serial' });
@@ -194,7 +195,7 @@ test('lists a private source on the start page to its owner only, without its se
 	await expect(page.getByRole('row', { name: /auth-service/ })).toContainText('Login and billing');
 	// Synced once without success: its error message stays hidden, like the settings.
 	const html = await page.content();
-	for (const detail of ['git.e2e.example', 'does not exist', TOKEN]) {
+	for (const detail of [GIT_HOST, 'does not exist', TOKEN]) {
 		expect(html).not.toContain(detail);
 	}
 	// The Git username; as a whole word, since the search placeholder says "deployment".

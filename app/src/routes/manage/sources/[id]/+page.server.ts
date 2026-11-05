@@ -1,10 +1,11 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
-import { ENCRYPTION_KEY, SYNC_SCHEDULE, TZ } from '$app/env/private';
+import { ENCRYPTION_KEY, GIT_ALLOWED_HOSTS, SYNC_SCHEDULE, TZ } from '$app/env/private';
 import { database } from '#lib/server/db/index.js';
 import { deleteSource } from '#lib/server/db/sources.js';
 import { requestSyncInBackground, syncPending } from '#lib/server/sync/index.js';
 import { redactUrl } from '#lib/server/sync/git.js';
+import { connectionPolicy } from '#lib/server/sync/connection-policy.js';
 import { nextRun } from '#lib/server/sync/schedule.js';
 import { checkAccess, checkSourceAccess } from '#lib/server/admin/source-access.js';
 import { readFormSecret } from '#lib/server/admin/form-secret.js';
@@ -88,7 +89,12 @@ async function accessProblem(
 	stored: StoredSource | undefined,
 	form: SourceForm
 ): Promise<string | undefined> {
-	const access = await checkAccess(ENCRYPTION_KEY.sourceTokens, stored, form);
+	const access = await checkAccess(
+		ENCRYPTION_KEY.sourceTokens,
+		stored,
+		form,
+		connectionPolicy(GIT_ALLOWED_HOSTS)
+	);
 	return 'error' in access ? access.error : undefined;
 }
 
@@ -131,7 +137,8 @@ export const actions = {
 			database(),
 			ENCRYPTION_KEY.sourceTokens,
 			source?.id,
-			form
+			form,
+			connectionPolicy(GIT_ALLOWED_HOSTS)
 		);
 		return { access, values };
 	},

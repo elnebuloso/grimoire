@@ -8,7 +8,7 @@ import { error, redirect } from '@sveltejs/kit';
 import { LOG_FORMAT, LOG_LEVEL, MIGRATE_ONLY } from '$app/env/private';
 import { database } from '#lib/server/db/index.js';
 import { configureLog, log, routeConsoleToLog } from '#lib/server/log.js';
-import { startSyncPolling } from '#lib/server/sync/index.js';
+import { logRefusedSources, startSyncPolling } from '#lib/server/sync/index.js';
 import { mailer } from '#lib/server/mail/index.js';
 import { accessRedirect } from '#lib/server/admin/access.js';
 import { checkAdminAccount, SESSION_COOKIE, sessionUser } from '#lib/server/admin/auth.js';
@@ -31,6 +31,8 @@ export const init: ServerInit = () => {
 	// Fails the start on incomplete SMTP settings instead of at the first mail.
 	mailer();
 	startSyncPolling();
+	// Looks up every Git host: the server must not wait for that before it listens.
+	void logRefusedSources().catch((error) => log.error({ err: error }, 'checking Git hosts failed'));
 };
 
 // Replaces SvelteKit's default, which logs only unexpected errors; 404s and the like stay quiet.

@@ -10,12 +10,14 @@ import { defineConfig } from '@playwright/test';
 process.env.E2E_DIR ??= mkdtempSync(join(tmpdir(), 'grimoire-e2e-'));
 const directory = process.env.E2E_DIR;
 
-// Sources must use https, and the tests must not need the network: git in the server maps this
-// URL to a local path. `auth.git` has a branch `main` but no `docs/`, so a sync of the default path
-// reaches the repository and still fails.
-const E2E_GIT = 'https://git.e2e.example/platform';
-const repository = join(directory, 'auth.git');
-const gitConfig = join(directory, 'gitconfig');
+// Sources must use https, and the tests must not need the network: a local https Git server with
+// a certificate of its own serves this repository. `auth.git` has a branch `main` but no `docs/`,
+// so a sync of the default path reaches the repository and still fails.
+const GIT_PORT = 4443;
+const repositories = join(directory, 'repositories');
+const repository = join(repositories, 'platform', 'auth.git');
+const certificate = join(directory, 'git-cert.pem');
+const certificateKey = join(directory, 'git-key.pem');
 if (!existsSync(repository)) {
 	const work = join(directory, 'auth');
 	execFileSync('git', ['init', '--quiet', '--initial-branch=main', work]);
@@ -34,7 +36,12 @@ if (!existsSync(repository)) {
 		'README'
 	]);
 	execFileSync('git', ['clone', '--quiet', '--bare', work, repository]);
-	writeFileSync(gitConfig, `[url "file://${repository}"]\n\tinsteadOf = ${E2E_GIT}/auth.git\n`);
+	// prettier-ignore
+	execFileSync('openssl', [
+		'req', '-x509', '-newkey', 'rsa:2048', '-nodes', '-days', '2', '-subj', '/CN=localhost',
+		'-addext', 'subjectAltName=DNS:localhost,IP:127.0.0.1,IP:::1',
+		'-keyout', certificateKey, '-out', certificate
+	], { stdio: 'ignore' });
 }
 
 export default defineConfig({
@@ -52,6 +59,10 @@ export default defineConfig({
 			gracefulShutdown: { signal: 'SIGTERM', timeout: 10_000 }
 		},
 		{
+			command: `node ../scripts/git-https-server.ts ${repositories} ${GIT_PORT} ${certificate} ${certificateKey}`,
+			port: GIT_PORT
+		},
+		{
 			command: `npm run build && node build > ${join(directory, 'server.log')} 2>&1`,
 			port: 4173,
 			env: {
@@ -59,7 +70,8 @@ export default defineConfig({
 				DATABASE_PATH: join(directory, 'grimoire.db'),
 				ENCRYPTION_KEY: Buffer.alloc(32, 7).toString('base64'),
 				PROTOCOL_HEADER: 'x-forwarded-proto',
-				GIT_CONFIG_GLOBAL: gitConfig,
+				GIT_ALLOWED_HOSTS: 'localhost',
+				GIT_SSL_CAINFO: certificate,
 				SMTP_HOST: 'localhost',
 				SMTP_PORT: '4125',
 				SMTP_ALLOW_PLAINTEXT: 'true',

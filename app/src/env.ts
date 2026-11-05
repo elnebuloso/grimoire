@@ -3,6 +3,7 @@ import { building } from '$app/env';
 import { parseEncryptionKey } from '#lib/server/secret-encryption.js';
 import { parseSchedule } from '#lib/server/sync/schedule.js';
 import { parseAllowedOrigins } from '#lib/server/sync/url-include.js';
+import { parseAllowedHosts } from '#lib/server/sync/connection-policy.js';
 import { parseLogFormat, parseLogLevel } from '#lib/server/log.js';
 import { parseTimeZone } from '#lib/time-zone.js';
 import { parseBaseUrl, parseSmtpPort } from '#lib/server/mail/smtp.js';
@@ -56,6 +57,11 @@ export const variables = defineEnvVars({
 		description:
 			'Origins pages may include files from by URL (`url_download` of pymdownx.snippets), `https://` only, separated by commas; empty: none',
 		schema: parseAllowedOrigins
+	},
+	GIT_ALLOWED_HOSTS: {
+		description:
+			'Git hosts the server may reach although they are not public, such as an internal GitLab: exact host names, separated by commas; still `https` only; empty: public hosts only',
+		schema: parseAllowedHosts
 	},
 	LOG_FORMAT: {
 		description:

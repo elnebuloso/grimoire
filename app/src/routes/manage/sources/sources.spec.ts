@@ -28,7 +28,8 @@ vi.mock('#lib/server/admin/source-access.js', async (original) => ({
 vi.mock('$app/env/private', () => ({
 	ENCRYPTION_KEY: { sourceTokens: Buffer.alloc(32, 7), formSecrets: Buffer.alloc(32, 8) },
 	SYNC_SCHEDULE: '*/5 * * * *',
-	TZ: 'UTC'
+	TZ: 'UTC',
+	GIT_ALLOWED_HOSTS: []
 }));
 
 const TOKEN = 'glpat-very-secret';
@@ -361,7 +362,9 @@ describe('source page', () => {
 			db,
 			expect.any(Buffer),
 			undefined,
-			expect.objectContaining({ token: TOKEN })
+			expect.objectContaining({ token: TOKEN }),
+			// Without `proxy`: it follows the proxy variables of the machine the test runs on.
+			expect.objectContaining({ allowedHosts: [] })
 		);
 		expect(JSON.stringify(result)).not.toContain(TOKEN);
 		expect(result.values.encryptedToken).not.toBe('');

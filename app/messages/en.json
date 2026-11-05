@@ -156,6 +156,7 @@
 	"access_no_branch": "The repository has no branch {branch}.",
 	"access_refused": "Access refused, or there is no repository at this URL: {detail}",
 	"access_unreachable": "The Git server cannot be reached: {detail}",
+	"error_git_host_refused": "The server may not connect to {host}. If it is your organisation's Git server, ask the person running grimoire to add it to GIT_ALLOWED_HOSTS.",
 	"settings_title": "Settings",
 	"settings_syncs_paused": "Pause all syncs",
 	"settings_syncs_paused_hint": "No source is checked for new commits until you resume. “Sync now” on a source’s page still syncs that source.",

@@ -22,6 +22,8 @@ vi.mock('../parsing/include', () => ({
 vi.setConfig({ testTimeout: 30_000 });
 
 const key = Buffer.alloc(32, 7);
+// Fixture repositories are local; the server itself never allows them.
+const LOCAL = { allowedHosts: [], proxy: false, allowLocal: true };
 const filler = 'Some words to keep this section above the merge threshold. '.repeat(6);
 
 // The repository every test starts from, built once: Git takes most of the time of a test.
@@ -130,7 +132,7 @@ afterEach(() => {
 
 describe('syncSource', () => {
 	it('indexes pages with resolved includes and links, skipping excluded and broken pages', async () => {
-		const result = await syncSource(db, source, { key, workDirectory: work });
+		const result = await syncSource(db, source, { key, policy: LOCAL, workDirectory: work });
 
 		expect(result).toMatchObject({ status: 'synced', pages: 2 });
 		expect(rows('SELECT file FROM pages ORDER BY file')).toEqual([
@@ -157,15 +159,19 @@ describe('syncSource', () => {
 	});
 
 	it('skips an unchanged branch and replaces the index after a new commit', async () => {
-		await syncSource(db, source, { key, workDirectory: work });
-		expect(await syncSource(db, source, { key, workDirectory: work })).toMatchObject({
-			status: 'unchanged'
-		});
+		await syncSource(db, source, { key, policy: LOCAL, workDirectory: work });
+		expect(await syncSource(db, source, { key, policy: LOCAL, workDirectory: work })).toMatchObject(
+			{
+				status: 'unchanged'
+			}
+		);
 
 		commitFiles({ 'docs/index.md': null, 'docs/new.md': '# New\n' });
-		expect(await syncSource(db, source, { key, workDirectory: work })).toMatchObject({
-			status: 'synced'
-		});
+		expect(await syncSource(db, source, { key, policy: LOCAL, workDirectory: work })).toMatchObject(
+			{
+				status: 'synced'
+			}
+		);
 		expect(rows('SELECT file FROM pages ORDER BY file')).toEqual([
 			{ file: 'deploy.md' },
 			{ file: 'new.md' }
@@ -173,12 +179,12 @@ describe('syncSource', () => {
 	});
 
 	it('keeps the last good index when writing the new one fails in the indexing process', async () => {
-		await syncSource(db, source, { key, workDirectory: work });
+		await syncSource(db, source, { key, policy: LOCAL, workDirectory: work });
 		commitFiles({ 'docs/index.md': '# Home again\n' });
 		db.exec(`CREATE TRIGGER refuse_pages BEFORE INSERT ON pages
 			BEGIN SELECT RAISE(ABORT, 'disk is full'); END`);
 
-		const result = await syncSource(db, source, { key, workDirectory: work });
+		const result = await syncSource(db, source, { key, policy: LOCAL, workDirectory: work });
 
 		expect(result).toMatchObject({ status: 'failed', error: 'disk is full' });
 		expect(rows('SELECT title FROM pages ORDER BY file')).toEqual([
@@ -196,6 +202,7 @@ describe('syncSource', () => {
 		// No indexing process starts, reads a checkout and writes an index within a millisecond.
 		const result = await syncSource(db, source, {
 			key,
+			policy: LOCAL,
 			workDirectory: work,
 			lanes,
 			indexingDeadlineMs: 1
@@ -210,7 +217,7 @@ describe('syncSource', () => {
 			{ error: 'indexing took longer than 0.001 seconds' }
 		]);
 		expect(
-			await syncSource(db, source, { key, workDirectory: work, lanes, force: true })
+			await syncSource(db, source, { key, policy: LOCAL, workDirectory: work, lanes, force: true })
 		).toMatchObject({ status: 'synced', pages: 2 });
 	});
 
@@ -220,6 +227,7 @@ describe('syncSource', () => {
 
 		const exhausted = await syncSource(db, source, {
 			key,
+			policy: LOCAL,
 			workDirectory: work,
 			indexingHeapMb: 32
 		});
@@ -231,7 +239,7 @@ describe('syncSource', () => {
 		});
 		const other = addSource(`file://${bare}`, ['docs/huge.md', 'docs/drafts/**']);
 		expect(
-			await syncSource(db, other, { key, workDirectory: work, indexingHeapMb: 32 })
+			await syncSource(db, other, { key, policy: LOCAL, workDirectory: work, indexingHeapMb: 32 })
 		).toMatchObject({ status: 'synced', pages: 2 });
 	});
 });
@@ -247,7 +255,12 @@ describe('deleting a source while it syncs', () => {
 			}
 		};
 
-		const outcome = await syncSource(db, source, { key, workDirectory: work, lanes });
+		const outcome = await syncSource(db, source, {
+			key,
+			policy: LOCAL,
+			workDirectory: work,
+			lanes
+		});
 
 		expect(outcome.status).toBe('failed');
 		expect({

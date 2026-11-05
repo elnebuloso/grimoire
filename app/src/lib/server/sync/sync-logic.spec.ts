@@ -50,6 +50,8 @@ vi.mock('node:child_process', async (importOriginal) => {
 });
 
 const key = Buffer.alloc(32, 7);
+// Fixture repositories are local; the server itself never allows them.
+const LOCAL = { allowedHosts: [], proxy: false, allowLocal: true };
 
 let root: string;
 let work: string;
@@ -93,7 +95,7 @@ function indexOnePage(job: IndexJob): IndexOutcome {
 }
 
 const sync = (id = source, options: { force?: boolean; lanes?: SyncLanes } = {}) =>
-	syncSource(db, id, { key, workDirectory: work, ...options });
+	syncSource(db, id, { key, policy: LOCAL, workDirectory: work, ...options });
 
 beforeEach(() => {
 	root = mkdtempSync(join(tmpdir(), 'grimoire-sync-logic-'));
@@ -217,7 +219,11 @@ describe('syncSource', () => {
 		const withToken = addSource('secret');
 
 		expect(
-			await syncSource(db, withToken, { key: Buffer.alloc(32, 9), workDirectory: work })
+			await syncSource(db, withToken, {
+				key: Buffer.alloc(32, 9),
+				policy: LOCAL,
+				workDirectory: work
+			})
 		).toMatchObject({
 			status: 'failed',
 			error: expect.stringMatching(

@@ -5,27 +5,51 @@ import { createServer as createHttpServer, type Server as HttpServer } from 'nod
 import { createServer, type AddressInfo, type Socket } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { checkRemote, credentialEnvironment, redact, remoteCommit } from './git';
+import { checkRemote, gitEnvironment, redact, remoteCommit } from './git';
 
+// Fixture repositories and servers are local; the server itself never allows them.
+const LOCAL = { allowedHosts: [], proxy: false, allowLocal: true };
 const remote = {
 	url: 'https://git.example/platform/auth.git',
 	username: 'deploy',
-	token: 'glpat-secret'
+	token: 'glpat-secret',
+	policy: LOCAL
 };
 const encoded = Buffer.from('deploy:glpat-secret').toString('base64');
 
-describe('credentialEnvironment', () => {
-	it('passes the token as a header scoped to the remote URL', () => {
-		expect(credentialEnvironment(remote)).toEqual({
-			GIT_TERMINAL_PROMPT: '0',
-			GIT_CONFIG_COUNT: '1',
-			GIT_CONFIG_KEY_0: 'http.https://git.example/platform/auth.git.extraHeader',
-			GIT_CONFIG_VALUE_0: `Authorization: Basic ${encoded}`
+describe('gitEnvironment', () => {
+	const checked = { url: remote.url, pin: 'git.example:443:203.0.113.7' };
+	const isolated = {
+		GIT_TERMINAL_PROMPT: '0',
+		GIT_CONFIG_NOSYSTEM: '1',
+		GIT_CONFIG_GLOBAL: '/dev/null'
+	};
+
+	it('pins the address, refuses redirects and other protocols, and scopes the token to the URL', () => {
+		expect(gitEnvironment(remote, checked)).toEqual({
+			...isolated,
+			GIT_CONFIG_COUNT: '5',
+			GIT_CONFIG_KEY_0: 'http.followRedirects',
+			GIT_CONFIG_VALUE_0: 'false',
+			GIT_CONFIG_KEY_1: 'http.curloptResolve',
+			GIT_CONFIG_VALUE_1: 'git.example:443:203.0.113.7',
+			GIT_CONFIG_KEY_2: 'protocol.allow',
+			GIT_CONFIG_VALUE_2: 'never',
+			GIT_CONFIG_KEY_3: 'protocol.https.allow',
+			GIT_CONFIG_VALUE_3: 'always',
+			GIT_CONFIG_KEY_4: 'http.https://git.example/platform/auth.git.extraHeader',
+			GIT_CONFIG_VALUE_4: `Authorization: Basic ${encoded}`
 		});
 	});
 
-	it('passes no credentials without a token, and never prompts', () => {
-		expect(credentialEnvironment({ url: remote.url })).toEqual({ GIT_TERMINAL_PROMPT: '0' });
+	it('passes no credentials without a token', () => {
+		expect(gitEnvironment({ ...remote, token: null }, checked)).toMatchObject({
+			GIT_CONFIG_COUNT: '4'
+		});
+	});
+
+	it('reads no system or user configuration and never prompts, also without a remote', () => {
+		expect(gitEnvironment()).toEqual(isolated);
 	});
 });
 
@@ -73,23 +97,28 @@ describe('checkRemote', () => {
 	afterAll(() => rmSync(directory, { recursive: true, force: true }));
 
 	it('reports the commit of the branch', async () => {
-		expect(await checkRemote({ url }, 'main')).toEqual({ status: 'ok', commit });
+		expect(await checkRemote({ url, policy: LOCAL }, 'main')).toEqual({ status: 'ok', commit });
 	});
 
 	it('reports a branch the repository does not have', async () => {
-		expect(await checkRemote({ url }, 'develop')).toEqual({ status: 'no-branch' });
+		expect(await checkRemote({ url, policy: LOCAL }, 'develop')).toEqual({ status: 'no-branch' });
 	});
 
 	it('counts a repository that is not there as refused', async () => {
 		const missing = `file://${join(directory, 'missing.git')}`;
 
-		expect(await checkRemote({ url: missing }, 'main')).toMatchObject({ status: 'refused' });
+		expect(await checkRemote({ url: missing, policy: LOCAL }, 'main')).toMatchObject({
+			status: 'refused'
+		});
 	});
 
 	it('runs no command for a URL that looks like an option', async () => {
 		const marker = join(directory, 'marker');
 
-		const check = await checkRemote({ url: `--upload-pack=touch ${marker} #` }, 'main');
+		const check = await checkRemote(
+			{ url: `--upload-pack=touch ${marker} #`, policy: LOCAL },
+			'main'
+		);
 
 		expect(check.status).not.toBe('ok');
 		expect(existsSync(marker)).toBe(false);
@@ -97,7 +126,7 @@ describe('checkRemote', () => {
 
 	it('counts a server that never answers as unreachable', async () => {
 		await withSilentServer(async (silent) => {
-			expect(await checkRemote({ url: silent }, 'main', 500)).toEqual({
+			expect(await checkRemote({ url: silent, policy: LOCAL }, 'main', 500)).toEqual({
 				status: 'unreachable',
 				detail: 'git ls-remote failed: no answer within 0.5 s'
 			});
@@ -108,7 +137,7 @@ describe('checkRemote', () => {
 describe('remoteCommit', () => {
 	it('gives up on a server that never answers', async () => {
 		await withSilentServer(async (silent) => {
-			await expect(remoteCommit({ url: silent }, 'main', 500)).rejects.toThrow(
+			await expect(remoteCommit({ url: silent, policy: LOCAL }, 'main', 500)).rejects.toThrow(
 				'git ls-remote failed: no answer within 0.5 s'
 			);
 		});
@@ -131,7 +160,10 @@ describe('a Git server that refuses the credentials', () => {
 	afterAll(() => server.close());
 
 	it('says the username and token were refused, without the token', async () => {
-		const check = await checkRemote({ url, username: 'deploy', token: 'glpat-secret' }, 'main');
+		const check = await checkRemote(
+			{ url, username: 'deploy', token: 'glpat-secret', policy: LOCAL },
+			'main'
+		);
 
 		expect(check).toEqual({
 			status: 'refused',
@@ -141,7 +173,7 @@ describe('a Git server that refuses the credentials', () => {
 	});
 
 	it('says the repository needs a username and token when the source has none', async () => {
-		await expect(remoteCommit({ url }, 'main')).rejects.toThrow(
+		await expect(remoteCommit({ url, policy: LOCAL }, 'main')).rejects.toThrow(
 			'git ls-remote failed: the Git server asks for a username and token: the repository is private, or there is none at this URL'
 		);
 	});
@@ -149,12 +181,12 @@ describe('a Git server that refuses the credentials', () => {
 
 describe('a Git server that redirects', () => {
 	const servers: HttpServer[] = [];
-	let received: { server: string; authorization: string | undefined }[];
+	let received: string[];
 	let origin: string;
 
 	async function listen(name: string, answer: (url: string) => [number, string?]) {
 		const server = createHttpServer((request, response) => {
-			received.push({ server: name, authorization: request.headers.authorization });
+			received.push(name);
 			const [status, location] = answer(request.url ?? '');
 			response.writeHead(status, location ? { location } : {}).end();
 		});
@@ -175,28 +207,35 @@ describe('a Git server that redirects', () => {
 
 	afterAll(() => servers.forEach((server) => server.close()));
 
-	async function headersAfterRedirect(path: string) {
+	// A redirect could lead from the checked address to any other, internal ones included.
+	it.each(['/same/auth.git', '/other/auth.git'])('is not followed, for %s', async (path) => {
 		received = [];
-		await checkRemote(
-			{ url: `${origin}${path}`, username: 'deploy', token: 'glpat-secret' },
+
+		const check = await checkRemote(
+			{ url: `${origin}${path}`, username: 'deploy', token: 'glpat-secret', policy: LOCAL },
 			'main'
 		);
-		return received;
-	}
 
-	it('sends the token along a redirect on the same server', async () => {
-		expect(await headersAfterRedirect('/same/auth.git')).toEqual([
-			{ server: 'origin', authorization: `Basic ${encoded}` },
-			{ server: 'origin', authorization: `Basic ${encoded}` }
-		]);
+		expect(check.status).not.toBe('ok');
+		expect(received).toEqual(['origin']);
+	});
+});
+
+describe('a host the server may not connect to', () => {
+	const PUBLIC_ONLY = { allowedHosts: [], proxy: false };
+
+	it('is not contacted, and the check says why', async () => {
+		const check = await checkRemote(
+			{ url: 'https://127.0.0.1/auth.git', policy: PUBLIC_ONLY },
+			'main'
+		);
+
+		expect(check).toMatchObject({ status: 'forbidden', host: '127.0.0.1' });
 	});
 
-	// git's HTTP transport drops the Authorization header when a redirect leaves the host, so a
-	// Git server cannot hand a stored token to another one.
-	it('does not send the token to another host it redirects to', async () => {
-		expect(await headersAfterRedirect('/other/auth.git')).toEqual([
-			{ server: 'origin', authorization: `Basic ${encoded}` },
-			{ server: 'other host', authorization: undefined }
-		]);
+	it('fails a sync with the message for the operator', async () => {
+		await expect(
+			remoteCommit({ url: 'https://localhost/auth.git', policy: PUBLIC_ONLY }, 'main')
+		).rejects.toThrow('The server may not connect to localhost.');
 	});
 });
