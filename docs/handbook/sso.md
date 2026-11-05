@@ -145,8 +145,8 @@ slash, or you register the application anew (Entra gives users a new ID per appl
 matches any more:
 
 - users with a password log in with it and link the provider again under **Account**;
-- users without a password set one through **Forgot your password?**, which needs mail (see
-  [Mail](docker.md#mail)); without mail, an admin deletes the account and invites the address again.
+- users without a password set one through a link: by mail under **Account**, or from an admin
+  under `Manage > Users`, **Password link**, which works without mail too.
 
 `Manage > Users` marks links to a provider that is no longer configured with `(no longer offered
 here)`; an admin can remove them there.

@@ -12,6 +12,8 @@ import {
 } from '#lib/server/admin/invitations.js';
 import { deleteUser, listUsers, setAdmin, type UserRefusal } from '#lib/server/admin/users.js';
 import { mailer } from '#lib/server/mail/index.js';
+import { createPasswordLink } from '#lib/server/admin/password-reset.js';
+import { log } from '#lib/server/log.js';
 import { describeLinks } from '#lib/server/oidc/index.js';
 import { removeIdentity } from '#lib/server/oidc/identities.js';
 import { publicOrigin } from '#lib/server/public-origin.js';
@@ -47,22 +49,30 @@ async function idOf(request: Request): Promise<number> {
 }
 
 /**
- * Mails the link of an invitation. Without a mail server, or when it refuses the mail, the admin
- * gets the link to pass on themselves: this answer is the only place it is ever shown.
+ * Mails a link to `to`. Without a mail server, or when it refuses the mail, the admin gets the
+ * link to pass on themselves: this answer is the only place it is ever shown.
  */
-async function deliver(link: InvitationLink, url: URL) {
+async function deliver(
+	to: string,
+	path: string,
+	url: URL,
+	mailText: (link: string) => { subject: string; text: string }
+) {
 	const mail = mailer();
-	const path = `/invite/${link.token}`;
 	if (mail) {
-		const sent = await mail.send({
-			to: link.to,
-			subject: m.mail_invite_subject({ name: INSTANCE_TITLE }),
-			text: m.mail_invite_text({ email: link.to, url: mail.link(path), name: INSTANCE_TITLE })
-		});
-		if (sent) return { email: link.to, sent: true as const };
-		return { email: link.to, link: mail.link(path), mailFailed: true };
+		const sent = await mail.send({ to, ...mailText(mail.link(path)) });
+		if (sent) return { email: to, sent: true as const };
+		return { email: to, link: mail.link(path), mailFailed: true };
 	}
-	return { email: link.to, link: `${publicOrigin(url)}${path}` };
+	return { email: to, link: `${publicOrigin(url)}${path}` };
+}
+
+/** Mails the link of an invitation, or hands it to the admin. */
+function deliverInvitation(link: InvitationLink, url: URL) {
+	return deliver(link.to, `/invite/${link.token}`, url, (address) => ({
+		subject: m.mail_invite_subject({ name: INSTANCE_TITLE }),
+		text: m.mail_invite_text({ email: link.to, url: address, name: INSTANCE_TITLE })
+	}));
 }
 
 export const actions = {
@@ -70,13 +80,13 @@ export const actions = {
 		const email = String((await request.formData()).get('email') ?? '');
 		const invited = inviteUser(database(), email, locals.user!.id);
 		if ('error' in invited) return fail(400, { error: authMessage(invited.error), email });
-		return { invited: await deliver(invited, url) };
+		return { invited: await deliverInvitation(invited, url) };
 	},
 	resend: async ({ request, url }) => {
 		const resent = resendInvitation(database(), await idOf(request));
 		// Accepted or withdrawn in another window: the list no longer shows it.
 		if (!resent) error(404);
-		return { invited: await deliver(resent, url) };
+		return { invited: await deliverInvitation(resent, url) };
 	},
 	withdraw: async ({ request }) => {
 		revokeInvitation(database(), await idOf(request));
@@ -92,6 +102,17 @@ export const actions = {
 	unlink: async ({ request }) => {
 		const data = await request.formData();
 		removeIdentity(database(), Number(data.get('id')), String(data.get('issuer') ?? ''));
+	},
+	passwordLink: async ({ request, locals, url }) => {
+		const id = await idOf(request);
+		const link = createPasswordLink(database(), id);
+		if (!link) error(404);
+		log.info(`password link for user ${id} created by user ${locals.user!.id}`);
+		const passwordLink = await deliver(link.to, `/login/reset/${link.token}`, url, (address) => ({
+			subject: m.mail_password_link_subject({ name: INSTANCE_TITLE }),
+			text: m.mail_password_link_text({ email: link.to, url: address, name: INSTANCE_TITLE })
+		}));
+		return { passwordLink };
 	},
 	delete: async ({ request, locals }) => {
 		const problem = deleteUser(database(), await idOf(request), locals.user!.id);

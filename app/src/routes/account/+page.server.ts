@@ -1,4 +1,7 @@
-import { fail } from '@sveltejs/kit';
+import { error, fail } from '@sveltejs/kit';
+import { INSTANCE_TITLE } from '$app/env/private';
+import { requestPasswordReset } from '#lib/server/admin/password-reset.js';
+import { m } from '#lib/paraglide/messages.js';
 import type { Actions, PageServerLoad } from './$types';
 import { database } from '#lib/server/db/index.js';
 import { changePassword, hasPassword, SESSION_COOKIE } from '#lib/server/admin/auth.js';
@@ -42,6 +45,25 @@ export const actions = {
 		);
 		if (refused) return fail(400, { error: authMessage(refused.error) });
 		return { changed: true };
+	},
+	/** Mails the own address a link to set a password, as "forgot password" would. */
+	passwordLink: async ({ locals, getClientAddress }) => {
+		const mail = mailer();
+		if (!mail) error(404);
+		const email = locals.user!.email;
+		const link = requestPasswordReset(database(), getClientAddress(), email);
+		// Undefined when this address had its links for the hour: the same answer as blocked.
+		if (!link || 'error' in link) return fail(429, { linkError: authMessage('reset-blocked') });
+		await mail.send({
+			to: link.to,
+			subject: m.mail_reset_subject({ name: INSTANCE_TITLE }),
+			text: m.mail_reset_text({
+				email: link.to,
+				url: mail.link(`/login/reset/${link.token}`),
+				name: INSTANCE_TITLE
+			})
+		});
+		return { linkSent: email };
 	},
 	/** Removes a link of the own account; the other sessions end, since one of them may be the reason. */
 	unlink: async ({ request, cookies, locals }) => {

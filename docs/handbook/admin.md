@@ -270,9 +270,18 @@ and has an account without the admin role.
 **Logs in with** shows whether a user has a password and which identity providers are linked;
 `(no longer offered here)` marks a link to a provider the instance no longer configures.
 **Remove** takes a link away, also the last way the user logs in, and ends every session of
-theirs. With mail set up, a user without a password regains access through **Forgot your
-password?**. Which providers exist and who gets an account through them is set by the operator
+theirs. Which providers exist and who gets an account through them is set by the operator
 (see [Single sign-on](sso.md)).
+
+### Password link
+
+**Password link** creates a link for an account to set its password: for an account without
+one, or a forgotten password when the instance sends no mail. With mail set up, the link goes to the
+account's address and you never see it; without, it is shown once, to pass on yourself. It works
+once, within 24 hours; a new link voids the earlier ones. The current password stays valid until
+the link is used, and using it ends every session of the account. Whoever holds the link can take
+over the account, admins included: pass it on only to its owner. Your own account has no such link;
+change your password under **Account**. Each link is logged with who created it for whom.
 
 ### Roles
 

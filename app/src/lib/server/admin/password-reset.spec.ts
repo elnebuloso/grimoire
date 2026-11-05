@@ -148,3 +148,39 @@ describe('an account without a password', () => {
 		expect(auth.hasPassword(db, 1)).toBe(true);
 	});
 });
+
+describe('createPasswordLink', () => {
+	const userId = () => (db.prepare('SELECT id FROM users').get() as { id: number }).id;
+
+	it('issues a link for the account that works for 24 hours', async () => {
+		const link = reset.createPasswordLink(db, userId(), NOW)!;
+
+		expect(link.to).toBe(EMAIL);
+		expect(reset.resetLinkValid(db, link.token, minutesLater(24 * 60 - 1))).toBe(true);
+		expect(reset.resetLinkValid(db, link.token, minutesLater(24 * 60))).toBe(false);
+	});
+
+	it('voids the earlier links of the account, its own and requested ones', () => {
+		const requested = tokenFor();
+		const first = reset.createPasswordLink(db, userId(), NOW)!.token;
+		const second = reset.createPasswordLink(db, userId(), NOW)!.token;
+
+		expect(reset.resetLinkValid(db, requested, NOW)).toBe(false);
+		expect(reset.resetLinkValid(db, first, NOW)).toBe(false);
+		expect(reset.resetLinkValid(db, second, NOW)).toBe(true);
+	});
+
+	it('keeps the current password until the link is used', async () => {
+		const { token } = reset.createPasswordLink(db, userId(), NOW)!;
+		expect(await logsIn(PASSWORD)).toBe(true);
+
+		await reset.resetPassword(db, token, NEW_PASSWORD, NOW);
+
+		expect(await logsIn(PASSWORD)).toBe(false);
+		expect(await logsIn(NEW_PASSWORD)).toBe(true);
+	});
+
+	it('issues nothing for an unknown account', () => {
+		expect(reset.createPasswordLink(db, 999, NOW)).toBeUndefined();
+	});
+});

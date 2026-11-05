@@ -4,6 +4,7 @@ import { isHttpError } from '@sveltejs/kit';
 import { openDatabase } from '#lib/server/db/schema.js';
 import { invitedEmail, inviteUser, listInvitations } from '#lib/server/admin/invitations.js';
 import { listUsers } from '#lib/server/admin/users.js';
+import { resetLinkValid } from '#lib/server/admin/password-reset.js';
 import * as page from './+page.server';
 
 let db: DatabaseSync;
@@ -53,6 +54,22 @@ describe('users page', () => {
 		const token = result.invited.link.split('/invite/')[1];
 		expect(invitedEmail(db, token)).toBe('new@example.com');
 		expect(invitedEmail(db, first.token)).toBeUndefined();
+	});
+
+	it('creates a link to set the password of an account, shown once without a mail server', async () => {
+		const first = (await action('passwordLink', 2)) as { passwordLink: { link: string } };
+		const second = (await action('passwordLink', 2)) as {
+			passwordLink: { email: string; link: string };
+		};
+
+		expect(second.passwordLink.email).toBe('writer@example.com');
+		expect(second.passwordLink.link).toMatch(/^https:\/\/grimoire\.example\/login\/reset\/[\w-]+$/);
+		const token = (result: { passwordLink: { link: string } }) =>
+			result.passwordLink.link.split('/login/reset/')[1];
+		expect(resetLinkValid(db, token(second))).toBe(true);
+		expect(resetLinkValid(db, token(first))).toBe(false);
+		const thrown = await action('passwordLink', 99).catch((error) => error);
+		expect(isHttpError(thrown) && thrown.status).toBe(404);
 	});
 
 	it('withdraws an invitation', async () => {

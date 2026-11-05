@@ -35,14 +35,22 @@
 <PageHead title={m.account_title()} />
 
 {#if !data.hasPassword}
-	<p class="notice">
-		{#if data.resetByMail}
-			{m.password_none_reset()}
-			<a href={resolve('/login/forgot')}>{m.password_none_reset_link()}</a>
-		{:else}
-			{m.password_none_ask_admin()}
-		{/if}
-	</p>
+	{#if data.resetByMail}
+		<form
+			class="notice no-password"
+			method="post"
+			action="?/passwordLink"
+			use:enhance={submitWithToast({
+				success: () => m.password_link_sent({ email: data.email })
+			})}
+		>
+			<p>{m.password_none_reset()}</p>
+			<FormError message={form?.linkError} id="link-error" />
+			<button>{m.password_none_send_link()}</button>
+		</form>
+	{:else}
+		<p class="notice">{m.password_none_ask_admin()}</p>
+	{/if}
 {:else}
 	<section class="sheet" bind:this={sheet} aria-labelledby="password-title">
 		<h2 id="password-title">{m.password_title()}</h2>
@@ -139,6 +147,14 @@
 {/if}
 
 <style>
+	.no-password {
+		display: grid;
+		justify-items: start;
+		gap: var(--s3);
+	}
+	.no-password p {
+		margin: 0;
+	}
 	.links {
 		display: grid;
 		gap: var(--s2);

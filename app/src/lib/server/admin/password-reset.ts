@@ -11,6 +11,9 @@ import {
 import { clientKey, createAttemptLimit } from './attempt-limit.ts';
 
 const LINK_MINUTES = 60;
+// Handed over by an admin, often by chat: it has to last until it is read, but it takes over an
+// existing account, possibly an admin's.
+const ADMIN_LINK_MINUTES = 24 * 60;
 // Enough for a typo and a second try; more from one client or for one address floods a mailbox.
 const MAX_REQUESTS_PER_CLIENT = 5;
 const MAX_REQUESTS_PER_ADDRESS = 3;
@@ -36,15 +39,36 @@ export function requestPasswordReset(
 	const user = db.prepare('SELECT id FROM users WHERE email = ?').get(address) as
 		{ id: number } | undefined;
 	if (!user || !addressRequests.take(address, now)) return undefined;
+	return { to: address, token: issueLink(db, user.id, LINK_MINUTES, now) };
+}
+
+/**
+ * A link an admin creates for the account `userId` to set its password, for an account without
+ * one or when no mail server can send the reset. Voids the account's earlier links; the current
+ * password stays valid until the link is used. Undefined for an unknown account.
+ */
+export function createPasswordLink(
+	db: DatabaseSync,
+	userId: number,
+	now = new Date()
+): { to: string; token: string } | undefined {
+	const user = db.prepare('SELECT email FROM users WHERE id = ?').get(userId) as
+		{ email: string } | undefined;
+	if (!user) return undefined;
+	db.prepare('DELETE FROM password_resets WHERE user_id = ?').run(userId);
+	return { to: user.email, token: issueLink(db, userId, ADMIN_LINK_MINUTES, now) };
+}
+
+function issueLink(db: DatabaseSync, userId: number, minutes: number, now: Date): string {
 	db.prepare('DELETE FROM password_resets WHERE expires_at <= ?').run(now.toISOString());
 	const token = randomBytes(32).toString('base64url');
-	const expiresAt = new Date(now.getTime() + LINK_MINUTES * 60_000).toISOString();
+	const expiresAt = new Date(now.getTime() + minutes * 60_000).toISOString();
 	db.prepare('INSERT INTO password_resets (token_hash, user_id, expires_at) VALUES (?, ?, ?)').run(
 		sha256(token),
-		user.id,
+		userId,
 		expiresAt
 	);
-	return { to: address, token };
+	return token;
 }
 
 /** Whether `token` still sets a password: issued, not used and not expired. */

@@ -567,6 +567,16 @@ describe('accessRedirect', () => {
 			expect(access.accessRedirect(db, page, undefined)).toBeUndefined();
 		}
 	});
+
+	it('serves a link to set a password also with a session, which sends others on', async () => {
+		await setUp();
+		const session = sessionOf(
+			await auth.login(db, 'client', { email: 'admin@example.com', password: PASSWORD })
+		);
+
+		expect(access.accessRedirect(db, '/login/reset/[token]', session)).toBeUndefined();
+		expect(access.accessRedirect(db, '/login/forgot', session)).toBe('/manage');
+	});
 });
 
 describe('pages outside the account and management pages', () => {

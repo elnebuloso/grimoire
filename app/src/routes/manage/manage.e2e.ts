@@ -644,11 +644,29 @@ test('accepts an invitation through an identity provider for the invited address
 	await asAdmin(page);
 	await page.goto('/manage/users');
 	const row = page.getByRole('row', { name: new RegExp(partner) });
-	await expect(row).toContainText('GitLab');
-	await expect(row).not.toContainText('Password');
+	// The column "Logs in with": the provider, no password.
+	const signIn = row.getByRole('cell').nth(1);
+	await expect(signIn).toContainText('GitLab');
+	await expect(signIn).not.toContainText('Password');
 	await page.getByRole('button', { name: `Remove GitLab from ${partner}` }).click();
 	await page.getByRole('dialog').getByRole('button', { name: 'Remove' }).click();
-	await expect(row).not.toContainText('GitLab');
+	await expect(signIn).not.toContainText('GitLab');
+
+	// Without any way to log in left, the admin sends a link to set a password.
+	await page
+		.getByRole('button', { name: `Create a link to set the password of ${partner}` })
+		.click();
+	await page.getByRole('dialog').getByRole('button', { name: 'Create link' }).click();
+	await expect(toasts(page)).toContainText(`Link to set the password sent to ${partner}.`);
+	const passwordLink = await linkFromMail(partner, '/login/reset/');
+	// Opened in the admin's browser: the link works whoever is logged in.
+	await page.goto(passwordLink);
+	await page.getByLabel('Password').fill('partner password 2026');
+	await page.getByRole('button', { name: 'Set password' }).click();
+	await expect(notice(page)).toContainText('Password set.');
+	await page.context().clearCookies();
+	await logIn(page, 'partner password 2026', partner);
+	await expect(page).toHaveURL('/');
 });
 
 test('links a provider to an existing account with its password, and removes it again', async ({

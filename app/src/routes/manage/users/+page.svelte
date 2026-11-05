@@ -15,9 +15,11 @@
 
 	const isAdmin = (user: { roles: string[] }) => user.roles.includes('admin');
 
-	// A link shown once may come from a row far up the page: bring it into view.
+	// A link shown once may come from a row far up or down the page: bring it into view.
 	let invitedLink = $state<HTMLElement>();
 	$effect(() => invitedLink?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }));
+	let passwordLink = $state<HTMLElement>();
+	$effect(() => passwordLink?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }));
 
 	// Mailed invitations report in a toast; a link to pass on stays in the page, shown only now.
 	const invited = submitWithToast({
@@ -35,6 +37,16 @@
 	<div class="sheet-head"><h2 id="users">{m.users_title()}</h2></div>
 	{#if form?.userError}
 		<p class="notice alert" role="alert">{form.userError}</p>
+	{/if}
+	{#if form?.passwordLink && !('sent' in form.passwordLink)}
+		<div class="shown-link" bind:this={passwordLink}>
+			<p class="notice warn">
+				{form.passwordLink.mailFailed
+					? m.password_link_mail_failed({ email: form.passwordLink.email })
+					: m.password_link_only({ email: form.passwordLink.email })}
+			</p>
+			<ShownOnce value={form.passwordLink.link} copyLabel={m.password_link_copy()} />
+		</div>
 	{/if}
 	<TableScroll label={m.users_title()}>
 		<table>
@@ -109,6 +121,22 @@
 									</ConfirmAction>
 								{/if}
 								{#if user.id !== data.me}
+									<ConfirmAction
+										action="?/passwordLink"
+										title={m.users_password_link_title({ email: user.email })}
+										consequence={m.users_password_link_consequence({ email: user.email })}
+										confirmLabel={m.users_password_link_confirm()}
+										label={m.users_password_link()}
+										buttonLabel={m.users_password_link_named({ email: user.email })}
+										success={(result) =>
+											result.type === 'success' &&
+											result.data?.passwordLink &&
+											'sent' in result.data.passwordLink
+												? m.password_link_sent({ email: user.email })
+												: m.password_link_created({ email: user.email })}
+									>
+										<input type="hidden" name="id" value={user.id} />
+									</ConfirmAction>
 									<ConfirmAction
 										action="?/delete"
 										title={m.users_delete_title({ email: user.email })}
@@ -220,7 +248,8 @@
 </section>
 
 <style>
-	.invited {
+	.invited,
+	.shown-link {
 		display: grid;
 		gap: var(--s3);
 	}

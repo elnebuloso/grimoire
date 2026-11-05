@@ -45,8 +45,10 @@ export function accessRedirect(
 	if (!guarded && !ACCOUNT_PAGES.some((page) => isUnder(pathname, page))) return undefined;
 	if (!checkAdminAccount(db)) return pathname === '/setup' ? undefined : '/setup';
 	if (pathname === '/setup') return 'not-found';
+	// A link to set a password works for whoever opens it, logged in or not: the token decides.
+	if (isUnder(pathname, '/login/reset')) return undefined;
 	const user = sessionUser(db, session);
-	// The login and the reset of a forgotten password below it need no session.
+	// The login and the request of a reset link below it need no session.
 	if (isUnder(pathname, '/login')) return user ? homeOf(user) : undefined;
 	if (!user) return '/login';
 	return mayOpen(user, pathname) ? undefined : 'forbidden';

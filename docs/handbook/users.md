@@ -34,8 +34,8 @@ Refusals, and what to do:
 
 - `An account with this email address exists already.`: grimoire never joins accounts by their
   address. Link the provider as described below. Linking asks for your password; an account
-  created through another provider has none, so set one first through **Forgot your password?**
-  on the login page.
+  created through another provider has none, so set one first (see
+  [Setting a first password](#setting-a-first-password)).
 - `No account can be created for this address.`: the domain of your address is not allowed
   there, or the provider did not confirm the address. If you have an account already, log in with
   your password and link the provider as described below; an admin cannot invite an address that
@@ -57,8 +57,14 @@ and choose **Link …**, then log in at the provider. From then on that provider
 One link per provider; a provider account linked to someone else is refused with
 `This account at the identity provider is linked to another account already.`
 
-An account without a password cannot link another provider: set a password first with **Forgot
-your password?** on the login page, if the instance offers it.
+An account without a password cannot link another provider: set one first.
+
+### Setting a first password
+
+An account created through an identity provider has no password. Under **Account**, **Send me a
+link** mails a link to your address; it works once, within an hour. Where the instance sends no
+mail, ask an admin for a link instead: it works once, within 24 hours. Setting the password ends
+all your sessions, also the one in the browser you use; log in again with the new password.
 
 **Remove …** removes a link and ends your sessions in other browsers; the one you use stays
 logged in. The last way to log in stays: without a password, the only link cannot be removed

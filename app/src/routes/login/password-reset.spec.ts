@@ -25,9 +25,11 @@ async function load() {
 	vi.resetModules();
 	return {
 		auth: await import('#lib/server/admin/auth.js'),
+		passwordReset: await import('#lib/server/admin/password-reset.js'),
 		login: await import('./+page.server'),
 		forgot: await import('./forgot/+page.server'),
-		reset: await import('./reset/[token]/+page.server')
+		reset: await import('./reset/[token]/+page.server'),
+		account: await import('../account/+page.server')
 	};
 }
 let pages: Awaited<ReturnType<typeof load>>;
@@ -75,22 +77,54 @@ describe('without SMTP', () => {
 		mail = undefined;
 	});
 
-	it('offers no reset: no link on the login page, 404 for its pages', async () => {
+	it('offers no request of a reset: no link on the login page, 404 for its page', async () => {
 		expect(await pages.login.load(event('/login'))).toMatchObject({ resetByMail: false });
 		for (const run of [
 			() => pages.forgot.load(event('/login/forgot')),
-			() => pages.forgot.actions.default(event('/login/forgot', { email: EMAIL })),
-			() => pages.reset.load(event('/login/reset/x', undefined, { token: 'x' })),
-			() =>
-				pages.reset.actions.default(event('/login/reset/x', { password: PASSWORD }, { token: 'x' }))
+			() => pages.forgot.actions.default(event('/login/forgot', { email: EMAIL }))
 		]) {
 			const thrown = await result(run);
 			expect(isHttpError(thrown) && thrown.status).toBe(404);
 		}
 	});
+
+	it('sets a password through a link an admin created', async () => {
+		const user = db.prepare('SELECT id FROM users').get() as { id: number };
+		const { token } = pages.passwordReset.createPasswordLink(db, user.id)!;
+
+		expect(await pages.reset.load(event(`/login/reset/${token}`, undefined, { token }))).toEqual({
+			valid: true
+		});
+		expect(
+			await pages.reset.actions.default(
+				event(`/login/reset/${token}`, { password: 'a new password 2026' }, { token })
+			)
+		).toEqual({ done: true });
+	});
 });
 
 describe('with SMTP', () => {
+	it('mails a logged-in account its own link, the same as a forgotten password', async () => {
+		const user = { id: 1, email: EMAIL, roles: ['admin'] };
+		const sendLink = () =>
+			pages.account.actions.passwordLink({
+				...(event('/account?/passwordLink', {}) as object),
+				locals: { user }
+			} as never);
+
+		expect(await sendLink()).toEqual({ linkSent: EMAIL });
+		expect(send).toHaveBeenCalledWith(expect.objectContaining({ to: EMAIL }));
+		expect(
+			await pages.reset.load(event('/login/reset/x', undefined, { token: linkToken() }))
+		).toEqual({
+			valid: true
+		});
+		// Three links an hour reach one address, as for a forgotten password.
+		await sendLink();
+		await sendLink();
+		expect(await sendLink()).toMatchObject({ status: 429 });
+	});
+
 	it('links to the reset from the login page', async () => {
 		expect(await pages.login.load(event('/login'))).toMatchObject({
 			resetByMail: true,
