@@ -10,3 +10,6 @@
 # The user's private notes, kept from the agent
 /docs/private/
 
+
+# Screenshots of the UX audit; only needed until the redesign is done
+/docs/redesign/screenshots/
