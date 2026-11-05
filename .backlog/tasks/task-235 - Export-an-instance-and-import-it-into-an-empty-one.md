@@ -17,7 +17,7 @@ ordinal: 297000
 ## Description
 
 <!-- SECTION:DESCRIPTION:BEGIN -->
-A backup copy of the database restores the same instance, or one started with the same instance key: stored access tokens decrypt only under the key that encrypted them (ADR 0006). Moving the state to an instance with its own key, or giving an instance a new key, has no path; every token would have to be entered again. Whoever moves an instance may have a browser and no shell on the target. The owner confirmed the rules on 2026-11-05; they go into ADR 0009. A former implementation exists outside the repository in `/workspace/github.com/elnebuloso/grimoire-before-reset` (commits `6232097`, `3ee32ab`, `3a777f3`, `c0840b8`, `5aba3f8`, `06a408e`, `f4e6e94`, ADR 0009 there): a reference, built then on a schema with linked identities that this project does not have yet.
+A backup copy of the database restores the same instance, or one started with the same instance key: stored access tokens decrypt only under the key that encrypted them (ADR 0006). Moving the state to an instance with its own key, or giving an instance a new key, has no path; every token would have to be entered again. Whoever moves an instance may have a browser and no shell on the target. The owner confirmed the rules on 2026-11-05; they go into ADR 0009.
 <!-- SECTION:DESCRIPTION:END -->
 
 ## Acceptance Criteria

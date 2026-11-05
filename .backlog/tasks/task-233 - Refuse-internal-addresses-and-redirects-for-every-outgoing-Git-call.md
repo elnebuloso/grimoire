@@ -18,7 +18,7 @@ ordinal: 295000
 ## Description
 
 <!-- SECTION:DESCRIPTION:BEGIN -->
-In 1.1.1 "Test connection" on the source form, and every sync, let grimoire connect to any address the Git URL names, internal ones such as `10.0.0.5` or `127.0.0.1` included. Whoever may add a source can use it to look into the network the server stands in. The owner confirmed the rules below on 2026-11-05. A former implementation exists outside the repository, in `/workspace/github.com/elnebuloso/grimoire-before-reset`, commit `deb95b2` (`connection-policy.ts`, `scripts/git-https-server.ts` for e2e and the image smoke); it is a reference to read, not to copy wholesale. Operators with an internal Git server see their syncs fail after the update until they list the host; that is accepted without a major version.
+In 1.1.1 "Test connection" on the source form, and every sync, let grimoire connect to any address the Git URL names, internal ones such as `10.0.0.5` or `127.0.0.1` included. Whoever may add a source can use it to look into the network the server stands in. The owner confirmed the rules below on 2026-11-05. Operators with an internal Git server see their syncs fail after the update until they list the host; that is accepted without a major version.
 <!-- SECTION:DESCRIPTION:END -->
 
 ## Acceptance Criteria

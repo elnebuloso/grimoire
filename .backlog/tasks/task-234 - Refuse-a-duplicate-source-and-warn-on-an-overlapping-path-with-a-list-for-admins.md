@@ -19,7 +19,7 @@ ordinal: 296000
 ## Description
 
 <!-- SECTION:DESCRIPTION:BEGIN -->
-Every user adds sources (ADR 0007), so the same documentation gets registered twice: by two people who do not know of each other, or by one person under another name. Every page is then indexed twice, an agent gets the same section twice within its token budget, and the copies drift apart. The owner confirmed the rules on 2026-11-05; they go into ADR 0008. A former implementation exists outside the repository in `/workspace/github.com/elnebuloso/grimoire-before-reset` (commits `3765fe2`, `e29d3b4`, `6861edd`, `dcae234`, ADR 0010 there): a reference for how it worked, adapted here to the current access model, not copied.
+Every user adds sources (ADR 0007), so the same documentation gets registered twice: by two people who do not know of each other, or by one person under another name. Every page is then indexed twice, an agent gets the same section twice within its token budget, and the copies drift apart. The owner confirmed the rules on 2026-11-05; they go into ADR 0008.
 <!-- SECTION:DESCRIPTION:END -->
 
 ## Acceptance Criteria

@@ -17,7 +17,7 @@ ordinal: 304000
 ## Description
 
 <!-- SECTION:DESCRIPTION:BEGIN -->
-Users want to log in with the account their organisation already manages. Rebuilt from the SSO milestone in ../grimoire-before-reset (see TODO-UEBERNAHME.md there, point 3), which was reverted with the reset of main; the old code is a reference, not a template. Rights stay as they are: SSO decides only who logs in. Agreed in chat: the rules of the old ADR 0008, with accounts from a provider getting no role.
+Users want to log in with the account their organisation already manages. Rights stay as they are: SSO decides only who logs in. Agreed in chat: accounts from a provider get no role.
 <!-- SECTION:DESCRIPTION:END -->
 
 ## Acceptance Criteria
@@ -28,5 +28,5 @@ Users want to log in with the account their organisation already manages. Rebuil
 ## Final Summary
 
 <!-- SECTION:FINAL_SUMMARY:BEGIN -->
-ADR 0011 (Proposed) adapted from the reverted ADR 0008; accounts from a provider get no role.
+ADR 0011 (Proposed); accounts from a provider get no role.
 <!-- SECTION:FINAL_SUMMARY:END -->

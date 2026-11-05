@@ -18,7 +18,7 @@ ordinal: 308000
 ## Description
 
 <!-- SECTION:DESCRIPTION:BEGIN -->
-Rebuilt from the SSO milestone in ../grimoire-before-reset (see TODO-UEBERNAHME.md there, point 3), which was reverted with the reset of main; the old code is a reference, not a template. Rights stay as they are: SSO decides only who logs in.
+ Rights stay as they are: SSO decides only who logs in.
 <!-- SECTION:DESCRIPTION:END -->
 
 ## Acceptance Criteria

@@ -16,7 +16,7 @@ ordinal: 299000
 ## Description
 
 <!-- SECTION:DESCRIPTION:BEGIN -->
-A visitor has no API key and reads public sources without one, yet the claude mcp add command on the start page shows them a placeholder Authorization header. Reference: d0c5d33 in /workspace/github.com/elnebuloso/grimoire-before-reset.
+A visitor has no API key and reads public sources without one, yet the claude mcp add command on the start page shows them a placeholder Authorization header.
 <!-- SECTION:DESCRIPTION:END -->
 
 ## Acceptance Criteria

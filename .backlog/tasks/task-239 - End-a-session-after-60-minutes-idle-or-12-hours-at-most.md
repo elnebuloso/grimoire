@@ -17,7 +17,7 @@ ordinal: 301000
 ## Description
 
 <!-- SECTION:DESCRIPTION:BEGIN -->
-A session lasts 12 hours from the login, whether the browser is used or left open on a shared machine. The owner decided on 2026-11-05 to end it after 60 minutes without a request as well, 12 hours at most. Reference: b66df73 (and its migration 0005-session-end) in /workspace/github.com/elnebuloso/grimoire-before-reset; the migration gets the next free number here.
+A session lasts 12 hours from the login, whether the browser is used or left open on a shared machine. The owner decided on 2026-11-05 to end it after 60 minutes without a request as well, 12 hours at most.
 <!-- SECTION:DESCRIPTION:END -->
 
 ## Acceptance Criteria

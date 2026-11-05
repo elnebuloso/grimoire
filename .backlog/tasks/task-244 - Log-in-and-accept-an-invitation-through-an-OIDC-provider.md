@@ -18,7 +18,7 @@ ordinal: 306000
 ## Description
 
 <!-- SECTION:DESCRIPTION:BEGIN -->
-Rebuilt from the SSO milestone in ../grimoire-before-reset (see TODO-UEBERNAHME.md there, point 3), which was reverted with the reset of main; the old code is a reference, not a template. Rights stay as they are: SSO decides only who logs in.
+ Rights stay as they are: SSO decides only who logs in.
 <!-- SECTION:DESCRIPTION:END -->
 
 ## Acceptance Criteria
@@ -34,7 +34,7 @@ Rebuilt from the SSO milestone in ../grimoire-before-reset (see TODO-UEBERNAHME.
 ## Implementation Notes
 
 <!-- SECTION:NOTES:BEGIN -->
-Final state of oidc/ (flow, decision, identities, start, cookie) and the routes /auth/oidc/[key] and its callback taken from ../grimoire-before-reset HEAD, imports mapped from accounts/* to admin/*; createSession, endSessions and accountExists exported from admin/auth.ts; ENCRYPTION_KEY derives oidcFlows. A provider login without role lands on / (homeOf). Login button selector in e2e made exact, since the provider buttons also start with "Log in".
+oidc/ (flow, decision, identities, start, cookie) and the routes /auth/oidc/[key] and its callback; createSession, endSessions and accountExists exported from admin/auth.ts; ENCRYPTION_KEY derives oidcFlows. A provider login without role lands on / (homeOf). Login button selector in e2e made exact, since the provider buttons also start with "Log in".
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary

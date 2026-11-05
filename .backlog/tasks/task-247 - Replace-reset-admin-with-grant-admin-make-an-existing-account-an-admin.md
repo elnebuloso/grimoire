@@ -17,7 +17,7 @@ ordinal: 309000
 ## Description
 
 <!-- SECTION:DESCRIPTION:BEGIN -->
-When no admin can log in any more, `scripts/reset-admin.ts` deletes the admin account with its sessions and linked identities and reopens `/setup`. Since 1.8.0 an admin may log in only through an OIDC provider and have no password, so deleting the account loses more than it fixes. The owner decided on 2026-11-05 to replace it with `scripts/grant-admin.ts`, which deletes nobody. Reference: 1377c04 in /workspace/github.com/elnebuloso/grimoire-before-reset, without its order of admins (owner model, not adopted). This also makes 5046aba (reset by foreign keys) obsolete, as `resetAdmin` goes away.
+When no admin can log in any more, `scripts/reset-admin.ts` deletes the admin account with its sessions and linked identities and reopens `/setup`. Since 1.8.0 an admin may log in only through an OIDC provider and have no password, so deleting the account loses more than it fixes. The owner decided on 2026-11-05 to replace it with `scripts/grant-admin.ts`, which deletes nobody. This also makes 5046aba (reset by foreign keys) obsolete, as `resetAdmin` goes away.
 <!-- SECTION:DESCRIPTION:END -->
 
 ## Acceptance Criteria

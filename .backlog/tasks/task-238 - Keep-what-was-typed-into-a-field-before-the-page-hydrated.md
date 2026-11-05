@@ -16,7 +16,7 @@ ordinal: 300000
 ## Description
 
 <!-- SECTION:DESCRIPTION:BEGIN -->
-TextField passes its value as value, which Svelte assigns again on hydration, so a field filled before the scripts ran (slow connection) is emptied. Reference: 7493d31 in /workspace/github.com/elnebuloso/grimoire-before-reset.
+TextField passes its value as value, which Svelte assigns again on hydration, so a field filled before the scripts ran (slow connection) is emptied.
 <!-- SECTION:DESCRIPTION:END -->
 
 ## Acceptance Criteria

@@ -20,7 +20,7 @@ ordinal: 305000
 ## Description
 
 <!-- SECTION:DESCRIPTION:BEGIN -->
-Foundation for SSO. Rebuilt from the SSO milestone in ../grimoire-before-reset (see TODO-UEBERNAHME.md there, point 3), which was reverted with the reset of main; the old code is a reference, not a template. Rights stay as they are: SSO decides only who logs in.
+Foundation for SSO. Rights stay as they are: SSO decides only who logs in.
 <!-- SECTION:DESCRIPTION:END -->
 
 ## Acceptance Criteria
@@ -34,7 +34,7 @@ Foundation for SSO. Rebuilt from the SSO milestone in ../grimoire-before-reset (
 ## Implementation Notes
 
 <!-- SECTION:NOTES:BEGIN -->
-Ported de54f5c, a0ad0bc, ad18ffe from ../grimoire-before-reset with git apply --reject; migration renumbered to 0007; openid-client pinned to 6.8.8 (6.8.9 is three days old). Mock ports: make idp-mock 8090, agent environment 5580, e2e 4580.
+Migration numbered 0007; openid-client pinned to 6.8.8 (6.8.9 is three days old). Mock ports: make idp-mock 8090, agent environment 5580, e2e 4580.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
