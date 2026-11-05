@@ -4,6 +4,7 @@
 	let {
 		label,
 		mono = false,
+		value,
 		...input
 	}: {
 		label: string;
@@ -12,7 +13,8 @@
 	} & HTMLInputAttributes = $props();
 </script>
 
-<label><span>{label}</span> <input class:mono {...input} /></label>
+<!-- As `defaultValue`: hydration sets `value` again and so erases what was typed before it. -->
+<label><span>{label}</span> <input class:mono defaultValue={value} {...input} /></label>
 
 <style>
 	label {

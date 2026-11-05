@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
-import { expect, test, type Cookie, type Page } from '@playwright/test';
+import { expect, test, type Cookie, type Page, type Route } from '@playwright/test';
 import { createUser } from '../../lib/server/admin/auth.ts';
 import { readExport } from '../../lib/server/instance-export.ts';
 
@@ -35,6 +35,25 @@ let adminSession: Cookie[] = [];
 async function asAdmin(page: Page) {
 	await page.context().addCookies(adminSession);
 	await page.goto('/manage');
+}
+
+// Holds the page's scripts until the field is filled, as on a slow connection, then waits until
+// Svelte has applied the field's attributes: it keeps them in a symbol property on the element.
+async function fillBeforeHydration(page: Page, path: string, label: string, value: string) {
+	const held: Route[] = [];
+	let released = false;
+	await page.route('**/_app/immutable/**', (route) =>
+		released ? route.continue() : held.push(route)
+	);
+	await page.goto(path, { waitUntil: 'commit' });
+	const field = page.getByLabel(label);
+	await field.fill(value);
+	released = true;
+	for (const route of held) await route.continue();
+	await page.waitForFunction(
+		(element) => Object.getOwnPropertySymbols(element).length > 0,
+		await field.elementHandle()
+	);
 }
 
 test('leads from the empty start page through the login action to the setup', async ({ page }) => {
@@ -456,8 +475,9 @@ test('invites a user who manages their own source and key, but not the sources o
 	const writer = 'writer@example.com';
 	await fetch(`${MAIL_API}/messages`, { method: 'DELETE' });
 	await asAdmin(page);
-	await page.getByRole('link', { name: 'Users' }).click();
-	await page.getByLabel('Email address').fill(writer);
+	// Typed before the page hydrates, as on a slow connection: the address must stay.
+	await fillBeforeHydration(page, '/manage/users', 'Email address', writer);
+	await expect(page.getByLabel('Email address')).toHaveValue(writer);
 	await page.getByRole('button', { name: 'Send invitation' }).click();
 	await expect(page.getByRole('status')).toContainText(`Invitation sent to ${writer}.`);
 	await expect(page.getByRole('row', { name: new RegExp(writer) })).toContainText('Send again');
