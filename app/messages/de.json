@@ -256,7 +256,7 @@
 	"start_query_intro": "Zeigt, was ein Agent auf eine Frage bekommt: dieselbe Antwort wie query über HTTP und MCP, aus den Quellen, die ein API-Key von dir liest; ohne Login aus den öffentlichen Quellen.",
 	"skip_to_content": "Zum Inhalt springen",
 	"state_paused": "pausiert",
-	"last_sync_in_zone": "Letzter Sync ({zone})",
+	"last_check_in_zone": "Letzte Prüfung ({zone})",
 	"api_keys_own": "Meine API-Keys",
 	"api_keys_all": "Alle API-Keys",
 	"apikeys_admin_lead": "Jeder Key jedes Users. Widerrufe einen, der geleakt ist oder nicht mehr gebraucht wird; ändern kann ihn sein Owner unter Meine API-Keys.",
@@ -405,5 +405,6 @@
 	"password_link_copy": "Link kopieren",
 	"mail_password_link_subject": "Setze dein Passwort für {name}",
 	"mail_password_link_text": "Ein Admin von {name} hat für deinen Account {email} einen Link zum Setzen des Passworts erzeugt. Setze es innerhalb von 24 Stunden mit diesem Link:\n\n{url}\n\nDer Link funktioniert einmal. Wenn du ihn nicht angefragt hast, sag dem Admin Bescheid; dein Passwort bleibt, wie es ist, bis der Link benutzt wird.",
-	"password_none_send_link": "Link an mich senden"
+	"password_none_send_link": "Link an mich senden",
+	"source_indexed_commit": "Indexierter Commit"
 }

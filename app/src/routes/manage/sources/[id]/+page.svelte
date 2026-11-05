@@ -288,7 +288,7 @@
 					],
 					[m.source_last_check(), lastCheck],
 					[m.source_last_sync(), lastSync],
-					[m.source_commit(), commit],
+					[m.source_indexed_commit(), commit],
 					[
 						m.source_totals(),
 						`${data.status.totals.pages}, ${data.status.totals.snippets}, ${data.status.totals.tokens}`

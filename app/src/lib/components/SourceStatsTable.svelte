@@ -44,7 +44,7 @@
 				<th scope="col" class="num">{m.snippets()}</th>
 				<th scope="col" class="num">{m.tokens()}</th>
 				<th scope="col">{m.source_status()}</th>
-				<th scope="col">{m.last_sync_in_zone({ zone: timeZone })}</th>
+				<th scope="col">{m.last_check_in_zone({ zone: timeZone })}</th>
 				<th scope="col" class="num">{m.dead_links()}</th>
 			</tr>
 		</thead>

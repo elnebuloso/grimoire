@@ -33,11 +33,39 @@
 		await expect(row).toHaveTextContent('Platform team handbook');
 		await expect(row).toHaveTextContent('synced');
 		await expect(row).toHaveTextContent('3,120');
-		await expect(canvas.getByRole('columnheader', { name: 'Last sync (UTC)' })).toBeVisible();
+		await expect(canvas.getByRole('columnheader', { name: 'Last check (UTC)' })).toBeVisible();
 		await expect(canvas.getByText('10/29/26, 6:06 PM')).toHaveAttribute(
 			'datetime',
 			synced.lastCheck
 		);
+	}}
+/>
+
+<Story
+	name="Checked, never synced"
+	args={{
+		timeZone: 'UTC',
+		sources: [
+			{
+				...synced,
+				slug: 'billing-archive',
+				name: 'Billing archive',
+				pages: 0,
+				snippets: 0,
+				tokens: 0,
+				lastSync: null,
+				lastCheck: '2026-11-05T20:07:00.000Z',
+				error: true
+			}
+		]
+	}}
+	play={async ({ canvas }) => {
+		// The time is of the check that failed, under a header that says so: no sync time.
+		const row = canvas.getByRole('row', { name: /billing-archive/ });
+		await expect(row).toHaveTextContent('failed');
+		await expect(canvas.getByRole('columnheader', { name: 'Last check (UTC)' })).toBeVisible();
+		await expect(canvas.queryByRole('columnheader', { name: /Last sync/ })).toBeNull();
+		await expect(row).toHaveTextContent('11/5/26, 8:07 PM');
 	}}
 />
 

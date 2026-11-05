@@ -256,7 +256,7 @@
 	"start_query_intro": "Shows what an agent gets back for a question: the same answer as query over HTTP and MCP, across the sources an API key of yours reads; without logging in, the public sources.",
 	"skip_to_content": "Skip to content",
 	"state_paused": "paused",
-	"last_sync_in_zone": "Last sync ({zone})",
+	"last_check_in_zone": "Last check ({zone})",
 	"api_keys_own": "My API keys",
 	"api_keys_all": "All API keys",
 	"apikeys_admin_lead": "Every key of every user. Revoke one that leaked or is no longer needed; its owner changes it under My API keys.",
@@ -405,5 +405,6 @@
 	"password_link_copy": "Copy link",
 	"mail_password_link_subject": "Set your password for {name}",
 	"mail_password_link_text": "An admin of {name} created a link for your account {email} to set its password. Set it within 24 hours with this link:\n\n{url}\n\nThe link works once. If you did not ask for it, tell the admin; your password stays as it is until the link is used.",
-	"password_none_send_link": "Send me a link"
+	"password_none_send_link": "Send me a link",
+	"source_indexed_commit": "Indexed commit"
 }
