@@ -368,7 +368,9 @@ docker exec -it grimoire node scripts/grant-admin.ts <EMAIL_ADDRESS> --password
 The password needs at least 12 characters. Setting it ends every session of the account and voids
 its password reset links. Other admins keep their role, and the script deletes nothing; grimoire
 keeps running. For an address without an account it answers
-`No account has that email address; nothing was changed.` – the account has to exist, so invite
-it first or let it sign up through a login provider.
+`No account has that email address; nothing was changed.` – the account has to exist. Without an
+admin nobody can invite, so use the address of an account that still exists, or let the person
+log in once through a login provider that gives accounts to their domain
+([Who gets an account](sso.md#who-gets-an-account)).
 
 Anyone who can run `docker exec` or `kubectl exec` in the container can do this; restrict who may.
