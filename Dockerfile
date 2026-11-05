@@ -16,9 +16,10 @@ WORKDIR /grimoire
 COPY --from=build /grimoire/app/package.json app/
 COPY --from=build /grimoire/app/node_modules app/node_modules
 COPY --from=build /grimoire/app/build app/build
-# Plain node runs these from source: the reset and backup scripts, and the child process that indexes a source
-# (found through `#lib` in package.json). They use only `node:` modules and node_modules.
-COPY scripts/reset-admin.ts scripts/backup.ts scripts/import.ts scripts/
+# Plain node runs these from source: the grant-admin, backup and import scripts, and the child
+# process that indexes a source (found through `#lib` in package.json). They use only `node:`
+# modules and node_modules.
+COPY scripts/grant-admin.ts scripts/backup.ts scripts/import.ts scripts/
 COPY app/src/lib/server app/src/lib/server
 USER node
 # The release passes the version it tags; a local `make image` builds 0.0.0.

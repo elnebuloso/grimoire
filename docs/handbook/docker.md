@@ -349,17 +349,26 @@ URLs are removed before logging.
 
 At `LOG_LEVEL=error` only failures remain, and the setup token line.
 
-## Lost admin password
+## Lost admin access
 
-When mail is not set up, or the last admin cannot receive it, delete the admin account and set it
-up again:
+When no admin can log in any more – the admin left, forgot the password and mail is not set up,
+or lost their login provider – make another existing account an admin:
 
 ```bash
-docker exec -it grimoire node scripts/reset-admin.ts
+docker exec grimoire node scripts/grant-admin.ts <EMAIL_ADDRESS>
 ```
 
-The script asks for the email address of the admin account and deletes it and its sessions only
-when the address matches; without a terminal (`-it`) it refuses. grimoire keeps running; at the
-next request to `/manage` it logs `Admin account was reset.` and a new setup token.
+To also give that account a new password, add `--password`; the script then asks for it twice and
+needs a terminal (`-it`):
+
+```bash
+docker exec -it grimoire node scripts/grant-admin.ts <EMAIL_ADDRESS> --password
+```
+
+The password needs at least 12 characters. Setting it ends every session of the account and voids
+its password reset links. Other admins keep their role, and the script deletes nothing; grimoire
+keeps running. For an address without an account it answers
+`No account has that email address; nothing was changed.` – the account has to exist, so invite
+it first or let it sign up through a login provider.
 
 Anyone who can run `docker exec` or `kubectl exec` in the container can do this; restrict who may.

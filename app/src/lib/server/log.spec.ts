@@ -47,9 +47,9 @@ describe('ecs', () => {
 describe('pretty', () => {
 	it('writes the level and the message as text', () => {
 		const output = capture('pretty', 'info');
-		log.warn('Admin account was reset.');
+		log.warn('Sync of platform-docs failed.');
 
-		expect(output.text()).toMatch(/WARN.*Admin account was reset\./);
+		expect(output.text()).toMatch(/WARN.*Sync of platform-docs failed\./);
 		expect(() => JSON.parse(output.text())).toThrow();
 	});
 });

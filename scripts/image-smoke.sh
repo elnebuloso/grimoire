@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Starts a built image and runs what plain Node loads from source in it: the checked Git calls, the
-# child process that indexes a source, and the reset, backup and import scripts. They only work when
-# everything they import was copied into the image, which no other check sees, because tests and
-# e2e run in the full checkout.
+# child process that indexes a source, and the grant-admin, backup and import scripts. They only
+# work when everything they import was copied into the image, which no other check sees, because
+# tests and e2e run in the full checkout.
 set -euo pipefail
 
 IMAGE="${1:-grimoire:latest}"
@@ -75,11 +75,11 @@ if (result.pages !== 1 || !snippet.includes('Included text from the fixture.')) 
 console.log('git over https and indexing process: ok');
 "
 
-# Without a terminal the script stops at its first question, after all of its imports loaded.
-if node ../scripts/reset-admin.ts 2>&1 < /dev/null | grep -q 'Run this in a terminal'; then
-	echo 'reset script: ok'
+# An unknown address is refused after all of the script's imports loaded.
+if node ../scripts/grant-admin.ts nobody@example.com 2>&1 | grep -q 'No account has that email address'; then
+	echo 'grant-admin script: ok'
 else
-	node ../scripts/reset-admin.ts < /dev/null || true
+	node ../scripts/grant-admin.ts nobody@example.com || true
 	exit 1
 fi
 

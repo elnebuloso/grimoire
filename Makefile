@@ -1,4 +1,4 @@
-.PHONY: help setup dev mail-catcher idp-mock build test e2e storybook lint format image image-smoke admin-reset handbook agent-start agent-stop agent-reset
+.PHONY: help setup dev mail-catcher idp-mock build test e2e storybook lint format image image-smoke admin-grant handbook agent-start agent-stop agent-reset
 
 help: ## List all targets
 	@grep -E '^[a-z0-9-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "} {printf "  %-12s %s\n", $$1, $$2}'
@@ -43,11 +43,11 @@ GRIMOIRE_VERSION ?= 0.0.0
 image: ## Build the Docker image grimoire:latest (GRIMOIRE_VERSION=… sets its version)
 	docker build --build-arg GRIMOIRE_VERSION=$(GRIMOIRE_VERSION) --tag grimoire:latest .
 
-image-smoke: ## Run the indexing worker and the reset, backup and import scripts inside grimoire:latest and check its version (after make image)
+image-smoke: ## Run the indexing worker and the grant-admin, backup and import scripts inside grimoire:latest and check its version (after make image)
 	scripts/image-smoke.sh grimoire:latest $(GRIMOIRE_VERSION)
 
-admin-reset: ## Delete the admin account after a lost password; asks for its email address
-	cd app && node --env-file=.env ../scripts/reset-admin.ts
+admin-grant: ## Make an existing account an admin: EMAIL=<address>, add PASSWORD=1 to set its password
+	cd app && node --env-file=.env ../scripts/grant-admin.ts $(EMAIL) $(if $(PASSWORD),--password)
 
 # Without --python, uv picked an interpreter for which it built zensical from source.
 handbook: ## Build the handbook site into site/

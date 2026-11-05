@@ -427,35 +427,12 @@ describe('several users', () => {
 	});
 
 	it('offers the setup again while no user has the role admin, even with other users', async () => {
-		expect(auth.resetAdmin(db, 'editor@example.com')).toBe(false);
-		expect(auth.resetAdmin(db, 'admin@example.com')).toBe(true);
+		db.exec("DELETE FROM user_roles WHERE role = 'admin'");
 
 		expect(auth.checkAdminAccount(db)).toBe(false);
 		expect(access.accessRedirect(db, '/manage', undefined)).toBe('/setup');
 		await setUp('new-admin@example.com');
 		expect(auth.checkAdminAccount(db)).toBe(true);
-	});
-	it('hands the keys of a reset admin to the next admin', async () => {
-		const adminId = auth.sessionUser(
-			db,
-			sessionOf(await auth.login(db, 'a', { email: 'admin@example.com', password: PASSWORD }))
-		)!.id;
-		db.prepare(
-			"INSERT INTO api_keys (name, key_hash, all_sources, owner_id) VALUES ('laptop', 'hash', 1, ?)"
-		).run(adminId);
-
-		auth.resetAdmin(db, 'admin@example.com');
-		const owners = () =>
-			db
-				.prepare('SELECT owner_id FROM api_keys')
-				.all()
-				.map((row) => row.owner_id);
-		expect(owners()).toEqual([null]);
-
-		await setUp('new-admin@example.com');
-		const newAdmin = db.prepare("SELECT id FROM users WHERE email = 'new-admin@example.com'").get()!
-			.id;
-		expect(owners()).toEqual([newAdmin]);
 	});
 });
 
@@ -600,53 +577,109 @@ describe('pages outside the account and management pages', () => {
 	});
 });
 
-describe('resetAdmin', () => {
+describe('grantAdmin', () => {
 	beforeEach(() => setUp());
 
-	it('changes nothing unless the email address of an admin is confirmed', async () => {
-		expect(auth.resetAdmin(db, 'root@example.com')).toBe(false);
-		expect(auth.checkAdminAccount(db)).toBe(true);
+	const admins = () =>
+		db
+			.prepare(
+				`SELECT email FROM users JOIN user_roles ON user_roles.user_id = users.id
+				WHERE role = 'admin' ORDER BY email`
+			)
+			.all()
+			.map((row) => row.email);
+
+	it('changes nothing for an address without an account', () => {
+		expect(auth.grantAdmin(db, 'nobody@example.com')).toBe('unknown-account');
+		expect(admins()).toEqual(['admin@example.com']);
 	});
 
-	it('deletes the account and its sessions; the server reports it and offers a new setup', async () => {
+	it('makes an account an admin beside the others, and reports an existing admin', async () => {
+		await auth.createUser(db, { email: 'reader@example.com', password: PASSWORD, roles: [] });
+		const session = sessionOf(
+			await auth.login(db, 'client', { email: 'reader@example.com', password: PASSWORD })
+		);
+
+		expect(auth.grantAdmin(db, ' Reader@Example.com ')).toBe('granted');
+		expect(auth.grantAdmin(db, 'admin@example.com')).toBe('already-admin');
+		expect(admins()).toEqual(['admin@example.com', 'reader@example.com']);
+		expect(auth.sessionUser(db, session)?.roles).toEqual(['admin']);
+	});
+
+	it('sets a new password and ends the sessions and reset links of the account', async () => {
 		const session = sessionOf(
 			await auth.login(db, 'client', { email: 'admin@example.com', password: PASSWORD })
 		);
-		const firstToken = logged().find((message) => message.includes('setup token'));
-		auth.checkAdminAccount(db);
+		db.exec(
+			`INSERT INTO password_resets (token_hash, user_id, expires_at)
+			SELECT 'reset-hash', id, '2999-01-01T00:00:00.000Z' FROM users`
+		);
+		const NEW_PASSWORD = 'lighthouse ferry nineteen';
 
-		expect(auth.resetAdmin(db, ' Admin@Example.com ')).toBe(true);
+		expect(auth.grantAdmin(db, 'admin@example.com', await auth.hashPassword(NEW_PASSWORD))).toBe(
+			'already-admin'
+		);
 		expect(auth.sessionUser(db, session)).toBeUndefined();
-		expect(access.accessRedirect(db, '/manage', session)).toBe('/setup');
-		expect(logged()).toContain('Admin account was reset.');
-		expect(loggedToken()).not.toBe(firstToken?.split(' ').at(-1));
-		await setUp('new-admin@example.com');
+		expect(db.prepare('SELECT count(*) AS n FROM password_resets').get()).toEqual({ n: 0 });
+		expect(
+			await auth.login(db, 'other', { email: 'admin@example.com', password: NEW_PASSWORD })
+		).toHaveProperty('session');
 	});
 });
 
-describe('scripts/reset-admin.ts', () => {
-	it('refuses to run without a terminal and leaves the admin in place', async () => {
-		await setUp();
-		const path = join(mkdtempSync(join(tmpdir(), 'grimoire-reset-')), 'grimoire.db');
-		const fileDb = openDatabase(path);
-		fileDb.exec(
-			"INSERT INTO users (id, email, password_hash) VALUES (1, 'admin@example.com', 'x')"
-		);
-		fileDb.exec("INSERT INTO user_roles (user_id, role) VALUES (1, 'admin')");
-		fileDb.close();
+describe('scripts/grant-admin.ts', () => {
+	const script = join(import.meta.dirname, '../../../../../scripts/grant-admin.ts');
 
-		const script = join(import.meta.dirname, '../../../../../scripts/reset-admin.ts');
-		const result = spawnSync(process.execPath, [script], {
-			input: 'admin\n',
+	function databaseWithAdmin(): string {
+		const path = join(mkdtempSync(join(tmpdir(), 'grimoire-grant-')), 'grimoire.db');
+		const fileDb = openDatabase(path);
+		fileDb.exec(`INSERT INTO users (id, email, password_hash) VALUES
+			(1, 'admin@example.com', 'x'), (2, 'ops@example.com', NULL);
+			INSERT INTO user_roles (user_id, role) VALUES (1, 'admin');`);
+		fileDb.close();
+		return path;
+	}
+
+	function run(path: string, ...args: string[]) {
+		return spawnSync(process.execPath, [script, ...args], {
+			input: 'lighthouse ferry nineteen\n',
 			env: { ...process.env, DATABASE_PATH: path },
 			encoding: 'utf8'
 		});
-		const check = openDatabase(path);
+	}
 
-		expect(result.status).toBe(1);
-		expect(result.stderr).toContain('Run this in a terminal');
-		expect(check.prepare('SELECT email FROM users').get()).toEqual({ email: 'admin@example.com' });
+	function admins(path: string): number[] {
+		const check = openDatabase(path);
+		const ids = check
+			.prepare("SELECT user_id FROM user_roles WHERE role = 'admin' ORDER BY user_id")
+			.all()
+			.map((row) => row.user_id as number);
 		check.close();
+		return ids;
+	}
+
+	it('makes an account an admin and refuses an unknown address', () => {
+		const path = databaseWithAdmin();
+
+		expect(run(path, 'nobody@example.com')).toMatchObject({
+			status: 1,
+			stderr: expect.stringContaining('No account has that email address')
+		});
+		expect(run(path, 'ops@example.com')).toMatchObject({
+			status: 0,
+			stdout: expect.stringContaining('The account is now an admin.')
+		});
+		expect(admins(path)).toEqual([1, 2]);
+	});
+
+	it('takes a new password only from a terminal, and changes nothing without one', () => {
+		const path = databaseWithAdmin();
+
+		expect(run(path, 'ops@example.com', '--password')).toMatchObject({
+			status: 1,
+			stderr: expect.stringContaining('Run this in a terminal')
+		});
+		expect(admins(path)).toEqual([1]);
 	});
 });
 

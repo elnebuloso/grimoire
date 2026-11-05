@@ -90,7 +90,7 @@ Nothing is written when an import is refused.
 
 | Message | Cause and fix |
 |---|---|
-| `This instance has users or sources already; an export is imported only into an empty one.` | Start the new instance with an empty volume. After an admin reset the sources are still there, so the setup page refuses the import too. |
+| `This instance has users or sources already; an export is imported only into an empty one.` | Start the new instance with an empty volume. |
 | `The passphrase is wrong, or the file was changed or cut short since it was exported.` | Check the passphrase; otherwise copy the file again, completely, or export again. |
 | `The export comes from a newer grimoire. Import it into that version or a later one.` | Update the new instance to at least the version that exported. |
 | `The file is not a grimoire export.` | Choose the `.grimoire-export` file of the export. |

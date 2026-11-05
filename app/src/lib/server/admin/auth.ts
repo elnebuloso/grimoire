@@ -3,7 +3,7 @@ import { promisify } from 'node:util';
 import type { DatabaseSync } from 'node:sqlite';
 // With its extension: the scripts in `scripts/` load this file with plain node.
 import { inTransaction } from '../db/transaction.ts';
-import { log, logAlways } from '../log.ts';
+import { logAlways } from '../log.ts';
 import { createLimiter } from '../limiter.ts';
 import { clientKey, createAttemptLimit } from './attempt-limit.ts';
 
@@ -61,7 +61,6 @@ export type AuthProblem =
 
 // Kept in memory only: it exists solely to prove access to the server log, so it is never stored.
 let setupTokenValue: string | undefined;
-let adminSeen = false;
 const failedLogins = createAttemptLimit(MAX_FAILED_LOGINS, FAILED_LOGIN_MINUTES);
 
 export function sha256(value: string): string {
@@ -181,17 +180,12 @@ export function insertUser(
 
 /**
  * Whether a user with the role `admin` exists. While none does, a setup token is created and
- * written to the log once; the last admin disappearing while the server runs is reported as a reset.
+ * written to the log once.
  */
 export function checkAdminAccount(db: DatabaseSync): boolean {
 	if (adminExists(db)) {
-		adminSeen = true;
 		setupTokenValue = undefined;
 		return true;
-	}
-	if (adminSeen) {
-		adminSeen = false;
-		log.warn('Admin account was reset.');
 	}
 	if (!setupTokenValue) {
 		setupTokenValue = randomBytes(24).toString('base64url');
@@ -225,7 +219,7 @@ export async function setupAdmin(
 	const created = inTransaction(db, () => {
 		if (adminExists(db)) return false;
 		const id = insertUser(db, form.email, passwordHash, ['admin']);
-		// What a reset admin left behind, or what predates owners, needs someone to manage it.
+		// Keys that predate owners need someone to manage them.
 		db.prepare('UPDATE api_keys SET owner_id = ? WHERE owner_id IS NULL').run(id);
 		return true;
 	});
@@ -381,29 +375,24 @@ export function deleteSession(db: DatabaseSync, token: string) {
 	db.prepare('DELETE FROM sessions WHERE token_hash = ?').run(sha256(token));
 }
 
+export type GrantResult = 'granted' | 'already-admin' | 'unknown-account';
+
 /**
- * Deletes a user with the role `admin` and their sessions, but only when `email` names one, so
- * a reset needs to know whose account it removes. Returns whether it did. Their keys belong to
- * nobody until the next setup. Without another admin, the management area offers the
- * setup again.
+ * Gives the account of `email` the role `admin`, for when no admin can log in any more. With
+ * `passwordHash`, also sets its password and ends its sessions and reset links. Deletes nothing.
  */
-export function resetAdmin(db: DatabaseSync, email: string): boolean {
-	const admin = db
-		.prepare(
-			`SELECT users.id FROM users JOIN user_roles ON user_roles.user_id = users.id
-			WHERE users.email = ? AND user_roles.role = 'admin'`
-		)
-		.get(normalizeEmail(email)) as { id: number } | undefined;
-	if (!admin) return false;
-	inTransaction(db, () => {
-		// Deleted one by one: the reset script opens the file without enforcing foreign keys.
-		for (const table of ['sessions', 'user_roles', 'password_resets']) {
-			db.prepare(`DELETE FROM ${table} WHERE user_id = ?`).run(admin.id);
+export function grantAdmin(db: DatabaseSync, email: string, passwordHash?: string): GrantResult {
+	const user = findUser(db, email);
+	if (!user) return 'unknown-account';
+	return inTransaction(db, () => {
+		const { changes } = db
+			.prepare("INSERT INTO user_roles (user_id, role) VALUES (?, 'admin') ON CONFLICT DO NOTHING")
+			.run(user.id);
+		if (passwordHash !== undefined) {
+			db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(passwordHash, user.id);
+			endSessions(db, user.id);
+			db.prepare('DELETE FROM password_resets WHERE user_id = ?').run(user.id);
 		}
-		// Kept for whoever sets up the next admin: the reset is for an admin who lost access, and
-		// the keys in their tools are still in use.
-		db.prepare('UPDATE api_keys SET owner_id = NULL WHERE owner_id = ?').run(admin.id);
-		db.prepare('DELETE FROM users WHERE id = ?').run(admin.id);
+		return changes ? 'granted' : 'already-admin';
 	});
-	return true;
 }

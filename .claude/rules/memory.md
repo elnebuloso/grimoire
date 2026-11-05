@@ -38,7 +38,7 @@ Facts learned while building grimoire.
 - Stop a test server by the PID `ss -ltnp` shows for its port, not by `$!`, which is the PID of
   the wrapping shell or npm.
 - `docker exec -it` needs a terminal; without one:
-  `printf 'admin\n' | script -qec "docker exec -it <container> node scripts/reset-admin.ts" /dev/null`.
+  `printf 'new password\nnew password\n' | script -qec "docker exec -it <container> node scripts/grant-admin.ts <email> --password" /dev/null`.
 
 ## Database
 

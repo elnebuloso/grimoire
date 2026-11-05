@@ -47,7 +47,7 @@ sessions are logged out; the browser you changed it in stays logged in.
 
 !!! info "Available when"
     The operator has set up mail. Otherwise the login page offers no
-    **Forgot your password?**; ask the operator (see [Lost admin password](docker.md#lost-admin-password)).
+    **Forgot your password?**; ask the operator (see [Lost admin access](docker.md#lost-admin-access)).
 
 - The link is valid for one hour and works once. Setting the password ends every session of the
   account and voids its other links.
