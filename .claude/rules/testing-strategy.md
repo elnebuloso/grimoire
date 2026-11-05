@@ -10,21 +10,20 @@ Measured in the agent's shell (4 cores):
 
 | Run | Time |
 |---|---|
-| `make lint` (prettier and eslint 34 s, then svelte-check 25 s) | 57 s |
-| `make test`, all 57 specs and 17 story files | 45 s |
-| `make test TEST=--project=server` | 32 s; `sync.spec.ts` is the slowest file, 14 s on its own |
-| `make test TEST=--project=storybook` | 26 s |
-| `make test TEST=<one spec file>` | 9 s |
+| `make lint` (prettier and eslint, then svelte-check) | 74 s |
+| `make test`, all 74 specs and 20 story files | 84 s |
+| `make test TEST=--project=server` | 54 s; `sync.spec.ts` is the slowest file, 20 s on its own |
+| `make test TEST=--project=storybook` | 30 s |
+| `make test TEST=<one spec file>` | 9–10 s |
 | `make test TEST="<one spec file> -t '<test name>'"` | 9 s |
 | `make test TEST=<one *.stories.svelte>` | 13–20 s |
-| `make test TEST=--changed` | what the changed files reach: nothing changed 9 s, one component (1 story file) 17 s, `src/lib/slug.ts` (11 files) 23 s |
+| `make test TEST=--changed` | what the changed files reach: nothing changed 10 s, one component (1 story file) 17 s |
 | `make build` | 18 s |
-| `make e2e`, production build plus all browser tests | 43 s, of which `manage.e2e.ts` takes 22 s |
-| `make e2e E2E=<one *.e2e.ts>` | 19–21 s for `theme` or `language`, 39 s for `manage`, the build included |
-| `make format` | 5 s; fixes what the prettier part of `make lint` would report |
+| `make e2e`, production build plus all browser tests | 78 s, of which `manage.e2e.ts` takes most |
+| `make e2e E2E=<one *.e2e.ts>` | 25 s for `theme` or `language`, 74 s for `manage`, the build included |
+| `make format` | 8 s; fixes what the prettier part of `make lint` would report |
 
-Next slowest spec file after `sync.spec.ts`: `access.spec.ts` (8 s). Every spec, story and e2e
-file also passes on its own.
+Measured on 2026-11-05 after 1.8.0. Every spec, story and e2e file also passes on its own.
 
 ## Pick the run by the change
 
