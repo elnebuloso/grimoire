@@ -22,7 +22,7 @@ beforeEach(() => {
 			VALUES ('release-drafts', 'Drafts', 'https://git.example.com/r.git', 'main', 'docs', 2);
 		INSERT INTO api_keys (name, key_hash, all_sources, owner_id) VALUES ('laptop', 'hash', 1, 2);
 		INSERT INTO api_key_requests VALUES (1, '2026-11-03', 5);
-		INSERT INTO sessions VALUES ('session-hash', 2, '2026-11-04T00:00:00.000Z');
+		INSERT INTO sessions VALUES ('session-hash', 2, '2026-11-04T00:00:00.000Z', '2026-11-04T00:00:00.000Z');
 	`);
 });
 

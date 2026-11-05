@@ -4,14 +4,19 @@ import {
 	type HandleServerError,
 	type ServerInit
 } from '@sveltejs/kit/hooks';
-import { error, redirect } from '@sveltejs/kit';
+import { error, redirect, type RequestEvent } from '@sveltejs/kit';
 import { LOG_FORMAT, LOG_LEVEL, MIGRATE_ONLY } from '$app/env/private';
 import { database } from '#lib/server/db/index.js';
 import { configureLog, log, routeConsoleToLog } from '#lib/server/log.js';
 import { logRefusedSources, startSyncPolling } from '#lib/server/sync/index.js';
 import { mailer } from '#lib/server/mail/index.js';
 import { accessRedirect } from '#lib/server/admin/access.js';
-import { checkAdminAccount, SESSION_COOKIE, sessionUser } from '#lib/server/admin/auth.js';
+import {
+	checkAdminAccount,
+	SESSION_COOKIE,
+	sessionUser,
+	touchSession
+} from '#lib/server/admin/auth.js';
 import { THEME_COOKIE, themeAttribute } from '#lib/theme.js';
 import { getTextDirection } from '#lib/paraglide/runtime.js';
 import { paraglideMiddleware } from '#lib/paraglide/server.js';
@@ -65,8 +70,10 @@ const PAGE_ROUTES = new Set(
 export const handleAccess: Handle = async ({ event, resolve }) => {
 	if (event.route.id === null) return resolve(event);
 	const db = database();
-	event.locals.user = sessionUser(db, event.cookies.get(SESSION_COOKIE));
-	const target = accessRedirect(db, event.route.id, event.cookies.get(SESSION_COOKIE));
+	const session = event.cookies.get(SESSION_COOKIE);
+	event.locals.user = sessionUser(db, session);
+	if (event.locals.user && !BACKGROUND_ROUTES.has(event.route.id)) touchSession(db, session);
+	const target = accessRedirect(db, event.route.id, session);
 	if (target === 'not-found' || target === 'forbidden') {
 		const status = target === 'not-found' ? 404 : 403;
 		// Thrown here, SvelteKit answers with its bare fallback page; thrown by a page's load, it
@@ -81,9 +88,19 @@ export const handleAccess: Handle = async ({ event, resolve }) => {
 		if (response.status !== status) error(status);
 		return response;
 	}
+	if (target === '/login' && event.route.id !== '/logout') redirect(303, loginReturningTo(event));
 	if (target) redirect(303, target);
 	return resolve(event);
 };
+
+// Requests a page sends on its own, not its user: they must not keep an idle session alive.
+const BACKGROUND_ROUTES = new Set(['/manage/sources/[id]/sync-pending']);
+
+/** The login, which sends the user back to the page they asked for; a form's action name is dropped. */
+function loginReturningTo({ url, request }: RequestEvent): string {
+	const page = request.method === 'GET' ? url.pathname + url.search : url.pathname;
+	return `/login?next=${encodeURIComponent(page)}`;
+}
 
 // Sets the language of the request, so pages and the messages of form actions use it.
 const handleLanguage: Handle = ({ event, resolve }) =>

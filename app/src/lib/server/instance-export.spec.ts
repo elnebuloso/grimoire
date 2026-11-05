@@ -31,7 +31,7 @@ function instance(): DatabaseSync {
 		INSERT INTO api_key_sources VALUES (1, 2);
 		UPDATE settings SET syncs_paused = 1;
 		INSERT INTO api_key_requests VALUES (1, '2026-11-01', 4);
-		INSERT INTO sessions VALUES ('session-hash', 1, '2026-12-01T00:00:00.000Z');
+		INSERT INTO sessions VALUES ('session-hash', 1, '2026-12-01T00:00:00.000Z', '2026-12-01T00:00:00.000Z');
 		INSERT INTO password_resets VALUES ('reset-hash', 1, '2026-12-01T00:00:00.000Z');
 		INSERT INTO invitations (email, token_hash, sent_at, expires_at)
 			VALUES ('cleo@example.com', 'invite-hash', '2026-11-01T00:00:00.000Z', '2026-11-08T00:00:00.000Z');

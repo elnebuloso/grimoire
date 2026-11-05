@@ -10,6 +10,7 @@ import {
 } from '#lib/server/admin/auth.js';
 import { authMessage } from '#lib/server/admin/auth-messages.js';
 import { mailer } from '#lib/server/mail/index.js';
+import { pathOnThisSite } from '#lib/server/path-on-this-site.js';
 
 // A plain form needs no JavaScript; hydrating it would reset what was typed before it finished.
 export const csr = false;
@@ -21,7 +22,7 @@ export const load: PageServerLoad = ({ url }) => ({
 });
 
 export const actions = {
-	default: async ({ request, cookies, getClientAddress }) => {
+	default: async ({ request, cookies, getClientAddress, url }) => {
 		const data = await request.formData();
 		const form = {
 			email: String(data.get('email') ?? ''),
@@ -32,6 +33,8 @@ export const actions = {
 		if ('error' in result)
 			return fail(400, { error: authMessage(result.error), email: form.email });
 		cookies.set(SESSION_COOKIE, result.session, sessionCookieOptions);
-		redirect(303, homeOf(sessionUser(db, result.session)!));
+		// Back to the page whose request found the session ended, else where the user works.
+		const next = url.searchParams.get('next');
+		redirect(303, next ? pathOnThisSite(next, url) : homeOf(sessionUser(db, result.session)!));
 	}
 } satisfies Actions;

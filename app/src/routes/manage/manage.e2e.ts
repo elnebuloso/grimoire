@@ -96,7 +96,7 @@ test('logs out and back in, and rejects a wrong password', async ({ page }) => {
 	await page.getByRole('button', { name: 'Log out' }).click();
 	await expect(page).toHaveURL('/login');
 	await page.goto('/manage');
-	await expect(page).toHaveURL('/login');
+	await expect(page).toHaveURL('/login?next=%2Fmanage');
 
 	await expect(page.getByLabel('Email address')).toHaveAttribute('autocomplete', 'username');
 	await expect(page.getByLabel('Password')).toHaveAttribute('autocomplete', 'current-password');

@@ -193,6 +193,7 @@ describe('login action', () => {
 		const result = await thrown(() =>
 			admin.login({
 				request: formRequest('/login', { email: 'admin@example.com', password: PASSWORD }),
+				url: new URL('https://grimoire.example/login'),
 				cookies,
 				getClientAddress: () => 'client'
 			} as never)
@@ -209,6 +210,7 @@ describe('login action', () => {
 		const result = await thrown(() =>
 			admin.login({
 				request: formRequest('/login', { email: 'editor@example.com', password: PASSWORD }),
+				url: new URL('https://grimoire.example/login'),
 				cookies: fakeCookies(),
 				getClientAddress: () => 'client'
 			} as never)
@@ -221,6 +223,7 @@ describe('login action', () => {
 		const cookies = fakeCookies();
 		const result = await admin.login({
 			request: formRequest('/login', { email: 'admin@example.com', password: 'wrong' }),
+			url: new URL('https://grimoire.example/login'),
 			cookies,
 			getClientAddress: () => 'client'
 		} as never);
@@ -230,6 +233,24 @@ describe('login action', () => {
 			data: { error: 'Wrong email address or password.', email: 'admin@example.com' }
 		});
 		expect(cookies.calls).toEqual([]);
+	});
+
+	it('returns to the page asked for, but never to another site', async () => {
+		const loginAt = (next: string) =>
+			thrown(() =>
+				admin.login({
+					request: formRequest('/login', { email: 'admin@example.com', password: PASSWORD }),
+					url: new URL(`https://grimoire.example/login?next=${encodeURIComponent(next)}`),
+					cookies: fakeCookies(),
+					getClientAddress: () => 'client'
+				} as never)
+			);
+
+		const back = await loginAt('/manage/sources/3?preview=index.md');
+		const away = await loginAt('https://evil.example/login');
+
+		expect(isRedirect(back) && back.location).toBe('/manage/sources/3?preview=index.md');
+		expect(isRedirect(away) && away.location).toBe('/');
 	});
 });
 
@@ -359,9 +380,45 @@ describe('admin access guard', () => {
 		const page = request('/manage', session);
 
 		expect(isHttpError(setupAgain) && setupAgain.status).toBe(404);
-		expect(isRedirect(withoutSession) && withoutSession.location).toBe('/login');
+		expect(isRedirect(withoutSession) && withoutSession.location).toBe('/login?next=%2Fmanage');
 		expect(await page.run()).toBe(served);
 		expect(page.resolve).toHaveBeenCalledOnce();
+	});
+
+	it('names the page to return to after the login, without the action of a form', async () => {
+		await setUpAdmin();
+
+		const page = await thrown(request('/manage/sources?state=failed').run);
+		const action = await thrown(
+			request('/manage/sources/3?/sync', undefined, '/manage/sources/[id]', { method: 'POST' }).run
+		);
+		const logout = await thrown(request('/logout', undefined, '/logout', { method: 'POST' }).run);
+
+		expect(isRedirect(page) && page.location).toBe(
+			'/login?next=%2Fmanage%2Fsources%3Fstate%3Dfailed'
+		);
+		expect(isRedirect(action) && action.location).toBe('/login?next=%2Fmanage%2Fsources%2F3');
+		expect(isRedirect(logout) && logout.location).toBe('/login');
+	});
+
+	it('keeps an idle session alive on page requests, not on the sync poll', async () => {
+		const session = await setUpAdmin();
+		const idleEnd = () =>
+			(db.prepare('SELECT expires_at FROM sessions').get() as { expires_at: string }).expires_at;
+		const before = idleEnd();
+		vi.useFakeTimers({ now: Date.now() + 5 * 60_000, toFake: ['Date'] });
+		try {
+			await request(
+				'/manage/sources/1/sync-pending',
+				session,
+				'/manage/sources/[id]/sync-pending'
+			).run();
+			expect(idleEnd()).toBe(before);
+			await request('/manage', session).run();
+			expect(idleEnd() > before).toBe(true);
+		} finally {
+			vi.useRealTimers();
+		}
 	});
 
 	it('guards a percent-encoded path by the route the router matched', async () => {
@@ -369,7 +426,7 @@ describe('admin access guard', () => {
 
 		const encoded = await thrown(request('/m%61nage/api-keys', undefined, '/manage/api-keys').run);
 
-		expect(isRedirect(encoded) && encoded.location).toBe('/login');
+		expect(isRedirect(encoded) && encoded.location).toBe('/login?next=%2Fm%2561nage%2Fapi-keys');
 	});
 
 	it('serves a path without a route, which ends in a 404', async () => {
@@ -401,7 +458,7 @@ describe('admin access guard', () => {
 		for (const id of new Set(routeIds)) {
 			const result = await thrown(request(id, undefined, id).run).catch(() => 'served');
 
-			expect([id, isRedirect(result) && result.location]).toEqual([id, '/login']);
+			expect([id, isRedirect(result) && result.location.split('?')[0]]).toEqual([id, '/login']);
 		}
 	});
 });

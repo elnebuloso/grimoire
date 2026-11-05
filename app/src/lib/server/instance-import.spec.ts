@@ -19,6 +19,7 @@ vi.setConfig({ testTimeout: 30_000 });
 const FIXTURE = readFileSync(
 	new URL('./fixtures/export-schema-4.grimoire-export', import.meta.url)
 );
+const FIXTURE_SCHEMA = 4;
 const PASSPHRASE = 'fixture passphrase 2026';
 const tokenKey = deriveKeys(randomBytes(32)).sourceTokens;
 const clock = { now: new Date('2026-11-04T12:00:00Z'), today: '2026-11-04' };
@@ -79,7 +80,8 @@ describe('importExport', () => {
 	});
 
 	it('refuses an export of a newer schema and writes nothing', async () => {
-		const older = migrations.slice(0, -1);
+		// One migration fewer than the schema the fixture was written at.
+		const older = migrations.slice(0, FIXTURE_SCHEMA - 1);
 		const db = new DatabaseSync(':memory:');
 		migrate(db, older);
 

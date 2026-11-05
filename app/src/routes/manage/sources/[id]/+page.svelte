@@ -25,11 +25,18 @@
 
 	let testPending = $state(false);
 
-	// Polls for the outcome of a queued sync; stops as soon as the sync is done.
+	// Polls for the end of a queued sync, then reloads the page once to show its outcome. The poll
+	// does not keep an idle session alive; a page reload would.
 	const PENDING_REFRESH_MS = 2000;
 	$effect(() => {
-		if (!data.syncPending) return;
-		const timer = setInterval(() => refreshAll(), PENDING_REFRESH_MS);
+		if (!data.syncPending || !data.source) return;
+		const url = resolve('/manage/sources/[id]/sync-pending', { id: String(data.source.id) });
+		const timer = setInterval(async () => {
+			const response = await fetch(url);
+			// An ended session answers with the login page, not JSON: the reload then leads there.
+			const { pending } = await response.json().catch(() => ({ pending: false }));
+			if (!pending) refreshAll();
+		}, PENDING_REFRESH_MS);
 		return () => clearInterval(timer);
 	});
 

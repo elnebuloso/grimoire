@@ -24,7 +24,9 @@ export interface SessionUser {
 	email: string;
 	roles: Role[];
 }
-const SESSION_HOURS = 12;
+// A session ends after an hour without a request, and 12 hours after the login whatever happens.
+const SESSION_IDLE_MINUTES = 60;
+const SESSION_MAX_HOURS = 12;
 // A client that failed this often within the window is refused until the oldest failure leaves it.
 const MAX_FAILED_LOGINS = 10;
 const FAILED_LOGIN_MINUTES = 15;
@@ -280,13 +282,35 @@ function createSession(db: DatabaseSync, userId: number, now: Date): string {
 	// Expired sessions are useless; removed here, they cannot pile up over the life of an instance.
 	db.prepare('DELETE FROM sessions WHERE expires_at <= ?').run(now.toISOString());
 	const token = randomBytes(32).toString('base64url');
-	const expiresAt = new Date(now.getTime() + SESSION_HOURS * 3_600_000).toISOString();
-	db.prepare('INSERT INTO sessions (token_hash, user_id, expires_at) VALUES (?, ?, ?)').run(
+	db.prepare(
+		'INSERT INTO sessions (token_hash, user_id, expires_at, ends_at) VALUES (?, ?, ?, ?)'
+	).run(
 		sha256(token),
 		userId,
-		expiresAt
+		new Date(now.getTime() + SESSION_IDLE_MINUTES * 60_000).toISOString(),
+		new Date(now.getTime() + SESSION_MAX_HOURS * 3_600_000).toISOString()
 	);
 	return token;
+}
+
+/**
+ * Moves the idle end of a live session on, as a request of its user does; never past the end
+ * 12 hours after the login.
+ */
+export function touchSession(db: DatabaseSync, token: string | undefined, now = new Date()) {
+	if (!token) return;
+	const idleEnd = new Date(now.getTime() + SESSION_IDLE_MINUTES * 60_000);
+	// At most one write a minute per session: every page view and form submit comes through here.
+	const writtenWithinAMinute = new Date(idleEnd.getTime() - 60_000);
+	db.prepare(
+		`UPDATE sessions SET expires_at = min(?, ends_at)
+		WHERE token_hash = ? AND expires_at > ? AND expires_at < ? AND expires_at < ends_at`
+	).run(
+		idleEnd.toISOString(),
+		sha256(token),
+		now.toISOString(),
+		writtenWithinAMinute.toISOString()
+	);
 }
 
 /** The user of a session that has not expired; undefined for none. */

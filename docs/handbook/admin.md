@@ -18,7 +18,10 @@ characters.
 
 ## Logging in
 
-- A login lasts 12 hours.
+- A login ends after 60 minutes without a page view or form submit, and 12 hours after you logged
+  in whatever you do. A page reloading on its own, such as a source page waiting for its sync,
+  does not keep it alive. Log in again and you land on the page you asked for; what you typed into
+  a form before the login ended is lost.
 - A client address may fail at most 10 times in any 15 minutes; beyond that every login from it
   gets `Too many failed logins. Try again later.`, also with the right password. Wait 15 minutes.
   A wrong current password under **Change the password** counts as a failed login.

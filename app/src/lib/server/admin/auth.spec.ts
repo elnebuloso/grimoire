@@ -52,6 +52,10 @@ async function setUp(email = 'admin@example.com') {
 	).toBeUndefined();
 }
 
+function minutesAfterNow(minutes: number): Date {
+	return new Date(NOW.getTime() + minutes * 60_000);
+}
+
 function sessionOf(result: { session: string } | { error: string }): string {
 	if (!('session' in result)) throw new Error(result.error);
 	return result.session;
@@ -266,7 +270,7 @@ describe('login', () => {
 		expect(db.prepare('SELECT COUNT(*) AS n FROM sessions').get()).toEqual({ n: 1 });
 	});
 
-	it('ends a session after 12 hours or on logout', async () => {
+	it('ends a session after an hour without a request, or on logout', async () => {
 		const first = sessionOf(
 			await auth.login(db, 'client', { email: 'admin@example.com', password: PASSWORD }, NOW)
 		);
@@ -274,10 +278,41 @@ describe('login', () => {
 			await auth.login(db, 'client', { email: 'admin@example.com', password: PASSWORD }, NOW)
 		);
 
-		expect(auth.sessionUser(db, first, new Date(NOW.getTime() + 12 * 3_600_000))).toBeUndefined();
+		expect(auth.sessionUser(db, first, minutesAfterNow(59))).toBeDefined();
+		expect(auth.sessionUser(db, first, minutesAfterNow(60))).toBeUndefined();
 		auth.deleteSession(db, second);
 		expect(auth.sessionUser(db, second, NOW)).toBeUndefined();
 		expect(auth.sessionUser(db, undefined, NOW)).toBeUndefined();
+	});
+
+	it('keeps a session in use alive, but not past 12 hours after the login', async () => {
+		const session = sessionOf(
+			await auth.login(db, 'client', { email: 'admin@example.com', password: PASSWORD }, NOW)
+		);
+
+		for (let minutes = 50; minutes < 12 * 60; minutes += 50) {
+			auth.touchSession(db, session, minutesAfterNow(minutes));
+			expect(auth.sessionUser(db, session, minutesAfterNow(minutes + 1))).toBeDefined();
+		}
+		expect(auth.sessionUser(db, session, minutesAfterNow(12 * 60 - 1))).toBeDefined();
+		expect(auth.sessionUser(db, session, minutesAfterNow(12 * 60))).toBeUndefined();
+		auth.touchSession(db, session, minutesAfterNow(12 * 60 + 1));
+		expect(auth.sessionUser(db, session, minutesAfterNow(12 * 60 + 2))).toBeUndefined();
+	});
+
+	it('writes the new idle end at most once a minute and never revives an ended session', async () => {
+		const session = sessionOf(
+			await auth.login(db, 'client', { email: 'admin@example.com', password: PASSWORD }, NOW)
+		);
+		const idleEnd = () =>
+			(db.prepare('SELECT expires_at FROM sessions').get() as { expires_at: string }).expires_at;
+
+		auth.touchSession(db, session, new Date(NOW.getTime() + 59_000));
+		expect(idleEnd()).toBe(minutesAfterNow(60).toISOString());
+		auth.touchSession(db, session, minutesAfterNow(2));
+		expect(idleEnd()).toBe(minutesAfterNow(62).toISOString());
+		auth.touchSession(db, session, minutesAfterNow(70));
+		expect(idleEnd()).toBe(minutesAfterNow(62).toISOString());
 	});
 });
 
