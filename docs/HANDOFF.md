@@ -8,8 +8,7 @@
   (anyone, no key); `private` and source owners are gone. Only admins add, change and delete
   sources; the whole `/manage` area needs the admin role. Users without it land on `/` and reach
   their keys through **My API keys** in the header.
-- **1.8.0** (ADR 0011): single sign-on through OpenID Connect providers, rebuilt from the reverted
-  SSO milestone. Providers come from `OIDC_PROVIDERS` and `OIDC_<KEY>_*`; identities are linked
+- **1.8.0** (ADR 0011): single sign-on through OpenID Connect providers. Providers come from `OIDC_PROVIDERS` and `OIDC_<KEY>_*`; identities are linked
   by issuer and subject, never by email; accounts from a provider have no role and may have no
   password. Code in `app/src/lib/server/oidc/`, routes under `/auth/oidc/[key]` and
   `/account/link`, `/account/unlink`; operator page `docs/handbook/sso.md`.
@@ -18,15 +17,18 @@
   address is refused, no account is created (the owner's decision). `make admin-grant
   EMAIL=… [PASSWORD=1]` runs it locally; handbook `docs/handbook/docker.md` "Lost admin access".
 
+Since 1.9.0, nothing that ships: the handbook sentence under "Lost admin access" is corrected,
+`make dev` loads `app/.env` into its environment (variables exported in the shell win), and the
+rules in `.claude/rules/` were checked against the code; they now hold the lasting facts that
+used to sit in this handoff.
+
 The backlog has no open task.
 
 ## Next
 
-Nothing is planned; ask the owner. The takeover from the old directory is finished and the
-directory is deleted. One point of it stays open until a real provider account is at hand:
-
-- Whether GitLab or Entra send `WWW-Authenticate` on errors at the token endpoint;
-  `classifyLoginFailure` is tested only against a simulated `fetch`.
+Nothing is planned; ask the owner. One question stays open until a real provider account is at
+hand: whether GitLab or Entra send `WWW-Authenticate` on errors at the token endpoint;
+`classifyLoginFailure` is tested only against a simulated `fetch`.
 
 ## Working with the owner
 
@@ -38,10 +40,16 @@ directory is deleted. One point of it stays open until a real provider account i
   marker (`!`, `BREAKING CHANGE`) unless the owner asks for one in so many words** – "feat!" from
   the owner meant "feat, go", not a major release. Push only on the owner's word. After each
   release, add a summary at the top of the GitHub release (`.claude/rules/memory.md`).
+- "The rules" means `.claude/rules/` in this repository. `.claude/rules/agent-plugin-charter/` is
+  delivered by a plugin: never edit it.
 
 ## Watch out
 
 - **`make admin-grant EMAIL=… PASSWORD=1` was never run through `make`**; only the script itself,
   with `--password` once in a pseudo terminal (`script -qec`). Try it before relying on it.
-- **Every push to `main` releases.**
+- **Every push to `main` runs the release pipeline;** it releases only when a `feat` or `fix`
+  commit is among the new ones.
+- **`make dev` with `app/.env` loaded was never started**; only Node's `--env-file-if-exists` was
+  tried on its own (file read, shell wins, missing file tolerated). The first run with a real
+  `OIDC_<KEY>_*` in `app/.env` should confirm the provider's login button appears.
 - Durable facts about the code and the tools are in `.claude/rules/`.
