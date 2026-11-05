@@ -359,5 +359,21 @@
 	"users_sign_in_password": "Password",
 	"users_unlink": "Remove",
 	"users_unlink_named": "Remove {provider} from {email}",
-	"users_unlink_question": "Remove the link of {email} to {provider}? They can no longer log in through it until they link it again, and every session of theirs ends."
+	"users_unlink_question": "Remove the link of {email} to {provider}? They can no longer log in through it until they link it again, and every session of theirs ends.",
+	"toast_region": "Notifications",
+	"toast_close": "Close",
+	"apikeys_created_toast": "Key {name} created.",
+	"apikeys_revoked": "Key {name} revoked.",
+	"source_created": "Source {name} created. The first sync is running.",
+	"source_saved": "Source {name} saved.",
+	"source_saved_sync": "Source {name} saved. A sync has started.",
+	"source_sync_started": "Sync of {name} started.",
+	"source_deleted": "Source {name} deleted.",
+	"invitations_withdrawn": "Invitation to {email} withdrawn.",
+	"invitations_link_created": "New invitation link for {email} created.",
+	"users_promoted": "{email} is now an admin.",
+	"users_demoted": "{email} is no longer an admin.",
+	"users_identity_unlinked": "Link of {email} to {provider} removed.",
+	"users_deleted": "{email} deleted.",
+	"export_downloaded": "Export downloaded."
 }

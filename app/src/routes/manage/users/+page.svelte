@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { enhance } from '$app/forms';
 	import ConfirmForm from '#lib/components/ConfirmForm.svelte';
 	import DateTime from '#lib/components/DateTime.svelte';
 	import FormError from '#lib/components/FormError.svelte';
@@ -6,37 +7,35 @@
 	import ShownOnce from '#lib/components/ShownOnce.svelte';
 	import TableScroll from '#lib/components/TableScroll.svelte';
 	import TextField from '#lib/components/TextField.svelte';
+	import { submitWithToast } from '#lib/forms.js';
 	import { m } from '#lib/paraglide/messages.js';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
 
 	const isAdmin = (user: { roles: string[] }) => user.roles.includes('admin');
+
+	// A link shown once may come from a row far up the page: bring it into view.
+	let invitedLink = $state<HTMLElement>();
+	$effect(() => invitedLink?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }));
+
+	// Mailed invitations report in a toast; a link to pass on stays in the page, shown only now.
+	const invited = submitWithToast({
+		reset: true,
+		success: (result) =>
+			result.type === 'success' && result.data?.invited && 'sent' in result.data.invited
+				? m.invite_sent({ email: String(result.data.invited.email) })
+				: undefined
+	});
 </script>
 
 <PageHead title={m.users_title()} />
 
-{#if form?.invited}
-	<section class="sheet">
-		{#if 'sent' in form.invited}
-			<p class="notice" role="status">{m.invite_sent({ email: form.invited.email })}</p>
-		{:else}
-			<p class="notice warn" role="status">
-				{form.invited.mailFailed
-					? m.invite_mail_failed({ email: form.invited.email })
-					: m.invite_link_only({ email: form.invited.email })}
-			</p>
-			<ShownOnce value={form.invited.link} copyLabel={m.invite_copy()} />
-		{/if}
-	</section>
-{/if}
-
-{#if form?.userError}
-	<p class="notice alert" role="alert">{form.userError}</p>
-{/if}
-
 <section class="sheet flush" aria-labelledby="users">
 	<div class="sheet-head"><h2 id="users">{m.users_title()}</h2></div>
+	{#if form?.userError}
+		<p class="notice alert" role="alert">{form.userError}</p>
+	{/if}
 	<TableScroll label={m.users_title()}>
 		<table>
 			<thead>
@@ -72,6 +71,10 @@
 												provider: link.label,
 												email: user.email
 											})}
+											success={m.users_identity_unlinked({
+												provider: link.label,
+												email: user.email
+											})}
 										>
 											<input type="hidden" name="id" value={user.id} />
 											<input type="hidden" name="issuer" value={link.issuer} />
@@ -88,11 +91,18 @@
 										question={m.users_demote_question({ email: user.email })}
 										label={m.users_demote()}
 										buttonLabel={m.users_demote_named({ email: user.email })}
+										success={m.users_demoted({ email: user.email })}
 									>
 										<input type="hidden" name="id" value={user.id} />
 									</ConfirmForm>
 								{:else}
-									<form method="post" action="?/promote">
+									<form
+										method="post"
+										action="?/promote"
+										use:enhance={submitWithToast({
+											success: () => m.users_promoted({ email: user.email })
+										})}
+									>
 										<input type="hidden" name="id" value={user.id} />
 										<button aria-label={m.users_promote_named({ email: user.email })}
 											>{m.users_promote()}</button
@@ -105,6 +115,7 @@
 										question={m.users_delete_question({ email: user.email })}
 										label={m.users_delete()}
 										buttonLabel={m.users_delete_named({ email: user.email })}
+										success={m.users_deleted({ email: user.email })}
 									>
 										<input type="hidden" name="id" value={user.id} />
 									</ConfirmForm>
@@ -144,7 +155,18 @@
 							</td>
 							<td>
 								<div class="actions">
-									<form method="post" action="?/resend">
+									<form
+										method="post"
+										action="?/resend"
+										use:enhance={submitWithToast({
+											success: (result) =>
+												result.type === 'success' &&
+												result.data?.invited &&
+												'sent' in result.data.invited
+													? m.invite_sent({ email: invitation.email })
+													: m.invitations_link_created({ email: invitation.email })
+										})}
+									>
 										<input type="hidden" name="id" value={invitation.id} />
 										<button aria-label={m.invitations_resend_named({ email: invitation.email })}
 											>{m.invitations_resend()}</button
@@ -155,6 +177,7 @@
 										question={m.invitations_withdraw_question({ email: invitation.email })}
 										label={m.invitations_withdraw()}
 										buttonLabel={m.invitations_withdraw_named({ email: invitation.email })}
+										success={m.invitations_withdrawn({ email: invitation.email })}
 									>
 										<input type="hidden" name="id" value={invitation.id} />
 									</ConfirmForm>
@@ -170,7 +193,17 @@
 
 <section class="sheet new" aria-labelledby="invite">
 	<h2 id="invite">{m.invite_heading()}</h2>
-	<form method="post" action="?/invite">
+	{#if form?.invited && !('sent' in form.invited)}
+		<div class="invited" bind:this={invitedLink}>
+			<p class="notice warn">
+				{form.invited.mailFailed
+					? m.invite_mail_failed({ email: form.invited.email })
+					: m.invite_link_only({ email: form.invited.email })}
+			</p>
+			<ShownOnce value={form.invited.link} copyLabel={m.invite_copy()} />
+		</div>
+	{/if}
+	<form method="post" action="?/invite" use:enhance={invited}>
 		<FormError message={form?.error} id="invite-error" />
 		<TextField
 			label={m.field_email()}
@@ -186,6 +219,10 @@
 </section>
 
 <style>
+	.invited {
+		display: grid;
+		gap: var(--s3);
+	}
 	.actions {
 		display: flex;
 		flex-wrap: wrap;

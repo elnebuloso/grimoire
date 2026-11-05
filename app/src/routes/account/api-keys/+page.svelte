@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
 	import ChoiceField from '#lib/components/ChoiceField.svelte';
 	import ConfirmForm from '#lib/components/ConfirmForm.svelte';
@@ -11,6 +12,7 @@
 	import { m } from '#lib/paraglide/messages.js';
 	import { getLocale } from '#lib/paraglide/runtime.js';
 	import { formatDate } from '#lib/time-zone.js';
+	import { submitWithToast } from '#lib/forms.js';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
@@ -86,13 +88,6 @@
 	</p>
 </PageHead>
 
-{#if form?.created}
-	<section class="sheet">
-		<p class="notice" role="status">{m.apikeys_created({ name: form.created.name })}</p>
-		<ShownOnce value={form.created.key} copyLabel={m.apikeys_copy()} />
-	</section>
-{/if}
-
 <section class="sheet" aria-labelledby="keys">
 	<h2 id="keys">{m.apikeys_list()}</h2>
 	{#if data.keys.length === 0}
@@ -140,16 +135,21 @@
 							question={m.apikeys_revoke_question({ name: key.name })}
 							label={m.apikeys_revoke()}
 							buttonLabel={m.apikeys_revoke_named({ name: key.name })}
+							success={m.apikeys_revoked({ name: key.name })}
 						>
 							<input type="hidden" name="id" value={key.id} />
 						</ConfirmForm>
 					</div>
-					{#if form?.updated === key.id}
-						<p class="notice" role="status">{m.apikeys_updated({ name: key.name })}</p>
-					{/if}
 					<details open={form?.update?.id === key.id}>
 						<summary>{m.apikeys_change_named({ name: key.name })}</summary>
-						<form class="inset" method="post" action="?/update">
+						<form
+							class="inset"
+							method="post"
+							action="?/update"
+							use:enhance={submitWithToast({
+								success: () => m.apikeys_updated({ name: key.name })
+							})}
+						>
 							<FormError
 								message={form?.update?.id === key.id ? form.update.error : undefined}
 								id="update-error-{key.id}"
@@ -177,19 +177,35 @@
 
 <section class="sheet new" aria-labelledby="new-key">
 	<h2 id="new-key">{m.apikeys_new()}</h2>
-	<form method="post" action="?/create">
-		<FormError message={form?.error} id="create-error" />
-		<TextField
-			label={m.field_name()}
-			name="name"
-			required
-			value={values.name}
-			mono
-			{...marked(form?.error, 'create-error', [m.apikeys_error_name()])}
-		/>
-		{@render accessFields(values, form?.error, 'create-error')}
-		<button class="primary">{m.apikeys_submit()}</button>
-	</form>
+	{#if form?.created}
+		<p class="notice">{m.apikeys_created({ name: form.created.name })}</p>
+		<ShownOnce value={form.created.key} copyLabel={m.apikeys_copy()} />
+	{/if}
+	<!-- Built anew for each created key: resetting would leave none of the scope options picked. -->
+	{#key form?.created}
+		<form
+			method="post"
+			action="?/create"
+			use:enhance={submitWithToast({
+				success: (result) =>
+					result.type === 'success' && result.data?.created
+						? m.apikeys_created_toast({ name: String(result.data.created.name) })
+						: undefined
+			})}
+		>
+			<FormError message={form?.error} id="create-error" />
+			<TextField
+				label={m.field_name()}
+				name="name"
+				required
+				value={values.name}
+				mono
+				{...marked(form?.error, 'create-error', [m.apikeys_error_name()])}
+			/>
+			{@render accessFields(values, form?.error, 'create-error')}
+			<button class="primary">{m.apikeys_submit()}</button>
+		</form>
+	{/key}
 </section>
 
 <style>

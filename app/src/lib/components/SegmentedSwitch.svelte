@@ -3,15 +3,15 @@
 
 	/**
 	 * A choice between a few options as a segmented track, the picked one raised. Each option is a
-	 * button that posts the form, so it works without JavaScript; the endpoint sends the browser
-	 * back to the page it came from.
+	 * button that posts the form; the page stays and `onpick` applies the choice in place.
 	 */
 	let {
 		label,
 		action,
 		name,
 		options,
-		current
+		current,
+		onpick
 	}: {
 		label: string;
 		action: string;
@@ -19,12 +19,24 @@
 		/** `lang` names the language an option is written in, if not the page's. */
 		options: { value: string; label: string; lang?: string }[];
 		current: string;
+		/** Runs once the endpoint stored the choice. */
+		onpick: (value: string) => void | Promise<void>;
 	} = $props();
+
+	async function pick(event: SubmitEvent) {
+		event.preventDefault();
+		const form = event.currentTarget as HTMLFormElement;
+		const body = new FormData(form, event.submitter);
+		// The endpoint stores the choice and redirects back for a plain form; that page is not needed
+		// here, and on an error page it would answer with an error.
+		const response = await fetch(action, { method: 'POST', body, redirect: 'manual' });
+		if (response.type === 'opaqueredirect' || response.ok) await onpick(String(body.get(name)));
+	}
 
 	const labelId = $derived(`${name}-switch-label`);
 </script>
 
-<form method="post" {action} aria-labelledby={labelId}>
+<form method="post" {action} aria-labelledby={labelId} onsubmit={pick}>
 	<span id={labelId}>{label}</span>
 	<input type="hidden" name="redirectTo" value={page.url.pathname + page.url.search} />
 	{#each options as option (option.value)}

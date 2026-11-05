@@ -68,7 +68,7 @@ async function load() {
 		setup: (await import('./setup/+page.server')).actions.create,
 		login: (await import('./login/+page.server')).actions.default,
 		logout: (await import('./logout/+server')).POST,
-		password: (await import('./account/+page.server')).actions.default,
+		password: (await import('./account/+page.server')).actions.password,
 		hooks: await import('../hooks.server'),
 		handleAccess: (await import('../hooks.server')).handleAccess
 	};

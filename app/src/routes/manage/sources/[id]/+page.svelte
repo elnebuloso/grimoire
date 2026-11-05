@@ -17,6 +17,7 @@
 	import TextAreaField from '#lib/components/TextAreaField.svelte';
 	import TextField from '#lib/components/TextField.svelte';
 	import { m } from '#lib/paraglide/messages.js';
+	import { submitWithToast, type SubmitResult } from '#lib/forms.js';
 	import { MAX_NAME_LENGTH } from '#lib/slug.js';
 	import { NEW_SOURCE_FIELDS, toSourceFields } from '#lib/source-fields.js';
 	import type { PageProps } from './$types';
@@ -67,15 +68,24 @@
 		<form
 			method="post"
 			action="?/save"
-			use:enhance={({ action, formElement }) => {
-				const testing = action.search === '?/test';
+			use:enhance={(input) => {
+				const testing = input.action.search === '?/test';
+				const isNew = !data.source;
+				const name = String(input.formData.get('name'));
 				if (testing) testPending = true;
-				return async ({ update }) => {
-					await update({ reset: false, refreshAll: !testing });
+				const submit = submitWithToast({
+					success: () => {
+						if (testing) return undefined;
+						if (isNew) return m.source_created({ name });
+						return data.syncPending ? m.source_saved_sync({ name }) : m.source_saved({ name });
+					}
+				})(input) as SubmitResult;
+				return async (output) => {
+					await submit(output);
 					testPending = false;
 					// The answer carries an entered token back only encrypted; as after a reload, the
 					// page keeps no plain copy of it.
-					const token = formElement.elements.namedItem('token');
+					const token = input.formElement.elements.namedItem('token');
 					if (token instanceof HTMLInputElement) token.value = '';
 				};
 			}}
@@ -200,11 +210,9 @@
 				<form
 					method="post"
 					action="?/sync"
-					use:enhance={() =>
-						async ({ result, update }) => {
-							if (result.type === 'redirect') await refreshAll();
-							else await update();
-						}}
+					use:enhance={submitWithToast({
+						success: () => m.source_sync_started({ name: data.source!.name })
+					})}
 				>
 					<button class="primary">{m.source_sync_now()}</button>
 				</form>
@@ -374,7 +382,6 @@
 					effects={m.slug_change_source_effects({ slug: data.source.slug })}
 					value={form?.slugValues?.slug}
 					error={form?.slugError}
-					changed={form?.slugChanged}
 				/>
 			</section>
 
@@ -384,6 +391,7 @@
 					action="?/delete"
 					question={m.source_delete_question({ name: data.source.name })}
 					label={m.source_delete()}
+					success={m.source_deleted({ name: data.source.name })}
 				/>
 			</section>
 		</div>

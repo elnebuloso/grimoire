@@ -1,9 +1,12 @@
 <script lang="ts">
 	import '../app.css';
 	import { resolve } from '$app/paths';
+	import { refreshAll } from '$app/navigation';
 	import { page } from '$app/state';
 	import BookOpen from '@lucide/svelte/icons/book-open';
 	import SegmentedSwitch from '#lib/components/SegmentedSwitch.svelte';
+	import Toast from '#lib/components/Toast.svelte';
+	import { dismissToast, toasts } from '#lib/toasts.svelte.js';
 	import favicon from '#lib/assets/favicon.svg';
 	import { releaseNotesUrl } from '#lib/release.js';
 	import { m } from '#lib/paraglide/messages.js';
@@ -63,6 +66,10 @@
 				lang: locale
 			}))}
 			current={getLocale()}
+			onpick={() => {
+				// Every text on the page was rendered in the old language: only a reload renders it anew.
+				location.reload();
+			}}
 		/>
 		<SegmentedSwitch
 			label={m.header_theme()}
@@ -74,6 +81,11 @@
 				{ value: 'dark', label: m.theme_dark() }
 			]}
 			current={data.theme}
+			onpick={(theme) => {
+				if (theme === 'system') document.documentElement.removeAttribute('data-theme');
+				else document.documentElement.setAttribute('data-theme', theme);
+				return refreshAll();
+			}}
 		/>
 	</div>
 </header>
@@ -81,6 +93,8 @@
 <main id="main" class:narrow>
 	{@render children()}
 </main>
+
+<Toast items={toasts} ondismiss={dismissToast} />
 
 <footer>
 	<div class="links">

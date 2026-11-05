@@ -5,13 +5,10 @@
 
 	const { Story } = defineMeta({ title: 'ConfirmForm', component: ConfirmForm });
 
-	// The story stays on its page: a submit that gets through is recorded instead of posted.
-	function recordSubmits(canvasElement: HTMLElement) {
+	// Storybook's `enhance` reports a submit that gets through as an event instead of posting it.
+	function recordSubmits() {
 		const submitted = fn();
-		canvasElement.querySelector('form')!.addEventListener('submit', (event) => {
-			if (!event.defaultPrevented) submitted();
-			event.preventDefault();
-		});
+		window.addEventListener('storybook:enhance', submitted, { once: true });
 		return submitted;
 	}
 </script>
@@ -19,8 +16,8 @@
 <Story
 	name="Confirmed"
 	args={{ action: '?/delete', question: 'Delete source docs?', label: 'Delete source' }}
-	play={async ({ canvas, canvasElement }) => {
-		const submitted = recordSubmits(canvasElement);
+	play={async ({ canvas }) => {
+		const submitted = recordSubmits();
 		window.confirm = fn(() => true);
 		await userEvent.click(canvas.getByRole('button', { name: 'Delete source' }));
 		await expect(window.confirm).toHaveBeenCalledWith('Delete source docs?');
@@ -31,8 +28,8 @@
 <Story
 	name="Cancelled"
 	args={{ action: '?/delete', question: 'Delete source docs?', label: 'Delete source' }}
-	play={async ({ canvas, canvasElement }) => {
-		const submitted = recordSubmits(canvasElement);
+	play={async ({ canvas }) => {
+		const submitted = recordSubmits();
 		window.confirm = fn(() => false);
 		await userEvent.click(canvas.getByRole('button', { name: 'Delete source' }));
 		await expect(submitted).not.toHaveBeenCalled();

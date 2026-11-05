@@ -359,5 +359,21 @@
 	"users_sign_in_password": "Passwort",
 	"users_unlink": "Entfernen",
 	"users_unlink_named": "{provider} von {email} entfernen",
-	"users_unlink_question": "Die Verknüpfung von {email} mit {provider} entfernen? Bis zur erneuten Verknüpfung ist keine Anmeldung darüber möglich, und jede Sitzung endet."
+	"users_unlink_question": "Die Verknüpfung von {email} mit {provider} entfernen? Bis zur erneuten Verknüpfung ist keine Anmeldung darüber möglich, und jede Sitzung endet.",
+	"toast_region": "Benachrichtigungen",
+	"toast_close": "Schließen",
+	"apikeys_created_toast": "Key {name} angelegt.",
+	"apikeys_revoked": "Key {name} widerrufen.",
+	"source_created": "Quelle {name} angelegt. Der erste Sync läuft.",
+	"source_saved": "Quelle {name} gespeichert.",
+	"source_saved_sync": "Quelle {name} gespeichert. Ein Sync wurde gestartet.",
+	"source_sync_started": "Sync von {name} gestartet.",
+	"source_deleted": "Quelle {name} gelöscht.",
+	"invitations_withdrawn": "Einladung an {email} zurückgezogen.",
+	"invitations_link_created": "Neuer Einladungslink für {email} erzeugt.",
+	"users_promoted": "{email} ist jetzt Admin.",
+	"users_demoted": "{email} ist kein Admin mehr.",
+	"users_identity_unlinked": "Verknüpfung von {email} mit {provider} entfernt.",
+	"users_deleted": "{email} gelöscht.",
+	"export_downloaded": "Export heruntergeladen."
 }

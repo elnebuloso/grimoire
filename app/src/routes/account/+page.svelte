@@ -2,7 +2,11 @@
 	import FormError from '#lib/components/FormError.svelte';
 	import PageHead from '#lib/components/PageHead.svelte';
 	import TextField from '#lib/components/TextField.svelte';
+	import { enhance } from '$app/forms';
+	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
+	import { submitWithToast } from '#lib/forms.js';
+	import { showToast } from '#lib/toasts.svelte.js';
 	import { m } from '#lib/paraglide/messages.js';
 	import type { PageProps } from './$types';
 
@@ -14,6 +18,13 @@
 	const marked = (message: string) =>
 		form?.error === message ? { 'aria-invalid': true, 'aria-describedby': 'password-error' } : {};
 
+	// Back from linking at the provider: the outcome comes in the address, shown once.
+	$effect(() => {
+		if (!data.linked) return;
+		showToast(m.account_provider_linked({ provider: data.linked }));
+		goto(resolve('/account'), { replace: true, reset: false });
+	});
+
 	let sheet = $state<HTMLElement>();
 	$effect(() => {
 		if (form?.error) sheet?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
@@ -21,10 +32,6 @@
 </script>
 
 <PageHead title={m.account_title()} />
-
-{#if form?.changed}
-	<p class="notice" role="status">{m.password_changed()}</p>
-{/if}
 
 {#if !data.hasPassword}
 	<p class="notice">
@@ -39,7 +46,11 @@
 	<section class="sheet" bind:this={sheet} aria-labelledby="password-title">
 		<h2 id="password-title">{m.password_title()}</h2>
 		<p class="muted">{m.password_lead()}</p>
-		<form method="post">
+		<form
+			method="post"
+			action="?/password"
+			use:enhance={submitWithToast({ reset: true, success: () => m.password_changed() })}
+		>
 			<FormError message={form?.error} id="password-error" />
 			<!-- Tells a password manager which saved login the new password belongs to. -->
 			<TextField
@@ -76,13 +87,7 @@
 	<section class="sheet" aria-labelledby="providers-title">
 		<h2 id="providers-title">{m.account_providers_title()}</h2>
 		<p class="muted">{m.account_providers_lead()}</p>
-		{#if data.linked}
-			<p class="notice" role="status">{m.account_provider_linked({ provider: data.linked })}</p>
-		{/if}
-		{#if data.unlinked}
-			<p class="notice" role="status">{m.account_provider_unlinked()}</p>
-		{/if}
-		<FormError message={data.problem} id="providers-error" />
+		<FormError message={form?.problem ?? data.problem} id="providers-error" />
 		{#if data.links.length > 0}
 			<ul class="links">
 				{#each data.links as link (link.issuer)}
@@ -92,7 +97,11 @@
 							{#if !link.configured}<span class="muted">{m.account_provider_unconfigured()}</span
 								>{/if}
 						</span>
-						<form method="post" action={resolve('/account/unlink')}>
+						<form
+							method="post"
+							action="?/unlink"
+							use:enhance={submitWithToast({ success: () => m.account_provider_unlinked() })}
+						>
 							<input type="hidden" name="issuer" value={link.issuer} />
 							<button>{m.account_provider_unlink({ provider: link.label })}</button>
 						</form>
@@ -102,6 +111,7 @@
 		{/if}
 		{#if data.linkable.length > 0}
 			{#if data.hasPassword}
+				<!-- A plain form: linking continues at the provider, outside this application. -->
 				<form method="post" action={resolve('/account/link')}>
 					<TextField
 						label={m.account_provider_password()}

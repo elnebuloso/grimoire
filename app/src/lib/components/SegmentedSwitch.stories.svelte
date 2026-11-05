@@ -1,9 +1,13 @@
 <script module lang="ts">
 	import { defineMeta } from '@storybook/addon-svelte-csf';
-	import { expect } from 'storybook/test';
+	import { expect, fn } from 'storybook/test';
 	import SegmentedSwitch from './SegmentedSwitch.svelte';
 
-	const { Story } = defineMeta({ title: 'SegmentedSwitch', component: SegmentedSwitch });
+	const { Story } = defineMeta({
+		title: 'SegmentedSwitch',
+		component: SegmentedSwitch,
+		args: { onpick: fn() }
+	});
 
 	const themes = [
 		{ value: 'system', label: 'System' },

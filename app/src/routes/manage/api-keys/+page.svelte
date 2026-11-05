@@ -52,6 +52,7 @@
 									question={m.apikeys_revoke_question({ name: key.name })}
 									label={m.apikeys_revoke()}
 									buttonLabel={m.apikeys_revoke_named({ name: key.name })}
+									success={m.apikeys_revoked({ name: key.name })}
 								>
 									<input type="hidden" name="id" value={key.id} />
 								</ConfirmForm>

@@ -359,6 +359,30 @@ button.danger {
 button.danger:hover {
 	border-color: var(--err);
 }
+/* A button whose action is running: a spinner before its label, no second click. */
+button[aria-busy='true'] {
+	gap: var(--s2);
+	cursor: progress;
+}
+button[aria-busy='true']::before {
+	content: '';
+	width: 14px;
+	height: 14px;
+	border: 2px solid currentColor;
+	border-inline-end-color: transparent;
+	border-radius: 50%;
+	animation: spin 0.8s linear infinite;
+}
+@keyframes spin {
+	to {
+		rotate: 1turn;
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	button[aria-busy='true']::before {
+		animation-duration: 2.4s;
+	}
+}
 
 details > summary {
 	width: fit-content;

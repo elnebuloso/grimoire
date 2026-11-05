@@ -21,6 +21,10 @@ function setupToken(logFile = 'server.log'): string {
 	return log.match(/setup token ([\w-]+)/)![1];
 }
 
+// A status in the page itself, and the toasts that report what an action did.
+const notice = (page: Page) => page.getByRole('main').getByRole('status');
+const toasts = (page: Page) => page.getByRole('status', { name: 'Notifications' });
+
 async function logIn(page: Page, password = PASSWORD, email = EMAIL) {
 	await page.goto('/login');
 	await page.getByLabel('Email address').fill(email);
@@ -193,7 +197,7 @@ test('creates a source and never shows its token', async ({ page }) => {
 	await page.getByRole('link', { name: 'New source' }).click();
 	// Typed key by key: the slug next to the field follows every keystroke.
 	await page.getByLabel('Name', { exact: true }).pressSequentially('Auth Service');
-	await expect(page.getByRole('status')).toHaveText('Slug: auth-service');
+	await expect(notice(page)).toHaveText('Slug: auth-service');
 	await page.getByLabel('Short description').fill('Login and billing');
 	// The repository has no `docs/`: the sync that creating starts fails, for the next test.
 	await page.getByLabel('Git URL').fill(GIT_URL);
@@ -203,6 +207,7 @@ test('creates a source and never shows its token', async ({ page }) => {
 	await page.evaluate(() => Object.assign(window, { notReloaded: true }));
 	await page.getByRole('button', { name: 'Test connection' }).click();
 	const reachable = page
+		.getByRole('main')
 		.getByRole('status')
 		.filter({ hasText: 'Reachable: branch main is at commit' });
 	await expect(reachable).toBeVisible();
@@ -229,11 +234,11 @@ test('syncs a source now and shows why it failed', async ({ page }) => {
 	await page.getByRole('button', { name: 'Sync now' }).click();
 
 	// The sync runs after the answer; the page refreshes by itself until its outcome shows.
-	await expect(page.getByRole('status')).toContainText('A sync is queued or running.');
+	await expect(notice(page)).toContainText('A sync is queued or running.');
 	await expect(page.getByRole('alert')).toContainText('source path "docs" does not exist', {
 		timeout: 15_000
 	});
-	await expect(page.getByRole('status')).toHaveCount(0);
+	await expect(notice(page)).toHaveCount(0);
 	expect(await page.content()).not.toContain(TOKEN);
 
 	await page.goto('/manage');
@@ -249,11 +254,11 @@ test('keeps a tested token that is not saved yet when syncing now', async ({ pag
 	await page.getByRole('link', { name: 'Auth Service', exact: true }).click();
 	await page.getByLabel('Access token').fill(rotated);
 	await page.getByRole('button', { name: 'Test connection' }).click();
-	await expect(page.getByRole('status').filter({ hasText: 'Reachable' })).toBeVisible();
+	await expect(notice(page).filter({ hasText: 'Reachable' })).toBeVisible();
 
 	await page.getByRole('button', { name: 'Sync now' }).click();
 
-	const pending = page.getByRole('status').filter({ hasText: 'A sync is queued or running.' });
+	const pending = notice(page).filter({ hasText: 'A sync is queued or running.' });
 	await expect(pending).toBeVisible();
 	await expect(pending).toHaveCount(0, { timeout: 15_000 });
 	await expect(page.getByLabel('Access token (entered; leave empty to keep it)')).toBeVisible();
@@ -319,7 +324,7 @@ test('imports the export on the setup page of an empty instance with another key
 	await importing.getByLabel('Passphrase of the export').fill(EXPORT_PASSPHRASE);
 	await importing.getByRole('button', { name: 'Import' }).click();
 	await expect(page).toHaveURL(`${other}/login?imported`);
-	await expect(page.getByRole('status')).toContainText('The export is imported.');
+	await expect(notice(page)).toContainText('The export is imported.');
 
 	await page.getByLabel('Email address').fill(EMAIL);
 	await page.getByLabel('Password').fill(PASSWORD);
@@ -329,7 +334,7 @@ test('imports the export on the setup page of an empty instance with another key
 	await expect(page.getByText('stored; leave empty to keep it')).toBeVisible();
 	// The stored token decrypts under this instance's key: the connection test sends it.
 	await page.getByRole('button', { name: 'Test connection' }).click();
-	await expect(page.getByRole('status').filter({ hasText: 'Reachable' })).toBeVisible();
+	await expect(notice(page).filter({ hasText: 'Reachable' })).toBeVisible();
 	expect((await page.request.get(`${other}/setup`)).status()).toBe(404);
 });
 
@@ -531,7 +536,7 @@ test('invites a user who reads internal sources with their own key, but manages 
 	await fillBeforeHydration(page, '/manage/users', 'Email address', writer);
 	await expect(page.getByLabel('Email address')).toHaveValue(writer);
 	await page.getByRole('button', { name: 'Send invitation' }).click();
-	await expect(page.getByRole('status')).toContainText(`Invitation sent to ${writer}.`);
+	await expect(toasts(page)).toContainText(`Invitation sent to ${writer}.`);
 	await expect(page.getByRole('row', { name: new RegExp(writer) })).toContainText('Send again');
 
 	const link = await linkFromMail(writer, '/invite/');
@@ -579,7 +584,7 @@ test('accepts an invitation through an identity provider for the invited address
 	await fillBeforeHydration(page, '/manage/users', 'Email address', partner);
 	await expect(page.getByLabel('Email address')).toHaveValue(partner);
 	await page.getByRole('button', { name: 'Send invitation' }).click();
-	await expect(page.getByRole('status')).toContainText(`Invitation sent to ${partner}.`);
+	await expect(toasts(page)).toContainText(`Invitation sent to ${partner}.`);
 
 	const link = await linkFromMail(partner, '/invite/');
 	await page.context().clearCookies();
@@ -618,7 +623,7 @@ test('links a provider to an existing account with its password, and removes it 
 	await page.locator('input[name="username"]').fill('admin-at-gitlab');
 	await page.locator('textarea[name="claims"]').fill('{}');
 	await page.getByRole('button', { name: 'Sign-in' }).click();
-	await expect(page.getByRole('status')).toHaveText('GitLab is linked to your account.');
+	await expect(toasts(page)).toContainText('GitLab is linked to your account.');
 	await expect(page.getByRole('button', { name: 'Remove GitLab' })).toBeVisible();
 
 	// Elsewhere, the provider now logs in to this account; no address had to match.
@@ -628,7 +633,7 @@ test('links a provider to an existing account with its password, and removes it 
 	await expect(elsewhere.getByRole('link', { name: EMAIL })).toBeVisible();
 
 	await page.getByRole('button', { name: 'Remove GitLab' }).click();
-	await expect(page.getByRole('status')).toHaveText(
+	await expect(toasts(page)).toContainText(
 		'The link was removed. Your sessions in other browsers have ended; this one stays logged in.'
 	);
 	await elsewhere.reload();
@@ -654,7 +659,7 @@ test('changes the password and logs in with the new one', async ({ page }) => {
 	await page.getByLabel('Current password').fill(PASSWORD);
 	await page.getByLabel('New password').fill(newPassword);
 	await page.getByRole('button', { name: 'Change password' }).click();
-	await expect(page.getByRole('status')).toContainText('Password changed.');
+	await expect(toasts(page)).toContainText('Password changed.');
 
 	await page.goto('/manage');
 	await page.getByRole('button', { name: 'Log out' }).click();
@@ -693,15 +698,13 @@ test('sets a forgotten password through the link in the mail', async ({ page }) 
 	await page.getByRole('link', { name: 'Forgot your password?' }).click();
 	await page.getByLabel('Email address').fill(EMAIL);
 	await page.getByRole('button', { name: 'Send link' }).click();
-	await expect(page.getByRole('status')).toContainText(
-		'a link to set a new password is on its way'
-	);
+	await expect(notice(page)).toContainText('a link to set a new password is on its way');
 
 	const link = await linkFromMail(EMAIL, '/login/reset/');
 	await page.goto(link);
 	await page.getByLabel('Password').fill(newPassword);
 	await page.getByRole('button', { name: 'Set password' }).click();
-	await expect(page.getByRole('status')).toContainText('Password set.');
+	await expect(notice(page)).toContainText('Password set.');
 
 	await logIn(page, newPassword);
 	await expect(page).toHaveURL('/manage');
