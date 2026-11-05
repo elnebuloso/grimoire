@@ -10,6 +10,10 @@ PORT=5174
 
 IDP_PORT=5580
 IDP_CONTAINER=grimoire-agent-idp-mock
+# Ports beside those of `make mail-catcher` (1025/8025) and `make e2e` (4125/4825).
+SMTP_PORT=5125
+MAIL_UI_PORT=5825
+MAIL_CONTAINER=grimoire-agent-mail-catcher
 
 # The identity providers the agent environment logs in with: one mock, a provider per path.
 start_idp_mock() {
@@ -22,6 +26,13 @@ start_idp_mock() {
 	done
 	echo "The identity provider mock did not start within 60 s"
 	exit 1
+}
+
+# Receives the mails the agent environment sends; read them at http://localhost:$MAIL_UI_PORT.
+start_mail_catcher() {
+	docker rm -f "$MAIL_CONTAINER" >/dev/null 2>&1 || true
+	docker run -d --rm --name "$MAIL_CONTAINER" -p "$SMTP_PORT:1025" -p "$MAIL_UI_PORT:8025" \
+		axllent/mailpit:v1.31.6 >/dev/null
 }
 
 listening_pid() {
@@ -42,8 +53,13 @@ start() {
 		LOG_FORMAT=pretty
 		BASE_URL=http://localhost:$PORT
 		OIDC_PROVIDERS=gitlab entra
+		SMTP_HOST=localhost
+		SMTP_PORT=$SMTP_PORT
+		SMTP_ALLOW_PLAINTEXT=true
+		SMTP_FROM="grimoire <grimoire@example.com>"
 	EOF
 	start_idp_mock
+	start_mail_catcher
 	# The settings of each provider come from the environment of the process, not from `.env`.
 	OIDC_GITLAB_ISSUER="http://localhost:$IDP_PORT/gitlab" OIDC_GITLAB_CLIENT_ID=grimoire \
 		OIDC_GITLAB_CLIENT_SECRET=agent-gitlab-secret OIDC_GITLAB_LABEL=GitLab \
@@ -66,7 +82,7 @@ start() {
 
 stop() {
 	local pid
-	docker stop "$IDP_CONTAINER" >/dev/null 2>&1 || true
+	docker stop "$IDP_CONTAINER" "$MAIL_CONTAINER" >/dev/null 2>&1 || true
 	pid="$(listening_pid)"
 	if [ -z "$pid" ]; then
 		echo "The agent environment is not running."

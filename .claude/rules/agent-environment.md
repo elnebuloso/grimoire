@@ -30,6 +30,12 @@ without a restart. It runs beside `make dev` (5173) and `make e2e` (4173, 4174).
 | `billing-archive` | `archive/docs` (does not exist) | internal | sync fails with an error |
 | `platform-next` | `zensical/docs` | internal | paused and never synced; only "sync now" syncs it; duplicates `platform-docs` on purpose, written past the duplicate check, so `/manage/duplicates` has a pair to show |
 
+## Mail
+
+`make agent-start` also starts a mail catcher (`axllent/mailpit`), SMTP on port 5125, and
+`make agent-stop` stops it. Invitations and password reset links land in its inbox at
+`http://localhost:5825`, also readable as JSON at `http://localhost:5825/api/v1/messages`.
+
 ## Identity providers
 
 `make agent-start` also starts an OIDC mock (`ghcr.io/navikt/mock-oauth2-server`) at

@@ -56,7 +56,7 @@ admin-grant: ## Make an existing account an admin: EMAIL=<address>, add PASSWORD
 handbook: ## Build the handbook site into site/
 	uvx --python 3.12 zensical==0.0.70 build --strict
 
-agent-start: ## Start the agent environment on port 5174 in the background
+agent-start: ## Start the agent environment on port 5174 in the background, mails at http://localhost:5825
 	scripts/agent-env.sh start
 
 agent-stop: ## Stop the agent environment
