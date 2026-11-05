@@ -22,23 +22,11 @@ The backlog has no open task.
 
 ## Next
 
-1. **Fix the handbook sentence first** (`docs(handbook)`, releases nothing). Under "Lost admin
-   access" `docs/handbook/docker.md` advises for an unknown address: "invite it first or let it
-   sign up through a login provider". Inviting needs an admin, which is exactly what is missing.
-   What works: a sign-up through a provider whose domain the operator allows, or the address of an
-   account that still exists.
-2. Then ask the owner which remaining point of
-   `/workspace/github.com/elnebuloso/grimoire-before-reset/TODO-UEBERNAHME.md` comes next.
-   Proposed: `688648f` (`make dev` loads `app/.env`), useful now because of the `OIDC_<KEY>_*` trap
-   below. Also open there:
-   - Insights from the old `.claude/rules/` (`git diff v1.1.1 HEAD -- .claude` in that directory)
-     and the tool hints of its last handoff.
-   - Still unchecked from the old SSO: whether GitLab or Entra send `WWW-Authenticate` on errors
-     at the token endpoint; `classifyLoginFailure` is tested only against a simulated `fetch`.
-     Needs a real provider.
+Nothing is planned; ask the owner. The takeover from the old directory is finished and the
+directory is deleted. One point of it stays open until a real provider account is at hand:
 
-The old directory is a reference only: never push from it, its remote is removed. Tick points off
-in its `TODO-UEBERNAHME.md` once released.
+- Whether GitLab or Entra send `WWW-Authenticate` on errors at the token endpoint;
+  `classifyLoginFailure` is tested only against a simulated `fetch`.
 
 ## Working with the owner
 
