@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
 import type { DatabaseSync } from 'node:sqlite';
 import { isHttpError, isRedirect } from '@sveltejs/kit';
 import { openDatabase } from '#lib/server/db/schema.js';
@@ -99,6 +99,10 @@ async function setUpAdmin() {
 	);
 	return cookies.get('grimoire_session')!;
 }
+
+// The first load transforms the whole module graph of the hooks and routes, which on a busy
+// machine outlasts the 10 s of a hook; later loads reuse the transforms and take milliseconds.
+beforeAll(load, 60_000);
 
 beforeEach(async () => {
 	db = openDatabase(':memory:');

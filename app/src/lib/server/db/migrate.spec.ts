@@ -158,13 +158,14 @@ function tempDir(): string {
 }
 
 // A worker thread has its own connection, so it keeps the lock while openMigratedDatabase blocks
-// the test thread. It commits after a fixed time, well within the busy timeout.
+// the test thread. It commits after a fixed time, well within the busy timeout. Its COMMIT waits
+// too: the test thread holds a read lock for a moment on every try of the WAL switch.
 async function holdWriteLock(path: string, sql: string) {
 	const worker = new Worker(
 		`
 		const { DatabaseSync } = require('node:sqlite');
 		const { parentPort, workerData } = require('node:worker_threads');
-		const db = new DatabaseSync(workerData.path);
+		const db = new DatabaseSync(workerData.path, { timeout: 5000 });
 		db.exec(workerData.sql);
 		parentPort.postMessage('locked');
 		Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 300);

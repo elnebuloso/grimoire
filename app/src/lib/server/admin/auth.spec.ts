@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
 import { spawnSync } from 'node:child_process';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -15,6 +15,18 @@ let logged: () => string[];
 
 const PASSWORD = 'correct horse battery';
 const NOW = new Date('2026-10-28T12:00:00Z');
+
+// The first import of a module transforms it, which on a busy machine took seconds, past the
+// timeout of a hook or test; imports after `vi.resetModules` reuse the transform and take
+// milliseconds.
+beforeAll(async () => {
+	await Promise.all([
+		import('../capture-log'),
+		import('./auth'),
+		import('./access'),
+		import('./password-reset')
+	]);
+}, 60_000);
 
 // The setup token, failed logins and whether an admin was seen live in module state, so every
 // test gets a fresh module.

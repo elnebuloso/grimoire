@@ -27,7 +27,10 @@ afterAll(() => {
 	server.close();
 });
 
-const limits = { timeoutMs: 200, maxBytes: 1000 };
+// Generous for the server that answers: on a busy machine even a local request took over 0.2 s.
+// The server that never answers is waited for briefly, so the timeout test stays short.
+const limits = { timeoutMs: 5000, maxBytes: 1000 };
+const impatient = { ...limits, timeoutMs: 200 };
 
 describe('fetchInclude', () => {
 	it('fetches a file from an allowed origin', async () => {
@@ -62,7 +65,7 @@ describe('fetchInclude', () => {
 		expect(await fetchInclude(`${origin}/large.md`, [origin], limits)).toEqual({
 			problem: 'larger than 1000 bytes'
 		});
-		expect(await fetchInclude(`${origin}/slow.md`, [origin], limits)).toEqual({
+		expect(await fetchInclude(`${origin}/slow.md`, [origin], impatient)).toEqual({
 			problem: 'no answer within 0.2 seconds'
 		});
 	});

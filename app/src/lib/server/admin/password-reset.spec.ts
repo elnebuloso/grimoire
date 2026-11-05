@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
 import type { DatabaseSync } from 'node:sqlite';
 import { openDatabase } from '../db/schema';
 
@@ -14,6 +14,12 @@ const PASSWORD = 'correct horse battery';
 const NEW_PASSWORD = 'staple battery horse';
 const NOW = new Date('2026-10-30T12:00:00Z');
 const minutesLater = (minutes: number) => new Date(NOW.getTime() + minutes * 60_000);
+
+// The first import transforms the modules, which on a busy machine took seconds, past the timeout
+// of a hook or test; imports after `vi.resetModules` reuse the transforms and take milliseconds.
+beforeAll(async () => {
+	await Promise.all([import('./auth'), import('./password-reset')]);
+}, 60_000);
 
 // Request counts and failed logins live in module state, so every test gets fresh modules.
 beforeEach(async () => {

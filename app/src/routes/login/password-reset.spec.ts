@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
 import type { DatabaseSync } from 'node:sqlite';
 import { isHttpError } from '@sveltejs/kit';
 import { openDatabase } from '#lib/server/db/schema.js';
@@ -27,6 +27,10 @@ async function load() {
 	};
 }
 let pages: Awaited<ReturnType<typeof load>>;
+
+// The first import transforms the modules, which on a busy machine took seconds, past the timeout
+// of a hook or test; imports after `vi.resetModules` reuse the transforms and take milliseconds.
+beforeAll(load, 60_000);
 
 function event(path: string, fields?: Record<string, string>, params: Record<string, string> = {}) {
 	return {

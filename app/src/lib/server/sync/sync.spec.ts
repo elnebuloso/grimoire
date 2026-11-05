@@ -221,6 +221,8 @@ describe('syncSource', () => {
 		).toMatchObject({ status: 'synced', pages: 2 });
 	});
 
+	// A process near its heap limit collects garbage over and over before it dies: about 10 s on its
+	// own, over 30 s on a busy machine.
 	it('fails a sync whose indexing runs out of memory and keeps syncing other sources', async () => {
 		const sections = Array.from({ length: 10_000 }, (_, i) => `## Section ${i}\n\n${filler}`);
 		commitFiles({ 'docs/huge.md': `# Huge\n\n${sections.join('\n\n')}` });
@@ -241,7 +243,7 @@ describe('syncSource', () => {
 		expect(
 			await syncSource(db, other, { key, policy: LOCAL, workDirectory: work, indexingHeapMb: 32 })
 		).toMatchObject({ status: 'synced', pages: 2 });
-	});
+	}, 60_000);
 });
 
 describe('deleting a source while it syncs', () => {
