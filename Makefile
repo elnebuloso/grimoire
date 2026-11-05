@@ -50,7 +50,7 @@ image-smoke: ## Run the indexing worker and the grant-admin, backup and import s
 	scripts/image-smoke.sh grimoire:latest $(GRIMOIRE_VERSION)
 
 admin-grant: ## Make an existing account an admin: EMAIL=<address>, add PASSWORD=1 to set its password
-	cd app && node --env-file=.env ../scripts/grant-admin.ts $(EMAIL) $(if $(PASSWORD),--password)
+	cd app && node --env-file-if-exists=.env ../scripts/grant-admin.ts $(EMAIL) $(if $(PASSWORD),--password)
 
 # Without --python, uv picked an interpreter for which it built zensical from source.
 handbook: ## Build the handbook site into site/
