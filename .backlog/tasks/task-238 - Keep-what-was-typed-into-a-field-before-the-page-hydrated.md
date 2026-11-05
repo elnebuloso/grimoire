@@ -1,9 +1,11 @@
 ---
 id: TASK-238
 title: Keep what was typed into a field before the page hydrated
-status: To Do
-assignee: []
+status: Done
+assignee:
+  - '@claude'
 created_date: '2026-11-05 15:27'
+updated_date: '2026-11-05 15:36'
 labels: []
 dependencies: []
 priority: medium
@@ -19,6 +21,12 @@ TextField passes its value as value, which Svelte assigns again on hydration, so
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 A value typed into a TextField before hydration stays after it
-- [ ] #2 An e2e test types before hydration and checks the value
+- [x] #1 A value typed into a TextField before hydration stays after it
+- [x] #2 An e2e test types before hydration and checks the value
 <!-- AC:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+TextField passes its value as defaultValue, so hydration no longer empties what was typed before it. Taken over from 7493d31 with fillBeforeHydration in manage.e2e.ts, now used in the invitation test of this project.
+<!-- SECTION:FINAL_SUMMARY:END -->
