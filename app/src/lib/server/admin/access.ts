@@ -8,6 +8,7 @@ const PAGE_ROLES: [prefix: string, roles: Role[]][] = [
 	['/manage/settings', ['admin']],
 	['/manage/users', ['admin']],
 	['/manage/api-keys', ['admin']],
+	['/manage/duplicates', ['admin']],
 	['/manage', []]
 ];
 

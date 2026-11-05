@@ -17,8 +17,10 @@ import {
 	parseIdParam,
 	saveSource,
 	savingChanges,
+	sourceConflict,
 	sourceProblem,
 	storedSource,
+	type SourceConflict,
 	type SourceForm,
 	type SourceSettings,
 	type StoredSource
@@ -98,18 +100,51 @@ async function accessProblem(
 	return 'error' in access ? access.error : undefined;
 }
 
+/** What the form shows for a conflict: a refused duplicate, or an overlap not yet confirmed. */
+function conflictAnswer(
+	conflict: SourceConflict | undefined,
+	overlapConfirmed: boolean
+): { error: string } | { overlap: string } | undefined {
+	if (conflict?.kind === 'duplicate') {
+		return {
+			error:
+				conflict.name === undefined
+					? m.error_source_duplicate_hidden()
+					: m.error_source_duplicate({ name: conflict.name })
+		};
+	}
+	if (conflict?.kind === 'overlap' && !overlapConfirmed) {
+		return {
+			overlap:
+				conflict.name === undefined
+					? m.warning_source_overlap_hidden()
+					: m.warning_source_overlap({ name: conflict.name })
+		};
+	}
+	return undefined;
+}
+
 export const actions = {
 	save: async ({ request, params, locals }) => {
 		const source = sourceFor(params, locals.user);
-		const { form, values, damaged } = readSourceForm(await request.formData());
+		const data = await request.formData();
+		const { form, values, damaged } = readSourceForm(data);
 		const db = database();
 		const stored = storedSource(db, source?.id);
 		const changes = savingChanges(stored, form);
-		const problem =
-			damaged ??
-			sourceProblem(db, source?.id, stored, form) ??
-			(changes.access ? await accessProblem(stored, form) : undefined);
+		const problem = damaged ?? sourceProblem(db, source?.id, stored, form);
 		if (problem) return fail(400, { error: problem, values });
+		const user = locals.user!;
+		const confirmed = data.get('confirmOverlap') === 'on';
+		const conflict = conflictAnswer(sourceConflict(db, source?.id, stored, form, user), confirmed);
+		if (conflict) return fail(400, { ...conflict, values });
+
+		const unreachable = changes.access ? await accessProblem(stored, form) : undefined;
+		if (unreachable) return fail(400, { error: unreachable, values });
+		// The Git server may take seconds; another save may have added the same documentation
+		// meanwhile. No await follows, so nothing changes between this check and the write.
+		const late = conflictAnswer(sourceConflict(db, source?.id, stored, form, user), confirmed);
+		if (late) return fail(400, { ...late, values });
 
 		const result = saveSource(
 			db,

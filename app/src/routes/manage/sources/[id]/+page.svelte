@@ -171,6 +171,10 @@
 					</p>
 				{/if}
 			{/if}
+			{#if form?.overlap}
+				<p class="notice warn" role="alert">{form.overlap}</p>
+				<ChoiceField name="confirmOverlap" label={m.field_confirm_overlap()} />
+			{/if}
 			<div class="actions">
 				<!-- Saving comes first: Enter submits with the first button of a form. -->
 				<button class="primary">{data.source ? m.save() : m.source_create()}</button>

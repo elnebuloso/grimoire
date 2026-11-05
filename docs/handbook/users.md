@@ -40,6 +40,24 @@ everyone, internal ones and your own private ones once you are logged in.
     What was read while a source was internal or public stays with whoever read it. Making it
     private again stops further reading only.
 
+### Documentation that is already registered
+
+One documentation is one source: two sources on the same repository and the same path are the same
+documentation, whichever branches they follow. Spelling makes no difference: `.git` or a trailing
+slash at the end of the Git URL, upper or lower case, `docs`, `docs/` or `./docs` all name the same.
+Different versions of one documentation from different branches cannot be separate sources: a
+source follows one branch; to read another version, change **Branch** of the existing source.
+
+Creating or changing a source checks this when you save; a source whose Git URL and path you leave
+as they are is saved without the check, even if it already has a duplicate.
+
+| Message | Fix |
+|---|---|
+| `This documentation is already registered as "<name>": same repository and path. …` | Use the source named, or change its branch if it is yours. Saving is not possible. |
+| `This documentation is already registered, as a private source of another user: …` | It is someone else's private source; you do not see which. Ask an admin who owns it, so it can be made internal. Saving is not possible. |
+| `The path overlaps with "<name>": one lies inside the other, …` | One path lies inside the other, such as `docs` and `docs/api`: the pages under `docs/api` would be found twice. Exclude the inner directory in the outer source (`docs/api/**` under **Exclusions**), or tick **Save anyway, although pages are indexed twice** and save again. |
+| `The path overlaps with a private source of another user: …` | As above, for a source you do not see; ask an admin, or save anyway. |
+
 ## In the management area
 
 - The overview lists the sources you may read; only your own link to their page and count toward

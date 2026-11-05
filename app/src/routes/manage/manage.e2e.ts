@@ -391,6 +391,12 @@ test('invites a user who manages their own source and key, but not the sources o
 	await page.goto('/manage/sources/new');
 	await page.getByLabel('Name', { exact: true }).fill('Writer notes');
 	await page.getByLabel('Git URL').fill(GIT_URL);
+	// The same repository and path as the admin's private source: refused, without its name.
+	await page.getByRole('button', { name: 'Create source' }).click();
+	await expect(page.getByRole('alert')).toHaveText(
+		'This documentation is already registered, as a private source of another user: same repository and path. Ask an admin who it belongs to.'
+	);
+	await page.getByLabel('Path in the repository').fill('notes');
 	await page.getByRole('button', { name: 'Create source' }).click();
 	await expect(page.getByRole('heading', { name: 'Source Writer notes' })).toBeVisible();
 

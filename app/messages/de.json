@@ -299,5 +299,16 @@
 	"invitations_resend_named": "Einladung an {email} erneut senden",
 	"invitations_withdraw": "Zurückziehen",
 	"invitations_withdraw_named": "Einladung an {email} zurückziehen",
-	"invitations_withdraw_question": "Einladung an {email} zurückziehen? Ihr Link funktioniert dann nicht mehr."
+	"invitations_withdraw_question": "Einladung an {email} zurückziehen? Ihr Link funktioniert dann nicht mehr.",
+	"error_source_duplicate": "Diese Dokumentation ist schon als „{name}“ angelegt: gleiches Repository, gleicher Pfad. Eine Quelle folgt einem Branch; ändere dort den Branch, statt eine weitere Quelle anzulegen.",
+	"error_source_duplicate_hidden": "Diese Dokumentation ist schon angelegt, als private Quelle eines anderen Users: gleiches Repository, gleicher Pfad. Frag einen Admin, wem sie gehört.",
+	"warning_source_overlap": "Der Pfad überschneidet sich mit „{name}“: Einer liegt im anderen, Seiten unter dem inneren Pfad würden doppelt indexiert. Schließ das Verzeichnis in der äußeren Quelle aus oder speichere trotzdem.",
+	"warning_source_overlap_hidden": "Der Pfad überschneidet sich mit einer privaten Quelle eines anderen Users: Einer liegt im anderen, Seiten unter dem inneren Pfad würden doppelt indexiert. Frag einen Admin oder speichere trotzdem.",
+	"field_confirm_overlap": "Trotzdem speichern, obwohl Seiten doppelt indexiert werden",
+	"duplicates_title": "Doppelte Quellen",
+	"duplicates_lead": "Quellen auf demselben Repository und Pfad, egal auf welchem Branch, und Quellen, deren Pfade ineinander liegen: Ihre Seiten werden doppelt indexiert. Neue lassen sich nicht anlegen; diese gab es schon vorher, oder sie wurden trotzdem gespeichert. Lösch eine der doppelten Quellen, oder schließ bei einer Überschneidung das innere Verzeichnis in der äußeren Quelle aus.",
+	"duplicates_none": "Keine zwei Quellen enthalten dieselbe Dokumentation.",
+	"duplicates_kind": "Art",
+	"duplicates_kind_duplicate": "Dublette",
+	"duplicates_kind_overlap": "Überschneidung"
 }

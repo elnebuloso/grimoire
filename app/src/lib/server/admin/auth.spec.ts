@@ -349,6 +349,7 @@ describe('several users', () => {
 		expect(access.accessRedirect(db, '/manage/sources/[id]', editor)).toBeUndefined();
 		expect(access.accessRedirect(db, '/manage/settings', editor)).toBe('forbidden');
 		expect(access.accessRedirect(db, '/manage/users', editor)).toBe('forbidden');
+		expect(access.accessRedirect(db, '/manage/duplicates', editor)).toBe('forbidden');
 		expect(access.accessRedirect(db, '/manage/api-keys', editor)).toBe('forbidden');
 		expect(access.accessRedirect(db, '/logout', editor)).toBeUndefined();
 		expect(access.accessRedirect(db, '/login', editor)).toBe('/manage');

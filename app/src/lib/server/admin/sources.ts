@@ -5,6 +5,9 @@ import type { SourceFields, StoredSourceFields, Visibility } from '#lib/source-f
 import { encryptSecret } from '../secret-encryption';
 import { m } from '#lib/paraglide/messages.js';
 import { isSlug, MAX_NAME_LENGTH, MAX_SLUG_LENGTH, slugify } from '../../slug';
+import { hasRoles } from './access';
+import type { SessionUser } from './auth';
+import { compareSources, directoryKey, repositoryKey, type Overlap } from './duplicates';
 
 /** A new slug, and the current one typed again to show the admin knows what changes. */
 export interface SlugChangeForm {
@@ -191,6 +194,64 @@ function exclusionsJson(exclusions: string): string {
 			.map((line) => line.trim())
 			.filter(Boolean)
 	);
+}
+
+/** Another source `form` would duplicate or overlap; no name when the user may not see it. */
+export interface SourceConflict {
+	kind: Overlap;
+	name?: string;
+}
+
+/**
+ * The source that `form` would duplicate, else one it would overlap; undefined when there is
+ * none. Every source counts, but only one `user` reads, or every one for an admin, is named. A
+ * source that keeps its Git URL and path is not checked, so one that already was a duplicate
+ * stays editable.
+ */
+export function sourceConflict(
+	db: DatabaseSync,
+	sourceId: number | undefined,
+	stored: StoredSource | undefined,
+	form: SourceForm,
+	user: SessionUser
+): SourceConflict | undefined {
+	if (
+		stored &&
+		repositoryKey(stored.gitUrl) === repositoryKey(form.gitUrl) &&
+		directoryKey(stored.path) === directoryKey(form.path)
+	) {
+		return undefined;
+	}
+	const candidate = {
+		gitUrl: form.gitUrl,
+		path: form.path,
+		exclusions: JSON.parse(exclusionsJson(form.exclusions)) as string[]
+	};
+	const others = db
+		.prepare(
+			`SELECT name, git_url, path, exclusions, visibility, owner_id
+			FROM sources WHERE id IS NOT :source`
+		)
+		.all({ source: sourceId ?? null }) as {
+		name: string;
+		git_url: string;
+		path: string;
+		exclusions: string;
+		visibility: Visibility;
+		owner_id: number | null;
+	}[];
+	const admin = hasRoles(user, ['admin']);
+	const conflicts = others.flatMap((other) => {
+		const kind = compareSources(candidate, {
+			gitUrl: other.git_url,
+			path: other.path,
+			exclusions: JSON.parse(other.exclusions) as string[]
+		});
+		if (!kind) return [];
+		const visible = admin || other.visibility !== 'private' || other.owner_id === user.id;
+		return [{ kind, name: visible ? other.name : undefined }];
+	});
+	return conflicts.find((conflict) => conflict.kind === 'duplicate') ?? conflicts[0];
 }
 
 /** What saving a form changes about a source. */

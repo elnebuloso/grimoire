@@ -68,7 +68,10 @@ may change, sync, rename and delete each. A source you create is yours; users ma
 (see [Your sources and API keys](users.md#sources)).
 
 To serve two paths of one repository, add it twice, as two sources, and name each for what it
-holds, such as `Billing API` and `Billing runbooks`.
+holds, such as `Billing API` and `Billing runbooks`. The same repository and path cannot be added a
+second time, not even on another branch; what counts as the same and the messages are under
+[Documentation that is already registered](users.md#documentation-that-is-already-registered).
+Unlike users, you see the name of the other source in the message, private ones included.
 
 | Field | Rule |
 |---|---|
@@ -123,6 +126,20 @@ while **Pause all syncs** is on, is saved without either.
 !!! danger "Irreversible"
     Deleting a source deletes its index, also of a source another user owns. API keys limited to a
     deleted source lose it.
+
+### Duplicate sources
+
+`Manage > Duplicate sources` lists every pair of sources that hold the same documentation, judged
+by the same rule as saving a source:
+
+- **Duplicate**: same repository and path, on any branch, created before the check existed. Keep
+  one: delete the other, after moving any API key limited to it. Agents find every page of a
+  duplicate twice until then.
+- **Overlap**: one path inside the other. Saved by someone who confirmed the warning, or from
+  before the check. Exclude the inner directory in the outer source, such as `docs/api/**`, or
+  leave both if the inner part needs a visibility or owner of its own.
+
+The list names private sources of every user; only admins open it.
 
 ### Changing a slug
 

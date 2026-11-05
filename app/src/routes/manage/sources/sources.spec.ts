@@ -143,7 +143,15 @@ describe('source page by owner', () => {
 
 	it('lets every user create a source', async () => {
 		expect(
-			isRedirect(await thrown(() => saveSource('new', { ...SOURCE, name: 'Ops' }, OTHER)))
+			isRedirect(
+				await thrown(() =>
+					saveSource(
+						'new',
+						{ ...SOURCE, name: 'Ops', gitUrl: 'https://gitlab.example.com/platform/ops.git' },
+						OTHER
+					)
+				)
+			)
 		).toBe(true);
 		expect(db.prepare("SELECT owner_id FROM sources WHERE slug = 'ops'").get()).toEqual({
 			owner_id: 3
@@ -479,5 +487,114 @@ describe('source page', () => {
 
 		expect(isRedirect(result) && result.location).toBe('/manage');
 		expect(db.prepare('SELECT count(*) AS n FROM sources').get()).toEqual({ n: 0 });
+	});
+});
+
+describe('duplicate sources', () => {
+	// The writer's private source; `docs/` written as `./docs` and the URL in other case still match.
+	beforeEach(async () => {
+		await thrown(() => saveSource('new', { ...SOURCE, visibility: 'private' }, WRITER));
+	});
+
+	function sourceCount(): number {
+		return (db.prepare('SELECT count(*) AS n FROM sources').get() as { n: number }).n;
+	}
+
+	const duplicate = {
+		...SOURCE,
+		name: 'Auth next',
+		gitUrl: 'https://GitLab.example.com/platform/Auth',
+		branch: 'release-2',
+		path: './docs'
+	};
+
+	it('refuses a duplicate on another branch before asking the Git server, named to its owner and admins', async () => {
+		for (const user of [WRITER, ADMIN]) {
+			expect(await saveSource('new', duplicate, user)).toMatchObject({
+				status: 400,
+				data: { error: expect.stringContaining('"Auth Service"') }
+			});
+		}
+		expect(sourceCount()).toBe(1);
+		expect(checkAccess).toHaveBeenCalledTimes(1);
+	});
+
+	it('refuses a duplicate of a private source of another user without naming it', async () => {
+		const result = await saveSource('new', duplicate, OTHER);
+		const error = (result as { data: { error: string } }).data.error;
+		expect(error).toContain('private source of another user');
+		expect(error).not.toContain('Auth Service');
+		expect(sourceCount()).toBe(1);
+	});
+
+	it('names a duplicate that the user reads', async () => {
+		db.exec("UPDATE sources SET visibility = 'internal'");
+		expect(await saveSource('new', duplicate, OTHER)).toMatchObject({
+			data: { error: expect.stringContaining('"Auth Service"') }
+		});
+	});
+
+	it('refuses to change the path of a source into a duplicate', async () => {
+		await thrown(() => saveSource('new', { ...SOURCE, name: 'Auth API', path: 'api' }, WRITER));
+		expect(
+			await saveSource('2', { ...SOURCE, name: 'Auth API', path: 'docs' }, WRITER)
+		).toMatchObject({ status: 400, data: { error: expect.stringContaining('"Auth Service"') } });
+		expect(db.prepare('SELECT path FROM sources WHERE id = 2').get()).toEqual({ path: 'api' });
+	});
+
+	it('keeps an existing duplicate editable while its Git URL and path stay', async () => {
+		db.exec(`INSERT INTO sources (id, slug, name, git_url, branch, path, owner_id)
+			VALUES (2, 'auth-old', 'Auth old', 'https://gitlab.example.com/platform/auth.git', 'main', 'docs', 2)`);
+		const saved = await thrown(() =>
+			saveSource('2', { ...SOURCE, name: 'Auth renamed', branch: 'release-2' }, WRITER)
+		);
+		expect(isRedirect(saved)).toBe(true);
+		expect(db.prepare('SELECT name, branch FROM sources WHERE id = 2').get()).toEqual({
+			name: 'Auth renamed',
+			branch: 'release-2'
+		});
+	});
+
+	it('warns on an overlap and saves it only once confirmed', async () => {
+		const inner = { ...SOURCE, name: 'Auth API', path: 'docs/api' };
+		expect(await saveSource('new', inner, WRITER)).toMatchObject({
+			status: 400,
+			data: { overlap: expect.stringContaining('"Auth Service"'), values: { path: 'docs/api' } }
+		});
+		expect(sourceCount()).toBe(1);
+
+		const saved = await thrown(() => saveSource('new', { ...inner, confirmOverlap: 'on' }, WRITER));
+		expect(isRedirect(saved)).toBe(true);
+		expect(sourceCount()).toBe(2);
+	});
+
+	it('warns on an overlap with a private source of another user without naming it', async () => {
+		const result = await saveSource('new', { ...SOURCE, name: 'Whole repo', path: '' }, OTHER);
+		const overlap = (result as { data: { overlap: string } }).data.overlap;
+		expect(overlap).toContain('private source of another user');
+		expect(overlap).not.toContain('Auth Service');
+	});
+
+	it('sees no overlap where the outer source excludes the inner directory', async () => {
+		await thrown(() => saveSource('1', { ...SOURCE, exclusions: 'docs/api/**' }, WRITER));
+		const saved = await thrown(() =>
+			saveSource('new', { ...SOURCE, name: 'Auth API', path: 'docs/api' }, WRITER)
+		);
+		expect(isRedirect(saved)).toBe(true);
+	});
+
+	it('refuses a duplicate another save created while the Git server was asked', async () => {
+		db.exec('DELETE FROM sources');
+		checkAccess.mockImplementationOnce(async () => {
+			db.exec(`INSERT INTO sources (slug, name, git_url, branch, path)
+				VALUES ('auth-first', 'Auth first', '${SOURCE.gitUrl}', 'main', 'docs')`);
+			return { message: 'Reachable: branch main is at commit abc.' };
+		});
+
+		expect(await saveSource('new', SOURCE)).toMatchObject({
+			status: 400,
+			data: { error: expect.stringContaining('"Auth first"') }
+		});
+		expect(sourceCount()).toBe(1);
 	});
 });

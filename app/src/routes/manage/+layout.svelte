@@ -21,6 +21,11 @@
 					{ route: '/manage/users', href: resolve('/manage/users'), label: m.users_title() },
 					{ route: '/manage/api-keys', href: resolve('/manage/api-keys'), label: m.api_keys_all() },
 					{
+						route: '/manage/duplicates',
+						href: resolve('/manage/duplicates'),
+						label: m.duplicates_title()
+					},
+					{
 						route: '/manage/settings',
 						href: resolve('/manage/settings'),
 						label: m.settings_title()

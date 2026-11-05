@@ -299,5 +299,16 @@
 	"invitations_resend_named": "Send the invitation to {email} again",
 	"invitations_withdraw": "Withdraw",
 	"invitations_withdraw_named": "Withdraw the invitation to {email}",
-	"invitations_withdraw_question": "Withdraw the invitation to {email}? Its link stops working."
+	"invitations_withdraw_question": "Withdraw the invitation to {email}? Its link stops working.",
+	"error_source_duplicate": "This documentation is already registered as \"{name}\": same repository and path. A source follows one branch; change the branch there instead of adding another source.",
+	"error_source_duplicate_hidden": "This documentation is already registered, as a private source of another user: same repository and path. Ask an admin who it belongs to.",
+	"warning_source_overlap": "The path overlaps with \"{name}\": one lies inside the other, so pages under the inner path would be indexed twice. Exclude the directory in the outer source, or save anyway.",
+	"warning_source_overlap_hidden": "The path overlaps with a private source of another user: one lies inside the other, so pages under the inner path would be indexed twice. Ask an admin, or save anyway.",
+	"field_confirm_overlap": "Save anyway, although pages are indexed twice",
+	"duplicates_title": "Duplicate sources",
+	"duplicates_lead": "Sources on the same repository and path, whatever their branch, and sources whose paths lie one inside the other: their pages are indexed twice. New ones cannot be created; these existed before or were saved anyway. Delete one of a duplicate, or exclude the inner directory in the outer source of an overlap.",
+	"duplicates_none": "No two sources hold the same documentation.",
+	"duplicates_kind": "Kind",
+	"duplicates_kind_duplicate": "Duplicate",
+	"duplicates_kind_overlap": "Overlap"
 }
