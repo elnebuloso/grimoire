@@ -406,7 +406,7 @@ Ergebnis: Alle 47 Funktionen sind verortet. Keine entfällt.
 Die Seite verwaltet die eigenen Keys: anlegen, ändern, widerrufen, Nutzung ansehen.
 
 - **Liste** aller eigenen Keys mit Name, Quellen, Gültigkeit (inklusive „abgelaufen“), zuletzt benutzt und Anfragen pro Tag. Primäraktion „Neuer Key“ oberhalb der Liste. Leerzustand mit derselben Aktion.
-- **Neuer Key** im Dialog: Name, Quellen (alle einschließlich künftiger / ausgewählte), Ablauf. Die Auswahl einzelner Quellen ist bei Hunderten Quellen keine Checkbox-Liste mehr, sondern eine durchsuchbare Mehrfachauswahl, die die gewählten Quellen gesammelt zeigt (`SourcePicker`). Nach dem Absenden ein **Ergebnis** mit dem Key (einmalig, Kopierknopf) und dem vollständigen Verbindungsbefehl mit eingesetztem Key. Das Ergebnis wird nach einem Redirect gezeigt, sodass ein Reload keinen zweiten Key anlegt (U20).
+- **Neuer Key** im Dialog: Name, Quellen (alle einschließlich künftiger / ausgewählte), Ablauf. Die Auswahl einzelner Quellen ist bei Hunderten Quellen keine Checkbox-Liste mehr, sondern eine durchsuchbare Mehrfachauswahl, die die gewählten Quellen gesammelt zeigt (`SourcePicker`). Nach dem Absenden ein **Ergebnis** mit dem Key (einmalig, Kopierknopf) und dem vollständigen Verbindungsbefehl mit eingesetztem Key. Das Ergebnis erscheint im Dialog ohne Reload, ein zweites Absenden aus Versehen ist ausgeschlossen (U20).
 - **Key ändern** im Dialog, beschriftet „Bearbeiten“ statt „Change <Name>“ (U20).
 - **Widerrufen** mit Rückfrage der Stufe 1 und Statusmeldung danach.
 
@@ -543,7 +543,9 @@ Jeder Seitenkopf trägt den Titel, optional einen Lead und rechts die eine Prim�
 
 ### 12.3 Interaktionsmuster
 
-**Rückmeldung.** Jede ändernde Aktion endet mit einer Statusmeldung, die sagt, was geschehen ist („Key ‚laptop‘ widerrufen“, „Quelle ‚Billing archive‘ gelöscht“). Die Meldung übersteht den Redirect nach der Aktion und erscheint oben im Inhaltsbereich. Fehler bleiben im Formular am Feld, wie heute.
+**Reaktive Anwendung** (Entscheidung des Owners, 2026-11-05). Das Web-UI ist eine reaktive Svelte-Anwendung; JavaScript ist Voraussetzung, einen Weg ohne JavaScript gibt es nicht. Server-Loads und Form-Actions bleiben der Ort für Daten und Zustand. Jedes Formular läuft über `use:enhance`: kein Reload, Scrollposition und Eingaben bleiben, die betroffenen Daten aktualisieren sich in der Seite, ein Knopf zeigt, dass seine Aktion läuft. Ausnahmen gibt es nur aus technischen oder Sicherheitsgründen: Login, Passwort-Reset, Einladung, Setup und die SSO-Rückkehr bleiben einfache Formulare ohne JavaScript im Browser (`csr = false`), weil die Hydration bereits Eingetipptes zurücksetzen würde und die SSO-Rückkehr ihren Load nicht zweimal ausführen darf. Die Regel steht auch in `.claude/rules/ui-components.md`.
+
+**Rückmeldung.** Jede ändernde Aktion meldet ihren Erfolg in einem **Toast**, der den Gegenstand nennt („Key ‚laptop‘ widerrufen“, „Quelle ‚Billing archive‘ gelöscht“). Der Toast schwebt fest in einer Ecke, ist auch beim Scrollen sichtbar, verschwindet nach etwa fünf Sekunden, bleibt stehen, solange der Mauszeiger darüber ist, und hat einen Schließen-Knopf. Mehrere Toasts stapeln sich, der neueste oben. Fehler bleiben im Formular am Feld, wie heute.
 
 **Rückfragen in drei Stufen.**
 
@@ -553,7 +555,7 @@ Jeder Seitenkopf trägt den Titel, optional einen Lead und rechts die eine Prim�
 | 1 | betrifft andere oder lässt sich nicht einfach zurücknehmen | Dialog mit Konsequenzsatz und benannter Aktion („Widerrufen“, nicht „OK“) | Key widerrufen, Einladung zurückziehen, neuen Einladungslink erzeugen, Rolle vergeben oder entziehen, Identität lösen, Nutzer löschen, Sichtbarkeit auf `public` |
 | 2 | zerstört Daten oder bricht externe Verweise | Dialog mit Abtippen des Slugs | Quelle löschen, Slug ändern |
 
-Der Dialog ersetzt das native `confirm()`: gestaltet wie die Seite, übersetzt, mit Konsequenztext, per Tastatur bedienbar. Ohne JavaScript bleibt die Aktion möglich: [Annahme] Der Dialog ist dann eine eigene Bestätigungsseite, da die App heute schon ohne JavaScript funktioniert (`csr=false` auf den Auth-Seiten, Formulare als POST).
+Der Dialog ersetzt das native `confirm()`: gestaltet wie die Seite, übersetzt, mit Konsequenztext, per Tastatur bedienbar.
 
 **Benennung.** Eine Quelle erscheint überall mit Namen, darunter der Slug (U13). Statuswörter kommen aus einer Komponente.
 
@@ -602,7 +604,7 @@ Es gelten weiter die Regeln aus `.claude/rules/ui-components.md`: Design nur üb
 | | `KeyScope` | neu | Quellen eines Keys; heute doppelt; bei vielen Quellen gekürzt („platform-docs, billing-docs und 12 weitere“) |
 | | `DescriptionList`, `DateTime`, `CopyButton`, `ShownOnce`, `RequestsPerDay` | behalten | |
 | | `EmptyState` | neu | Satz plus optionale Aktion; ein reiner Satz bleibt `p.muted` |
-| **Feedback** | `FlashMessage` | neu | Statusmeldung nach einer Aktion, übersteht den Redirect |
+| **Feedback** | `Toast` | neu | Erfolgsmeldung nach einer Aktion: schwebend, stapelbar, verschwindet nach etwa fünf Sekunden, schließbar |
 | | `Notice` | nicht nötig | bleibt CSS-Primitive `.notice` |
 | **Overlay** | `Dialog` | neu | auf `<dialog>`, Fokusführung, Escape |
 | | `ConfirmDialog` | neu | Stufe 1 und 2, ersetzt `ConfirmForm` |
@@ -629,7 +631,7 @@ Gestrichen wird keine Funktion; gestrichen werden zwei Komponenten (`ConfirmForm
 
 ### 13.4 Fehlende Komponenten
 
-Aus Kapitel 2.5 und dem Zielbild: `AppShell`, die drei Layouts, `AreaSwitch`, `UserMenu`, `SideNav`, `Tabs`, `Breadcrumbs`, `PasswordField`, `FormSection`, `SourcePicker`, `DataTable`, `StatusBadge`, `SourceLabel`, `KeyScope`, `EmptyState`, `FlashMessage`, `Dialog`, `ConfirmDialog`, `ActionMenu`, `AttentionList`, `SourceHeader`; optional `ScheduleField`.
+Aus Kapitel 2.5 und dem Zielbild: `AppShell`, die drei Layouts, `AreaSwitch`, `UserMenu`, `SideNav`, `Tabs`, `Breadcrumbs`, `PasswordField`, `FormSection`, `SourcePicker`, `DataTable`, `StatusBadge`, `SourceLabel`, `KeyScope`, `EmptyState`, `Toast`, `Dialog`, `ConfirmDialog`, `ActionMenu`, `AttentionList`, `SourceHeader`; optional `ScheduleField`.
 
 Dazu ein Helfer ohne Markup: der heute siebenmal kopierte `aria-invalid`-Helfer wird eine Funktion neben den Formular-Komponenten.
 
@@ -644,7 +646,7 @@ Form/         TextField · TextAreaField · ChoiceField · NameField · Password
               · FormError · ProviderButtons · QueryForm
 Data Display/ DataTable · StatusBadge · SourceLabel · KeyScope · DescriptionList · DateTime
               · CopyButton · ShownOnce · RequestsPerDay · EmptyState
-Feedback/     FlashMessage
+Feedback/     Toast
 Overlay/      Dialog · ConfirmDialog · ActionMenu
 Management/   AttentionList · SourceHeader · PageList · DeadLinkList
 ```
@@ -666,7 +668,7 @@ Bewertung: UX-Wirkung, Nutzerrelevanz (wie viele Rollen, wie oft), Komplexität 
 
 | # | Maßnahme | Befunde | Wirkung | Relevanz | Komplexität | Skalierung | Abhängig von |
 |---|---|---|---|---|---|---|---|
-| M1 | Rückmeldemuster: `FlashMessage`, jede ändernde Aktion meldet sich | U4 | ●●● | ●●● | ●● | ●● | – |
+| M1 | Reaktive Formulare (`use:enhance`) und Rückmeldung per `Toast` für jede ändernde Aktion | U4 | ●●● | ●●● | ●● | ●● | – |
 | M2 | Ausweg für Accounts ohne Passwort: Link „Passwort setzen“ durch Admin; „Passwort festlegen“ im Account | U1 | ●●● | ● | ●● | ● | O1 |
 | M3 | Verbindungstest prüft den Pfad; kein Name nötig; Pfad nicht vorbelegt | U2, U3 | ●●● | ●● | ●● | ● | O2 |
 | M4 | `Dialog` und `ConfirmDialog` mit drei Stufen, ersetzt `confirm()` und `SlugChangeForm`; Rückfrage für `public` | U5, U22 | ●●● | ●●● | ●● | ●●● | – |
@@ -689,7 +691,7 @@ Bewertung: UX-Wirkung, Nutzerrelevanz (wie viele Rollen, wie oft), Komplexität 
 
 | # | Maßnahme | Befunde | Wirkung | Relevanz | Komplexität | Abhängig von |
 |---|---|---|---|---|---|---|
-| M14 | Keys: Anlegen und Ändern im Dialog mit `SourcePicker`; Ergebnis nach Redirect mit fertigem Befehl; Admin-Liste mit Ablauf, Owner-Link, Filter | U19, U20, W2 | ●● | ●●● | ●● | M4, M11 |
+| M14 | Keys: Anlegen und Ändern im Dialog mit `SourcePicker`; Ergebnis im Dialog mit fertigem Befehl; Admin-Liste mit Ablauf, Owner-Link, Filter | U19, U20, W2 | ●● | ●●● | ●● | M4, M11 |
 | M15 | Nutzer: Tabs Nutzer/Einladungen, Einladen als Dialog, Aktionsmenü, Suche, Zahl der Keys; „Neuen Link erzeugen“ ohne Mailserver | U21, U22 | ●● | ●● | ●● | M4, M11 |
 | M16 | Startseite: Status vereinfacht, Quellen für Admins verlinkt, Link zur Dokumentationsseite je Quelle, Suche im Quellenkatalog, lesbare Suchantwort | U14, U15, U16 | ●● | ●●● | ●● | O3 |
 | M17 | Fehlerseiten und ungültige Links mit passendem Ausweg; Login erklärt den Weg zum Account | U23 | ● | ●● | ● | M8 |
@@ -736,10 +738,10 @@ Jede Maßnahme ist ein Backlog-Task im Meilenstein `m-3` „UI redesign“: M1 b
 
 | # | Abnahme |
 |---|---|
-| M1 | Jede Action, die Daten ändert, erzeugt eine Statusmeldung, die nach dem Redirect sichtbar ist und den betroffenen Gegenstand nennt. Prüfliste: F13–F18, F23, F25, F26, F30, F31, F36–F45. |
+| M1 | Außer auf den Seiten mit `csr = false` löst kein Formular einen vollständigen Reload aus; Scrollposition und Eingaben bleiben. Jede Action, die Daten ändert, meldet ihren Erfolg in einem Toast, der den Gegenstand nennt. Prüfliste: F13–F18, F23, F25, F26, F30, F31, F36–F45. |
 | M2 | Ein SSO-Account ohne Passwort kommt ohne Mailserver zu einem Passwort. Der Link „Set a password“ führt nicht mehr auf eine Seite, die Eingeloggte wegleitet. Spec und e2e decken beide Fälle ab. |
 | M3 | Ein nicht vorhandener Pfad lässt den Verbindungstest mit der Meldung fehlschlagen, die heute erst der Sync liefert. Speichern mit geänderter Git-URL, Branch oder Pfad prüft den Pfad und lehnt einen fehlenden mit Fehler am Feld ab; Speichern ohne solche Änderung prüft nichts. Der Test läuft ohne Namen. Das neue Formular hat keinen vorbelegten Pfad. |
-| M4 | Kein `confirm()` mehr im Code. Jede Aktion der Stufe 1 und 2 aus 12.3 fragt mit `ConfirmDialog`; Stufe 2 nimmt nur den richtigen Slug an. Ohne JavaScript bleibt jede Aktion ausführbar. Stories mit axe für jede Stufe. |
+| M4 | Kein `confirm()` mehr im Code. Jede Aktion der Stufe 1 und 2 aus 12.3 fragt mit `ConfirmDialog`; Stufe 2 nimmt nur den richtigen Slug an. Stories mit axe für jede Stufe. |
 | M5 | Auf jeder Seite außer den Auth-Seiten ist der Bereich erkennbar und jeder erlaubte andere Bereich mit einem Klick erreichbar. Nutzer ohne Rolle sehen keinen Management-Eintrag. Mobil braucht der Rahmen eine Zeile. |
 | M6 | Die Sidebar zeigt die Gruppen aus 10.1; `/manage/sources` listet alle Quellen; Detailseiten markieren „Quellen“. Ein neuer Eintrag in der Sidebar ist eine Zeile in ihren Daten. Kein `isAdmin`-Zweig mehr in Management-Layout und -Übersicht. |
 | M7 | Account hat zwei Navigationspunkte. Ein Nutzer ohne Rolle landet nach der angenommenen Einladung und nach dem SSO-Login, der seinen Account anlegt, auf „API-Keys“ mit Hinweis auf den nächsten Schritt; bei späteren Logins auf der Startseite; `?next=` geht vor. Spec für alle drei Fälle. |
@@ -749,7 +751,7 @@ Jede Maßnahme ist ein Backlog-Task im Meilenstein `m-3` „UI redesign“: M1 b
 | M11 | Keine Tabelle mehr inline in einer Route; Statuswörter nur noch in `StatusBadge`; Quellen überall mit Name und Slug; mobile Darstellung zeigt Status und Aktion. Quellen, Nutzer und alle Keys sind durchsuchbar und filterbar, der Zustand steht in der URL; mit 500 Quellen in den Testdaten bleibt jede Liste bedienbar. |
 | M12 | Duplikate erscheinen im Handlungsbedarf und auf beiden Quellen; der Behebungshinweis steht auf Quelle · Status. |
 | M13 | Für jede Quelle zeigen Liste und Detail denselben letzten erfolgreichen Sync und Commit. Spec für eine nie erfolgreiche Quelle. |
-| M14 | Mit 500 Quellen lässt sich ein Key für drei bestimmte Quellen per Suche anlegen, ohne durch eine Liste zu scrollen. Ein Reload nach dem Anlegen legt keinen zweiten Key an; das Ergebnis zeigt den Befehl mit Key; die Admin-Liste zeigt Ablauf und verlinkt den Owner. |
+| M14 | Mit 500 Quellen lässt sich ein Key für drei bestimmte Quellen per Suche anlegen, ohne durch eine Liste zu scrollen. Der Key lässt sich nicht aus Versehen doppelt anlegen; das Ergebnis zeigt den Befehl mit Key; die Admin-Liste zeigt Ablauf und verlinkt den Owner. |
 | M15 | Einladen ist die Primäraktion; seltene Aktionen im Menü; ohne Mailserver heißt die Aktion „Neuen Link erzeugen“ und fragt nach. |
 | M16 | Die Startseite zeigt je Quelle nur „Stand: <Datum>“ oder „Noch nicht verfügbar“, für alle Rollen; Admins erreichen von jeder Quelle der Startseite deren Management-Ansicht; jede Quelle mit Dokumentationsseite verlinkt für alle dorthin; der Quellenkatalog ist durchsuchbar; die Suchantwort ist ohne Monospace-Block lesbar. |
 | M17 | 403, 404 und ungültige Links bieten den passenden Ausweg aus 7. |
@@ -777,7 +779,6 @@ Alle zehn Fragen sind am 2026-11-05 im Chat entschieden bzw. beantwortet.
 ### 17.2 Annahmen
 
 - Sprache und Theme werden selten umgeschaltet und gehören ins Menü (5.3).
-- Die App bleibt ohne JavaScript bedienbar; Dialoge haben eine Seitenvariante (12.3).
 - Keine fremde Komponentenbibliothek (13.1).
 - Storybook-Kategorien über Titel, nicht über Ordner (14).
 - Anker-Weiterleitungen im Client (16.2).

@@ -3,6 +3,21 @@
 Shared UI components live in `app/src/lib/components/`, each with `<Component>.stories.svelte`
 next to it.
 
+## A reactive application
+
+- **JavaScript is required.** The web UI is a reactive Svelte application; nothing is built to work
+  without JavaScript, and no fallback for it is kept or tested. There is no SEO requirement on
+  server rendering; loads and form actions on the server stay the place for data and state.
+- **No full reload after an action.** Forms use `use:enhance`: scroll position and input stay, the
+  affected data refresh in place, the button shows that its action is running.
+- **Success is a toast, an error stays at the field.** A changing action reports its outcome in a
+  toast that names the affected item; validation errors stay in the form next to the field.
+- **Dialogs are Svelte dialogs**, not `confirm()` and not a separate confirmation page.
+- **Exceptions only for technical or security reasons:** the pages with `csr = false` (login,
+  password reset, invitation, setup, single sign-on callback) stay plain forms, because hydrating
+  them would reset what was typed before it finished, and the callback must not run its load a
+  second time in the browser. A new exception names its reason in the same way.
+
 ## When something becomes a component
 
 - **The catalog is the inventory.** Before writing markup for a form field, a table or a list,
