@@ -44,6 +44,13 @@ Facts learned while building grimoire.
 
 - A released migration is never edited; a schema change is a new numbered file.
 
+## Releases
+
+- semantic-release (`.releaserc.json`) writes the release notes from the commits on `main`. After
+  every release, once the pipeline has published it, add a short summary at the top of its GitHub
+  release with `gh release edit`: what the release is about and what an operator has to do, above
+  the generated list.
+
 ## Handbook
 
 - A new page in `docs/handbook/` needs an entry in `nav` in `zensical.toml`; `make handbook`
