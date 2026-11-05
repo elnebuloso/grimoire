@@ -63,6 +63,11 @@ Facts learned while building grimoire.
   instead of `head`.
 - The Playwright MCP browser saves screenshots only inside the repository (`.playwright-mcp/`,
   ignored by git), not in the scratchpad.
+- Close the Playwright MCP browser (`browser_close`) once a check by hand is done: it stays open
+  in WSL otherwise, and a hung page blocks every later call until it is closed.
+- The Playwright MCP browser answers native `confirm()` dialogs on its own in some runs and holds
+  them in others; register `page.on('dialog', …)` in the script to decide, and never click a
+  destructive action outside the agent environment.
 
 ## Database
 
