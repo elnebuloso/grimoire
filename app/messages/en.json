@@ -330,5 +330,8 @@
 	"import_not_an_export": "The file is not a grimoire export.",
 	"import_newer_version": "The export comes from a newer grimoire. Import it into that version or a later one.",
 	"import_wrong_passphrase": "The passphrase is wrong, or the file was changed or cut short since it was exported.",
-	"login_imported": "The export is imported. Log in with an account from it; the pages come back with the first sync of each source."
+	"login_imported": "The export is imported. Log in with an account from it; the pages come back with the first sync of each source.",
+	"access_redirected": "The Git server redirects this URL elsewhere (HTTP {status}). Use the clone URL from the Clone button of the repository, usually ending in .git; a moved project has a new path.",
+	"access_redirected_to": "The Git server redirects this URL to {url}. Enter that as Git URL, then test or save again.",
+	"field_git_url_hint": "The clone URL of the repository, usually ending in .git."
 }

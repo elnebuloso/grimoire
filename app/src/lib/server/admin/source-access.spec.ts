@@ -24,7 +24,8 @@ vi.mock('../sync/git', async (original) => {
 				},
 				...rest
 			)
-		)
+		),
+		redirectTarget: vi.fn(actual.redirectTarget)
 	};
 });
 
@@ -169,6 +170,41 @@ describe('checkSourceAccess', () => {
 
 		expect(result).toEqual({
 			error: expect.stringContaining('may not connect to 10.0.0.5. If it is')
+		});
+	});
+
+	describe('a Git server that redirects', () => {
+		beforeEach(() => {
+			vi.mocked(git.checkRemote).mockResolvedValueOnce({
+				status: 'redirected',
+				httpStatus: 301,
+				detail: 'git ls-remote failed: …'
+			});
+		});
+
+		it('names the URL to enter when the target lies on the same host', async () => {
+			vi.mocked(git.redirectTarget).mockResolvedValueOnce('https://git.example/docs.git');
+			expect(
+				await checkSourceAccess(
+					db,
+					KEY,
+					undefined,
+					form({ gitUrl: 'https://git.example/docs' }),
+					LOCAL
+				)
+			).toEqual({
+				error:
+					'The Git server redirects this URL to https://git.example/docs.git. Enter that as Git URL, then test or save again.'
+			});
+		});
+
+		it('says what to do without a target when it cannot name one', async () => {
+			vi.mocked(git.redirectTarget).mockRejectedValueOnce(new Error('no answer'));
+			expect(await checkSourceAccess(db, KEY, undefined, form(), LOCAL)).toEqual({
+				error: expect.stringMatching(
+					/^The Git server redirects this URL elsewhere \(HTTP 301\)\. Use the clone URL/
+				)
+			});
 		});
 	});
 });

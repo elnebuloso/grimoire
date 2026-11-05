@@ -1,7 +1,7 @@
 import type { DatabaseSync } from 'node:sqlite';
 import { m } from '#lib/paraglide/messages.js';
 import type { ConnectionPolicy } from '../sync/connection-policy';
-import { checkRemote, type GitRemote } from '../sync/git';
+import { checkRemote, redirectTarget, type GitRemote } from '../sync/git';
 import { decryptSecret } from '../secret-encryption';
 import { remoteProblem, storedSource, type SourceForm, type StoredSource } from './sources';
 
@@ -70,5 +70,14 @@ export async function checkAccess(
 			return { error: m.access_unreachable({ detail: check.detail }) };
 		case 'forbidden':
 			return { error: m.error_git_host_refused({ host: check.host }) };
+		case 'redirected': {
+			// Only named, never followed: whoever edits the source enters the URL themselves.
+			const target = await redirectTarget(remote).catch(() => undefined);
+			return {
+				error: target
+					? m.access_redirected_to({ url: target })
+					: m.access_redirected({ status: String(check.httpStatus) })
+			};
+		}
 	}
 }

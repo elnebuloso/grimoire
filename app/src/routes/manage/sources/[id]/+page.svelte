@@ -87,13 +87,17 @@
 					<NameField label={m.field_name()} name="name" value={values.name} />
 				{/if}
 				<TextField label={m.field_description()} name="description" value={values.description} />
-				<TextField
-					label={m.field_git_url()}
-					name="gitUrl"
-					type="url"
-					required
-					value={values.gitUrl}
-				/>
+				<div class="git-url">
+					<TextField
+						label={m.field_git_url()}
+						name="gitUrl"
+						type="url"
+						required
+						value={values.gitUrl}
+						aria-describedby="git-url-hint"
+					/>
+					<p class="hint" id="git-url-hint">{m.field_git_url_hint()}</p>
+				</div>
 				<TextField label={m.field_docs_url()} name="docsUrl" type="url" value={values.docsUrl} />
 				<TextField label={m.field_branch()} name="branch" required value={values.branch} mono />
 				<TextField label={m.field_path()} name="path" value={values.path} mono />
@@ -450,6 +454,7 @@
 			grid-template-columns: 1fr 1fr;
 		}
 	}
+	.git-url,
 	.token {
 		display: grid;
 		gap: var(--s2);

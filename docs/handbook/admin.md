@@ -77,7 +77,7 @@ Unlike users, you see the name of the other source in the message, private ones 
 |---|---|
 | **Name** | At most 80 characters. Creating derives the slug from it: lowercase letters, digits and single hyphens, umlauts spelled out (`Prüfung & Abnahme` → `pruefung-abnahme`), at most 40 characters. Renaming keeps the slug. A slug is unique on the instance. |
 | **Short description** | Optional. Agents see it in `sources` and use it to choose where to search: name what the documentation covers, such as `Login, sessions and tokens of the auth service`. |
-| **Git URL (HTTPS)** | `https://` only. Username and token go in their own fields, never in the URL. |
+| **Git URL (HTTPS)** | `https://` only: the clone URL of the repository, usually ending in `.git`. Username and token go in their own fields, never in the URL. |
 | **Documentation site** | Optional. Linked on the source page, and for a public source on the start page; agents do not see it. |
 | **Path in the repository** | Relative to the repository root, such as `docs`; a trailing slash is dropped; empty for the whole repository; no `..`. |
 | **Exclusions** | Glob patterns relative to the repository root, one per line, such as `docs/drafts/**`. |
@@ -113,6 +113,8 @@ sync.
 | `The repository has no branch main.` | Correct **Branch**. |
 | `Access refused, or there is no repository at this URL: …` | Check the Git URL, then the token and its scope. |
 | `The Git server cannot be reached: …` | Check the host name; a firewall or a Git server down is outside grimoire. |
+| `The Git server redirects this URL to <url>. Enter that as Git URL, then test or save again.` | Enter the URL named as **Git URL**. GitLab redirects a project path without `.git`, and the old path of a moved project. grimoire never follows a redirect itself: a moved path can later lead to another project. |
+| `The Git server redirects this URL elsewhere (HTTP 301). …` | The target is on another host, or could not be asked. Copy the clone URL from the **Clone** button of the repository, usually ending in `.git`. |
 | `The stored access token cannot be decrypted with the current key. Enter the token again or remove it.` | Enter the token again, or tick **Remove the stored token**. |
 | `The server may not connect to <host>. If it is your organisation's Git server, ask the person running grimoire to add it to GIT_ALLOWED_HOSTS.` | The address is an IP address, uses another port than 443, or leads into an internal network, or the instance runs behind a proxy. Ask the operator to allow the host (see [Git servers](docker.md#git-servers)). |
 
@@ -162,6 +164,7 @@ page and under **Needs attention**.
 | `the Git server refused the username and token: wrong, expired or revoked, or without access to this repository` | Create a new token (see [Access tokens per Git host](#access-tokens-per-git-host)) and enter it. |
 | `the Git server asks for a username and token: the repository is private, or there is none at this URL` | Enter a username and token, or correct the Git URL. |
 | `branch "main" not found in https://…` | Correct **Branch**. |
+| `the Git server redirects this URL elsewhere (HTTP 301): …` | Run **Test connection** on the source page: it names the URL to enter where it can. Otherwise copy the clone URL from the **Clone** button of the repository. |
 | `The server may not connect to <host>. If it is your organisation's Git server, ask the person running grimoire to add it to GIT_ALLOWED_HOSTS.` | The address is an IP address, uses another port than 443, or leads into an internal network, or the instance runs behind a proxy. Ask the operator to allow the host (see [Git servers](docker.md#git-servers)). |
 | `source path "docs" does not exist in the repository` | Correct **Path in the repository**. |
 | `no page could be indexed, …` | Every page was skipped, so the previous index stays; the message ends with the last reason. Ask the authors to fix what the message names (see [Writing documentation](writing.md#sync-warnings)). |

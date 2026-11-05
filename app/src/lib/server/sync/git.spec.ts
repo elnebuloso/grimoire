@@ -1,11 +1,11 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { createServer as createHttpServer, type Server as HttpServer } from 'node:http';
 import { createServer, type AddressInfo, type Socket } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { checkRemote, gitEnvironment, redact, remoteCommit } from './git';
+import { checkRemote, gitEnvironment, redact, redirectTarget, remoteCommit } from './git';
 
 // Fixture repositories and servers are local; the server itself never allows them.
 const LOCAL = { allowedHosts: [], proxy: false, allowLocal: true };
@@ -182,11 +182,13 @@ describe('a Git server that refuses the credentials', () => {
 describe('a Git server that redirects', () => {
 	const servers: HttpServer[] = [];
 	let received: string[];
+	let authorization: (string | undefined)[];
 	let origin: string;
 
 	async function listen(name: string, answer: (url: string) => [number, string?]) {
 		const server = createHttpServer((request, response) => {
 			received.push(name);
+			authorization.push(request.headers.authorization);
 			const [status, location] = answer(request.url ?? '');
 			response.writeHead(status, location ? { location } : {}).end();
 		});
@@ -200,6 +202,13 @@ describe('a Git server that redirects', () => {
 		const originPort = await listen('origin', (url) => {
 			if (url.startsWith('/same/')) return [302, url.replace('/same/', '/moved/')];
 			if (url.startsWith('/other/')) return [302, `http://localhost:${otherPort}${url}`];
+			// As GitLab answers a project path without `.git`.
+			if (url.startsWith('/group/project/')) {
+				return [
+					301,
+					`http://deploy:pw@127.0.0.1:${originPort}${url.replace('/project/', '/project.git/')}#top`
+				];
+			}
 			return [404];
 		});
 		origin = `http://127.0.0.1:${originPort}`;
@@ -207,10 +216,13 @@ describe('a Git server that redirects', () => {
 
 	afterAll(() => servers.forEach((server) => server.close()));
 
+	beforeEach(() => {
+		received = [];
+		authorization = [];
+	});
+
 	// A redirect could lead from the checked address to any other, internal ones included.
 	it.each(['/same/auth.git', '/other/auth.git'])('is not followed, for %s', async (path) => {
-		received = [];
-
 		const check = await checkRemote(
 			{ url: `${origin}${path}`, username: 'deploy', token: 'glpat-secret', policy: LOCAL },
 			'main'
@@ -218,6 +230,52 @@ describe('a Git server that redirects', () => {
 
 		expect(check.status).not.toBe('ok');
 		expect(received).toEqual(['origin']);
+	});
+
+	it('is reported as a redirect, with what to do, on a check and on a sync', async () => {
+		const project = { url: `${origin}/group/project`, policy: LOCAL };
+		const advice =
+			'the Git server redirects this URL elsewhere (HTTP 301): use the clone URL of the repository, usually ending in .git; a moved project has a new path';
+
+		expect(await checkRemote(project, 'main')).toEqual({
+			status: 'redirected',
+			httpStatus: 301,
+			detail: `git ls-remote failed: ${advice}`
+		});
+		await expect(remoteCommit(project, 'main')).rejects.toThrow(advice);
+	});
+
+	it('names a target on the same host, without credentials, query or fragment', async () => {
+		const target = await redirectTarget({
+			url: `${origin}/group/project`,
+			username: 'deploy',
+			token: 'glpat-secret',
+			policy: LOCAL
+		});
+
+		expect(target).toBe(`${origin}/group/project.git`);
+		// One request, with the credentials Git would send, and none to the target.
+		expect(received).toEqual(['origin']);
+		expect(authorization).toEqual([`Basic ${encoded}`]);
+	});
+
+	it('names no target on another host, and none where nothing redirects', async () => {
+		expect(
+			await redirectTarget({ url: `${origin}/other/auth.git`, policy: LOCAL })
+		).toBeUndefined();
+		expect(await redirectTarget({ url: `${origin}/missing.git`, policy: LOCAL })).toBeUndefined();
+		expect(received).toEqual(['origin', 'origin']);
+	});
+
+	it('fails without an answer, for the caller to fall back to the message without target', async () => {
+		const closed = createHttpServer();
+		await new Promise<void>((resolve) => closed.listen(0, '127.0.0.1', resolve));
+		const port = (closed.address() as AddressInfo).port;
+		closed.close();
+
+		await expect(
+			redirectTarget({ url: `http://127.0.0.1:${port}/group/project`, policy: LOCAL })
+		).rejects.toThrow();
 	});
 });
 

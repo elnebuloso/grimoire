@@ -1,4 +1,8 @@
 import { execFile } from 'node:child_process';
+import { readFileSync } from 'node:fs';
+import { request as httpRequest } from 'node:http';
+import { request as httpsRequest } from 'node:https';
+import { isIP } from 'node:net';
 import { promisify } from 'node:util';
 import {
 	checkConnection,
@@ -26,6 +30,8 @@ export type RemoteCheck =
 	| { status: 'ok'; commit: string }
 	| { status: 'no-branch' }
 	| { status: 'refused' | 'unreachable'; detail: string }
+	/** The Git server answered with a redirect, which Git does not follow. */
+	| { status: 'redirected'; httpStatus: number; detail: string }
 	/** The server may not connect to `host` at all. */
 	| { status: 'forbidden'; host: string; detail: string };
 
@@ -35,6 +41,9 @@ export const REFUSED =
 // Git wanted to ask for other credentials, which grimoire never lets it do: the server refused
 // the ones it got, or wants some.
 const CREDENTIALS_ASKED = /could not read (username|password) for/i;
+// What Git says when it refuses a redirect; it does not name the target.
+const REDIRECT_REFUSED = /returned error: (30[1278])\b/;
+const REDIRECT_REASON = /redirects this URL elsewhere \(HTTP (\d{3})\)/;
 
 /** Whether the remote answers and has `branch`; nothing is downloaded. */
 export async function checkRemote(
@@ -56,6 +65,8 @@ export async function checkRemote(
 		if (error instanceof ConnectionRefused) {
 			return { status: 'forbidden', host: error.host, detail };
 		}
+		const redirect = REDIRECT_REASON.exec(detail);
+		if (redirect) return { status: 'redirected', httpStatus: Number(redirect[1]), detail };
 		return { status: REFUSED.test(detail) ? 'refused' : 'unreachable', detail };
 	}
 	const commit = output.split('\t')[0].trim();
@@ -151,11 +162,99 @@ async function git(
 			? `no answer within ${timeoutMs / 1000} s`
 			: CREDENTIALS_ASKED.test(output)
 				? credentialsProblem(remote)
-				: output;
+				: REDIRECT_REFUSED.test(output)
+					? redirectProblem(Number(REDIRECT_REFUSED.exec(output)![1]))
+					: output;
 		// No `cause`: the original error carries the unredacted command line and output.
 		// eslint-disable-next-line preserve-caught-error
 		throw new Error(redact(`git ${command} failed: ${reason}`, remote));
 	}
+}
+
+function redirectProblem(httpStatus: number): string {
+	return `the Git server redirects this URL elsewhere (HTTP ${httpStatus}): use the clone URL of the repository, usually ending in .git; a moved project has a new path`;
+}
+
+/**
+ * Where the Git server redirects `remote`, when the target lies on the same scheme, host and port;
+ * undefined otherwise, or when the server does not redirect. Asks once, at the address the check
+ * pins and with the credentials Git would send, and never requests the target: grimoire follows
+ * no redirect, it only names one for a person to enter.
+ */
+export async function redirectTarget(
+	remote: GitRemote,
+	timeoutMs = CHECK_TIMEOUT_MS
+): Promise<string | undefined> {
+	const checked = await checkConnection(remote.url, remote.policy);
+	if (checked.url.startsWith('file:')) return undefined;
+	const base = new URL(checked.url);
+	const asked = new URL(`${base.pathname.replace(/\/+$/, '')}/info/refs`, base);
+	asked.search = '?service=git-upload-pack';
+	const location = await locationHeader(asked, remote, checked, timeoutMs);
+	if (!location) return undefined;
+	const target = new URL(location, asked);
+	if (target.origin !== base.origin) return undefined;
+	target.username = '';
+	target.password = '';
+	target.search = '';
+	target.hash = '';
+	target.pathname = target.pathname.replace(/\/info\/refs$/, '');
+	return target.href;
+}
+
+function locationHeader(
+	url: URL,
+	remote: GitRemote,
+	checked: CheckedRemote,
+	timeoutMs: number
+): Promise<string | undefined> {
+	const pinned = checked.pin && pinnedAddress(checked.pin);
+	const request = url.protocol === 'https:' ? httpsRequest : httpRequest;
+	const caFile = process.env.GIT_SSL_CAINFO;
+	return new Promise((resolve, reject) => {
+		const outgoing = request(
+			url,
+			{
+				method: 'GET',
+				timeout: timeoutMs,
+				headers: remote.token ? { Authorization: `Basic ${basicCredentials(remote)}` } : {},
+				// The same CA file Git trusts, replacing the defaults as it does for Git.
+				...(caFile ? { ca: readFileSync(caFile) } : {}),
+				...(pinned
+					? {
+							lookup: (_host: string, options: { all?: boolean }, callback: PinnedCallback) =>
+								options.all
+									? callback(null, [pinned])
+									: callback(null, pinned.address, pinned.family)
+						}
+					: {})
+			},
+			(response) => {
+				response.resume();
+				const status = response.statusCode ?? 0;
+				resolve(status >= 300 && status < 400 ? response.headers.location : undefined);
+			}
+		);
+		outgoing.on('timeout', () => outgoing.destroy(new Error('no answer')));
+		outgoing.on('error', reject);
+		outgoing.end();
+	});
+}
+
+type PinnedCallback = (
+	error: Error | null,
+	address: string | { address: string; family: number }[],
+	family?: number
+) => void;
+
+// `http.curloptResolve` writes `<host>:<port>:<address>`, an IPv6 address in brackets.
+function pinnedAddress(pin: string): { address: string; family: number } {
+	const address = pin
+		.split(':')
+		.slice(2)
+		.join(':')
+		.replace(/^\[(.*)\]$/, '$1');
+	return { address, family: isIP(address) };
 }
 
 function credentialsProblem(remote?: GitRemote): string {
