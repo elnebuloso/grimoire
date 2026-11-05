@@ -12,6 +12,8 @@
 	const MIN_LENGTH = 12;
 	const marked = (message: string) =>
 		form?.error === message ? { 'aria-invalid': true, 'aria-describedby': 'setup-error' } : {};
+	const importMarked = (field: string) =>
+		form?.field === field ? { 'aria-invalid': true, 'aria-describedby': 'import-error' } : {};
 </script>
 
 <PageHead title={m.setup_title({ name: data.instanceTitle })} namesInstance
@@ -19,7 +21,7 @@
 >
 
 <section class="sheet">
-	<form method="post">
+	<form method="post" action="?/create">
 		<FormError message={form?.error} id="setup-error" />
 		<TextField
 			label={m.setup_token()}
@@ -48,5 +50,38 @@
 			{...marked(m.auth_password_too_short({ min: MIN_LENGTH }))}
 		/>
 		<button class="primary">{m.setup_submit()}</button>
+	</form>
+</section>
+
+<section class="sheet" aria-labelledby="import-title">
+	<h2 id="import-title">{m.setup_import_title()}</h2>
+	<p class="muted">{m.setup_import_lead()}</p>
+	<form method="post" action="?/import" enctype="multipart/form-data">
+		<FormError message={form?.importError} id="import-error" />
+		<TextField
+			label={m.setup_token()}
+			name="token"
+			required
+			autocomplete="off"
+			mono
+			{...importMarked('token')}
+		/>
+		<TextField
+			label={m.setup_import_file()}
+			name="file"
+			type="file"
+			required
+			accept=".grimoire-export"
+			{...importMarked('file')}
+		/>
+		<TextField
+			label={m.setup_import_passphrase()}
+			name="passphrase"
+			type="password"
+			required
+			autocomplete="off"
+			{...importMarked('passphrase')}
+		/>
+		<button class="primary">{m.setup_import_submit()}</button>
 	</form>
 </section>

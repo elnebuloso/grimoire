@@ -12,7 +12,7 @@ import { createSyncQueue, startPolling } from './queue';
 import { isDue } from './schedule';
 import { syncSource } from './sync';
 import { log } from '../log';
-import { checkConnection, ConnectionRefused, connectionPolicy } from './connection-policy';
+import { connectionPolicy, refusedSources } from './connection-policy';
 
 // How late a scheduled check may start at most; listing 200 sources this often costs nothing.
 const TICK_MS = 15_000;
@@ -62,19 +62,10 @@ function dueSources(): number[] {
  * `GIT_ALLOWED_HOSTS` after an update: its syncs fail from now on. Not awaited by the start.
  */
 export async function logRefusedSources(): Promise<void> {
-	const policy = connectionPolicy(GIT_ALLOWED_HOSTS);
-	const sources = database().prepare('SELECT slug, git_url FROM sources ORDER BY slug').all() as {
-		slug: string;
-		git_url: string;
-	}[];
-	for (const source of sources) {
-		try {
-			await checkConnection(source.git_url, policy);
-		} catch (error) {
-			// An address that does not resolve right now is the sync's to report.
-			if (error instanceof ConnectionRefused) {
-				log.warn(`source ${source.slug} cannot sync: ${error.message}`);
-			}
-		}
+	for (const { slug, reason } of await refusedSources(
+		database(),
+		connectionPolicy(GIT_ALLOWED_HOSTS)
+	)) {
+		log.warn(`source ${slug} cannot sync: ${reason}`);
 	}
 }

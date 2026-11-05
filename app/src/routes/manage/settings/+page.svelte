@@ -1,6 +1,9 @@
 <script lang="ts">
 	import PageHead from '#lib/components/PageHead.svelte';
+	import { resolve } from '$app/paths';
 	import ChoiceField from '#lib/components/ChoiceField.svelte';
+	import FormError from '#lib/components/FormError.svelte';
+	import TextField from '#lib/components/TextField.svelte';
 	import { m } from '#lib/paraglide/messages.js';
 	import type { PageProps } from './$types';
 
@@ -27,6 +30,34 @@
 		/>
 		<p class="hint" id="syncs-paused-hint">{m.settings_syncs_paused_hint()}</p>
 		<button class="primary">{m.settings_submit()}</button>
+	</form>
+</section>
+
+<!-- A plain form: the answer is a download, the page stays as it is. -->
+<section class="sheet" aria-labelledby="export">
+	<h2 id="export">{m.export_title()}</h2>
+	<p class="muted">{m.export_lead()}</p>
+	<p class="notice warn">{m.export_warning()}</p>
+	<form method="post" action={resolve('/manage/settings/export')}>
+		<FormError message={data.exportProblem?.message} id="export-error" />
+		<TextField
+			label={m.export_passphrase({ min: data.minPassphraseLength })}
+			name="passphrase"
+			type="password"
+			required
+			minlength={data.minPassphraseLength}
+			autocomplete="new-password"
+			aria-invalid={data.exportProblem?.aboutPassphrase || undefined}
+			aria-describedby={data.exportProblem?.aboutPassphrase ? 'export-error' : undefined}
+		/>
+		<TextField
+			label={m.export_passphrase_repeat()}
+			name="repeat"
+			type="password"
+			required
+			autocomplete="new-password"
+		/>
+		<button class="primary">{m.export_submit()}</button>
 	</form>
 </section>
 

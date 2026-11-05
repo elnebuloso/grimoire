@@ -35,6 +35,7 @@ function event(path: string, fields?: Record<string, string>, params: Record<str
 			body: fields && new URLSearchParams(fields)
 		}),
 		params,
+		url: new URL(`https://grimoire.example${path}`),
 		getClientAddress: () => 'client',
 		setHeaders: vi.fn()
 	} as never;
@@ -67,7 +68,10 @@ describe('without SMTP', () => {
 	});
 
 	it('offers no reset: no link on the login page, 404 for its pages', async () => {
-		expect(await pages.login.load(event('/login'))).toEqual({ resetByMail: false });
+		expect(await pages.login.load(event('/login'))).toEqual({
+			resetByMail: false,
+			imported: false
+		});
 		for (const run of [
 			() => pages.forgot.load(event('/login/forgot')),
 			() => pages.forgot.actions.default(event('/login/forgot', { email: EMAIL })),
@@ -83,7 +87,7 @@ describe('without SMTP', () => {
 
 describe('with SMTP', () => {
 	it('links to the reset from the login page', async () => {
-		expect(await pages.login.load(event('/login'))).toEqual({ resetByMail: true });
+		expect(await pages.login.load(event('/login'))).toEqual({ resetByMail: true, imported: false });
 	});
 
 	it('answers known and unknown addresses alike and mails a link only for a known one', async () => {

@@ -16,6 +16,10 @@
 
 <PageHead title={m.login_title({ name: data.instanceTitle })} namesInstance />
 
+{#if data.imported && !form?.error}
+	<p class="notice" role="status">{m.login_imported()}</p>
+{/if}
+
 <section class="sheet">
 	<form method="post">
 		<FormError message={form?.error} id="login-error" />

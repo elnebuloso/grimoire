@@ -181,14 +181,23 @@ export function checkAdminAccount(db: DatabaseSync): boolean {
 	return false;
 }
 
+/** Whether `token` opens the setup: no admin exists yet and it is the token in the log. */
+export function checkSetupToken(
+	db: DatabaseSync,
+	token: string
+): { error: AuthProblem } | undefined {
+	if (checkAdminAccount(db)) return { error: 'admin-exists' };
+	if (!setupTokenValue || !sameText(token, setupTokenValue)) return { error: 'wrong-setup-token' };
+	return undefined;
+}
+
 /** Creates the first user, with the role `admin`; returns why when it cannot. */
 export async function setupAdmin(
 	db: DatabaseSync,
 	form: { token: string; email: string; password: string }
 ): Promise<{ error: AuthProblem } | undefined> {
-	if (checkAdminAccount(db)) return { error: 'admin-exists' };
-	if (!setupTokenValue || !sameText(form.token, setupTokenValue))
-		return { error: 'wrong-setup-token' };
+	const refused = checkSetupToken(db, form.token);
+	if (refused) return refused;
 	if (!looksLikeEmail(normalizeEmail(form.email))) return { error: 'email-invalid' };
 	if (form.password.length < MIN_PASSWORD_LENGTH) return { error: 'password-too-short' };
 	const passwordHash = await hashPassword(form.password);

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Starts a built image and runs what plain Node loads from source in it: the checked Git calls, the
-# child process that indexes a source, and the reset and backup scripts. They only work when
+# child process that indexes a source, and the reset, backup and import scripts. They only work when
 # everything they import was copied into the image, which no other check sees, because tests and
 # e2e run in the full checkout.
 set -euo pipefail
@@ -90,6 +90,17 @@ const count = new DatabaseSync('/tmp/smoke-backup.db').prepare('SELECT count(*) 
 if (count === 0) throw new Error('the backup has no snippets');
 "
 echo 'backup script: ok'
+
+# The export written by the first version that exports, read with the migrations from their folder.
+printf 'fixture passphrase 2026\r' | DATABASE_PATH=/tmp/smoke-import.db \
+	script -qec 'node ../scripts/import.ts src/lib/server/fixtures/export-schema-4.grimoire-export' /dev/null \
+	> /tmp/smoke-import.log
+if grep -q 'Imported 2 users and 2 sources' /tmp/smoke-import.log; then
+	echo 'import script: ok'
+else
+	cat /tmp/smoke-import.log
+	exit 1
+fi
 EOF
 
 # A certificate of its own for the Git server in the container; readable for the user `node` there.

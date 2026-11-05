@@ -267,6 +267,36 @@ input[type='number'] {
 input[type='date'] {
 	max-width: 14rem;
 }
+/* The selector button fills the 40px inside the field's border, so the field keeps its height. */
+input[type='file'] {
+	padding: 0 var(--s3) 0 0;
+	cursor: pointer;
+}
+input[type='file']::file-selector-button {
+	height: 40px;
+	margin: 0 var(--s3) 0 0;
+	padding: 0 var(--s4);
+	font: inherit;
+	font-size: 14px;
+	font-weight: 500;
+	color: var(--ink);
+	background: var(--raised);
+	border: 1px solid color-mix(in srgb, var(--edge) 55%, transparent);
+	border-radius: var(--r-control);
+	box-shadow: var(--lift-raised);
+	cursor: pointer;
+	transition:
+		background-color var(--t),
+		border-color var(--t),
+		box-shadow var(--t);
+}
+input[type='file']:hover::file-selector-button {
+	border-color: var(--edge);
+}
+input[type='file']:active::file-selector-button {
+	background: var(--well);
+	box-shadow: var(--sink);
+}
 input[type='checkbox'],
 input[type='radio'] {
 	width: 18px;

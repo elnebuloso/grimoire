@@ -65,7 +65,7 @@ async function load() {
 	logged = (await import('#lib/server/capture-log.js')).captureLog().messages;
 	return {
 		auth: await import('#lib/server/admin/auth.js'),
-		setup: (await import('./setup/+page.server')).actions.default,
+		setup: (await import('./setup/+page.server')).actions.create,
 		login: (await import('./login/+page.server')).actions.default,
 		logout: (await import('./logout/+server')).POST,
 		password: (await import('./account/+page.server')).actions.default,

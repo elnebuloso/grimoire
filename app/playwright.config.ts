@@ -44,6 +44,22 @@ if (!existsSync(repository)) {
 	], { stdio: 'ignore' });
 }
 
+const serverEnv = {
+	PORT: '4173',
+	DATABASE_PATH: join(directory, 'grimoire.db'),
+	ENCRYPTION_KEY: Buffer.alloc(32, 7).toString('base64'),
+	PROTOCOL_HEADER: 'x-forwarded-proto',
+	GIT_ALLOWED_HOSTS: 'localhost',
+	GIT_SSL_CAINFO: certificate,
+	SMTP_HOST: 'localhost',
+	SMTP_PORT: '4125',
+	SMTP_ALLOW_PLAINTEXT: 'true',
+	SMTP_FROM: 'grimoire <grimoire@e2e.example>',
+	BASE_URL: 'http://localhost:4173',
+	// A release version, so the footer links to its notes.
+	GRIMOIRE_VERSION: '1.2.3'
+};
+
 export default defineConfig({
 	webServer: [
 		// Receives the mails the server sends; tests read them at http://localhost:4825/api/v1.
@@ -65,20 +81,19 @@ export default defineConfig({
 		{
 			command: `npm run build && node build > ${join(directory, 'server.log')} 2>&1`,
 			port: 4173,
+			env: serverEnv
+		},
+		// A second, empty instance with a key of its own, for an export of the first to be imported
+		// on its setup page. Started after the first, so the build is there.
+		{
+			command: `node build > ${join(directory, 'import-server.log')} 2>&1`,
+			port: 4174,
 			env: {
-				PORT: '4173',
-				DATABASE_PATH: join(directory, 'grimoire.db'),
-				ENCRYPTION_KEY: Buffer.alloc(32, 7).toString('base64'),
-				PROTOCOL_HEADER: 'x-forwarded-proto',
-				GIT_ALLOWED_HOSTS: 'localhost',
-				GIT_SSL_CAINFO: certificate,
-				SMTP_HOST: 'localhost',
-				SMTP_PORT: '4125',
-				SMTP_ALLOW_PLAINTEXT: 'true',
-				SMTP_FROM: 'grimoire <grimoire@e2e.example>',
-				BASE_URL: 'http://localhost:4173',
-				// A release version, so the footer links to its notes.
-				GRIMOIRE_VERSION: '1.2.3'
+				...serverEnv,
+				PORT: '4174',
+				DATABASE_PATH: join(directory, 'import.db'),
+				ENCRYPTION_KEY: Buffer.alloc(32, 9).toString('base64'),
+				BASE_URL: 'http://localhost:4174'
 			}
 		}
 	],

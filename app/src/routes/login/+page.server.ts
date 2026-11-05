@@ -14,7 +14,11 @@ import { mailer } from '#lib/server/mail/index.js';
 // A plain form needs no JavaScript; hydrating it would reset what was typed before it finished.
 export const csr = false;
 
-export const load: PageServerLoad = () => ({ resetByMail: mailer() !== undefined });
+export const load: PageServerLoad = ({ url }) => ({
+	resetByMail: mailer() !== undefined,
+	// Set by an import on the setup page.
+	imported: url.searchParams.has('imported')
+});
 
 export const actions = {
 	default: async ({ request, cookies, getClientAddress }) => {

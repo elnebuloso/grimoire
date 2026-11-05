@@ -2,6 +2,7 @@
 // resolves.
 import { lookup as dnsLookup } from 'node:dns/promises';
 import { BlockList, isIP } from 'node:net';
+import type { DatabaseSync } from 'node:sqlite';
 
 /** Where the server may open Git connections. Travels to the indexing process with the job. */
 export interface ConnectionPolicy {
@@ -143,4 +144,30 @@ export async function checkConnection(
 
 function isLocal(url: URL): boolean {
 	return url.protocol === 'file:' || (url.protocol === 'http:' && url.hostname === '127.0.0.1');
+}
+
+/**
+ * The sources of `db` whose Git host `policy` refuses, by slug, with the reason: after an update,
+ * or after an import from another instance. An address that does not resolve right now is the
+ * sync's to report.
+ */
+export async function refusedSources(
+	db: DatabaseSync,
+	policy: ConnectionPolicy
+): Promise<{ slug: string; reason: string }[]> {
+	const sources = db.prepare('SELECT slug, git_url FROM sources ORDER BY slug').all() as {
+		slug: string;
+		git_url: string;
+	}[];
+	const refused: { slug: string; reason: string }[] = [];
+	for (const source of sources) {
+		try {
+			await checkConnection(source.git_url, policy);
+		} catch (error) {
+			if (error instanceof ConnectionRefused) {
+				refused.push({ slug: source.slug, reason: error.message });
+			}
+		}
+	}
+	return refused;
 }

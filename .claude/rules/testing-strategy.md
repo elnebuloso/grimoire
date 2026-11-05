@@ -54,6 +54,9 @@ file also passes on its own.
 - `src/routes/manage/manage.e2e.ts` is one serial story from the setup on: every test builds on the
   account and data the one before created. Run the whole file; `--grep` on a later test fails on
   missing state, not on the code.
+- `make e2e` runs a second, empty instance of the same build on port 4174, with its own database
+  and `ENCRYPTION_KEY` and its log in `import-server.log`: `manage.e2e.ts` imports its export there
+  on the setup page.
 - A new e2e file must not depend on the state another file leaves behind: files run in parallel
   workers, in no fixed order.
 

@@ -30,6 +30,8 @@ openssl rand -base64 32
 - Every start needs the same key. Without a key the server does not start. With another key it
   starts, but every stored secret is unreadable until an admin enters it again; a source with a
   token fails to sync until then.
+- To change the key without entering every token again, move the instance to the new key by export
+  and import (see [Changing the encryption key](moving.md#changing-the-encryption-key)).
 - Never store the key next to the database backups: together they reveal every secret.
 
 ## One instance
@@ -84,6 +86,9 @@ kubectl exec deployment/grimoire -- node scripts/backup.ts /tmp/grimoire-backup.
 kubectl cp <pod>:/tmp/grimoire-backup.db ./grimoire-backup.db
 kubectl exec deployment/grimoire -- rm /tmp/grimoire-backup.db
 ```
+
+A backup only serves an instance with the same `ENCRYPTION_KEY`. To move to an instance with
+another key, or to change the key, export the instance (see [Moving an instance](moving.md)).
 
 The script refuses a file that exists already, so name a new one for every backup. grimoire keeps
 serving and syncing while it runs.

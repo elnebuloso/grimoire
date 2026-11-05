@@ -5,9 +5,11 @@ import {
 	connectionPolicy,
 	isPublicAddress,
 	parseAllowedHosts,
+	refusedSources,
 	type ConnectionPolicy,
 	type Lookup
 } from './connection-policy';
+import { openDatabase } from '../db/schema';
 
 const PUBLIC_ONLY: ConnectionPolicy = { allowedHosts: [], proxy: false };
 const LISTED = { allowedHosts: ['gitlab.acme.example'], proxy: false };
@@ -189,4 +191,19 @@ describe('parseAllowedHosts', () => {
 			expect(() => parseAllowedHosts(value)).toThrow(`GIT_ALLOWED_HOSTS "${value}"`);
 		}
 	);
+});
+
+describe('refusedSources', () => {
+	it('names the sources whose Git host the policy refuses, with the reason', async () => {
+		const db = openDatabase(':memory:');
+		db.exec(`INSERT INTO sources (slug, name, git_url, branch, path) VALUES
+			('internal-wiki', 'Wiki', 'https://10.0.0.5/wiki.git', 'main', 'docs'),
+			('listed-wiki', 'Wiki', 'https://10.0.0.6/wiki.git', 'main', 'docs'),
+			('plain-http', 'Docs', 'http://git.example.com/docs.git', 'main', 'docs')`);
+
+		expect(await refusedSources(db, { allowedHosts: ['10.0.0.6'], proxy: false })).toEqual([
+			{ slug: 'internal-wiki', reason: expect.stringContaining('may not connect to 10.0.0.5') },
+			{ slug: 'plain-http', reason: expect.stringContaining('git.example.com') }
+		]);
+	});
 });

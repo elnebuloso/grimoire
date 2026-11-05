@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { expect, test, type Cookie, type Page } from '@playwright/test';
 import { createUser } from '../../lib/server/admin/auth.ts';
+import { readExport } from '../../lib/server/instance-export.ts';
 
 const EMAIL = 'admin@example.com';
 const PASSWORD = 'correct horse battery';
@@ -14,8 +15,8 @@ const GIT_URL = `https://${GIT_HOST}/platform/auth.git`;
 // Each test builds on the account and data the one before it created.
 test.describe.configure({ mode: 'serial' });
 
-function setupToken(): string {
-	const log = readFileSync(join(process.env.E2E_DIR!, 'server.log'), 'utf8');
+function setupToken(logFile = 'server.log'): string {
+	const log = readFileSync(join(process.env.E2E_DIR!, logFile), 'utf8');
 	// The token is base64url; this also ends it before the quote of a JSON log line.
 	return log.match(/setup token ([\w-]+)/)![1];
 }
@@ -46,21 +47,24 @@ test('leads from the empty start page through the login action to the setup', as
 test('sets up the admin account with the token from the server log', async ({ page }) => {
 	await page.goto('/manage');
 	await expect(page).toHaveURL('/setup');
+	const create = page.locator('form', {
+		has: page.getByRole('button', { name: 'Create admin account' })
+	});
 	// Without these tokens a password manager offers to save nothing, or files it under no user.
-	await expect(page.getByLabel('Email address')).toHaveAttribute('autocomplete', 'username');
-	await expect(page.getByLabel('Password')).toHaveAttribute('autocomplete', 'new-password');
+	await expect(create.getByLabel('Email address')).toHaveAttribute('autocomplete', 'username');
+	await expect(create.getByLabel('Password')).toHaveAttribute('autocomplete', 'new-password');
 
-	await page.getByLabel('Setup token').fill('not-the-token');
-	await page.getByLabel('Email address').fill(EMAIL);
-	await page.getByLabel('Password').fill(PASSWORD);
-	await page.getByRole('button', { name: 'Create admin account' }).click();
-	await expect(page.getByLabel('Setup token')).toHaveAttribute('aria-invalid', 'true');
-	await expect(page.getByLabel('Email address')).not.toHaveAttribute('aria-invalid');
+	await create.getByLabel('Setup token').fill('not-the-token');
+	await create.getByLabel('Email address').fill(EMAIL);
+	await create.getByLabel('Password').fill(PASSWORD);
+	await create.getByRole('button', { name: 'Create admin account' }).click();
+	await expect(create.getByLabel('Setup token')).toHaveAttribute('aria-invalid', 'true');
+	await expect(create.getByLabel('Email address')).not.toHaveAttribute('aria-invalid');
 
-	await page.getByLabel('Setup token').fill(setupToken());
-	await page.getByLabel('Email address').fill(EMAIL);
-	await page.getByLabel('Password').fill(PASSWORD);
-	await page.getByRole('button', { name: 'Create admin account' }).click();
+	await create.getByLabel('Setup token').fill(setupToken());
+	await create.getByLabel('Email address').fill(EMAIL);
+	await create.getByLabel('Password').fill(PASSWORD);
+	await create.getByRole('button', { name: 'Create admin account' }).click();
 
 	await expect(page).toHaveURL('/manage');
 	await expect(page.getByRole('heading', { name: 'Manage grimoire' })).toBeVisible();
@@ -183,6 +187,79 @@ test('keeps a tested token that is not saved yet when syncing now', async ({ pag
 	await expect(pending).toHaveCount(0, { timeout: 15_000 });
 	await expect(page.getByLabel('Access token (entered; leave empty to keep it)')).toBeVisible();
 	expect(await page.content()).not.toContain(rotated);
+});
+
+// The export of the next test, imported on the second instance after it.
+let exportPath = '';
+const EXPORT_PASSPHRASE = 'harbour lantern seventeen';
+
+test('exports the instance, the stored token readable only with the passphrase', async ({
+	page
+}) => {
+	const passphrase = EXPORT_PASSPHRASE;
+	await asAdmin(page);
+	await page.goto('/manage/settings');
+	await page.getByLabel('Passphrase (at least 12 characters)').fill(passphrase);
+	await page.getByLabel('Passphrase again').fill(`${passphrase}!`);
+	await page.getByRole('button', { name: 'Download export' }).click();
+	await expect(page.getByRole('alert')).toHaveText('The two passphrases differ.');
+
+	await page.getByLabel('Passphrase (at least 12 characters)').fill(passphrase);
+	await page.getByLabel('Passphrase again').fill(passphrase);
+	const downloading = page.waitForEvent('download');
+	await page.getByRole('button', { name: 'Download export' }).click();
+	const download = await downloading;
+
+	expect(download.suggestedFilename()).toMatch(/^grimoire-\d{4}-\d{2}-\d{2}\.grimoire-export$/);
+	// Saved apart: Playwright deletes a download with the test that made it.
+	exportPath = join(process.env.E2E_DIR!, download.suggestedFilename());
+	await download.saveAs(exportPath);
+	const file = readFileSync(exportPath);
+	expect(file.toString('latin1')).not.toContain(TOKEN);
+	const result = await readExport(file, passphrase);
+	if (!('db' in result)) throw new Error(result.error);
+	expect(result.db.prepare('SELECT slug, encrypted_token FROM sources').all()).toEqual([
+		{ slug: 'auth-service', encrypted_token: TOKEN }
+	]);
+});
+
+// The second instance runs with another encryption key: the token must arrive readable there.
+test('imports the export on the setup page of an empty instance with another key', async ({
+	page
+}) => {
+	const other = 'http://localhost:4174';
+	await page.goto(`${other}/manage`);
+	await expect(page).toHaveURL(`${other}/setup`);
+	const importing = page.locator('form', { has: page.getByRole('button', { name: 'Import' }) });
+	await importing.getByLabel('Setup token').fill(setupToken('import-server.log'));
+	await importing.getByLabel('Export file').setInputFiles(exportPath);
+	await importing.getByLabel('Passphrase of the export').fill('harbour lantern eighteen');
+	await importing.getByRole('button', { name: 'Import' }).click();
+	await expect(page.getByRole('alert')).toHaveText(
+		'The passphrase is wrong, or the file was changed or cut short since it was exported.'
+	);
+	await expect(importing.getByLabel('Passphrase of the export')).toHaveAttribute(
+		'aria-invalid',
+		'true'
+	);
+
+	await importing.getByLabel('Setup token').fill(setupToken('import-server.log'));
+	await importing.getByLabel('Export file').setInputFiles(exportPath);
+	await importing.getByLabel('Passphrase of the export').fill(EXPORT_PASSPHRASE);
+	await importing.getByRole('button', { name: 'Import' }).click();
+	await expect(page).toHaveURL(`${other}/login?imported`);
+	await expect(page.getByRole('status')).toContainText('The export is imported.');
+
+	await page.getByLabel('Email address').fill(EMAIL);
+	await page.getByLabel('Password').fill(PASSWORD);
+	await page.getByRole('button', { name: 'Log in', exact: true }).click();
+	await expect(page).toHaveURL(`${other}/manage`);
+	await page.getByRole('link', { name: 'Auth Service', exact: true }).click();
+	await expect(page.getByText('stored; leave empty to keep it')).toBeVisible();
+	// The stored token decrypts under this instance's key: the connection test sends it.
+	await page.getByRole('button', { name: 'Test connection' }).click();
+	await expect(page.getByRole('status').filter({ hasText: 'Reachable' })).toBeVisible();
+	expect((await page.request.get(`${other}/setup`)).status()).toBe(404);
 });
 
 test('lists a private source on the start page to its owner only, without its settings', async ({

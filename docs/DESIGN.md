@@ -142,6 +142,7 @@ It sits in the header of every page, next to the language switch. Both use the s
   - On focus it rises: `--raised` background and `--accent` border. An invalid field gets an `--err` border.
   - Read-only fields drop the well and get a dashed border in `--ink-2`.
   - Machine-string fields (slug, exclusions, cron) use mono.
+  - File fields put their selector button at the start of the well: a secondary button, 40px high, filling the field's height.
   - Labels sit above the field, 6px apart.
   - Checkboxes are 18px with `accent-color: var(--accent)`, their label to the right.
 - **Buttons:**
