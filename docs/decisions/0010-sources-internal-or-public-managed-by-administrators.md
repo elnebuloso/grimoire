@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Status | Proposed |
+| Status | Accepted |
 | Date | 2026-11-05 |
 | Deciders | Projectowner |
 | Covers | Who may read a source, who adds, changes and deletes one, and what the message about a duplicate source reveals |
