@@ -54,6 +54,11 @@ Facts learned while building grimoire.
   contains the pattern.
 - `docker exec -it` needs a terminal; without one:
   `printf 'new password\nnew password\n' | script -qec "docker exec -it <container> node scripts/grant-admin.ts <email> --password" /dev/null`.
+  The output then shows the piped passwords: the pseudo terminal echoes them before the script
+  turns echo off. Typed by hand, they stay hidden.
+- The OIDC callback page continues by `<meta http-equiv="refresh">`, not by a redirect: curl
+  stops there. A login is complete at that point; a link is not until the page's
+  `/account/link` is requested with the same cookies.
 - `backlog task list --plain | head` crashes (Bun, "Error is not a constructor"); use `--limit`
   instead of `head`.
 - The Playwright MCP browser saves screenshots only inside the repository (`.playwright-mcp/`,
