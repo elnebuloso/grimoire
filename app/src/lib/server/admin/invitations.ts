@@ -1,7 +1,9 @@
 import { randomBytes } from 'node:crypto';
 import type { DatabaseSync } from 'node:sqlite';
 import { inTransaction } from '../db/transaction.ts';
+import { insertLinkedUser, linkedUser } from '../oidc/identities.ts';
 import {
+	accountExists,
 	hashPassword,
 	insertUser,
 	looksLikeEmail,
@@ -128,10 +130,32 @@ export async function acceptInvitation(
 			.prepare('DELETE FROM invitations WHERE token_hash = ? AND expires_at > ? RETURNING email')
 			.get(sha256(token), now.toISOString()) as { email: string } | undefined;
 		if (!used) return { error: 'invite-link-invalid' as const };
-		if (db.prepare('SELECT 1 FROM users WHERE email = ?').get(used.email)) {
-			return { error: 'account-exists' as const };
-		}
+		if (accountExists(db, used.email)) return { error: 'account-exists' as const };
 		insertUser(db, used.email, passwordHash, []);
 		return { email: used.email };
+	});
+}
+
+/**
+ * Creates the account the link invites to, without roles and password, linked to the identity a
+ * provider confirmed, and uses up the link. Holding the link proves the invitation; the invited
+ * address is kept, whatever the provider reports.
+ */
+export function acceptInvitationWithIdentity(
+	db: DatabaseSync,
+	token: string,
+	identity: { issuer: string; subject: string },
+	now = new Date()
+): { userId: number } | { error: AuthProblem } {
+	return inTransaction(db, () => {
+		if (linkedUser(db, identity.issuer, identity.subject) !== undefined) {
+			return { error: 'oidc-identity-taken' as const };
+		}
+		const used = db
+			.prepare('DELETE FROM invitations WHERE token_hash = ? AND expires_at > ? RETURNING email')
+			.get(sha256(token), now.toISOString()) as { email: string } | undefined;
+		if (!used) return { error: 'invite-link-invalid' as const };
+		if (accountExists(db, used.email)) return { error: 'account-exists' as const };
+		return { userId: insertLinkedUser(db, used.email, identity.issuer, identity.subject) };
 	});
 }

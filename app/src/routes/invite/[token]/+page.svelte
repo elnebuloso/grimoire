@@ -1,5 +1,6 @@
 <script lang="ts">
 	import FormError from '#lib/components/FormError.svelte';
+	import ProviderButtons from '#lib/components/ProviderButtons.svelte';
 	import PageHead from '#lib/components/PageHead.svelte';
 	import TextField from '#lib/components/TextField.svelte';
 	import { m } from '#lib/paraglide/messages.js';
@@ -41,5 +42,6 @@
 			/>
 			<button class="primary">{m.invite_submit()}</button>
 		</form>
+		<ProviderButtons providers={data.providers} fields={{ invite: data.token }} />
 	</section>
 {/if}

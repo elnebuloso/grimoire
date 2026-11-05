@@ -25,7 +25,7 @@ async function logIn(page: Page, password = PASSWORD, email = EMAIL) {
 	await page.goto('/login');
 	await page.getByLabel('Email address').fill(email);
 	await page.getByLabel('Password').fill(password);
-	await page.getByRole('button', { name: 'Log in' }).click();
+	await page.getByRole('button', { name: 'Log in', exact: true }).click();
 }
 
 // The session of the login flow, reused where a test needs an admin but not a login: every login
@@ -133,6 +133,58 @@ test('offers the login action while logged out, and the account and management o
 	await page.goto('/');
 	await page.getByRole('button', { name: 'Log out' }).click();
 	await page.goto('/');
+	await expect(page.getByRole('link', { name: 'Log in' })).toBeVisible();
+});
+
+/** Logs in at the mock identity provider, which takes any user and claims. */
+async function logInThrough(page: Page, provider: string, user: string, claims: object) {
+	await page.getByRole('button', { name: `Log in with ${provider}` }).click();
+	await page.locator('input[name="username"]').fill(user);
+	await page.locator('textarea[name="claims"]').fill(JSON.stringify(claims));
+	await page.getByRole('button', { name: 'Sign-in' }).click();
+}
+
+test('logs in through an identity provider, creating an account only where it may', async ({
+	page
+}) => {
+	await page.goto('/account');
+	await expect(page).toHaveURL('/login?next=%2Faccount');
+	await logInThrough(page, 'GitLab', 'ada', { email: 'ada@e2e.example', email_verified: true });
+	await expect(page).toHaveURL('/account');
+	await expect(page.getByRole('link', { name: 'ada@e2e.example' })).toBeVisible();
+	await page.getByRole('button', { name: 'Log out' }).click();
+
+	// The same identity is the same account, whatever address the provider reports by now. It has
+	// no role: it lands on the start page, like every user without one.
+	await logInThrough(page, 'GitLab', 'ada', {
+		email: 'lovelace@e2e.example',
+		email_verified: true
+	});
+	await expect(page).toHaveURL('/');
+	await expect(page.getByRole('link', { name: 'ada@e2e.example' })).toBeVisible();
+	await expect(page.getByRole('link', { name: 'Manage' })).toHaveCount(0);
+	await page.getByRole('button', { name: 'Log out' }).click();
+
+	// Only a verified address in an allowed domain learns that it has an account here.
+	await logInThrough(page, 'GitLab', 'mallory', { email: EMAIL, email_verified: true });
+	await expect(page.getByRole('alert')).toHaveText(
+		'No account can be created for this address. If you have an account here already, log in and link the provider under Account; otherwise ask an admin for an invitation.'
+	);
+	await logInThrough(page, 'GitLab', 'mallory', { email: 'ada@e2e.example', email_verified: true });
+	await expect(page.getByRole('alert')).toHaveText(
+		'An account with this email address exists already. Log in with your password, then link the provider under Account. An account without a password gets one through “Forgot your password?”.'
+	);
+	await logInThrough(page, 'GitLab', 'eve', { email: 'eve@e2e.example', email_verified: false });
+	await expect(page.getByRole('alert')).toHaveText(
+		'No account can be created for this address. If you have an account here already, log in and link the provider under Account; otherwise ask an admin for an invitation.'
+	);
+	await logInThrough(page, 'Microsoft', 'grace', {
+		email: 'grace@e2e.example',
+		email_verified: true
+	});
+	await expect(page.getByRole('alert')).toHaveText(
+		'Your account at the identity provider may not log in here. Ask an admin which accounts may.'
+	);
 	await expect(page.getByRole('link', { name: 'Log in' })).toBeVisible();
 });
 
@@ -515,6 +567,30 @@ test('invites a user who reads internal sources with their own key, but manages 
 	expect(
 		(await page.request.get('/sources', { headers: { Authorization: `Bearer ${key}` } })).status()
 	).toBe(401);
+});
+
+test('accepts an invitation through an identity provider for the invited address', async ({
+	page
+}) => {
+	// Outside the domains the provider may sign up: the invitation alone lets the account in.
+	const partner = 'partner@partner.example';
+	await fetch(`${MAIL_API}/messages`, { method: 'DELETE' });
+	await asAdmin(page);
+	await fillBeforeHydration(page, '/manage/users', 'Email address', partner);
+	await expect(page.getByLabel('Email address')).toHaveValue(partner);
+	await page.getByRole('button', { name: 'Send invitation' }).click();
+	await expect(page.getByRole('status')).toContainText(`Invitation sent to ${partner}.`);
+
+	const link = await linkFromMail(partner, '/invite/');
+	await page.context().clearCookies();
+	await page.goto(link);
+	await logInThrough(page, 'GitLab', 'partner', { email: 'p@elsewhere.example' });
+	await expect(page).toHaveURL('/');
+	await expect(page.getByRole('link', { name: partner })).toBeVisible();
+
+	await page.context().clearCookies();
+	await page.goto(link);
+	await expect(page.getByRole('alert')).toContainText('This invitation link is not valid');
 });
 
 // Near the end, because every test before it logs in with the old password.

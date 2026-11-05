@@ -11,6 +11,8 @@ export interface EncryptionKeys {
 	sourceTokens: Buffer;
 	/** Secrets a form carries between requests in a hidden field. */
 	formSecrets: Buffer;
+	/** A login at an identity provider, kept in a cookie until the provider answers. */
+	oidcFlows: Buffer;
 }
 
 /**
@@ -31,7 +33,11 @@ export function parseEncryptionKey(value: string | undefined): EncryptionKeys {
 export function deriveKeys(instanceKey: Buffer): EncryptionKeys {
 	const derive = (label: string) =>
 		Buffer.from(hkdfSync('sha256', instanceKey, Buffer.alloc(0), label, KEY_BYTES));
-	return { sourceTokens: derive('source-tokens'), formSecrets: derive('form-secrets') };
+	return {
+		sourceTokens: derive('source-tokens'),
+		formSecrets: derive('form-secrets'),
+		oidcFlows: derive('oidc-flows')
+	};
 }
 
 /** Encrypts a secret under the key of its purpose: base64 of IV, authentication tag and ciphertext. */

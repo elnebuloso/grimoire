@@ -48,7 +48,16 @@ export type AuthProblem =
 	| 'reset-link-invalid'
 	| 'invite-link-invalid'
 	| 'account-exists'
-	| 'invitation-exists';
+	| 'invitation-exists'
+	| 'oidc-claims'
+	| 'oidc-email-taken'
+	| 'oidc-no-email'
+	| 'oidc-not-allowed'
+	| 'oidc-unavailable'
+	| 'oidc-failed'
+	| 'oidc-identity-taken'
+	| 'oidc-blocked'
+	| 'last-sign-in';
 
 // Kept in memory only: it exists solely to prove access to the server log, so it is never stored.
 let setupTokenValue: string | undefined;
@@ -133,6 +142,10 @@ function findUser(db: DatabaseSync, email: string) {
 		{ id: number; email: string; password_hash: string | null } | undefined;
 }
 
+export function accountExists(db: DatabaseSync, email: string): boolean {
+	return findUser(db, email) !== undefined;
+}
+
 function adminExists(db: DatabaseSync): boolean {
 	return db.prepare("SELECT 1 FROM user_roles WHERE role = 'admin'").get() !== undefined;
 }
@@ -147,11 +160,14 @@ export async function createUser(
 	return inTransaction(db, () => insertUser(db, form.email, passwordHash, form.roles));
 }
 
-/** Stores a user with an already hashed password; callers check the address and run it in a transaction. */
+/**
+ * Stores a user with an already hashed password, or none for an account that logs in through an
+ * identity provider; callers check the address and run it in a transaction.
+ */
 export function insertUser(
 	db: DatabaseSync,
 	email: string,
-	passwordHash: string,
+	passwordHash: string | null,
 	roles: Role[]
 ): number {
 	const { lastInsertRowid } = db
@@ -270,10 +286,7 @@ export async function changePassword(
 	const passwordHash = await hashPassword(form.password);
 	inTransaction(db, () => {
 		db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(passwordHash, stored.id);
-		db.prepare('DELETE FROM sessions WHERE user_id = ? AND token_hash != ?').run(
-			stored.id,
-			sha256(session)
-		);
+		endSessions(db, stored.id, session);
 		// A reset mail the user did not ask for is a reason to change the password; its link must
 		// not outlive the change.
 		db.prepare('DELETE FROM password_resets WHERE user_id = ?').run(stored.id);
@@ -281,7 +294,7 @@ export async function changePassword(
 	return undefined;
 }
 
-function createSession(db: DatabaseSync, userId: number, now: Date): string {
+export function createSession(db: DatabaseSync, userId: number, now: Date): string {
 	// Expired sessions are useless; removed here, they cannot pile up over the life of an instance.
 	db.prepare('DELETE FROM sessions WHERE expires_at <= ?').run(now.toISOString());
 	const token = randomBytes(32).toString('base64url');
@@ -340,6 +353,14 @@ export function sessionUser(
 		.get(sha256(token), now.toISOString()) as
 		{ id: number; email: string; roles: string } | undefined;
 	return row && { id: row.id, email: row.email, roles: JSON.parse(row.roles) as Role[] };
+}
+
+/** Ends every session of the user, except `keepSession`, such as the one changing the password. */
+export function endSessions(db: DatabaseSync, userId: number, keepSession?: string) {
+	db.prepare('DELETE FROM sessions WHERE user_id = ? AND token_hash != ?').run(
+		userId,
+		keepSession ? sha256(keepSession) : ''
+	);
 }
 
 export function deleteSession(db: DatabaseSync, token: string) {

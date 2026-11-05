@@ -14,7 +14,11 @@ const send = vi.fn(async () => true);
 vi.mock('#lib/server/db/index.js', () => ({ database: () => db }));
 // The SMTP server is outside the test; whether a mailer exists and accepts is what matters here.
 vi.mock('#lib/server/mail/index.js', () => ({ mailer: () => mail }));
-vi.mock('$app/env/private', () => ({ INSTANCE_TITLE: 'Acme Docs', BASE_URL: '' }));
+vi.mock('$app/env/private', () => ({
+	INSTANCE_TITLE: 'Acme Docs',
+	BASE_URL: '',
+	OIDC_PROVIDERS: ''
+}));
 
 const ADMIN = { id: 1, email: 'admin@example.com', roles: ['admin'] };
 const PASSWORD = 'correct horse battery';
@@ -113,7 +117,9 @@ describe('accepting', () => {
 		await inviteForm('writer@example.com');
 		const token = mailedToken();
 		expect(invite.load({ params: { token }, setHeaders: vi.fn() } as never)).toEqual({
-			email: 'writer@example.com'
+			email: 'writer@example.com',
+			providers: [],
+			token
 		});
 
 		const { run, cookies } = accept(token, PASSWORD);
@@ -141,7 +147,9 @@ describe('accepting', () => {
 			data: { linkInvalid: true }
 		});
 		expect(invite.load({ params: { token }, setHeaders: vi.fn() } as never)).toEqual({
-			email: undefined
+			email: undefined,
+			providers: [],
+			token
 		});
 	});
 });

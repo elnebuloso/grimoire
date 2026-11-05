@@ -8,18 +8,26 @@ import {
 	sessionCookieOptions,
 	sessionUser
 } from '#lib/server/admin/auth.js';
-import { authMessage } from '#lib/server/admin/auth-messages.js';
+import { authMessage, isAuthProblem } from '#lib/server/admin/auth-messages.js';
+import { oidcProviders } from '#lib/server/oidc/index.js';
 import { mailer } from '#lib/server/mail/index.js';
 import { pathOnThisSite } from '#lib/server/path-on-this-site.js';
 
 // A plain form needs no JavaScript; hydrating it would reset what was typed before it finished.
 export const csr = false;
 
-export const load: PageServerLoad = ({ url }) => ({
-	resetByMail: mailer() !== undefined,
-	// Set by an import on the setup page.
-	imported: url.searchParams.has('imported')
-});
+export const load: PageServerLoad = ({ url }) => {
+	// Set by a login through an identity provider that was refused, on its way back here.
+	const problem = url.searchParams.get('problem');
+	return {
+		resetByMail: mailer() !== undefined,
+		providers: oidcProviders().map(({ key, label }) => ({ key, label })),
+		next: url.searchParams.get('next') ?? '',
+		problem: isAuthProblem(problem) ? authMessage(problem) : undefined,
+		// Set by an import on the setup page.
+		imported: url.searchParams.has('imported')
+	};
+};
 
 export const actions = {
 	default: async ({ request, cookies, getClientAddress, url }) => {

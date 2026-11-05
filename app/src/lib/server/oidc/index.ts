@@ -15,6 +15,26 @@ export function oidcProviders(): OidcProvider[] {
 	return configured;
 }
 
+/** The provider `key` names, such as from a route parameter or a form field; undefined for none. */
+export function providerByKey(key: unknown): OidcProvider | undefined {
+	return oidcProviders().find((provider) => provider.key === key);
+}
+
+export function providerByIssuer(issuer: string): OidcProvider | undefined {
+	return oidcProviders().find((provider) => provider.issuer === issuer);
+}
+
+/**
+ * A user's links as the pages show them. A link to a provider no longer configured is listed by its
+ * issuer, so it can be removed.
+ */
+export function describeLinks(issuers: string[]) {
+	return issuers.map((issuer) => {
+		const provider = providerByIssuer(issuer);
+		return { issuer, label: provider?.label ?? issuer, configured: provider !== undefined };
+	});
+}
+
 /** Checks the providers at start and names the redirect URI each must have registered. */
 export function checkOidcProviders() {
 	for (const provider of oidcProviders()) {

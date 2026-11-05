@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import FormError from '#lib/components/FormError.svelte';
+	import ProviderButtons from '#lib/components/ProviderButtons.svelte';
 	import PageHead from '#lib/components/PageHead.svelte';
 	import TextField from '#lib/components/TextField.svelte';
 	import { m } from '#lib/paraglide/messages.js';
@@ -22,7 +23,7 @@
 
 <section class="sheet">
 	<form method="post">
-		<FormError message={form?.error} id="login-error" />
+		<FormError message={form?.error ?? data.problem} id="login-error" />
 		<TextField
 			label={m.field_email()}
 			name="email"
@@ -42,6 +43,8 @@
 		/>
 		<button class="primary">{m.header_log_in()}</button>
 	</form>
+
+	<ProviderButtons providers={data.providers} fields={{ next: data.next }} />
 
 	{#if data.resetByMail}
 		<p class="forgot"><a href={resolve('/login/forgot')}>{m.login_forgot()}</a></p>

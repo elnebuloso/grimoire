@@ -11,7 +11,11 @@ const send = vi.fn(async () => true);
 vi.mock('#lib/server/db/index.js', () => ({ database: () => db }));
 // The SMTP server is outside the test; whether a mailer exists is what the pages depend on.
 vi.mock('#lib/server/mail/index.js', () => ({ mailer: () => mail }));
-vi.mock('$app/env/private', () => ({ INSTANCE_TITLE: 'Acme Docs' }));
+vi.mock('$app/env/private', () => ({
+	INSTANCE_TITLE: 'Acme Docs',
+	BASE_URL: '',
+	OIDC_PROVIDERS: ''
+}));
 
 const EMAIL = 'admin@example.com';
 const PASSWORD = 'correct horse battery';
@@ -72,10 +76,7 @@ describe('without SMTP', () => {
 	});
 
 	it('offers no reset: no link on the login page, 404 for its pages', async () => {
-		expect(await pages.login.load(event('/login'))).toEqual({
-			resetByMail: false,
-			imported: false
-		});
+		expect(await pages.login.load(event('/login'))).toMatchObject({ resetByMail: false });
 		for (const run of [
 			() => pages.forgot.load(event('/login/forgot')),
 			() => pages.forgot.actions.default(event('/login/forgot', { email: EMAIL })),
@@ -91,7 +92,10 @@ describe('without SMTP', () => {
 
 describe('with SMTP', () => {
 	it('links to the reset from the login page', async () => {
-		expect(await pages.login.load(event('/login'))).toEqual({ resetByMail: true, imported: false });
+		expect(await pages.login.load(event('/login'))).toMatchObject({
+			resetByMail: true,
+			providers: []
+		});
 	});
 
 	it('answers known and unknown addresses alike and mails a link only for a known one', async () => {

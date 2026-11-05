@@ -27,7 +27,11 @@ export const variables = defineEnvVars({
 			'Key encrypting the Git access tokens of sources and the secrets forms carry between requests; 32 bytes, base64',
 		schema: (value) =>
 			building
-				? { sourceTokens: Buffer.alloc(0), formSecrets: Buffer.alloc(0) }
+				? {
+						sourceTokens: Buffer.alloc(0),
+						formSecrets: Buffer.alloc(0),
+						oidcFlows: Buffer.alloc(0)
+					}
 				: parseEncryptionKey(value)
 	},
 	SYNC_SCHEDULE: {

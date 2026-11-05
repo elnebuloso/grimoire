@@ -14,8 +14,22 @@ const MESSAGES: Record<AuthProblem, () => string> = {
 	'reset-link-invalid': () => m.auth_reset_link_invalid(),
 	'invite-link-invalid': () => m.auth_invite_link_invalid(),
 	'account-exists': () => m.auth_account_exists(),
-	'invitation-exists': () => m.auth_invitation_exists()
+	'invitation-exists': () => m.auth_invitation_exists(),
+	'oidc-claims': () => m.auth_oidc_claims(),
+	'oidc-email-taken': () => m.auth_oidc_email_taken(),
+	'oidc-no-email': () => m.auth_oidc_no_email(),
+	'oidc-not-allowed': () => m.auth_oidc_not_allowed(),
+	'oidc-unavailable': () => m.auth_oidc_unavailable(),
+	'oidc-failed': () => m.auth_oidc_failed(),
+	'oidc-identity-taken': () => m.auth_oidc_identity_taken(),
+	'oidc-blocked': () => m.auth_oidc_blocked(),
+	'last-sign-in': () => m.auth_last_sign_in()
 };
+
+/** Whether `code`, such as one from a query parameter, names a refusal. */
+export function isAuthProblem(code: string | null): code is AuthProblem {
+	return code !== null && Object.hasOwn(MESSAGES, code);
+}
 
 /** The message for the form, in the language of the request. */
 export function authMessage(problem: AuthProblem): string {
