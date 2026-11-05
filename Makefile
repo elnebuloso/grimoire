@@ -6,8 +6,11 @@ help: ## List all targets
 setup: ## Prepare a fresh clone: check Node, create app/.env with a new key, install dependencies
 	scripts/setup.sh
 
+# Node loads app/.env into the environment, where the server reads the settings of each identity
+# provider; variables exported in the shell win. Not in the npm script: the agent environment
+# starts that one and must not see this file.
 dev: ## Start the dev server
-	npm --prefix app run dev
+	cd app && node --env-file-if-exists=.env node_modules/vite/bin/vite.js dev
 
 # The e2e tests start their own on other ports, see app/playwright.config.ts.
 mail-catcher: ## Receive the mails of make dev at http://localhost:8025, SMTP on port 1025 (needs Docker)

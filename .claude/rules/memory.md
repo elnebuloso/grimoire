@@ -9,6 +9,9 @@ Facts learned while building grimoire.
 - `$env/*` is replaced: declare every variable in `app/src/env.ts` with `defineEnvVars`, import it
   from `$app/env/private`. A variable without `schema` is required at build and start; use
   `building` from `$app/env` in the schema to require it only at start.
+- `.env` reaches only declared variables, not `process.env`. A variable whose name is not known
+  ahead (such as `OIDC_<KEY>_ISSUER`) comes from `process.env`; `make dev` loads `app/.env` there
+  with `node --env-file-if-exists`, which `NODE_OPTIONS` does not accept.
 - `ServerInit` comes from `@sveltejs/kit/hooks`. adapter-node awaits `init` before it listens.
 - adapter-node 6 has no `ORIGIN` variable: the origin is `paths.origin` from the config, else
   derived per request with protocol `https` unless `PROTOCOL_HEADER` names a header. Form POSTs
