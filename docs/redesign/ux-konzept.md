@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | Stand | 2026-11-05, Version 1.9.0 |
-| Status | Entwurf; offene Fragen entschieden, Konzept zur Annahme durch den Owner |
+| Status | Angenommen am 2026-11-05 |
 | Grundlage | Funktionsinventar aus dem Code, 59 Screenshots (`screenshots/`), eigene Bedienung der Agent-Umgebung als anonymer Besucher, Nutzer ohne Rolle, Admin und neuer SSO-Nutzer |
 | Umfang | Struktur, Navigation, Seitentypen, Interaktionsmuster, Komponenten. Kein visuelles Redesign: Tokens, Farben und Typografie bleiben, wie sie sind. |
 
@@ -29,7 +29,7 @@ Die Schwächen liegen in der Struktur, nicht in einzelnen Seiten:
 4. **Rückmeldung und Absicherung folgen keiner Regel.** Manche Aktionen melden Erfolg, andere nicht. Manche fragen nach, andere nicht. Der Wechsel einer Quelle auf `public` läuft ohne Rückfrage, die Admin-Rolle wird ohne Rückfrage vergeben.
 5. **Zwei Stellen führen in die Irre.** „Test connection“ meldet Erfolg bei einem Pfad, den es nicht gibt (U2). Ein SSO-Nutzer ohne Passwort kommt ohne Mailserver nie zu einem zweiten Login-Weg (U1).
 
-Das Zielbild in Teil II ordnet die App in drei Bereiche mit je eigenem Layout unter einem gemeinsamen Rahmen. Das Management bekommt eine Sidebar mit Gruppen, die Quellen eine Liste und eine Detailansicht mit Unterseiten. Bestätigung und Rückmeldung werden zu festen Mustern. Teil III ordnet das in 19 Maßnahmen, die einzeln auslieferbar sind.
+Das Zielbild in Teil II ordnet die App in drei Bereiche mit je eigenem Layout unter einem gemeinsamen Rahmen. Das Management bekommt eine Sidebar mit Gruppen, die Quellen eine Liste und eine Detailansicht mit Unterseiten. Bestätigung und Rückmeldung werden zu festen Mustern. Teil III ordnet das in 19 Maßnahmen, die nacheinander auf dem Branch `redesign` umgesetzt und am Ende gemeinsam ausgeliefert werden.
 
 ## 2. Übersicht der bestehenden Anwendungsstruktur
 
@@ -720,17 +720,19 @@ Stufe A zuerst, weil sie die kritischen Fehler behebt und die Muster liefert, di
 
 ### 16.2 Migrationsstrategie
 
-- **Schritt für Schritt auf `main`.** Jede Maßnahme ist ein eigener Task und ein eigener Merge; die App ist nach jedem Schritt vollständig benutzbar. Kein langlebiger Redesign-Branch, kein Feature-Flag. Der Branch `redesign` trägt nur dieses Konzept.
+- **Alles auf dem Branch `redesign`, ein Merge am Ende** (Entscheidung des Owners, 2026-11-05). Jede Maßnahme ist ein eigener Task und ein oder mehrere eigene Commits auf `redesign`; nach jedem Task ist die App auf dem Branch vollständig benutzbar und alle Prüfungen laufen grün. Nutzer bekommen das neue UI in einem Release. Was in der Zwischenzeit auf `main` landet, holt `redesign` regelmäßig per Rebase nach, damit der Merge am Ende klein bleibt. Kein Feature-Flag.
 - **URLs.** Alle heutigen URLs funktionieren weiter. Neu sind `/manage/sources` und die Unterseiten einer Quelle; `#settings` und `#status` werden auf die Unterseiten weitergeleitet [Annahme: per kleinem Skript im Client, da Anker den Server nicht erreichen].
 - **Tests je Schritt.**
   - `app/src/routes/manage/manage.e2e.ts` geht durch fast jede Management-Seite und folgt Links über ihre Namen. M5, M6, M9 und M15 ändern Navigation und Ablauf; diese Datei wird im selben Schritt angepasst.
   - Die Route-Specs (`*.spec.ts` unter `app/src/routes/`) prüfen Loads und Actions. Sie bleiben, solange Actions ihren Namen behalten; M9 verschiebt die Actions der Quelle auf Unterseiten und passt `sources.spec.ts` an.
   - Jede neue Komponente kommt mit Stories (Kapitel 14); umgestellte Komponenten behalten ihre Stories oder ersetzen sie.
-  - Vor jedem Merge `make lint`, `make test`, `make e2e`.
+  - Nach jedem Task `make lint`, `make test`, `make e2e` auf `redesign`; vor dem Merge nach `main` noch einmal alle drei.
 - **Handbuch.** Die Seiten unter `docs/handbook/` nennen Wege wie `Manage > Users` und Beschriftungen wie **Sync now**. Jede Maßnahme, die einen Weg oder eine Beschriftung ändert, ändert das Handbuch im selben Schritt.
 - **Texte.** Jede neue Beschriftung kommt in beide Message-Dateien. Die Begriffsliste aus M18 wird vor den Seiten-Maßnahmen (Stufe D) festgelegt, damit neue Texte gleich die richtigen Begriffe verwenden.
 
 ### 16.3 Abnahmekriterien
+
+Jede Maßnahme ist ein Backlog-Task im Meilenstein `m-3` „UI redesign“: M1 bis M19 sind TASK-248 bis TASK-266 in derselben Reihenfolge. Die Tasks tragen die Kriterien auf Englisch und sind maßgeblich, wenn sie von dieser Tabelle abweichen.
 
 | # | Abnahme |
 |---|---|
