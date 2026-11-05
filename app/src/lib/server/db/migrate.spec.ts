@@ -259,3 +259,42 @@ describe('0006-internal-or-public-without-owner', () => {
 		expect(() => db.exec("UPDATE sources SET visibility = 'private'")).toThrow(/CHECK/);
 	});
 });
+
+describe('0007-identities-and-optional-passwords', () => {
+	it('keeps users with what refers to them, and allows an account without a password', () => {
+		const db = new DatabaseSync(':memory:');
+		migrate(db, shippedMigrations.slice(0, 6));
+		db.exec(`INSERT INTO users (id, email, password_hash) VALUES (7, 'admin@example.com', 'hash');
+			INSERT INTO user_roles VALUES (7, 'admin');
+			INSERT INTO sessions VALUES ('token', 7, '2026-11-04T13:00:00.000Z', '2026-11-04T13:00:00.000Z');`);
+
+		migrate(db, shippedMigrations.slice(0, 7));
+		db.exec('PRAGMA foreign_keys = ON');
+
+		expect(rows(db, 'SELECT id, email, password_hash FROM users')).toEqual([
+			{ id: 7, email: 'admin@example.com', password_hash: 'hash' }
+		]);
+		expect(
+			rows(db, 'SELECT user_id FROM user_roles UNION ALL SELECT user_id FROM sessions')
+		).toEqual([{ user_id: 7 }, { user_id: 7 }]);
+		const referenced = rows(
+			db,
+			`SELECT DISTINCT f."table" AS name FROM sqlite_master m, pragma_foreign_key_list(m.name) f
+			WHERE m.type = 'table'`
+		);
+		expect(referenced).not.toContainEqual({ name: 'users_new' });
+		expect(rows(db, "SELECT name FROM sqlite_master WHERE sql LIKE '%users_new%'")).toEqual([]);
+		expect(rows(db, 'PRAGMA foreign_key_check')).toEqual([]);
+
+		db.exec("INSERT INTO users (email) VALUES ('reader@example.com')");
+		db.exec("INSERT INTO user_identities VALUES (8, 'https://gitlab.example.com', '42')");
+		expect(() =>
+			db.exec("INSERT INTO user_identities VALUES (7, 'https://gitlab.example.com', '42')")
+		).toThrow(/UNIQUE/);
+		expect(() =>
+			db.exec("INSERT INTO user_identities VALUES (8, 'https://gitlab.example.com', '43')")
+		).toThrow(/UNIQUE/);
+		db.exec('DELETE FROM users WHERE id = 8');
+		expect(rows(db, 'SELECT * FROM user_identities')).toEqual([]);
+	});
+});

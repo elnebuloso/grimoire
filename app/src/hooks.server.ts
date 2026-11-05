@@ -10,6 +10,7 @@ import { database } from '#lib/server/db/index.js';
 import { configureLog, log, routeConsoleToLog } from '#lib/server/log.js';
 import { logRefusedSources, startSyncPolling } from '#lib/server/sync/index.js';
 import { mailer } from '#lib/server/mail/index.js';
+import { checkOidcProviders } from '#lib/server/oidc/index.js';
 import { accessRedirect } from '#lib/server/admin/access.js';
 import {
 	checkAdminAccount,
@@ -35,6 +36,7 @@ export const init: ServerInit = () => {
 	checkAdminAccount(db);
 	// Fails the start on incomplete SMTP settings instead of at the first mail.
 	mailer();
+	checkOidcProviders();
 	startSyncPolling();
 	// Looks up every Git host: the server must not wait for that before it listens.
 	void logRefusedSources().catch((error) => log.error({ err: error }, 'checking Git hosts failed'));

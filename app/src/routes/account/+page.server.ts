@@ -1,11 +1,14 @@
 import { fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { database } from '#lib/server/db/index.js';
-import { changePassword, SESSION_COOKIE, sessionUser } from '#lib/server/admin/auth.js';
+import { changePassword, hasPassword, SESSION_COOKIE } from '#lib/server/admin/auth.js';
+import { mailer } from '#lib/server/mail/index.js';
 import { authMessage } from '#lib/server/admin/auth-messages.js';
 
-export const load: PageServerLoad = ({ cookies }) => ({
-	email: sessionUser(database(), cookies.get(SESSION_COOKIE))?.email
+export const load: PageServerLoad = ({ locals }) => ({
+	email: locals.user?.email,
+	hasPassword: locals.user !== undefined && hasPassword(database(), locals.user.id),
+	resetByMail: mailer() !== undefined
 });
 
 export const actions = {

@@ -30,5 +30,21 @@ without a restart. It runs beside `make dev` (5173) and `make e2e` (4173).
 | `billing-archive` | `archive/docs` (does not exist) | internal | sync fails with an error |
 | `platform-next` | `zensical/docs` | internal | paused and never synced; only "sync now" syncs it |
 
+## Identity providers
+
+`make agent-start` also starts an OIDC mock (`ghcr.io/navikt/mock-oauth2-server`) at
+`http://localhost:5580`; `make agent-stop` stops it. Every path is its own issuer:
+
+| Provider key | Issuer | Login button | Rule |
+|---|---|---|---|
+| `gitlab` | `http://localhost:5580/gitlab` | GitLab | sign-up for verified addresses at `example.com` |
+| `entra` | `http://localhost:5580/entra` | Microsoft | every login needs the claim `hd=example.com`; no sign-up |
+
+The mock's login form takes a `username`, which becomes the subject (`sub`), and the claims as JSON,
+e.g. `{"email": "new@example.com", "email_verified": true}`. The same username at the same
+provider is the same identity. The mock overwrites `tid` with the path, so test required claims
+with another claim. The per-provider variables are exported by `scripts/agent-env.sh`, not
+written to `.env`: SvelteKit reads only declared variables from there.
+
 The dev server runs over plain `http`, so curl needs no `X-Forwarded-Proto` header here; the
 other curl notes in `memory.md` apply.

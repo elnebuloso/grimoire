@@ -129,7 +129,8 @@ export function looksLikeEmail(email: string): boolean {
 function findUser(db: DatabaseSync, email: string) {
 	return db
 		.prepare('SELECT id, email, password_hash FROM users WHERE email = ?')
-		.get(normalizeEmail(email)) as { id: number; email: string; password_hash: string } | undefined;
+		.get(normalizeEmail(email)) as
+		{ id: number; email: string; password_hash: string | null } | undefined;
 }
 
 function adminExists(db: DatabaseSync): boolean {
@@ -258,7 +259,10 @@ export async function changePassword(
 	}
 	const user = sessionUser(db, session, now);
 	const stored = user && findUser(db, user.email);
-	if (!stored || !(await passwordMatches(form.current, stored.password_hash))) {
+	// An account without a password has no current one to give; it sets one by a reset.
+	unknownUserHash ??= await hashPassword(randomBytes(16).toString('hex'));
+	const matches = await passwordMatches(form.current, stored?.password_hash ?? unknownUserHash);
+	if (!stored || !matches) {
 		return { error: 'wrong-current-password' };
 	}
 	failedLogins.forget(clientKey(client));
@@ -310,6 +314,13 @@ export function touchSession(db: DatabaseSync, token: string | undefined, now = 
 		now.toISOString(),
 		writtenWithinAMinute.toISOString()
 	);
+}
+
+/** Whether the user has a password; an account created through an identity provider has none. */
+export function hasPassword(db: DatabaseSync, userId: number): boolean {
+	const row = db.prepare('SELECT password_hash FROM users WHERE id = ?').get(userId) as
+		{ password_hash: string | null } | undefined;
+	return row?.password_hash != null;
 }
 
 /** The user of a session that has not expired; undefined for none. */

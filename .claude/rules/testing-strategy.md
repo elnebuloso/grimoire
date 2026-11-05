@@ -54,6 +54,9 @@ file also passes on its own.
 - `src/routes/manage/manage.e2e.ts` is one serial story from the setup on: every test builds on the
   account and data the one before created. Run the whole file; `--grep` on a later test fails on
   missing state, not on the code.
+- `make e2e` also starts an OIDC mock on port 4580 with the providers `gitlab` (sign-up at
+  `e2e.example`) and `entra` (requires `hd=e2e.example`), next to the mail catcher; a test logs
+  in through the mock's form with any `username` (the subject) and claims as JSON.
 - `make e2e` runs a second, empty instance of the same build on port 4174, with its own database
   and `ENCRYPTION_KEY` and its log in `import-server.log`: `manage.e2e.ts` imports its export there
   on the setup page.

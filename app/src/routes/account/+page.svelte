@@ -2,6 +2,7 @@
 	import FormError from '#lib/components/FormError.svelte';
 	import PageHead from '#lib/components/PageHead.svelte';
 	import TextField from '#lib/components/TextField.svelte';
+	import { resolve } from '$app/paths';
 	import { m } from '#lib/paraglide/messages.js';
 	import type { PageProps } from './$types';
 
@@ -25,35 +26,46 @@
 	<p class="notice" role="status">{m.password_changed()}</p>
 {/if}
 
-<section class="sheet" bind:this={sheet}>
-	<form method="post">
-		<FormError message={form?.error} id="password-error" />
-		<!-- Tells a password manager which saved login the new password belongs to. -->
-		<TextField
-			label={m.field_email()}
-			name="email"
-			type="email"
-			readonly
-			autocomplete="username"
-			value={data.email}
-		/>
-		<TextField
-			label={m.password_current()}
-			name="current"
-			type="password"
-			required
-			autocomplete="current-password"
-			{...marked(m.auth_wrong_current_password())}
-		/>
-		<TextField
-			label={m.password_new()}
-			name="password"
-			type="password"
-			required
-			minlength={MIN_LENGTH}
-			autocomplete="new-password"
-			{...marked(m.auth_new_password_too_short({ min: MIN_LENGTH }))}
-		/>
-		<button class="primary">{m.password_submit()}</button>
-	</form>
-</section>
+{#if !data.hasPassword}
+	<p class="notice">
+		{#if data.resetByMail}
+			{m.password_none_reset()}
+			<a href={resolve('/login/forgot')}>{m.password_none_reset_link()}</a>
+		{:else}
+			{m.password_none_ask_admin()}
+		{/if}
+	</p>
+{:else}
+	<section class="sheet" bind:this={sheet}>
+		<form method="post">
+			<FormError message={form?.error} id="password-error" />
+			<!-- Tells a password manager which saved login the new password belongs to. -->
+			<TextField
+				label={m.field_email()}
+				name="email"
+				type="email"
+				readonly
+				autocomplete="username"
+				value={data.email}
+			/>
+			<TextField
+				label={m.password_current()}
+				name="current"
+				type="password"
+				required
+				autocomplete="current-password"
+				{...marked(m.auth_wrong_current_password())}
+			/>
+			<TextField
+				label={m.password_new()}
+				name="password"
+				type="password"
+				required
+				minlength={MIN_LENGTH}
+				autocomplete="new-password"
+				{...marked(m.auth_new_password_too_short({ min: MIN_LENGTH }))}
+			/>
+			<button class="primary">{m.password_submit()}</button>
+		</form>
+	</section>
+{/if}

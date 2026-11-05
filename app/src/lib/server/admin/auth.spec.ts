@@ -649,3 +649,21 @@ describe('scripts/reset-admin.ts', () => {
 		check.close();
 	});
 });
+
+describe('an account without a password', () => {
+	it('refuses a password change as with a wrong current password', async () => {
+		await auth.createUser(db, { email: 'reader@example.com', password: PASSWORD, roles: [] });
+		const session = sessionOf(
+			await auth.login(db, 'client', { email: 'reader@example.com', password: PASSWORD })
+		);
+		db.exec("UPDATE users SET password_hash = NULL WHERE email = 'reader@example.com'");
+
+		expect(
+			await auth.changePassword(db, 'client', session, {
+				current: '',
+				password: 'a new long password'
+			})
+		).toEqual({ error: 'wrong-current-password' });
+		expect(auth.hasPassword(db, auth.sessionUser(db, session)!.id)).toBe(false);
+	});
+});

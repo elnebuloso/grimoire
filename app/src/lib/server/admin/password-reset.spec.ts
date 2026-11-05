@@ -136,3 +136,15 @@ describe('resetPassword', () => {
 		expect(reset.resetLinkValid(db, first, NOW)).toBe(false);
 	});
 });
+
+describe('an account without a password', () => {
+	beforeEach(() => db.exec(`UPDATE users SET password_hash = NULL WHERE email = '${EMAIL}'`));
+
+	it('cannot log in or change a password, but sets a first one with a reset link', async () => {
+		expect(await logsIn(PASSWORD)).toBe(false);
+		expect(await logsIn('')).toBe(false);
+		expect(await reset.resetPassword(db, tokenFor(), NEW_PASSWORD, NOW)).toBeUndefined();
+		expect(await logsIn(NEW_PASSWORD)).toBe(true);
+		expect(auth.hasPassword(db, 1)).toBe(true);
+	});
+});

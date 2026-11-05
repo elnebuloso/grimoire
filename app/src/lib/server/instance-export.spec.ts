@@ -20,6 +20,7 @@ function instance(): DatabaseSync {
 	db.exec(`
 		INSERT INTO users (id, email, password_hash) VALUES (1, 'ada@example.com', 'hash-ada'), (2, 'bob@example.com', 'hash-bob');
 		INSERT INTO user_roles VALUES (1, 'admin');
+		INSERT INTO user_identities VALUES (2, 'https://gitlab.example.com', '42');
 		INSERT INTO sources (id, slug, name, git_url, branch, path, username, visibility,
 			last_checked_at, last_commit, last_synced_at, index_generation, error, failed_commit, warnings)
 			VALUES (1, 'billing-docs', 'Billing', 'https://git.example.com/billing.git', 'main', 'docs', 'deploy',

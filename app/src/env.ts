@@ -101,6 +101,11 @@ export const variables = defineEnvVars({
 			'Where grimoire is reached, such as `https://grimoire.example.com`; absolute links (mails, start page, `llms.txt`) point there, else to the address of the request; required with `SMTP_HOST`',
 		schema: parseBaseUrl
 	},
+	OIDC_PROVIDERS: {
+		description:
+			'Keys of the identity providers users may log in with, such as `gitlab entra`; each needs `OIDC_<KEY>_ISSUER`, `_CLIENT_ID` and `_CLIENT_SECRET` and takes `_LABEL`, `_ALLOWED_DOMAINS` and `_REQUIRED_CLAIMS`, read from the environment of the process; requires `BASE_URL`; empty: none',
+		schema: (value) => value ?? ''
+	},
 	GRIMOIRE_VERSION: {
 		description:
 			'Release version of grimoire; the image sets it, operators leave it alone; default `0.0.0` in development',

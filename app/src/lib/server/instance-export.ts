@@ -30,6 +30,7 @@ export const MIN_PASSPHRASE_LENGTH = 12;
 export const EXPORTED_COLUMNS: Record<string, string[]> = {
 	users: ['id', 'email', 'password_hash'],
 	user_roles: ['user_id', 'role'],
+	user_identities: ['user_id', 'issuer', 'subject'],
 	sources: [
 		'id',
 		'slug',

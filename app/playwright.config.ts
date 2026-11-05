@@ -56,6 +56,17 @@ const serverEnv = {
 	SMTP_ALLOW_PLAINTEXT: 'true',
 	SMTP_FROM: 'grimoire <grimoire@e2e.example>',
 	BASE_URL: 'http://localhost:4173',
+	OIDC_PROVIDERS: 'gitlab entra',
+	OIDC_GITLAB_ISSUER: 'http://localhost:4580/gitlab',
+	OIDC_GITLAB_CLIENT_ID: 'grimoire',
+	OIDC_GITLAB_CLIENT_SECRET: 'e2e-gitlab-secret',
+	OIDC_GITLAB_LABEL: 'GitLab',
+	OIDC_GITLAB_ALLOWED_DOMAINS: 'e2e.example',
+	OIDC_ENTRA_ISSUER: 'http://localhost:4580/entra',
+	OIDC_ENTRA_CLIENT_ID: 'grimoire',
+	OIDC_ENTRA_CLIENT_SECRET: 'e2e-entra-secret',
+	OIDC_ENTRA_LABEL: 'Microsoft',
+	OIDC_ENTRA_REQUIRED_CLAIMS: 'hd=e2e.example',
 	// A release version, so the footer links to its notes.
 	GRIMOIRE_VERSION: '1.2.3'
 };
@@ -72,6 +83,14 @@ export default defineConfig({
 			// The first run pulls the image.
 			timeout: 120_000,
 			// Killed outright, docker run would leave the container running; it passes TERM on.
+			gracefulShutdown: { signal: 'SIGTERM', timeout: 10_000 }
+		},
+		// Two identity providers on one mock, one per path; its login form takes any user and claims.
+		{
+			command:
+				'docker rm -f grimoire-e2e-idp-mock >/dev/null 2>&1; docker run --rm --name grimoire-e2e-idp-mock -p 4580:8080 ghcr.io/navikt/mock-oauth2-server:6.1.2',
+			url: 'http://localhost:4580/gitlab/.well-known/openid-configuration',
+			timeout: 120_000,
 			gracefulShutdown: { signal: 'SIGTERM', timeout: 10_000 }
 		},
 		{

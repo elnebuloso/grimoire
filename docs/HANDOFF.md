@@ -48,7 +48,7 @@ Nothing is planned. Ask the owner what comes next.
   `GIT_ALLOWED_HOSTS: []` in the mock. Local test repositories pass only through a policy with
   `allowLocal: true`, which no environment variable sets.
 - **`make e2e` needs `openssl` and the ports 4443 (local https Git server), 4173, 4174 (second,
-  empty instance for the import) and 4125/4825 (mail catcher).**
+  empty instance for the import), 4125/4825 (mail catcher) and 4580 (OIDC mock).**
 - **Type errors from stale messages:** the Paraglide output under `app/src/lib/paraglide` is
   generated; `svelte-check` alone may see an old one. `make lint` compiles it first.
 - **After a schema change** the agent environment needs `make agent-reset`.
