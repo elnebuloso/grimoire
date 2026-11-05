@@ -28,6 +28,7 @@ export const actions = {
 		}
 		const result = await login(db, getClientAddress(), { email: accepted.email, password });
 		if ('session' in result) cookies.set(SESSION_COOKIE, result.session, sessionCookieOptions);
-		redirect(303, '/manage');
+		// An invited user has no role: the management area is closed to them.
+		redirect(303, '/');
 	}
 } satisfies Actions;

@@ -27,27 +27,17 @@ import {
 } from '#lib/server/admin/sources.js';
 import { previewPage, sourceStatus } from '#lib/server/admin/status.js';
 import { readSettings, syncsAutomatically } from '#lib/server/settings.js';
-import { mayManageSource } from '#lib/server/admin/access.js';
-import type { SessionUser } from '#lib/server/admin/auth.js';
-
-/**
- * The source of the page; undefined for `/manage/sources/new`. A 403 for a source the user may not
- * manage, for every action and the page itself: its settings name the repository and its account.
- */
-function sourceFor(
-	params: { id: string },
-	user: SessionUser | undefined
-): SourceSettings | undefined {
+/** The source of the page; undefined for `/manage/sources/new`. */
+function sourceFor(params: { id: string }): SourceSettings | undefined {
 	const id = parseIdParam(params.id);
 	if (id === 'new') return undefined;
 	const source = id && findSource(database(), id);
 	if (!source) error(404);
-	if (!user || !mayManageSource(user, source)) error(403);
 	return source;
 }
 
-export const load: PageServerLoad = ({ params, url, locals }) => {
-	const source = sourceFor(params, locals.user);
+export const load: PageServerLoad = ({ params, url }) => {
+	const source = sourceFor(params);
 	const schedule = source?.schedule ?? SYNC_SCHEDULE;
 	const previewFile = url.searchParams.get('preview');
 	const { syncsPaused } = readSettings(database());
@@ -105,28 +95,17 @@ function conflictAnswer(
 	conflict: SourceConflict | undefined,
 	overlapConfirmed: boolean
 ): { error: string } | { overlap: string } | undefined {
-	if (conflict?.kind === 'duplicate') {
-		return {
-			error:
-				conflict.name === undefined
-					? m.error_source_duplicate_hidden()
-					: m.error_source_duplicate({ name: conflict.name })
-		};
-	}
+	if (conflict?.kind === 'duplicate')
+		return { error: m.error_source_duplicate({ name: conflict.name }) };
 	if (conflict?.kind === 'overlap' && !overlapConfirmed) {
-		return {
-			overlap:
-				conflict.name === undefined
-					? m.warning_source_overlap_hidden()
-					: m.warning_source_overlap({ name: conflict.name })
-		};
+		return { overlap: m.warning_source_overlap({ name: conflict.name }) };
 	}
 	return undefined;
 }
 
 export const actions = {
-	save: async ({ request, params, locals }) => {
-		const source = sourceFor(params, locals.user);
+	save: async ({ request, params }) => {
+		const source = sourceFor(params);
 		const data = await request.formData();
 		const { form, values, damaged } = readSourceForm(data);
 		const db = database();
@@ -134,26 +113,18 @@ export const actions = {
 		const changes = savingChanges(stored, form);
 		const problem = damaged ?? sourceProblem(db, source?.id, stored, form);
 		if (problem) return fail(400, { error: problem, values });
-		const user = locals.user!;
 		const confirmed = data.get('confirmOverlap') === 'on';
-		const conflict = conflictAnswer(sourceConflict(db, source?.id, stored, form, user), confirmed);
+		const conflict = conflictAnswer(sourceConflict(db, source?.id, stored, form), confirmed);
 		if (conflict) return fail(400, { ...conflict, values });
 
 		const unreachable = changes.access ? await accessProblem(stored, form) : undefined;
 		if (unreachable) return fail(400, { error: unreachable, values });
 		// The Git server may take seconds; another save may have added the same documentation
 		// meanwhile. No await follows, so nothing changes between this check and the write.
-		const late = conflictAnswer(sourceConflict(db, source?.id, stored, form, user), confirmed);
+		const late = conflictAnswer(sourceConflict(db, source?.id, stored, form), confirmed);
 		if (late) return fail(400, { ...late, values });
 
-		const result = saveSource(
-			db,
-			ENCRYPTION_KEY.sourceTokens,
-			source?.id,
-			form,
-			changes,
-			locals.user?.id ?? null
-		);
+		const result = saveSource(db, ENCRYPTION_KEY.sourceTokens, source?.id, form, changes);
 		// Deleted in another tab while the Git server was asked.
 		if (result === 'not-found') error(404);
 
@@ -163,9 +134,9 @@ export const actions = {
 			requestSyncInBackground(result.id, { force: changes.reindex });
 		redirect(303, `/manage/sources/${result.id}`);
 	},
-	test: async ({ request, params, locals }) => {
+	test: async ({ request, params }) => {
 		// Only the remote, not `sourceProblem`: access can be tested before the source is named.
-		const source = sourceFor(params, locals.user);
+		const source = sourceFor(params);
 		const { form, values, damaged } = readSourceForm(await request.formData());
 		if (damaged) return fail(400, { error: damaged, values });
 		const access = await checkSourceAccess(
@@ -177,8 +148,8 @@ export const actions = {
 		);
 		return { access, values };
 	},
-	sync: async ({ params, url, locals }) => {
-		const source = sourceFor(params, locals.user);
+	sync: async ({ params, url }) => {
+		const source = sourceFor(params);
 		if (!source) error(404);
 		// Not awaited: the sync waits for every one queued before it, longer than a reverse proxy
 		// keeps a request open. The page shows that it is pending, and its outcome in the status.
@@ -186,8 +157,8 @@ export const actions = {
 		// Back to the page by GET, so reloading it for the outcome does not queue another sync.
 		redirect(303, url.pathname);
 	},
-	slug: async ({ request, params, locals }) => {
-		const source = sourceFor(params, locals.user);
+	slug: async ({ request, params }) => {
+		const source = sourceFor(params);
 		if (!source) error(404);
 		const data = await request.formData();
 		const form = {
@@ -201,8 +172,8 @@ export const actions = {
 		}
 		return { slugChanged: true };
 	},
-	delete: async ({ params, locals }) => {
-		const source = sourceFor(params, locals.user);
+	delete: async ({ params }) => {
+		const source = sourceFor(params);
 		if (source) await deleteSource(database(), source.id);
 		redirect(303, '/manage');
 	}

@@ -3,9 +3,6 @@ import { grimoireId } from '../grimoire-id';
 import { readSnippets, renderSnippet } from '../search/query';
 import { sourceStats, type SourceStats } from '../stats';
 import { syncErrorKind, type SyncErrorKind } from '../sync/error-kind';
-import { readableSlugs } from '../api-keys';
-import { hasRoles, mayManageSource } from './access';
-import type { SessionUser } from './auth';
 
 export interface PageSummary {
 	/** Path relative to the source path, e.g. `deploy.md`. */
@@ -244,48 +241,32 @@ export function problems(sources: (SourceHealth & { deadLinks: number })[]): Pro
 export interface Dashboard {
 	totals: Totals;
 	sources: SourceStats[];
-	/** The IDs of the listed sources the user may manage; the others are only read. */
-	managed: number[];
 	attention: Problem[];
 }
 
-/**
- * The overview for `user`: an admin sees every source, a user the ones they may read. Problems
- * and API keys are counted only where the user can act on them: their own sources and keys.
- */
-export function dashboard(db: DatabaseSync, user: SessionUser): Dashboard {
-	const admin = hasRoles(user, ['admin']);
-	const readable = admin ? undefined : readableSlugs(db, user.id);
-	const sources = sourceStats(db).filter((source) => !readable || readable.includes(source.slug));
-	const managed = sources
-		.filter((source) => mayManageSource(user, source))
-		.map((source) => source.id);
-	const sum = (figure: 'pages' | 'snippets' | 'tokens') =>
+/** The overview of every source and key for the admins. */
+export function dashboard(db: DatabaseSync): Dashboard {
+	const sources = sourceStats(db);
+	const sum = (figure: 'pages' | 'snippets' | 'tokens' | 'deadLinks') =>
 		sources.reduce((total, source) => total + source[figure], 0);
-	const { apiKeys } = db
-		.prepare('SELECT count(*) AS apiKeys FROM api_keys WHERE :admin OR owner_id = :user')
-		.get({ admin: admin ? 1 : 0, user: user.id }) as { apiKeys: number };
+	const { apiKeys } = db.prepare('SELECT count(*) AS apiKeys FROM api_keys').get() as {
+		apiKeys: number;
+	};
 	return {
 		totals: {
 			sources: sources.length,
 			pages: sum('pages'),
 			snippets: sum('snippets'),
 			tokens: sum('tokens'),
-			// Counted where the dead links page lists them: in the sources the user manages.
-			deadLinks: sources
-				.filter((source) => managed.includes(source.id))
-				.reduce((total, source) => total + source.deadLinks, 0),
+			deadLinks: sum('deadLinks'),
 			apiKeys
 		},
 		sources,
-		managed,
 		attention: problems(
-			sourceHealth(db)
-				.filter((health) => managed.includes(health.sourceId))
-				.map((health) => ({
-					...health,
-					deadLinks: sources.find((source) => source.id === health.sourceId)?.deadLinks ?? 0
-				}))
+			sourceHealth(db).map((health) => ({
+				...health,
+				deadLinks: sources.find((source) => source.id === health.sourceId)?.deadLinks ?? 0
+			}))
 		)
 	};
 }

@@ -47,18 +47,4 @@ describe('dead links page', () => {
 		]);
 		expect(Object.keys(groups[0]).sort()).toEqual(['links', 'source', 'sourceId']);
 	});
-
-	it('lists a user only the dead links of their own sources', () => {
-		db.exec(`INSERT INTO users (id, email, password_hash) VALUES (9, 'writer@example.com', 'hash');
-			UPDATE sources SET owner_id = 9, visibility = 'internal' WHERE id = 2;
-			UPDATE sources SET visibility = 'internal' WHERE id = 1;`);
-		addDeadLink(1, 'a.md', 'platform-auth/x');
-		addDeadLink(2, 'index.md', 'billing-docs/z');
-
-		const writer = { id: 9, email: 'writer@example.com', roles: [] };
-		const { groups } = page.load({ locals: { user: writer } } as never) as {
-			groups: { source: string }[];
-		};
-		expect(groups.map((group) => group.source)).toEqual(['billing-docs']);
-	});
 });

@@ -228,3 +228,34 @@ describe('0002-owners-and-visibility', () => {
 		expect(() => db.exec("UPDATE sources SET visibility = 'everyone'")).toThrow(/CHECK/);
 	});
 });
+
+describe('0006-internal-or-public-without-owner', () => {
+	it('turns private sources internal, drops their owner and keeps the owner of keys', () => {
+		const db = new DatabaseSync(':memory:');
+		migrate(db, shippedMigrations.slice(0, 5));
+		db.exec(`INSERT INTO users (id, email, password_hash) VALUES (1, 'writer@example.com', 'hash');
+			INSERT INTO sources (slug, name, git_url, branch, path, visibility, owner_id) VALUES
+				('billing-docs', 'Billing', 'https://git.example.com/b.git', 'main', 'docs', 'public', 1),
+				('platform-docs', 'Platform', 'https://git.example.com/p.git', 'main', 'docs', 'internal', 1),
+				('release-drafts', 'Drafts', 'https://git.example.com/r.git', 'main', 'docs', 'private', 1);
+			INSERT INTO api_keys (name, key_hash, all_sources, owner_id) VALUES ('ci', 'hash', 1, 1);`);
+
+		migrate(db, shippedMigrations.slice(0, 6));
+		expect(rows(db, 'SELECT * FROM sources ORDER BY slug').map((row) => row.visibility)).toEqual([
+			'public',
+			'internal',
+			'internal'
+		]);
+		expect(rows(db, 'SELECT * FROM sources')[0]).not.toHaveProperty('owner_id');
+		expect(rows(db, 'SELECT owner_id FROM api_keys')).toEqual([{ owner_id: 1 }]);
+	});
+
+	it('creates a new source internal and refuses private', () => {
+		const db = new DatabaseSync(':memory:');
+		migrate(db, shippedMigrations.slice(0, 6));
+		db.exec(`INSERT INTO sources (slug, name, git_url, branch, path)
+			VALUES ('drafts', 'Drafts', 'https://git.example.com/drafts.git', 'main', 'docs')`);
+		expect(rows(db, 'SELECT visibility FROM sources')).toEqual([{ visibility: 'internal' }]);
+		expect(() => db.exec("UPDATE sources SET visibility = 'private'")).toThrow(/CHECK/);
+	});
+});

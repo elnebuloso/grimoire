@@ -44,8 +44,7 @@ export const EXPORTED_COLUMNS: Record<string, string[]> = {
 		'docs_url',
 		'sync_schedule',
 		'paused',
-		'visibility',
-		'owner_id'
+		'visibility'
 	],
 	api_keys: ['id', 'name', 'key_hash', 'all_sources', 'created_at', 'valid_until', 'owner_id'],
 	api_key_sources: ['api_key_id', 'source_id'],

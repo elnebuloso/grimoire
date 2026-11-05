@@ -44,14 +44,10 @@ describe('readSourceFields', () => {
 	}
 
 	it('reads each visibility level', () => {
-		expect([visibilityOf('private'), visibilityOf('internal'), visibilityOf('public')]).toEqual([
-			'private',
-			'internal',
-			'public'
-		]);
+		expect([visibilityOf('internal'), visibilityOf('public')]).toEqual(['internal', 'public']);
 	});
 
-	it('reads a missing or unknown level as private', () => {
-		expect([visibilityOf(), visibilityOf('everyone')]).toEqual(['private', 'private']);
+	it('reads a missing or unknown level as internal', () => {
+		expect([visibilityOf(), visibilityOf('private')]).toEqual(['internal', 'internal']);
 	});
 });

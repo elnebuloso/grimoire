@@ -19,15 +19,14 @@ vi.mock('$app/env/private', () => ({
 	INSTANCE_NAME: 'Acme Agents'
 }));
 
-function addSourceWithPage(slug: string, markdown: string, isPublic: boolean, privateTo?: number) {
-	const visibility = isPublic ? 'public' : privateTo ? 'private' : 'internal';
+function addSourceWithPage(slug: string, markdown: string, isPublic: boolean) {
 	const sourceId = Number(
 		db
 			.prepare(
-				`INSERT INTO sources (slug, name, git_url, branch, path, visibility, owner_id)
-				VALUES (?, 'Docs', 'https://git.internal.example/x.git', 'main', 'docs/', ?, ?)`
+				`INSERT INTO sources (slug, name, git_url, branch, path, visibility)
+				VALUES (?, 'Docs', 'https://git.internal.example/x.git', 'main', 'docs/', ?)`
 			)
-			.run(slug, visibility, privateTo ?? null).lastInsertRowid
+			.run(slug, isPublic ? 'public' : 'internal').lastInsertRowid
 	);
 	const metadata = preprocessPage(markdown);
 	const chunked = chunkPage(metadata, 'index.md');
@@ -60,17 +59,12 @@ describe('start page', () => {
 		expect(load('').mcpName).toBe('acme-agents');
 	});
 
-	it('lists the public sources to a visitor, and to a user also internal and their own private ones', () => {
-		const insertUser = db.prepare("INSERT INTO users (email, password_hash) VALUES (?, 'hash')");
-		const writer = Number(insertUser.run('writer@example.com').lastInsertRowid);
-		const other = Number(insertUser.run('ops@example.com').lastInsertRowid);
+	it('lists the public sources to a visitor, and to a user also the internal ones', () => {
 		addSourceWithPage('billing-docs', '# Invoices', true);
-		addSourceWithPage('release-drafts', '# Drafts', false, writer);
 		const slugs = (userId?: number) => load('', userId).sources.map((source) => source.slug);
 
 		expect(slugs()).toEqual(['billing-docs']);
-		expect(slugs(writer)).toEqual(['billing-docs', 'platform-docs', 'release-drafts']);
-		expect(slugs(other)).toEqual(['billing-docs', 'platform-docs']);
+		expect(slugs(1)).toEqual(['billing-docs', 'platform-docs']);
 	});
 
 	it('offers no query to a visitor while no source is public', () => {
@@ -92,17 +86,10 @@ describe('start page', () => {
 			expect(load('?q=rollback&source=platform-docs').query?.answer).not.toContain('platform-docs');
 		});
 
-		it("answers a user from what they may read: internal and own private, not another user's", () => {
-			const insertUser = db.prepare("INSERT INTO users (email, password_hash) VALUES (?, 'hash')");
-			const writer = Number(insertUser.run('writer@example.com').lastInsertRowid);
-			const admin = Number(insertUser.run('admin@example.com').lastInsertRowid);
-			db.prepare("INSERT INTO user_roles (user_id, role) VALUES (?, 'admin')").run(admin);
-			addSourceWithPage('release-drafts', '# Drafts\n\nA rollback plan.', false, writer);
-
-			const asWriter = load('?q=rollback', writer).query?.answer;
-			expect(asWriter).toContain('Source: platform-docs/index');
-			expect(asWriter).toContain('Source: release-drafts/index');
-			expect(load('?q=rollback', admin).query?.answer).not.toContain('release-drafts');
+		it('answers a user from the public and internal sources', () => {
+			const answer = load('?q=rollback', 1).query?.answer;
+			expect(answer).toContain('Source: platform-docs/index');
+			expect(answer).toContain('Source: billing-docs/index');
 		});
 
 		it('searches only the first 500 characters of an over-long question', () => {

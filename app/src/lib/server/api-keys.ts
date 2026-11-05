@@ -99,7 +99,7 @@ export type ApiKeyRefusal = { error: 'unknown-source' } | { error: 'unknown-key'
 /**
  * Creates a key for all sources or a selection of source slugs, accepted through `validUntil`
  * when given, owned by `ownerId`. The returned key is the only copy: the database keeps just its
- * hash. A source that does not exist or that the owner may not read stores nothing.
+ * hash. A source that does not exist stores nothing.
  */
 export function createApiKey(
 	db: DatabaseSync,
@@ -110,7 +110,7 @@ export function createApiKey(
 ): { id: number; key: string } | { error: 'unknown-source' } {
 	const key = KEY_PREFIX + randomBytes(KEY_BYTES).toString('base64url');
 	return inTransaction(db, () => {
-		const sourceIds = findSourceIds(db, sources, ownerId);
+		const sourceIds = findSourceIds(db, sources);
 		if (!sourceIds) return { error: 'unknown-source' };
 		const id = Number(
 			db
@@ -140,7 +140,7 @@ export function updateApiKey(
 			.prepare('SELECT 1 FROM api_keys WHERE id = ? AND owner_id = ?')
 			.get(id, ownerId);
 		if (!owned) return { error: 'unknown-key' };
-		const sourceIds = findSourceIds(db, sources, ownerId);
+		const sourceIds = findSourceIds(db, sources);
 		if (!sourceIds) return { error: 'unknown-source' };
 		// The old selection goes first: the schema refuses a key for all sources that still has one.
 		db.prepare('DELETE FROM api_key_sources WHERE api_key_id = ?').run(id);
@@ -154,22 +154,13 @@ export function updateApiKey(
 	});
 }
 
-/**
- * The IDs of the selected sources, none for all sources, undefined if a slug is unknown or names
- * a private source of someone other than `ownerId`.
- */
-function findSourceIds(
-	db: DatabaseSync,
-	sources: KeyScope,
-	ownerId: number | null
-): number[] | undefined {
+/** The IDs of the selected sources, none for all sources, undefined if a slug is unknown. */
+function findSourceIds(db: DatabaseSync, sources: KeyScope): number[] | undefined {
 	if (sources === 'all') return [];
-	const findSource = db.prepare(
-		"SELECT id FROM sources WHERE slug = ? AND (visibility <> 'private' OR owner_id = ?)"
-	);
+	const findSource = db.prepare('SELECT id FROM sources WHERE slug = ?');
 	const ids: number[] = [];
 	for (const slug of sources) {
-		const source = findSource.get(slug, ownerId) as { id: number } | undefined;
+		const source = findSource.get(slug) as { id: number } | undefined;
 		if (!source) return undefined;
 		ids.push(source.id);
 	}
@@ -251,19 +242,14 @@ export function revokeApiKey(db: DatabaseSync, id: number, ownerId?: number) {
 	if (!db.prepare('SELECT 1 FROM api_keys WHERE id = ?').get(id)) unwrittenFor(db).delete(id);
 }
 
-/**
- * The slugs of the sources `userId` may read: the public and internal ones and their own private
- * ones. Null for no user, such as a key whose owner was reset: it reads no private source.
- */
-export function readableSlugs(db: DatabaseSync, userId: number | null): string[] {
-	const rows = db
-		.prepare("SELECT slug FROM sources WHERE visibility <> 'private' OR owner_id = ? ORDER BY slug")
-		.all(userId) as { slug: string }[];
+/** The slugs of every source: what any user, and any key, may read. */
+export function allSlugs(db: DatabaseSync): string[] {
+	const rows = db.prepare('SELECT slug FROM sources ORDER BY slug').all() as { slug: string }[];
 	return rows.map((row) => row.slug);
 }
 
 /**
- * The sources a key may see, within what its owner may read, or undefined when the key is unknown
+ * The sources a key may see, or undefined when the key is unknown
  * or expired and must be rejected. Counts the request of an accepted key and writes its last use
  * and counts at most once a minute.
  */
@@ -273,16 +259,13 @@ export function scopeForKey(
 	clock: Clock
 ): { scope: SourceScope } | undefined {
 	const row = db
-		.prepare(
-			`SELECT id, all_sources, last_used_at, valid_until, owner_id FROM api_keys WHERE key_hash = ?`
-		)
+		.prepare(`SELECT id, all_sources, last_used_at, valid_until FROM api_keys WHERE key_hash = ?`)
 		.get(sha256(key)) as
 		| {
 				id: number;
 				all_sources: number;
 				last_used_at: string | null;
 				valid_until: string | null;
-				owner_id: number | null;
 		  }
 		| undefined;
 	if (!row || isExpired(row.valid_until, clock.today)) return undefined;
@@ -299,9 +282,7 @@ export function scopeForKey(
 		);
 		writeRequests(db, row.id, clock.today);
 	}
-	// Decided on every request: a source made private later drops out of other users' keys.
-	const readable = readableSlugs(db, row.owner_id);
-	if (row.all_sources === 1) return { scope: readable };
+	if (row.all_sources === 1) return { scope: allSlugs(db) };
 	const slugs = db
 		.prepare(
 			`SELECT sources.slug FROM api_key_sources
@@ -310,7 +291,5 @@ export function scopeForKey(
 			ORDER BY sources.slug`
 		)
 		.all(row.id) as { slug: string }[];
-	return {
-		scope: slugs.map((source) => source.slug).filter((slug) => readable.includes(slug))
-	};
+	return { scope: slugs.map((source) => source.slug) };
 }

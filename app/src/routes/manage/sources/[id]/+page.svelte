@@ -127,13 +127,6 @@
 				<ChoiceField
 					type="radio"
 					name="visibility"
-					value="private"
-					checked={values.visibility === 'private'}
-					label={m.field_visibility_private()}
-				/>
-				<ChoiceField
-					type="radio"
-					name="visibility"
 					value="internal"
 					checked={values.visibility === 'internal'}
 					label={m.field_visibility_internal({ name: data.instanceTitle })}

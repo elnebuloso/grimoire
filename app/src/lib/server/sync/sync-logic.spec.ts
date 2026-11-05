@@ -281,7 +281,7 @@ describe('syncSource', () => {
 				exclusions: '',
 				schedule: '',
 				paused: false,
-				visibility: 'private',
+				visibility: 'internal',
 				username: 'deploy',
 				token: '',
 				removeToken: false,

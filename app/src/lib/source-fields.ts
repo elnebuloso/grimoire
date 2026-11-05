@@ -1,5 +1,5 @@
-/** Who reads a source: only keys of its owner, the key of any user, or anyone without a key. */
-export const VISIBILITIES = ['private', 'internal', 'public'] as const;
+/** Who reads a source: the key of any user, or anyone without a key. */
+export const VISIBILITIES = ['internal', 'public'] as const;
 export type Visibility = (typeof VISIBILITIES)[number];
 
 function isVisibility(value: unknown): value is Visibility {
@@ -33,7 +33,7 @@ export const NEW_SOURCE_FIELDS: SourceFields = {
 	exclusions: '',
 	schedule: '',
 	paused: false,
-	visibility: 'private',
+	visibility: 'internal',
 	username: ''
 };
 
@@ -84,7 +84,7 @@ export function readSourceFields(data: FormData): SourceFields {
 		schedule: field('schedule'),
 		paused: data.get('paused') === 'on',
 		// Anything but a known level is the safest one.
-		visibility: isVisibility(visibility) ? visibility : 'private',
+		visibility: isVisibility(visibility) ? visibility : 'internal',
 		username: field('username')
 	};
 }

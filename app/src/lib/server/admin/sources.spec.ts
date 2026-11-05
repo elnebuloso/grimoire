@@ -31,7 +31,7 @@ function sourceForm(changes: Partial<SourceForm> = {}): SourceForm {
 		exclusions: '',
 		schedule: '',
 		paused: false,
-		visibility: 'private',
+		visibility: 'internal',
 		username: '',
 		token: '',
 		removeToken: false,
@@ -79,8 +79,7 @@ describe('saveSource', () => {
 			exclusions: ['a/**', 'b.md'],
 			schedule: null,
 			paused: false,
-			visibility: 'private',
-			ownerId: null,
+			visibility: 'internal',
 			username: null,
 			hasToken: false
 		});
@@ -117,11 +116,11 @@ describe('saveSource', () => {
 		});
 	});
 
-	it('creates a source private and switches it through every level', () => {
+	it('switches a source between public and internal', () => {
 		const id = created(trySave(undefined, sourceForm()));
-		expect(findSource(db, id)).toMatchObject({ visibility: 'private' });
+		expect(findSource(db, id)).toMatchObject({ visibility: 'internal' });
 
-		for (const visibility of ['internal', 'public', 'private'] as const) {
+		for (const visibility of ['public', 'internal'] as const) {
 			trySave(id, sourceForm({ visibility }));
 			expect(findSource(db, id)).toMatchObject({ visibility });
 		}
@@ -250,24 +249,9 @@ describe('saveSource', () => {
 			...edited,
 			id,
 			slug: 'auth-service',
-			ownerId: null,
 			exclusions: ['drafts/**'],
 			hasToken: false
 		});
-	});
-
-	it('gives a new source its owner and keeps the owner when another user saves it', () => {
-		const insertUser = db.prepare("INSERT INTO users (email, password_hash) VALUES (?, 'hash')");
-		const writer = Number(insertUser.run('writer@example.com').lastInsertRowid);
-		const admin = Number(insertUser.run('admin@example.com').lastInsertRowid);
-		const form = sourceForm();
-		const id = created(
-			saveSource(db, KEY, undefined, form, savingChanges(undefined, form), writer)
-		);
-
-		const stored = storedSource(db, id);
-		saveSource(db, KEY, id, form, savingChanges(stored, form), admin);
-		expect(findSource(db, id)?.ownerId).toBe(writer);
 	});
 
 	it('stores the description trimmed and changes it', () => {

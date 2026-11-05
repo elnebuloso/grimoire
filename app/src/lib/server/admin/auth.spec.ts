@@ -387,20 +387,23 @@ describe('several users', () => {
 		).toBe(true);
 	});
 
-	it('lets a user without the role admin into the management area, but not into its settings or users', async () => {
+	it('keeps a user without the role admin out of the management area, but not out of their account', async () => {
 		const editor = sessionOf(
 			await auth.login(db, 'b', { email: 'editor@example.com', password: EDITOR_PASSWORD })
 		);
 
-		expect(access.accessRedirect(db, '/manage', editor)).toBeUndefined();
-		expect(access.accessRedirect(db, '/manage/sources/[id]', editor)).toBeUndefined();
+		expect(access.accessRedirect(db, '/manage', editor)).toBe('forbidden');
+		expect(access.accessRedirect(db, '/manage/sources/[id]', editor)).toBe('forbidden');
+		expect(access.accessRedirect(db, '/manage/dead-links', editor)).toBe('forbidden');
+		expect(access.accessRedirect(db, '/manage/missed-queries', editor)).toBe('forbidden');
 		expect(access.accessRedirect(db, '/manage/settings', editor)).toBe('forbidden');
 		expect(access.accessRedirect(db, '/manage/users', editor)).toBe('forbidden');
 		expect(access.accessRedirect(db, '/manage/duplicates', editor)).toBe('forbidden');
 		expect(access.accessRedirect(db, '/manage/api-keys', editor)).toBe('forbidden');
 		expect(access.accessRedirect(db, '/logout', editor)).toBeUndefined();
-		expect(access.accessRedirect(db, '/login', editor)).toBe('/manage');
+		expect(access.accessRedirect(db, '/login', editor)).toBe('/');
 		expect(access.accessRedirect(db, '/account', editor)).toBeUndefined();
+		expect(access.accessRedirect(db, '/account/api-keys', editor)).toBeUndefined();
 	});
 
 	it('sends each user home to what they may open', async () => {
@@ -415,7 +418,7 @@ describe('several users', () => {
 			)
 		)!;
 
-		expect([access.homeOf(admin), access.homeOf(editor)]).toEqual(['/manage', '/manage']);
+		expect([access.homeOf(admin), access.homeOf(editor)]).toEqual(['/manage', '/']);
 		expect([
 			access.mayOpen(editor, '/manage/settings'),
 			access.mayOpen(admin, '/manage/settings'),
@@ -432,15 +435,11 @@ describe('several users', () => {
 		await setUp('new-admin@example.com');
 		expect(auth.checkAdminAccount(db)).toBe(true);
 	});
-	it('hands the sources and keys of a reset admin to the next admin', async () => {
+	it('hands the keys of a reset admin to the next admin', async () => {
 		const adminId = auth.sessionUser(
 			db,
 			sessionOf(await auth.login(db, 'a', { email: 'admin@example.com', password: PASSWORD }))
 		)!.id;
-		db.prepare(
-			`INSERT INTO sources (slug, name, git_url, branch, path, owner_id)
-			VALUES ('auth-service', 'Auth service', 'https://git.example.com/auth.git', 'main', 'docs', ?)`
-		).run(adminId);
 		db.prepare(
 			"INSERT INTO api_keys (name, key_hash, all_sources, owner_id) VALUES ('laptop', 'hash', 1, ?)"
 		).run(adminId);
@@ -448,15 +447,15 @@ describe('several users', () => {
 		auth.resetAdmin(db, 'admin@example.com');
 		const owners = () =>
 			db
-				.prepare('SELECT owner_id FROM sources UNION ALL SELECT owner_id FROM api_keys')
+				.prepare('SELECT owner_id FROM api_keys')
 				.all()
 				.map((row) => row.owner_id);
-		expect(owners()).toEqual([null, null]);
+		expect(owners()).toEqual([null]);
 
 		await setUp('new-admin@example.com');
 		const newAdmin = db.prepare("SELECT id FROM users WHERE email = 'new-admin@example.com'").get()!
 			.id;
-		expect(owners()).toEqual([newAdmin, newAdmin]);
+		expect(owners()).toEqual([newAdmin]);
 	});
 });
 

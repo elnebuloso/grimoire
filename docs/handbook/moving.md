@@ -12,7 +12,7 @@ export instead: a backup copied there would leave every access token unreadable.
 
 ## What an export carries
 
-An export is one file with the sources with their access tokens, owners and visibility, the users
+An export is one file with the sources with their access tokens and visibility, the users
 with their roles and passwords, the API keys with their owners and the sources they reach, and the
 settings. It leaves behind:
 

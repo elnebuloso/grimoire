@@ -178,7 +178,7 @@ describe('header', () => {
 		});
 		expect(header(login.session)).toEqual({
 			name: 'editor@example.com',
-			mayManage: true,
+			mayManage: false,
 			isAdmin: false
 		});
 		expect(header()).toBeUndefined();
@@ -205,7 +205,7 @@ describe('login action', () => {
 		]);
 	});
 
-	it('sends a user without the role admin to the management area too', async () => {
+	it('sends a user without the role admin to the start page', async () => {
 		await admin.auth.createUser(db, { email: 'editor@example.com', password: PASSWORD, roles: [] });
 		const result = await thrown(() =>
 			admin.login({
@@ -216,7 +216,7 @@ describe('login action', () => {
 			} as never)
 		);
 
-		expect(isRedirect(result) && result.location).toBe('/manage');
+		expect(isRedirect(result) && result.location).toBe('/');
 	});
 
 	it('answers wrong credentials with 400 and the email address, without a cookie', async () => {

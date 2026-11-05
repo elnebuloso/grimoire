@@ -300,9 +300,7 @@ describe('a broken database', () => {
 });
 
 describe('keys of other users', () => {
-	it("are neither listed, changed nor revoked, and another user's private source is not offered", async () => {
-		db.exec(`INSERT INTO sources (slug, name, git_url, branch, path, owner_id)
-			VALUES ('ops-runbooks', 'Runbooks', 'https://git.example/r.git', 'main', 'docs/', 2)`);
+	it('are neither listed, changed nor revoked', async () => {
 		await create([
 			['name', 'ci'],
 			['scope', 'all']
@@ -312,9 +310,6 @@ describe('keys of other users', () => {
 
 		expect(page.load(asOther as never)).toMatchObject({
 			keys: [],
-			sources: ['billing-docs', 'ops-runbooks', 'platform-docs']
-		});
-		expect(page.load({ locals: { user: WRITER } } as never)).toMatchObject({
 			sources: ['billing-docs', 'platform-docs']
 		});
 		const changed = await thrownStatus(() =>
@@ -330,19 +325,6 @@ describe('keys of other users', () => {
 		expect(changed).toBe(404);
 		await page.actions.revoke({ request: formRequest([['id', String(id)]]), ...asOther } as never);
 		expect(listApiKeys(db)).toMatchObject([{ id, sources: 'all' }]);
-	});
-
-	it("refuses another user's private source in a new key", async () => {
-		db.exec(`INSERT INTO sources (slug, name, git_url, branch, path, owner_id)
-			VALUES ('ops-runbooks', 'Runbooks', 'https://git.example/r.git', 'main', 'docs/', 2)`);
-		expect(
-			await create([
-				['name', 'ci'],
-				['scope', 'selected'],
-				['sources', 'ops-runbooks']
-			])
-		).toMatchObject({ status: 400 });
-		expect(listApiKeys(db)).toEqual([]);
 	});
 });
 

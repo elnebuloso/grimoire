@@ -38,7 +38,7 @@
 				>{m.header_logged_in_as()} <a href={resolve('/account')}>{data.user.name}</a></span
 			>
 			{#if data.user.mayManage}<a class="button" href={resolve('/manage')}>{m.header_manage()}</a
-				>{/if}
+				>{:else}<a class="button" href={resolve('/account/api-keys')}>{m.api_keys_own()}</a>{/if}
 			<form method="post" action="/logout">
 				<button>{m.header_log_out()}</button>
 			</form>

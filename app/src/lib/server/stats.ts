@@ -8,8 +8,6 @@ export interface SourceStats {
 	name: string;
 	description: string;
 	visibility: Visibility;
-	/** Null while the source belongs to nobody. */
-	ownerId: number | null;
 	/** Where the documentation is published, for public sources only; null otherwise. */
 	docsUrl: string | null;
 	pages: number;
@@ -29,7 +27,6 @@ export function sourceStats(db: DatabaseSync): SourceStats[] {
 	const rows = db
 		.prepare(
 			`SELECT sources.id, sources.slug, sources.name, sources.description, sources.visibility,
-				sources.owner_id AS ownerId,
 				CASE WHEN sources.visibility = 'public' THEN sources.docs_url END AS docsUrl,
 				(SELECT count(*) FROM live_pages AS pages WHERE pages.source_id = sources.id) AS pages,
 				(SELECT count(*) FROM snippets JOIN live_pages AS pages ON pages.id = snippets.page_id

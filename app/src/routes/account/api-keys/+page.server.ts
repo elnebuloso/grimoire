@@ -6,14 +6,14 @@ import {
 	createApiKey,
 	isExpired,
 	listApiKeys,
-	readableSlugs,
+	allSlugs,
 	revokeApiKey,
 	updateApiKey
 } from '#lib/server/api-keys.js';
 import { m } from '#lib/paraglide/messages.js';
 import { dateIn } from '#lib/time-zone.js';
 
-// Every user manages their own keys here, over the sources they may read. The access hook lets
+// Every user manages their own keys here. The access hook lets
 // only logged-in users onto account pages.
 export const load: PageServerLoad = ({ locals }) => {
 	const today = dateIn(TZ, new Date());
@@ -23,7 +23,7 @@ export const load: PageServerLoad = ({ locals }) => {
 			...key,
 			expired: isExpired(key.validUntil, today)
 		})),
-		sources: readableSlugs(db, locals.user!.id),
+		sources: allSlugs(db),
 		today
 	};
 };
@@ -68,7 +68,7 @@ export const actions = {
 			values.validUntil || null,
 			locals.user!.id
 		);
-		// A source deleted, or made private by its owner, while the form was open.
+		// A source deleted while the form was open.
 		if ('error' in created) return fail(400, { error: m.apikeys_error_source_gone(), values });
 		return { created: { name, key: created.key } };
 	},

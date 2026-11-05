@@ -21,7 +21,6 @@
 	const count = (value: number) => value.toLocaleString(getLocale());
 
 	const VISIBILITY_LABELS = {
-		private: m.visibility_private,
 		internal: m.visibility_internal,
 		public: m.visibility_public
 	};

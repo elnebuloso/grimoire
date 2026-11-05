@@ -20,12 +20,12 @@ function instance(): DatabaseSync {
 	db.exec(`
 		INSERT INTO users (id, email, password_hash) VALUES (1, 'ada@example.com', 'hash-ada'), (2, 'bob@example.com', 'hash-bob');
 		INSERT INTO user_roles VALUES (1, 'admin');
-		INSERT INTO sources (id, slug, name, git_url, branch, path, username, owner_id, visibility,
+		INSERT INTO sources (id, slug, name, git_url, branch, path, username, visibility,
 			last_checked_at, last_commit, last_synced_at, index_generation, error, failed_commit, warnings)
-			VALUES (1, 'billing-docs', 'Billing', 'https://git.example.com/billing.git', 'main', 'docs', 'deploy', 1,
+			VALUES (1, 'billing-docs', 'Billing', 'https://git.example.com/billing.git', 'main', 'docs', 'deploy',
 				'internal', '2026-11-01T10:00:00.000Z', 'abc123', '2026-11-01T10:00:00.000Z', 3, 'timeout', 'def456', '["a warning"]'),
-			(2, 'platform-docs', 'Platform', 'https://git.example.com/platform.git', 'main', 'docs', NULL, 2,
-				'private', NULL, NULL, NULL, 0, NULL, NULL, '[]');
+			(2, 'platform-docs', 'Platform', 'https://git.example.com/platform.git', 'main', 'docs', NULL,
+				'public', NULL, NULL, NULL, 0, NULL, NULL, '[]');
 		INSERT INTO api_keys (id, name, key_hash, all_sources, owner_id, last_used_at)
 			VALUES (1, 'ci', 'key-hash', 0, 1, '2026-11-01T10:00:00.000Z');
 		INSERT INTO api_key_sources VALUES (1, 2);

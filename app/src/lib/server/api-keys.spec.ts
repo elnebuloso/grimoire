@@ -79,20 +79,6 @@ describe('keys of several users', () => {
 		revokeApiKey(db, id);
 		expect(listApiKeys(db)).toEqual([]);
 	});
-
-	it("refuses another user's private source in a selection", () => {
-		db.prepare(
-			"UPDATE sources SET visibility = 'private', owner_id = ? WHERE slug = 'search-docs'"
-		).run(other);
-		expect(createApiKey(db, 'laptop', ['search-docs'], null, OWNER)).toEqual({
-			error: 'unknown-source'
-		});
-		const { id } = newKey(db, 'laptop', ['billing-docs']);
-		expect(updateApiKey(db, id, ['search-docs'], null, OWNER)).toEqual({
-			error: 'unknown-source'
-		});
-		expect(newKey(db, 'ops', ['search-docs'], null, other).key).toMatch(/^grimoire_/);
-	});
 });
 
 describe('createApiKey', () => {
@@ -131,45 +117,20 @@ describe('createApiKey', () => {
 });
 
 describe('scopeForKey by visibility', () => {
-	let writer: number;
-	let admin: number;
-
 	beforeEach(() => {
-		const insertUser = db.prepare("INSERT INTO users (email, password_hash) VALUES (?, 'hash')");
-		writer = Number(insertUser.run('writer@example.com').lastInsertRowid);
-		admin = Number(insertUser.run('admin@example.com').lastInsertRowid);
-		db.prepare("INSERT INTO user_roles (user_id, role) VALUES (?, 'admin')").run(admin);
-		db.prepare(
-			"UPDATE sources SET visibility = 'private', owner_id = ? WHERE slug = 'search-docs'"
-		).run(writer);
 		db.prepare("UPDATE sources SET visibility = 'public' WHERE slug = 'billing-docs'").run();
 	});
 
-	function scopeOf(owner: number | null, sources: 'all' | string[] = 'all') {
-		return scopeForKey(db, newKey(db, 'laptop', sources, null, owner).key, CLOCK)!.scope;
-	}
-
-	it("reads public, internal and the owner's private sources with the owner's key", () => {
-		expect(scopeOf(writer)).toEqual(ALL);
-	});
-
-	it("never reads another user's private source, not with an admin's key either", () => {
-		expect(scopeOf(admin)).toEqual(['billing-docs', 'platform-docs']);
-		expect(createApiKey(db, 'admin', ['search-docs'], null, admin)).toEqual({
-			error: 'unknown-source'
-		});
-	});
-
-	it('reads no private source with a key that belongs to nobody', () => {
-		expect(scopeOf(null)).toEqual(['billing-docs', 'platform-docs']);
-	});
-
-	it('drops a source from other keys once its owner makes it private', () => {
-		const key = newKey(db, 'ci', 'all', null, admin).key;
-		db.prepare(
-			"UPDATE sources SET visibility = 'private', owner_id = ? WHERE slug = 'platform-docs'"
-		).run(writer);
-		expect(scopeForKey(db, key, CLOCK)!.scope).toEqual(['billing-docs']);
+	it('reads public and internal sources with the key of any user, or of nobody', () => {
+		const user = Number(
+			db
+				.prepare("INSERT INTO users (email, password_hash) VALUES ('writer@example.com', 'hash')")
+				.run().lastInsertRowid
+		);
+		for (const owner of [user, null]) {
+			const { key } = newKey(db, 'laptop', 'all', null, owner);
+			expect(scopeForKey(db, key, CLOCK)!.scope).toEqual(ALL);
+		}
 	});
 
 	it('reads only public sources without a key', () => {

@@ -23,24 +23,4 @@ describe('queries without results page', () => {
 			queries: [{ question: 'vpn', sources: ['platform-docs'], count: 1 }]
 		});
 	});
-
-	it('lists a user only the queries that named one of their own sources', () => {
-		db.exec(`INSERT INTO users (id, email, password_hash) VALUES (9, 'writer@example.com', 'hash');
-			INSERT INTO sources (slug, name, git_url, branch, path, owner_id)
-			VALUES ('release-drafts', 'Drafts', 'https://git.example.com/r.git', 'main', '', 9);`);
-		const now = new Date();
-		recordMissedQuery(db, { question: 'vpn', sources: ['platform-docs'] }, now);
-		recordMissedQuery(
-			db,
-			{ question: 'freeze', sources: ['platform-docs', 'release-drafts'] },
-			now
-		);
-		recordMissedQuery(db, { question: 'sso', sources: null }, now);
-
-		const writer = { id: 9, email: 'writer@example.com', roles: [] };
-		const { queries } = page.load({ locals: { user: writer } } as never) as {
-			queries: { question: string }[];
-		};
-		expect(queries.map((query) => query.question)).toEqual(['freeze']);
-	});
 });

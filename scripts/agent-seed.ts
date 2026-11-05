@@ -60,8 +60,8 @@ try {
 	insertKey.run('user', sha256('grimoire_user-fixture-key'), user.lastInsertRowid);
 
 	const insertSource = db.prepare(
-		`INSERT INTO sources (slug, name, description, git_url, branch, path, paused, visibility, owner_id)
-		 VALUES (?, ?, ?, ?, 'main', ?, ?, ?, ?)`
+		`INSERT INTO sources (slug, name, description, git_url, branch, path, paused, visibility)
+		 VALUES (?, ?, ?, ?, 'main', ?, ?, ?)`
 	);
 	insertSource.run(
 		'platform-docs',
@@ -70,8 +70,7 @@ try {
 		FIXTURE_REPOSITORY,
 		'zensical/docs',
 		0,
-		'internal',
-		agent.lastInsertRowid
+		'internal'
 	);
 	// Public, so keyless MCP and HTTP and the query form on the start page can be tried without
 	// changing a source by hand; platform-docs stays internal to check the boundary against.
@@ -82,8 +81,7 @@ try {
 		FIXTURE_REPOSITORY,
 		'mkdocs/docs',
 		0,
-		'public',
-		agent.lastInsertRowid
+		'public'
 	);
 	// The path does not exist in the repository, so every sync fails.
 	insertSource.run(
@@ -93,11 +91,9 @@ try {
 		FIXTURE_REPOSITORY,
 		'archive/docs',
 		0,
-		'private',
-		agent.lastInsertRowid
+		'internal'
 	);
-	// Paused before its first check: polling never syncs it, only "sync now" does. Private to the
-	// user, so neither the admin's key nor the admin's query reads it.
+	// Paused before its first check: polling never syncs it, only "sync now" does.
 	insertSource.run(
 		'platform-next',
 		'Platform next',
@@ -105,8 +101,7 @@ try {
 		FIXTURE_REPOSITORY,
 		'zensical/docs',
 		1,
-		'private',
-		user.lastInsertRowid
+		'internal'
 	);
 	db.exec('COMMIT');
 } catch (error) {

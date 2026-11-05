@@ -62,8 +62,8 @@ export function setAdmin(
 }
 
 /**
- * Deletes a user on behalf of the admin `deletedBy`: their sources pass to that admin, their API
- * keys, sessions and reset links go with them. Never the admin's own account or the last admin.
+ * Deletes a user on behalf of the admin `deletedBy`: their API keys, sessions and reset links go
+ * with them. Never the admin's own account or the last admin.
  */
 export function deleteUser(
 	db: DatabaseSync,
@@ -76,7 +76,6 @@ export function deleteUser(
 			return { error: 'unknown-user' as const };
 		}
 		if (isLastAdmin(db, userId)) return { error: 'last-admin' as const };
-		db.prepare('UPDATE sources SET owner_id = ? WHERE owner_id = ?').run(deletedBy, userId);
 		db.prepare('DELETE FROM users WHERE id = ?').run(userId);
 		return undefined;
 	});

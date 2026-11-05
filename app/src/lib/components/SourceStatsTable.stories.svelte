@@ -13,7 +13,6 @@
 		name: 'Platform docs',
 		description: 'Platform team handbook',
 		visibility: 'internal',
-		ownerId: 1,
 		docsUrl: null,
 		pages: 7,
 		snippets: 24,
@@ -105,13 +104,11 @@
 				name: 'Billing docs',
 				visibility: 'public',
 				docsUrl: 'https://docs.example.com/billing/'
-			},
-			{ ...synced, id: 3, slug: 'release-drafts', name: 'Release drafts', visibility: 'private' }
+			}
 		]
 	}}
 	play={async ({ canvas }) => {
 		await expect(canvas.getByRole('row', { name: /platform-docs/ })).toHaveTextContent('internal');
-		await expect(canvas.getByRole('row', { name: /release-drafts/ })).toHaveTextContent('private');
 		await expect(canvas.getByRole('row', { name: /billing-docs/ })).toHaveTextContent('public');
 		await expect(canvas.getByRole('link')).toHaveAttribute(
 			'href',

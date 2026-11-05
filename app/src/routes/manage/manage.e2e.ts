@@ -281,7 +281,7 @@ test('imports the export on the setup page of an empty instance with another key
 	expect((await page.request.get(`${other}/setup`)).status()).toBe(404);
 });
 
-test('lists a private source on the start page to its owner only, without its settings', async ({
+test('lists an internal source on the start page only once logged in, without its settings', async ({
 	page
 }) => {
 	await page.goto('/');
@@ -424,7 +424,7 @@ test('shows the error page in the layout to a user without the role and on a fin
 	await expect(page).toHaveTitle('Page not found – grimoire');
 
 	await logIn(page, PASSWORD, editor);
-	await expect(page).toHaveURL('/manage');
+	await expect(page).toHaveURL('/');
 	const forbidden = await page.goto('/manage/settings');
 	expect(forbidden?.status()).toBe(403);
 	expect(forbidden?.headers()['x-robots-tag']).toBe('noindex, nofollow');
@@ -469,7 +469,7 @@ test('creates an API key that works for its source until it is revoked', async (
 	expect((await sources()).status()).toBe(401);
 });
 
-test('invites a user who manages their own source and key, but not the sources of others', async ({
+test('invites a user who reads internal sources with their own key, but manages no source', async ({
 	page
 }) => {
 	const writer = 'writer@example.com';
@@ -488,33 +488,23 @@ test('invites a user who manages their own source and key, but not the sources o
 	await expect(page.getByLabel('Email address')).toHaveValue(writer);
 	await page.getByLabel('Password').fill('writer battery horse');
 	await page.getByRole('button', { name: 'Create account' }).click();
-	await expect(page).toHaveURL('/manage');
-	await expect(page.getByRole('link', { name: 'Settings' })).toHaveCount(0);
+	await expect(page).toHaveURL('/');
 
-	// The admin's source is private: neither listed nor open to the writer.
-	await expect(page.getByRole('row', { name: /auth-service/ })).toHaveCount(0);
-	expect((await page.goto('/manage/sources/1'))?.status()).toBe(403);
+	// The admin's source is internal: listed on the start page, but not open to manage.
+	await expect(page.getByRole('row', { name: /auth-service/ })).toBeVisible();
+	await expect(page.getByRole('link', { name: 'Manage' })).toHaveCount(0);
+	expect((await page.goto('/manage'))?.status()).toBe(403);
+	expect((await page.goto('/manage/sources/new'))?.status()).toBe(403);
 
-	await page.goto('/manage/sources/new');
-	await page.getByLabel('Name', { exact: true }).fill('Writer notes');
-	await page.getByLabel('Git URL').fill(GIT_URL);
-	// The same repository and path as the admin's private source: refused, without its name.
-	await page.getByRole('button', { name: 'Create source' }).click();
-	await expect(page.getByRole('alert')).toHaveText(
-		'This documentation is already registered, as a private source of another user: same repository and path. Ask an admin who it belongs to.'
-	);
-	await page.getByLabel('Path in the repository').fill('notes');
-	await page.getByRole('button', { name: 'Create source' }).click();
-	await expect(page.getByRole('heading', { name: 'Source Writer notes' })).toBeVisible();
-
-	await page.goto('/account/api-keys');
+	await page.goto('/');
+	await page.getByRole('link', { name: 'My API keys' }).click();
 	await page.getByLabel('Name').fill('writer-laptop');
 	await page.getByRole('button', { name: 'Create key' }).click();
 	const key = await page.locator('output').textContent();
 	const sources = await page.request.get('/sources', {
 		headers: { Authorization: `Bearer ${key}` }
 	});
-	expect(await sources.text()).toBe('- writer-notes');
+	expect(await sources.text()).toBe('- auth-service: Login and billing');
 
 	await page.context().clearCookies();
 	await page.context().addCookies(adminSession);
@@ -525,8 +515,6 @@ test('invites a user who manages their own source and key, but not the sources o
 	expect(
 		(await page.request.get('/sources', { headers: { Authorization: `Bearer ${key}` } })).status()
 	).toBe(401);
-	await page.goto('/manage');
-	await expect(page.getByRole('link', { name: 'Writer notes', exact: true })).toBeVisible();
 });
 
 // Near the end, because every test before it logs in with the old password.

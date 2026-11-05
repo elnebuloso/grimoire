@@ -61,20 +61,18 @@ sessions are logged out; the browser you changed it in stays logged in.
 
 !!! note "Shown on the start page"
     The start page `/` lists the public sources to everyone, and to a logged-in user also the
-    internal ones and their own private ones: name, slug, short description, visibility, counts of
+    internal ones: name, slug, short description, visibility, counts of
     pages, snippets, tokens and dead links, last sync and whether it has a sync error. It shows
     neither Git URLs nor error texts. For public sources it links the **Documentation** site and
     offers **Try a query**, which searches what the viewer may read.
 
-You manage every source: the overview lists all of them, also other users' private ones, and you
-may change, sync, rename and delete each. A source you create is yours; users manage their own
-(see [Your sources and API keys](users.md#sources)).
+Only admins add, change, sync, rename and delete sources; users read them and create their own API
+keys (see [Your API keys](users.md)).
 
 To serve two paths of one repository, add it twice, as two sources, and name each for what it
 holds, such as `Billing API` and `Billing runbooks`. The same repository and path cannot be added a
 second time, not even on another branch; what counts as the same and the messages are under
-[Documentation that is already registered](users.md#documentation-that-is-already-registered).
-Unlike users, you see the name of the other source in the message, private ones included.
+[Documentation that is already registered](#documentation-that-is-already-registered).
 
 | Field | Rule |
 |---|---|
@@ -85,7 +83,7 @@ Unlike users, you see the name of the other source in the message, private ones 
 | **Path in the repository** | Relative to the repository root, such as `docs`; a trailing slash is dropped; empty for the whole repository; no `..`. |
 | **Exclusions** | Glob patterns relative to the repository root, one per line, such as `docs/drafts/**`. |
 | **Schedule** | Cron with five fields in the instance's time zone, such as `0 6 * * 1-5` for weekdays at 6:00; empty uses the global schedule the label shows. A schedule that never runs, such as `0 0 30 2 *`, is rejected. |
-| **Visibility** | **Private** for a new source: only the owner's API keys read it, an admin's keys neither. **Internal**: the API key of every user. **Public**: anyone who can reach grimoire, without an API key, over MCP and HTTP. Content read in the meantime cannot be taken back by choosing a narrower level. |
+| **Visibility** | **Internal** for a new source: the API key of every user, and every user logged in on the start page. **Public**: anyone who can reach grimoire, without an API key, over MCP and HTTP and in **Try a query** on the start page. Switch either way at any time; content read while a source was public cannot be taken back by making it internal. |
 | **Paused** | Polling skips the source; only **Sync now** syncs it. |
 | **Username**, **Access token** | A read-only token of the Git host, see the table below. |
 
@@ -129,8 +127,23 @@ a new commit, so other sources do not wait behind a full index. A paused source,
 while **Pause all syncs** is on, is saved without either.
 
 !!! danger "Irreversible"
-    Deleting a source deletes its index, also of a source another user owns. API keys limited to a
-    deleted source lose it.
+    Deleting a source deletes its index. API keys limited to a deleted source lose it.
+
+### Documentation that is already registered
+
+One documentation is one source: two sources on the same repository and the same path are the same
+documentation, whichever branches they follow. Spelling makes no difference: `.git` or a trailing
+slash at the end of the Git URL, upper or lower case, `docs`, `docs/` or `./docs` all name the same.
+Different versions of one documentation from different branches cannot be separate sources: a
+source follows one branch; to read another version, change **Branch** of the existing source.
+
+Creating or changing a source checks this when you save; a source whose Git URL and path you leave
+as they are is saved without the check, even if it already has a duplicate.
+
+| Message | Fix |
+|---|---|
+| `This documentation is already registered as "<name>": same repository and path. …` | Use the source named, or change its branch. Saving is not possible. |
+| `The path overlaps with "<name>": one lies inside the other, …` | One path lies inside the other, such as `docs` and `docs/api`: the pages under `docs/api` would be found twice. Exclude the inner directory in the outer source (`docs/api/**` under **Exclusions**), or tick **Save anyway, although pages are indexed twice** and save again. |
 
 ### Duplicate sources
 
@@ -142,9 +155,7 @@ by the same rule as saving a source:
   duplicate twice until then.
 - **Overlap**: one path inside the other. Saved by someone who confirmed the warning, or from
   before the check. Exclude the inner directory in the outer source, such as `docs/api/**`, or
-  leave both if the inner part needs a visibility or owner of its own.
-
-The list names private sources of every user; only admins open it.
+  leave both if the inner part needs a visibility of its own.
 
 ### Changing a slug
 
@@ -209,8 +220,8 @@ It keeps the newest 100 lines.
   snippets with ID and estimated tokens. Use it to find sections that came out too large, too small
   or under a misleading title.
 - **Try a query** on the start page answers exactly like the agent operation `query`, with a line
-  naming the hits that did not fit the budget. Logged in, it searches every source your own API
-  keys would read, not other users' private sources; it needs no API key and is not recorded.
+  naming the hits that did not fit the budget. Logged in, it searches every public and internal
+  source; it needs no API key and is not recorded.
   Its address can be shared as a link.
 
 ## Queries without results
@@ -218,15 +229,13 @@ It keeps the newest 100 lines.
 `Manage > Queries without results` lists questions agents asked with `query` that found nothing,
 once per set of sources asked for, with how often and when last. Search matches words, not synonyms: such a question
 means the documentation lacks the topic or names it differently. Open a question in
-**Try a query** on the start page to check it again after the docs changed; it searches all your
+**Try a query** on the start page to check it again after the docs changed; it searches all
 sources, not only the ones the agent asked for.
 
 - Questions are stored as the agent sent them, up to 500 characters, and may contain whatever the
   agent put in.
 - Entries are deleted after 30 days and beyond the newest 10,000.
 - Questions naming an unknown source are not recorded, nor questions sent without an API key.
-- Users see the questions that named one of their own sources; questions across all sources only
-  admins see.
 
 ## API keys
 
@@ -258,7 +267,7 @@ and has an account without the admin role.
 ### Roles
 
 **Make admin** gives a user everything this page describes. **Remove admin role** leaves the
-account, its sources and keys as they are.
+account and its keys as they are and closes the management area to it.
 
 `The last admin keeps the role: make another user an admin first.`: an instance without admin
 offers the setup again to whoever has the server log, so the last one stays.
@@ -266,7 +275,7 @@ offers the setup again to whoever has the server log, so the last one stays.
 ### Deleting a user
 
 !!! danger "Irreversible"
-    The user's sources become yours, their API keys stop working at once, their sessions end.
+    The user's API keys stop working at once, their sessions end.
     The account cannot be restored; invite the address again to give it a new one.
 
 Your own account cannot be deleted here (`You cannot delete your own account.`), nor the last

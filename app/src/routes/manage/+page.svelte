@@ -120,12 +120,10 @@
 	{:else}
 		<SourceStatsTable sources={data.sources} timeZone={data.timeZone}>
 			{#snippet name(source)}
-				{#if data.managed.includes(source.id)}
-					<a href={resolve('/manage/sources/[id]', { id: String(source.id) })}>{source.name}</a>
-				{:else}{source.name}{/if}
+				<a href={resolve('/manage/sources/[id]', { id: String(source.id) })}>{source.name}</a>
 			{/snippet}
 			{#snippet deadLinks(source)}
-				{#if source.deadLinks > 0 && data.managed.includes(source.id)}
+				{#if source.deadLinks > 0}
 					<a
 						href="{resolve('/manage/dead-links')}#source-{source.id}"
 						aria-label={source.deadLinks === 1

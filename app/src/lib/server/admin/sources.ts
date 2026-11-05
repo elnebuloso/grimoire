@@ -5,8 +5,6 @@ import type { SourceFields, StoredSourceFields, Visibility } from '#lib/source-f
 import { encryptSecret } from '../secret-encryption';
 import { m } from '#lib/paraglide/messages.js';
 import { isSlug, MAX_NAME_LENGTH, MAX_SLUG_LENGTH, slugify } from '../../slug';
-import { hasRoles } from './access';
-import type { SessionUser } from './auth';
 import { compareSources, directoryKey, repositoryKey, type Overlap } from './duplicates';
 
 /** A new slug, and the current one typed again to show the admin knows what changes. */
@@ -19,8 +17,6 @@ export interface SlugChangeForm {
 export interface SourceSettings extends StoredSourceFields {
 	id: number;
 	slug: string;
-	/** Null while the source belongs to nobody, until the next setup hands it to the new admin. */
-	ownerId: number | null;
 	hasToken: boolean;
 }
 
@@ -65,13 +61,12 @@ interface SourceRow {
 	sync_schedule: string | null;
 	paused: number;
 	visibility: Visibility;
-	owner_id: number | null;
 	username: string | null;
 	has_token: number;
 }
 
 const SOURCE_COLUMNS = `id, slug, name, description, git_url, docs_url, branch, path, exclusions, sync_schedule, paused,
-	visibility, owner_id, username, encrypted_token IS NOT NULL AS has_token`;
+	visibility, username, encrypted_token IS NOT NULL AS has_token`;
 
 function toSettings(row: SourceRow): SourceSettings {
 	return {
@@ -87,7 +82,6 @@ function toSettings(row: SourceRow): SourceSettings {
 		schedule: row.sync_schedule,
 		paused: row.paused === 1,
 		visibility: row.visibility,
-		ownerId: row.owner_id,
 		username: row.username,
 		hasToken: row.has_token === 1
 	};
@@ -199,21 +193,19 @@ function exclusionsJson(exclusions: string): string {
 /** Another source `form` would duplicate or overlap; no name when the user may not see it. */
 export interface SourceConflict {
 	kind: Overlap;
-	name?: string;
+	name: string;
 }
 
 /**
  * The source that `form` would duplicate, else one it would overlap; undefined when there is
- * none. Every source counts, but only one `user` reads, or every one for an admin, is named. A
- * source that keeps its Git URL and path is not checked, so one that already was a duplicate
- * stays editable.
+ * none. A source that keeps its Git URL and path is not checked, so one that already was a
+ * duplicate stays editable.
  */
 export function sourceConflict(
 	db: DatabaseSync,
 	sourceId: number | undefined,
 	stored: StoredSource | undefined,
-	form: SourceForm,
-	user: SessionUser
+	form: SourceForm
 ): SourceConflict | undefined {
 	if (
 		stored &&
@@ -228,28 +220,20 @@ export function sourceConflict(
 		exclusions: JSON.parse(exclusionsJson(form.exclusions)) as string[]
 	};
 	const others = db
-		.prepare(
-			`SELECT name, git_url, path, exclusions, visibility, owner_id
-			FROM sources WHERE id IS NOT :source`
-		)
+		.prepare('SELECT name, git_url, path, exclusions FROM sources WHERE id IS NOT :source')
 		.all({ source: sourceId ?? null }) as {
 		name: string;
 		git_url: string;
 		path: string;
 		exclusions: string;
-		visibility: Visibility;
-		owner_id: number | null;
 	}[];
-	const admin = hasRoles(user, ['admin']);
 	const conflicts = others.flatMap((other) => {
 		const kind = compareSources(candidate, {
 			gitUrl: other.git_url,
 			path: other.path,
 			exclusions: JSON.parse(other.exclusions) as string[]
 		});
-		if (!kind) return [];
-		const visible = admin || other.visibility !== 'private' || other.owner_id === user.id;
-		return [{ kind, name: visible ? other.name : undefined }];
+		return kind ? [{ kind, name: other.name }] : [];
 	});
 	return conflicts.find((conflict) => conflict.kind === 'duplicate') ?? conflicts[0];
 }
@@ -315,15 +299,14 @@ export function remoteProblem(
  * Creates a source when `sourceId` is undefined, otherwise updates it; `'not-found'` when the
  * source to update no longer exists. Saves `form` as it is: `sourceProblem` checks it first.
  * A new token is stored encrypted with `key`; an empty one keeps the stored token unless
- * `removeToken` is set. A new source belongs to `ownerId`.
+ * `removeToken` is set.
  */
 export function saveSource(
 	db: DatabaseSync,
 	key: Buffer,
 	sourceId: number | undefined,
 	form: SourceForm,
-	changes: SavingChanges,
-	ownerId: number | null = null
+	changes: SavingChanges
 ): { id: number } | 'not-found' {
 	const name = form.name.trim();
 	const gitUrl = form.gitUrl.trim();
@@ -349,7 +332,7 @@ export function saveSource(
 	const columns = Object.keys(values);
 
 	if (sourceId === undefined) {
-		const inserted = [...columns, 'slug', 'encrypted_token', 'owner_id'];
+		const inserted = [...columns, 'slug', 'encrypted_token'];
 		const result = db
 			.prepare(
 				`INSERT INTO sources (${inserted.join(', ')})
@@ -358,8 +341,7 @@ export function saveSource(
 			.run({
 				...values,
 				slug: slugify(name),
-				encrypted_token: encryptedToken,
-				owner_id: ownerId
+				encrypted_token: encryptedToken
 			});
 		return { id: Number(result.lastInsertRowid) };
 	}

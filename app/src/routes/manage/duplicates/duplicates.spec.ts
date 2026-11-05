@@ -13,9 +13,6 @@ function load() {
 
 beforeEach(() => {
 	db = openDatabase(':memory:');
-	db.exec(
-		`INSERT INTO users (id, email, password_hash) VALUES (1, 'admin@example.com', 'hash'), (2, 'writer@example.com', 'hash')`
-	);
 });
 
 describe('duplicate sources page', () => {
@@ -26,11 +23,11 @@ describe('duplicate sources page', () => {
 		expect(load()).toEqual({ pairs: [] });
 	});
 
-	it('lists duplicates and overlaps of every owner, private ones included', () => {
-		db.exec(`INSERT INTO sources (id, slug, name, git_url, branch, path, visibility, owner_id)
-			VALUES (1, 'platform-docs', 'Platform', 'https://git.example.com/platform.git', 'main', 'docs', 'internal', 1),
-				(2, 'platform-next', 'Platform next', 'https://git.example.com/Platform', 'release-2', 'docs/', 'private', 2),
-				(3, 'platform-api', 'Platform API', 'https://git.example.com/platform.git', 'main', 'docs/api', 'private', 2)`);
+	it('lists duplicates and overlaps of every visibility', () => {
+		db.exec(`INSERT INTO sources (id, slug, name, git_url, branch, path, visibility)
+			VALUES (1, 'platform-docs', 'Platform', 'https://git.example.com/platform.git', 'main', 'docs', 'internal'),
+				(2, 'platform-next', 'Platform next', 'https://git.example.com/Platform', 'release-2', 'docs/', 'public'),
+				(3, 'platform-api', 'Platform API', 'https://git.example.com/platform.git', 'main', 'docs/api', 'internal')`);
 		expect(load()).toEqual({
 			pairs: [
 				{

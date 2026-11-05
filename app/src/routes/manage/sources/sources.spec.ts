@@ -34,8 +34,6 @@ vi.mock('$app/env/private', () => ({
 
 const TOKEN = 'glpat-very-secret';
 const ADMIN = { id: 1, email: 'admin@example.com', roles: ['admin'] };
-const WRITER = { id: 2, email: 'writer@example.com', roles: [] };
-const OTHER = { id: 3, email: 'ops@example.com', roles: [] };
 
 function formRequest(fields: Record<string, string>) {
 	return new Request('https://grimoire.example/manage/sources', {
@@ -54,26 +52,26 @@ async function thrown(run: () => unknown): Promise<unknown> {
 	throw new Error('expected the handler to throw');
 }
 
-async function saveSource(id: string, fields: Record<string, string>, user = ADMIN) {
+async function saveSource(id: string, fields: Record<string, string>) {
 	return sourcePage.actions.save({
 		request: formRequest(fields),
 		params: { id },
-		locals: { user }
+		locals: { user: ADMIN }
 	} as never);
 }
 
-function syncNow(id: string, user = ADMIN) {
+function syncNow(id: string) {
 	return sourcePage.actions.sync({
 		params: { id },
-		locals: { user },
+		locals: { user: ADMIN },
 		url: new URL(`https://grimoire.example/manage/sources/${id}?/sync`)
 	} as never);
 }
 
-function loadSource(id: string, search = '', user = ADMIN) {
+function loadSource(id: string, search = '') {
 	return sourcePage.load({
 		params: { id },
-		locals: { user },
+		locals: { user: ADMIN },
 		url: new URL(`https://grimoire.example/manage/sources/${id}${search}`)
 	} as never);
 }
@@ -91,72 +89,11 @@ const SOURCE = {
 
 beforeEach(() => {
 	db = openDatabase(':memory:');
-	db.exec(`INSERT INTO users (id, email, password_hash) VALUES
-		(1, 'admin@example.com', 'hash'), (2, 'writer@example.com', 'hash'), (3, 'ops@example.com', 'hash');
+	db.exec(`INSERT INTO users (id, email, password_hash) VALUES (1, 'admin@example.com', 'hash');
 		INSERT INTO user_roles VALUES (1, 'admin');`);
 	requestSyncInBackground.mockClear();
 	checkAccess.mockClear();
 	checkSourceAccess.mockClear();
-});
-
-describe('source page by owner', () => {
-	beforeEach(async () => {
-		await thrown(() => saveSource('new', SOURCE, WRITER));
-	});
-
-	function status(error: unknown) {
-		return (error as { status: number }).status;
-	}
-
-	it('opens and saves a source for its owner and for an admin, and gives it the creator as owner', async () => {
-		expect(db.prepare('SELECT owner_id FROM sources').get()).toEqual({ owner_id: 2 });
-		for (const user of [WRITER, ADMIN]) {
-			expect(loadSource('1', '', user)).toMatchObject({ source: { slug: 'auth-service' } });
-			expect(isRedirect(await thrown(() => saveSource('1', SOURCE, user)))).toBe(true);
-		}
-		expect(db.prepare('SELECT owner_id FROM sources').get()).toEqual({ owner_id: 2 });
-	});
-
-	it('refuses every action on the source to another user with 403', async () => {
-		const actions = [
-			() => loadSource('1', '', OTHER),
-			() => saveSource('1', SOURCE, OTHER),
-			() => syncNow('1', OTHER),
-			() =>
-				sourcePage.actions.test({
-					request: formRequest(SOURCE),
-					params: { id: '1' },
-					locals: { user: OTHER }
-				} as never),
-			() =>
-				sourcePage.actions.slug({
-					request: formRequest({ slug: 'login', confirmation: 'auth-service' }),
-					params: { id: '1' },
-					locals: { user: OTHER }
-				} as never),
-			() => sourcePage.actions.delete({ params: { id: '1' }, locals: { user: OTHER } } as never)
-		];
-		for (const action of actions) expect(status(await thrown(action))).toBe(403);
-		expect(db.prepare('SELECT slug FROM sources').get()).toEqual({ slug: 'auth-service' });
-		expect(requestSyncInBackground).toHaveBeenCalledTimes(1);
-	});
-
-	it('lets every user create a source', async () => {
-		expect(
-			isRedirect(
-				await thrown(() =>
-					saveSource(
-						'new',
-						{ ...SOURCE, name: 'Ops', gitUrl: 'https://gitlab.example.com/platform/ops.git' },
-						OTHER
-					)
-				)
-			)
-		).toBe(true);
-		expect(db.prepare("SELECT owner_id FROM sources WHERE slug = 'ops'").get()).toEqual({
-			owner_id: 3
-		});
-	});
 });
 
 describe('source page', () => {
@@ -491,9 +428,9 @@ describe('source page', () => {
 });
 
 describe('duplicate sources', () => {
-	// The writer's private source; `docs/` written as `./docs` and the URL in other case still match.
+	// `docs/` written as `./docs` and the URL in other case still match.
 	beforeEach(async () => {
-		await thrown(() => saveSource('new', { ...SOURCE, visibility: 'private' }, WRITER));
+		await thrown(() => saveSource('new', SOURCE));
 	});
 
 	function sourceCount(): number {
@@ -508,45 +445,29 @@ describe('duplicate sources', () => {
 		path: './docs'
 	};
 
-	it('refuses a duplicate on another branch before asking the Git server, named to its owner and admins', async () => {
-		for (const user of [WRITER, ADMIN]) {
-			expect(await saveSource('new', duplicate, user)).toMatchObject({
-				status: 400,
-				data: { error: expect.stringContaining('"Auth Service"') }
-			});
-		}
+	it('refuses a duplicate on another branch before asking the Git server, and names it', async () => {
+		expect(await saveSource('new', duplicate)).toMatchObject({
+			status: 400,
+			data: { error: expect.stringContaining('"Auth Service"') }
+		});
 		expect(sourceCount()).toBe(1);
 		expect(checkAccess).toHaveBeenCalledTimes(1);
 	});
 
-	it('refuses a duplicate of a private source of another user without naming it', async () => {
-		const result = await saveSource('new', duplicate, OTHER);
-		const error = (result as { data: { error: string } }).data.error;
-		expect(error).toContain('private source of another user');
-		expect(error).not.toContain('Auth Service');
-		expect(sourceCount()).toBe(1);
-	});
-
-	it('names a duplicate that the user reads', async () => {
-		db.exec("UPDATE sources SET visibility = 'internal'");
-		expect(await saveSource('new', duplicate, OTHER)).toMatchObject({
+	it('refuses to change the path of a source into a duplicate', async () => {
+		await thrown(() => saveSource('new', { ...SOURCE, name: 'Auth API', path: 'api' }));
+		expect(await saveSource('2', { ...SOURCE, name: 'Auth API', path: 'docs' })).toMatchObject({
+			status: 400,
 			data: { error: expect.stringContaining('"Auth Service"') }
 		});
-	});
-
-	it('refuses to change the path of a source into a duplicate', async () => {
-		await thrown(() => saveSource('new', { ...SOURCE, name: 'Auth API', path: 'api' }, WRITER));
-		expect(
-			await saveSource('2', { ...SOURCE, name: 'Auth API', path: 'docs' }, WRITER)
-		).toMatchObject({ status: 400, data: { error: expect.stringContaining('"Auth Service"') } });
 		expect(db.prepare('SELECT path FROM sources WHERE id = 2').get()).toEqual({ path: 'api' });
 	});
 
 	it('keeps an existing duplicate editable while its Git URL and path stay', async () => {
-		db.exec(`INSERT INTO sources (id, slug, name, git_url, branch, path, owner_id)
-			VALUES (2, 'auth-old', 'Auth old', 'https://gitlab.example.com/platform/auth.git', 'main', 'docs', 2)`);
+		db.exec(`INSERT INTO sources (id, slug, name, git_url, branch, path)
+			VALUES (2, 'auth-old', 'Auth old', 'https://gitlab.example.com/platform/auth.git', 'main', 'docs')`);
 		const saved = await thrown(() =>
-			saveSource('2', { ...SOURCE, name: 'Auth renamed', branch: 'release-2' }, WRITER)
+			saveSource('2', { ...SOURCE, name: 'Auth renamed', branch: 'release-2' })
 		);
 		expect(isRedirect(saved)).toBe(true);
 		expect(db.prepare('SELECT name, branch FROM sources WHERE id = 2').get()).toEqual({
@@ -557,28 +478,21 @@ describe('duplicate sources', () => {
 
 	it('warns on an overlap and saves it only once confirmed', async () => {
 		const inner = { ...SOURCE, name: 'Auth API', path: 'docs/api' };
-		expect(await saveSource('new', inner, WRITER)).toMatchObject({
+		expect(await saveSource('new', inner)).toMatchObject({
 			status: 400,
 			data: { overlap: expect.stringContaining('"Auth Service"'), values: { path: 'docs/api' } }
 		});
 		expect(sourceCount()).toBe(1);
 
-		const saved = await thrown(() => saveSource('new', { ...inner, confirmOverlap: 'on' }, WRITER));
+		const saved = await thrown(() => saveSource('new', { ...inner, confirmOverlap: 'on' }));
 		expect(isRedirect(saved)).toBe(true);
 		expect(sourceCount()).toBe(2);
 	});
 
-	it('warns on an overlap with a private source of another user without naming it', async () => {
-		const result = await saveSource('new', { ...SOURCE, name: 'Whole repo', path: '' }, OTHER);
-		const overlap = (result as { data: { overlap: string } }).data.overlap;
-		expect(overlap).toContain('private source of another user');
-		expect(overlap).not.toContain('Auth Service');
-	});
-
 	it('sees no overlap where the outer source excludes the inner directory', async () => {
-		await thrown(() => saveSource('1', { ...SOURCE, exclusions: 'docs/api/**' }, WRITER));
+		await thrown(() => saveSource('1', { ...SOURCE, exclusions: 'docs/api/**' }));
 		const saved = await thrown(() =>
-			saveSource('new', { ...SOURCE, name: 'Auth API', path: 'docs/api' }, WRITER)
+			saveSource('new', { ...SOURCE, name: 'Auth API', path: 'docs/api' })
 		);
 		expect(isRedirect(saved)).toBe(true);
 	});

@@ -46,7 +46,7 @@ function form(changes: Partial<SourceForm> = {}): SourceForm {
 		exclusions: '',
 		schedule: '',
 		paused: false,
-		visibility: 'private',
+		visibility: 'internal',
 		username: 'deploy',
 		token: '',
 		removeToken: false,

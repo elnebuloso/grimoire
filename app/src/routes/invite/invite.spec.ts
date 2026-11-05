@@ -109,7 +109,7 @@ describe('inviting', () => {
 });
 
 describe('accepting', () => {
-	it('shows the invited address, creates the account, logs it in and opens the management area', async () => {
+	it('shows the invited address, creates the account, logs it in and opens the start page', async () => {
 		await inviteForm('writer@example.com');
 		const token = mailedToken();
 		expect(invite.load({ params: { token }, setHeaders: vi.fn() } as never)).toEqual({
@@ -118,7 +118,7 @@ describe('accepting', () => {
 
 		const { run, cookies } = accept(token, PASSWORD);
 		const result = await thrown(run);
-		expect(isRedirect(result) && result.location).toBe('/manage');
+		expect(isRedirect(result) && result.location).toBe('/');
 		expect(cookies.set).toHaveBeenCalledWith(
 			'grimoire_session',
 			expect.any(String),

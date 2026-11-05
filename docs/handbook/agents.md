@@ -3,13 +3,13 @@
 !!! info "Prerequisites"
     - Reader: agent developer.
     - Required access: the address of the instance, such as `https://grimoire.example.com`, and
-      for sources that are not public an API key, created under `Manage > My API keys` (see
+      for sources that are not public an API key, created under **My API keys** (see
       [API keys](users.md#api-keys)).
 
     New to grimoire? Read [Concepts](index.md) first.
 
-Without a key, an agent sees the public sources. A key adds the internal sources and the private
-sources of its owner, all of them or the ones it was created for; it never hides a public one. Send the key with every request as
+Without a key, an agent sees the public sources. A key adds the internal sources, all of them or
+the ones it was created for; it never hides a public one. Send the key with every request as
 `Authorization: Bearer <YOUR_API_KEY>`. Keep it in an environment variable such as `GRIMOIRE_KEY`,
 never in a file you commit.
 

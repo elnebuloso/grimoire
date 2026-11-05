@@ -46,9 +46,10 @@ describe('importExport', () => {
 		});
 		expect('session' in loggedIn).toBe(true);
 		expect(rows(db, 'SELECT * FROM user_roles')).toEqual([{ user_id: 1, role: 'admin' }]);
-		expect(rows(db, 'SELECT slug, owner_id, visibility FROM sources ORDER BY id')).toEqual([
-			{ slug: 'billing-docs', owner_id: 1, visibility: 'internal' },
-			{ slug: 'platform-docs', owner_id: 2, visibility: 'private' }
+		// The fixture was written while sources could be private: its private source arrives internal.
+		expect(rows(db, 'SELECT slug, visibility FROM sources ORDER BY id')).toEqual([
+			{ slug: 'billing-docs', visibility: 'internal' },
+			{ slug: 'platform-docs', visibility: 'internal' }
 		]);
 		const { encrypted_token } = db
 			.prepare('SELECT encrypted_token FROM sources WHERE id = 1')
