@@ -1,8 +1,10 @@
 import { execFile } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { request as httpRequest } from 'node:http';
 import { request as httpsRequest } from 'node:https';
 import { isIP } from 'node:net';
+import { tmpdir } from 'node:os';
+import { join, posix } from 'node:path';
 import { promisify } from 'node:util';
 import {
 	checkConnection,
@@ -85,6 +87,44 @@ export async function remoteCommit(
 		throw new Error(`branch "${branch}" not found in ${redactUrl(remote.url)}`);
 	}
 	throw new Error(check.detail);
+}
+
+/**
+ * Whether `path` is a directory on `branch`; an empty path is the whole repository. Downloads the
+ * tree of the latest commit, no file contents.
+ */
+export async function remotePathExists(
+	remote: GitRemote,
+	branch: string,
+	path: string,
+	timeoutMs: number
+): Promise<boolean> {
+	const directory = posix.normalize(path.trim() || '.').replace(/\/+$/, '');
+	if (directory === '.') return true;
+	const dir = mkdtempSync(join(tmpdir(), 'grimoire-path-'));
+	try {
+		const connection = await connect(remote);
+		await git(
+			[
+				'clone',
+				'--depth',
+				'1',
+				'--filter=blob:none',
+				'--no-checkout',
+				'--branch',
+				branch,
+				'--',
+				connection.url,
+				dir
+			],
+			connection,
+			timeoutMs
+		);
+		const type = await git(['-C', dir, 'cat-file', '-t', `HEAD:${directory}`]).catch(() => '');
+		return type.trim() === 'tree';
+	} finally {
+		rmSync(dir, { recursive: true, force: true });
+	}
 }
 
 /**

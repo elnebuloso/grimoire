@@ -104,14 +104,15 @@ second time, not even on another branch; what counts as the same and the message
 ### Test connection
 
 **Test connection** checks that the Git server answers, accepts the username and token, and has
-the branch. Saving runs the same check whenever Git URL, branch, username or token changed, and a
-new source is saved only when it passes. Whether the path exists shows on the first
-sync.
+the branch with the path as a directory; it needs no name yet. Saving runs the same check whenever
+Git URL, branch, path, username or token changed, and saves only when it passes. A large repository
+can take up to a minute.
 
 | Message | Fix |
 |---|---|
 | `Reachable: branch main is at commit 3f2a9c1d8e4b.` | Nothing. |
 | `The repository has no branch main.` | Correct **Branch**. |
+| `The path docs does not exist on branch main.` | Correct **Path in the repository**: it is relative to the repository root and names a directory; leave it empty for the whole repository. |
 | `Access refused, or there is no repository at this URL: …` | Check the Git URL, then the token and its scope. |
 | `The Git server cannot be reached: …` | Check the host name; a firewall or a Git server down is outside grimoire. |
 | `The Git server redirects this URL to <url>. Enter that as Git URL, then test or save again.` | Enter the URL named as **Git URL**. GitLab redirects a project path without `.git`, and the old path of a moved project. grimoire never follows a redirect itself: a moved path can later lead to another project. |

@@ -392,5 +392,6 @@
 	"slug_change_title": "Change the slug of {name} to {slug}?",
 	"source_public_title": "Make {name} public?",
 	"source_public_consequence": "Anyone who can reach {instance} may then search and read this source without an API key.",
-	"source_public_confirm": "Save as public"
+	"source_public_confirm": "Save as public",
+	"access_path_missing": "The path {path} does not exist on branch {branch}."
 }

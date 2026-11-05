@@ -77,17 +77,19 @@ function readSourceForm(data: FormData) {
 	return { form, values, damaged: token.damaged ? m.error_token_damaged() : undefined };
 }
 
+/** Why the Git server refuses the source in `form`, as the form shows it; undefined when it may be saved. */
 async function accessProblem(
 	stored: StoredSource | undefined,
 	form: SourceForm
-): Promise<string | undefined> {
+): Promise<{ error: string } | { pathError: string } | undefined> {
 	const access = await checkAccess(
 		ENCRYPTION_KEY.sourceTokens,
 		stored,
 		form,
 		connectionPolicy(GIT_ALLOWED_HOSTS)
 	);
-	return 'error' in access ? access.error : undefined;
+	if (!('error' in access)) return undefined;
+	return access.field === 'path' ? { pathError: access.error } : { error: access.error };
 }
 
 /** What the form shows for a conflict: a refused duplicate, or an overlap not yet confirmed. */
@@ -117,8 +119,9 @@ export const actions = {
 		const conflict = conflictAnswer(sourceConflict(db, source?.id, stored, form), confirmed);
 		if (conflict) return fail(400, { ...conflict, values });
 
-		const unreachable = changes.access ? await accessProblem(stored, form) : undefined;
-		if (unreachable) return fail(400, { error: unreachable, values });
+		const unreachable =
+			changes.access || changes.location ? await accessProblem(stored, form) : undefined;
+		if (unreachable) return fail(400, { ...unreachable, values });
 		// The Git server may take seconds; another save may have added the same documentation
 		// meanwhile. No await follows, so nothing changes between this check and the write.
 		const late = conflictAnswer(sourceConflict(db, source?.id, stored, form), confirmed);

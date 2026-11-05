@@ -97,6 +97,7 @@ describe('saveSource', () => {
 
 		expect(savingChanges(storedSource(db, id), sourceForm({ path: 'docs' }))).toEqual({
 			access: false,
+			location: false,
 			index: false,
 			reindex: false
 		});
@@ -352,6 +353,7 @@ describe('savingChanges', () => {
 	it('changes everything for a new source', () => {
 		expect(savingChanges(undefined, sourceForm())).toEqual({
 			access: true,
+			location: true,
 			index: true,
 			reindex: true
 		});
@@ -371,26 +373,30 @@ describe('savingChanges', () => {
 					visibility: 'public'
 				})
 			)
-		).toEqual({ access: false, index: false, reindex: false });
+		).toEqual({ access: false, location: false, index: false, reindex: false });
 	});
 
 	it.each([
-		[{ gitUrl: 'https://gitlab.example.com/platform/login.git' }, true, true],
-		[{ branch: 'develop' }, true, true],
-		[{ username: 'ci' }, true, false],
-		[{ token: 'rotated' }, true, false],
-		[{ removeToken: true }, true, false],
-		[{ path: 'guides' }, false, true],
-		[{ exclusions: 'drafts/**' }, false, true]
-	])('for %j changes access %s and the index %s', (changes, access, index) => {
-		const id = created(trySave(undefined, sourceForm({ token: 'secret' })));
+		[{ gitUrl: 'https://gitlab.example.com/platform/login.git' }, true, true, true],
+		[{ branch: 'develop' }, true, true, true],
+		[{ username: 'ci' }, true, false, false],
+		[{ token: 'rotated' }, true, false, false],
+		[{ removeToken: true }, true, false, false],
+		[{ path: 'guides' }, false, true, true],
+		[{ exclusions: 'drafts/**' }, false, false, true]
+	])(
+		'for %j changes access %s, the location %s and the index %s',
+		(changes, access, location, index) => {
+			const id = created(trySave(undefined, sourceForm({ token: 'secret' })));
 
-		expect(savingChanges(storedSource(db, id), sourceForm(changes))).toEqual({
-			access,
-			index,
-			reindex: index
-		});
-	});
+			expect(savingChanges(storedSource(db, id), sourceForm(changes))).toEqual({
+				access,
+				location,
+				index,
+				reindex: index
+			});
+		}
+	);
 
 	it('syncs a source whose last sync failed again without changing its index', () => {
 		const id = created(trySave(undefined, sourceForm()));
@@ -398,6 +404,7 @@ describe('savingChanges', () => {
 
 		expect(savingChanges(storedSource(db, id), sourceForm())).toEqual({
 			access: false,
+			location: false,
 			index: false,
 			reindex: true
 		});

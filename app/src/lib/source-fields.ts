@@ -29,7 +29,7 @@ export const NEW_SOURCE_FIELDS: SourceFields = {
 	gitUrl: '',
 	docsUrl: '',
 	branch: 'main',
-	path: 'docs',
+	path: '',
 	exclusions: '',
 	schedule: '',
 	paused: false,

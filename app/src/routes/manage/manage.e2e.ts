@@ -1,4 +1,5 @@
-import { readFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { expect, test, type Cookie, type Page, type Route } from '@playwright/test';
@@ -19,6 +20,28 @@ function setupToken(logFile = 'server.log'): string {
 	const log = readFileSync(join(process.env.E2E_DIR!, logFile), 'utf8');
 	// The token is base64url; this also ends it before the quote of a JSON log line.
 	return log.match(/setup token ([\w-]+)/)![1];
+}
+
+// The working copy behind the local Git server, see `playwright.config.ts`.
+const WORK = join(process.env.E2E_DIR!, 'auth');
+const REPOSITORY = join(process.env.E2E_DIR!, 'repositories', 'platform', 'auth.git');
+
+/** Changes the working copy, commits and pushes it to the repository the sources read. */
+function pushCommit(message: string, change: () => void) {
+	change();
+	const git = (...args: string[]) => execFileSync('git', ['-C', WORK, ...args]);
+	git('add', '--all');
+	git(
+		'-c',
+		'user.name=e2e',
+		'-c',
+		'user.email=e2e@example.com',
+		'commit',
+		'--quiet',
+		'-m',
+		message
+	);
+	git('push', '--quiet', REPOSITORY, 'main');
 }
 
 // A status in the page itself, and the toasts that report what an action did.
@@ -199,7 +222,6 @@ test('creates a source and never shows its token', async ({ page }) => {
 	await page.getByLabel('Name', { exact: true }).pressSequentially('Auth Service');
 	await expect(notice(page)).toHaveText('Slug: auth-service');
 	await page.getByLabel('Short description').fill('Login and billing');
-	// The repository has no `docs/`: the sync that creating starts fails, for the next test.
 	await page.getByLabel('Git URL').fill(GIT_URL);
 	await page.getByLabel('Username').fill('deploy');
 	await page.getByLabel('Access token').fill(TOKEN);
@@ -213,7 +235,17 @@ test('creates a source and never shows its token', async ({ page }) => {
 	await expect(reachable).toBeVisible();
 	await expect(reachable.locator('svg')).toBeVisible();
 	expect(await page.evaluate(() => 'notReloaded' in window)).toBe(true);
-	await expect(page.getByLabel('Path in the repository')).toHaveValue('docs');
+	// The repository has no `docs/` yet: nothing is saved, and the path field says why.
+	await page.getByLabel('Path in the repository').fill('docs');
+	await page.getByRole('button', { name: 'Create source' }).click();
+	await expect(page.locator('#path-error')).toHaveText(
+		'The path docs does not exist on branch main.'
+	);
+	await expect(page.getByLabel('Path in the repository')).toHaveAttribute('aria-invalid', 'true');
+	pushCommit('docs', () => {
+		mkdirSync(join(WORK, 'docs'));
+		writeFileSync(join(WORK, 'docs', 'index.md'), '# Auth\n');
+	});
 	await page.getByRole('button', { name: 'Create source' }).click();
 
 	await expect(page.getByRole('heading', { name: 'Source Auth Service' })).toBeVisible();
@@ -228,8 +260,13 @@ test('creates a source and never shows its token', async ({ page }) => {
 });
 
 test('syncs a source now and shows why it failed', async ({ page }) => {
+	// The repository loses the directory after the source was saved.
+	pushCommit('remove docs', () => rmSync(join(WORK, 'docs'), { recursive: true }));
 	await asAdmin(page);
 	await page.getByRole('link', { name: 'Auth Service', exact: true }).click();
+	// The sync saving started may still run: "Sync now" would join it, and it read the old commit.
+	await expect(page.getByRole('heading', { name: 'Source Auth Service' })).toBeVisible();
+	await expect(notice(page)).toHaveCount(0, { timeout: 15_000 });
 
 	await page.getByRole('button', { name: 'Sync now' }).click();
 
@@ -254,7 +291,10 @@ test('keeps a tested token that is not saved yet when syncing now', async ({ pag
 	await page.getByRole('link', { name: 'Auth Service', exact: true }).click();
 	await page.getByLabel('Access token').fill(rotated);
 	await page.getByRole('button', { name: 'Test connection' }).click();
-	await expect(notice(page).filter({ hasText: 'Reachable' })).toBeVisible();
+	// The token is accepted: only the path the repository lost is refused.
+	await expect(
+		page.getByRole('alert').filter({ hasText: 'The path docs does not exist on branch main.' })
+	).toBeVisible();
 
 	await page.getByRole('button', { name: 'Sync now' }).click();
 
@@ -332,9 +372,12 @@ test('imports the export on the setup page of an empty instance with another key
 	await expect(page).toHaveURL(`${other}/manage`);
 	await page.getByRole('link', { name: 'Auth Service', exact: true }).click();
 	await expect(page.getByText('stored; leave empty to keep it')).toBeVisible();
-	// The stored token decrypts under this instance's key: the connection test sends it.
+	// The stored token decrypts under this instance's key: the connection test sends it, and only
+	// the path the repository lost is refused.
 	await page.getByRole('button', { name: 'Test connection' }).click();
-	await expect(notice(page).filter({ hasText: 'Reachable' })).toBeVisible();
+	await expect(
+		page.getByRole('alert').filter({ hasText: 'The path docs does not exist on branch main.' })
+	).toBeVisible();
 	expect((await page.request.get(`${other}/setup`)).status()).toBe(404);
 });
 

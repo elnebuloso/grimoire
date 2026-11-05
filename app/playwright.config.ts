@@ -11,8 +11,8 @@ process.env.E2E_DIR ??= mkdtempSync(join(tmpdir(), 'grimoire-e2e-'));
 const directory = process.env.E2E_DIR;
 
 // Sources must use https, and the tests must not need the network: a local https Git server with
-// a certificate of its own serves this repository. `auth.git` has a branch `main` but no `docs/`,
-// so a sync of the default path reaches the repository and still fails.
+// a certificate of its own serves this repository. `auth.git` has a branch `main` but no `docs/`;
+// `manage.e2e.ts` commits it and takes it away again, so a sync of `docs` fails after saving.
 const GIT_PORT = 4443;
 const repositories = join(directory, 'repositories');
 const repository = join(repositories, 'platform', 'auth.git');

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { DatabaseSync } from 'node:sqlite';
@@ -18,6 +18,15 @@ vi.mock('../sync/git', async (original) => {
 		...actual,
 		checkRemote: vi.fn((remote: git.GitRemote, ...rest: [string, number?]) =>
 			actual.checkRemote(
+				{
+					...remote,
+					url: remote.url.replace('https://git.example/', `file://${repositories.directory}/`)
+				},
+				...rest
+			)
+		),
+		remotePathExists: vi.fn((remote: git.GitRemote, ...rest: [string, string, number]) =>
+			actual.remotePathExists(
 				{
 					...remote,
 					url: remote.url.replace('https://git.example/', `file://${repositories.directory}/`)
@@ -59,7 +68,9 @@ beforeAll(() => {
 	const work = join(directory, 'work');
 	const run = (...args: string[]) => execFileSync('git', args, { cwd: work });
 	execFileSync('git', ['init', '--quiet', '--initial-branch=main', work]);
-	writeFileSync(join(work, 'index.md'), '# Docs\n');
+	mkdirSync(join(work, 'docs'));
+	writeFileSync(join(work, 'docs', 'index.md'), '# Docs\n');
+	writeFileSync(join(work, 'README.md'), '# Platform\n');
 	run('add', '.');
 	run('-c', 'user.name=t', '-c', 'user.email=t@example.com', 'commit', '--quiet', '-m', 'x');
 	execFileSync('git', ['clone', '--quiet', '--bare', work, join(directory, 'docs.git')]);
@@ -84,6 +95,25 @@ describe('checkSourceAccess', () => {
 	it('reports the branch and its commit when the repository can be read', async () => {
 		expect(await checkSourceAccess(db, KEY, undefined, form(), LOCAL)).toEqual({
 			message: expect.stringMatching(/^Reachable: branch main is at commit [0-9a-f]{12}\.$/)
+		});
+	});
+
+	it.each([
+		[{ path: '' }, 'the whole repository'],
+		[{ path: './docs' }, 'a path written with ./']
+	])('reports a path that exists, %j for %s', async (changes) => {
+		expect(await checkSourceAccess(db, KEY, undefined, form(changes), LOCAL)).toMatchObject({
+			message: expect.stringMatching(/^Reachable/)
+		});
+	});
+
+	it.each([
+		[{ path: 'guides' }, 'The path guides does not exist on branch main.'],
+		[{ path: 'README.md' }, 'The path README.md does not exist on branch main.']
+	])('names a path the branch does not have as a directory, %j', async (changes, error) => {
+		expect(await checkSourceAccess(db, KEY, undefined, form(changes), LOCAL)).toEqual({
+			error,
+			field: 'path'
 		});
 	});
 

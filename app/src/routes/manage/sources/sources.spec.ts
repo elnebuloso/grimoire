@@ -264,7 +264,7 @@ describe('source page', () => {
 		expect(requestSyncInBackground).not.toHaveBeenCalled();
 	});
 
-	it('asks the Git server again only when the URL, branch, username or token change', async () => {
+	it('asks the Git server again only when the URL, branch, path, username or token change', async () => {
 		await thrown(() => saveSource('new', SOURCE));
 		checkAccess.mockClear();
 
@@ -273,14 +273,32 @@ describe('source page', () => {
 				...SOURCE,
 				token: '',
 				name: 'Login',
-				path: 'site/',
+				path: 'docs/',
+				exclusions: 'drafts/**',
 				schedule: '0 2 * * *'
 			})
 		);
 		expect(checkAccess).not.toHaveBeenCalled();
 
-		await thrown(() => saveSource('1', { ...SOURCE, token: '', branch: 'develop' }));
+		await thrown(() => saveSource('1', { ...SOURCE, token: '', path: 'site' }));
 		expect(checkAccess).toHaveBeenCalledOnce();
+
+		await thrown(() => saveSource('1', { ...SOURCE, token: '', path: 'site', branch: 'develop' }));
+		expect(checkAccess).toHaveBeenCalledTimes(2);
+	});
+
+	it('saves nothing when the path is missing, and shows why at the path field', async () => {
+		await thrown(() => saveSource('new', SOURCE));
+		checkAccess.mockResolvedValueOnce({
+			error: 'The path site does not exist on branch main.',
+			field: 'path'
+		});
+
+		expect(await saveSource('1', { ...SOURCE, token: '', path: 'site' })).toMatchObject({
+			status: 400,
+			data: { pathError: 'The path site does not exist on branch main.' }
+		});
+		expect(db.prepare('SELECT path FROM sources').get()).toEqual({ path: 'docs' });
 	});
 
 	it('answers 404 when the source is deleted while the Git server is asked', async () => {

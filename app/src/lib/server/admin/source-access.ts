@@ -1,15 +1,20 @@
 import type { DatabaseSync } from 'node:sqlite';
 import { m } from '#lib/paraglide/messages.js';
 import type { ConnectionPolicy } from '../sync/connection-policy';
-import { checkRemote, redirectTarget, type GitRemote } from '../sync/git';
+import { checkRemote, redirectTarget, remotePathExists, type GitRemote } from '../sync/git';
 import { decryptSecret } from '../secret-encryption';
 import { remoteProblem, storedSource, type SourceForm, type StoredSource } from './sources';
 
 // The admin waits for this in the browser; a server that is up answers within a second or two.
 const ACCESS_TIMEOUT_MS = 15 * 1000;
+// The path needs the tree of the branch, which takes longer for a large repository.
+const PATH_TIMEOUT_MS = 60 * 1000;
 
-/** What the Git server answered: a report when the source can be read, otherwise why not. */
-export type AccessResult = { message: string } | { error: string };
+/**
+ * What the Git server answered: a report when the source can be read, otherwise why not, with
+ * `field` naming the form field the refusal is about.
+ */
+export type AccessResult = { message: string } | { error: string; field?: 'path' };
 
 /**
  * Asks the Git server whether the source in `form` can be read; a URL that could not be saved is
@@ -30,7 +35,8 @@ export async function checkSourceAccess(
 
 /**
  * Asks the Git server whether the source in `form` can be read: the server answers, the
- * credentials are accepted and the branch exists, if the server may connect to it at all. Uses the token of `stored`, the source as
+ * credentials are accepted, the branch exists and has the path, if the server may connect to it
+ * at all. Uses the token of `stored`, the source as
  * `storedSource` read it, unless a new one is entered or its removal is asked for. Contacts the
  * URL without checking it: `remoteProblem` must have passed it.
  */
@@ -60,8 +66,17 @@ export async function checkAccess(
 	const branch = form.branch.trim();
 	const check = await checkRemote(remote, branch, ACCESS_TIMEOUT_MS);
 	switch (check.status) {
-		case 'ok':
+		case 'ok': {
+			const path = form.path.trim();
+			let exists: boolean;
+			try {
+				exists = await remotePathExists(remote, branch, path, PATH_TIMEOUT_MS);
+			} catch (error) {
+				return { error: m.access_unreachable({ detail: (error as Error).message }) };
+			}
+			if (!exists) return { error: m.access_path_missing({ path, branch }), field: 'path' };
 			return { message: m.access_ok({ branch, commit: check.commit.slice(0, 12) }) };
+		}
 		case 'no-branch':
 			return { error: m.access_no_branch({ branch }) };
 		case 'refused':

@@ -132,7 +132,16 @@
 				</div>
 				<TextField label={m.field_docs_url()} name="docsUrl" type="url" value={values.docsUrl} />
 				<TextField label={m.field_branch()} name="branch" required value={values.branch} mono />
-				<TextField label={m.field_path()} name="path" value={values.path} mono />
+				<div class="field-with-error">
+					<TextField
+						label={m.field_path()}
+						name="path"
+						value={values.path}
+						mono
+						{...form?.pathError ? { 'aria-invalid': true, 'aria-describedby': 'path-error' } : {}}
+					/>
+					<FormError message={form?.pathError} id="path-error" />
+				</div>
 			</div>
 			<TextAreaField label={m.field_exclusions()} name="exclusions" value={values.exclusions} />
 			<TextField
@@ -207,7 +216,8 @@
 			<div class="actions">
 				<!-- Saving comes first: Enter submits with the first button of a form. -->
 				<button class="primary">{data.source ? m.save() : m.source_create()}</button>
-				<button formaction="?/test" disabled={testPending} aria-busy={testPending}
+				<!-- `formnovalidate`: the connection can be tested before the source has a name. -->
+				<button formaction="?/test" formnovalidate disabled={testPending} aria-busy={testPending}
 					>{m.access_test()}</button
 				>
 			</div>
@@ -511,7 +521,8 @@
 		}
 	}
 	.git-url,
-	.token {
+	.token,
+	.field-with-error {
 		display: grid;
 		gap: var(--s2);
 	}

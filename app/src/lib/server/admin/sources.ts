@@ -242,6 +242,8 @@ export function sourceConflict(
 export interface SavingChanges {
 	/** A new source, or a changed Git URL, branch, username or token: the Git server is asked first. */
 	access: boolean;
+	/** A new source, or a changed Git URL, branch or path: the path is looked up on the branch. */
+	location: boolean;
 	/** A changed Git URL, branch, path or exclusions: the stored index no longer matches. */
 	index: boolean;
 	/** The save forces a sync: a new source, a changed index, or one whose last sync failed. */
@@ -253,7 +255,7 @@ export interface SavingChanges {
  * description, visibility and the other settings change neither access nor index.
  */
 export function savingChanges(stored: StoredSource | undefined, form: SourceForm): SavingChanges {
-	if (!stored) return { access: true, index: true, reindex: true };
+	if (!stored) return { access: true, location: true, index: true, reindex: true };
 	const gitUrl = form.gitUrl.trim();
 	const branch = form.branch.trim();
 	const access =
@@ -262,12 +264,12 @@ export function savingChanges(stored: StoredSource | undefined, form: SourceForm
 		(stored.username ?? '') !== form.username.trim() ||
 		form.token.trim() !== '' ||
 		(form.removeToken && stored.encryptedToken !== null);
-	const index =
+	const location =
 		stored.gitUrl !== gitUrl ||
 		stored.branch !== branch ||
-		repositoryPath(stored.path) !== repositoryPath(form.path) ||
-		stored.exclusions !== exclusionsJson(form.exclusions);
-	return { access, index, reindex: index || stored.error !== null };
+		repositoryPath(stored.path) !== repositoryPath(form.path);
+	const index = location || stored.exclusions !== exclusionsJson(form.exclusions);
+	return { access, location, index, reindex: index || stored.error !== null };
 }
 
 /**

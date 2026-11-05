@@ -392,5 +392,6 @@
 	"slug_change_title": "Slug von {name} in {slug} ändern?",
 	"source_public_title": "{name} öffentlich machen?",
 	"source_public_consequence": "Dann darf jeder, der {instance} erreicht, diese Quelle ohne API-Key durchsuchen und lesen.",
-	"source_public_confirm": "Als öffentlich speichern"
+	"source_public_confirm": "Als öffentlich speichern",
+	"access_path_missing": "Den Pfad {path} gibt es auf Branch {branch} nicht."
 }
