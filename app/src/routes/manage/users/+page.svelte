@@ -43,6 +43,7 @@
 				<tr>
 					<th scope="col">{m.field_email()}</th>
 					<th scope="col">{m.users_role()}</th>
+					<th scope="col">{m.users_sign_in()}</th>
 					<th scope="col">{m.users_actions()}</th>
 				</tr>
 			</thead>
@@ -51,6 +52,34 @@
 					<tr>
 						<th scope="row">{user.email}</th>
 						<td>{isAdmin(user) ? m.users_role_admin() : m.users_role_user()}</td>
+						<td>
+							<ul class="sign-in">
+								{#if user.hasPassword}<li>{m.users_sign_in_password()}</li>{/if}
+								{#each user.links as link (link.issuer)}
+									<li>
+										{link.label}
+										{#if !link.configured}<span class="muted"
+												>{m.account_provider_unconfigured()}</span
+											>{/if}
+										<ConfirmForm
+											action="?/unlink"
+											question={m.users_unlink_question({
+												provider: link.label,
+												email: user.email
+											})}
+											label={m.users_unlink()}
+											buttonLabel={m.users_unlink_named({
+												provider: link.label,
+												email: user.email
+											})}
+										>
+											<input type="hidden" name="id" value={user.id} />
+											<input type="hidden" name="issuer" value={link.issuer} />
+										</ConfirmForm>
+									</li>
+								{/each}
+							</ul>
+						</td>
 						<td>
 							<div class="actions">
 								{#if isAdmin(user)}
@@ -161,6 +190,19 @@
 		display: flex;
 		flex-wrap: wrap;
 		gap: var(--s2);
+	}
+	.sign-in {
+		display: grid;
+		gap: var(--s1);
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+	.sign-in li {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--s2);
+		align-items: center;
 	}
 	.expired {
 		margin-inline-start: var(--s2);

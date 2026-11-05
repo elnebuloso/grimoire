@@ -33,7 +33,7 @@
 				]
 			: []),
 		{ route: '/account/api-keys', href: resolve('/account/api-keys'), label: m.api_keys_own() },
-		{ route: '/account', href: resolve('/account'), label: m.password_title() }
+		{ route: '/account', href: resolve('/account'), label: m.account_title() }
 	]);
 
 	// Pages reached from the overview rather than from the nav: a source.

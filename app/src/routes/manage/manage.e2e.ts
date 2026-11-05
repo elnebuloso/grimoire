@@ -591,13 +591,56 @@ test('accepts an invitation through an identity provider for the invited address
 	await page.context().clearCookies();
 	await page.goto(link);
 	await expect(page.getByRole('alert')).toContainText('This invitation link is not valid');
+
+	// The admin sees how the account logs in, and can take the link away.
+	await asAdmin(page);
+	await page.goto('/manage/users');
+	const row = page.getByRole('row', { name: new RegExp(partner) });
+	await expect(row).toContainText('GitLab');
+	await expect(row).not.toContainText('Password');
+	page.once('dialog', (dialog) => dialog.accept());
+	await page.getByRole('button', { name: `Remove GitLab from ${partner}` }).click();
+	await expect(row).not.toContainText('GitLab');
+});
+
+test('links a provider to an existing account with its password, and removes it again', async ({
+	page,
+	browser
+}) => {
+	await asAdmin(page);
+	await page.goto('/account');
+	await page.getByLabel('Your password, to confirm').fill('wrong password');
+	await page.getByRole('button', { name: 'Link GitLab' }).click();
+	await expect(page.getByRole('alert')).toHaveText('Wrong current password.');
+
+	await page.getByLabel('Your password, to confirm').fill(PASSWORD);
+	await page.getByRole('button', { name: 'Link GitLab' }).click();
+	await page.locator('input[name="username"]').fill('admin-at-gitlab');
+	await page.locator('textarea[name="claims"]').fill('{}');
+	await page.getByRole('button', { name: 'Sign-in' }).click();
+	await expect(page.getByRole('status')).toHaveText('GitLab is linked to your account.');
+	await expect(page.getByRole('button', { name: 'Remove GitLab' })).toBeVisible();
+
+	// Elsewhere, the provider now logs in to this account; no address had to match.
+	const elsewhere = await (await browser.newContext()).newPage();
+	await elsewhere.goto('/login');
+	await logInThrough(elsewhere, 'GitLab', 'admin-at-gitlab', {});
+	await expect(elsewhere.getByRole('link', { name: EMAIL })).toBeVisible();
+
+	await page.getByRole('button', { name: 'Remove GitLab' }).click();
+	await expect(page.getByRole('status')).toHaveText(
+		'The link was removed. Your sessions in other browsers have ended; this one stays logged in.'
+	);
+	await elsewhere.reload();
+	await expect(elsewhere.getByRole('link', { name: 'Log in' })).toBeVisible();
+	await elsewhere.context().close();
 });
 
 // Near the end, because every test before it logs in with the old password.
 test('changes the password and logs in with the new one', async ({ page }) => {
 	const newPassword = 'staple battery horse';
 	await asAdmin(page);
-	await page.getByRole('link', { name: 'Change the password' }).click();
+	await page.getByRole('link', { name: 'Account', exact: true }).click();
 	await expect(page.getByLabel('Email address')).toHaveValue(EMAIL);
 	await expect(page.getByLabel('Email address')).toHaveAttribute('autocomplete', 'username');
 

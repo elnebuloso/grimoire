@@ -258,6 +258,31 @@ export async function login(
 }
 
 /**
+ * Confirms the user of `session` by their current password, before a change only they may make.
+ * A wrong password counts as a failed login of `client`. Returns the user, or why not.
+ */
+export async function checkCurrentPassword(
+	db: DatabaseSync,
+	client: string,
+	session: string,
+	password: string,
+	now = new Date()
+): Promise<{ userId: number } | { error: AuthProblem }> {
+	// Counted before the check, for the same reason as in `login`.
+	if (pendingHashes >= MAX_PENDING_HASHES || !failedLogins.take(clientKey(client), now)) {
+		return { error: 'blocked' };
+	}
+	const user = sessionUser(db, session, now);
+	const stored = user && findUser(db, user.email);
+	// An account without a password has no current one to give; it sets one by a reset.
+	unknownUserHash ??= await hashPassword(randomBytes(16).toString('hex'));
+	const matches = await passwordMatches(password, stored?.password_hash ?? unknownUserHash);
+	if (!stored || !matches) return { error: 'wrong-current-password' };
+	failedLogins.forget(clientKey(client));
+	return { userId: stored.id };
+}
+
+/**
  * Replaces the password of the user of `session` and ends every other session of that user.
  * A wrong current password counts as a failed login of `client`. Returns why when nothing was
  * changed.
@@ -269,27 +294,16 @@ export async function changePassword(
 	form: { current: string; password: string },
 	now = new Date()
 ): Promise<{ error: AuthProblem } | undefined> {
-	// Counted before the check, for the same reason as in `login`.
-	if (pendingHashes >= MAX_PENDING_HASHES || !failedLogins.take(clientKey(client), now)) {
-		return { error: 'blocked' };
-	}
-	const user = sessionUser(db, session, now);
-	const stored = user && findUser(db, user.email);
-	// An account without a password has no current one to give; it sets one by a reset.
-	unknownUserHash ??= await hashPassword(randomBytes(16).toString('hex'));
-	const matches = await passwordMatches(form.current, stored?.password_hash ?? unknownUserHash);
-	if (!stored || !matches) {
-		return { error: 'wrong-current-password' };
-	}
-	failedLogins.forget(clientKey(client));
+	const checked = await checkCurrentPassword(db, client, session, form.current, now);
+	if ('error' in checked) return checked;
 	if (form.password.length < MIN_PASSWORD_LENGTH) return { error: 'new-password-too-short' };
 	const passwordHash = await hashPassword(form.password);
 	inTransaction(db, () => {
-		db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(passwordHash, stored.id);
-		endSessions(db, stored.id, session);
+		db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(passwordHash, checked.userId);
+		endSessions(db, checked.userId, session);
 		// A reset mail the user did not ask for is a reason to change the password; its link must
 		// not outlive the change.
-		db.prepare('DELETE FROM password_resets WHERE user_id = ?').run(stored.id);
+		db.prepare('DELETE FROM password_resets WHERE user_id = ?').run(checked.userId);
 	});
 	return undefined;
 }

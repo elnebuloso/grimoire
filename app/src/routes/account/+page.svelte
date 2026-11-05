@@ -20,7 +20,7 @@
 	});
 </script>
 
-<PageHead title={m.password_title()}>{m.password_lead()}</PageHead>
+<PageHead title={m.account_title()} />
 
 {#if form?.changed}
 	<p class="notice" role="status">{m.password_changed()}</p>
@@ -36,7 +36,9 @@
 		{/if}
 	</p>
 {:else}
-	<section class="sheet" bind:this={sheet}>
+	<section class="sheet" bind:this={sheet} aria-labelledby="password-title">
+		<h2 id="password-title">{m.password_title()}</h2>
+		<p class="muted">{m.password_lead()}</p>
 		<form method="post">
 			<FormError message={form?.error} id="password-error" />
 			<!-- Tells a password manager which saved login the new password belongs to. -->
@@ -69,3 +71,80 @@
 		</form>
 	</section>
 {/if}
+
+{#if data.links.length > 0 || data.linkable.length > 0}
+	<section class="sheet" aria-labelledby="providers-title">
+		<h2 id="providers-title">{m.account_providers_title()}</h2>
+		<p class="muted">{m.account_providers_lead()}</p>
+		{#if data.linked}
+			<p class="notice" role="status">{m.account_provider_linked({ provider: data.linked })}</p>
+		{/if}
+		{#if data.unlinked}
+			<p class="notice" role="status">{m.account_provider_unlinked()}</p>
+		{/if}
+		<FormError message={data.problem} id="providers-error" />
+		{#if data.links.length > 0}
+			<ul class="links">
+				{#each data.links as link (link.issuer)}
+					<li>
+						<span>
+							{link.label}
+							{#if !link.configured}<span class="muted">{m.account_provider_unconfigured()}</span
+								>{/if}
+						</span>
+						<form method="post" action={resolve('/account/unlink')}>
+							<input type="hidden" name="issuer" value={link.issuer} />
+							<button>{m.account_provider_unlink({ provider: link.label })}</button>
+						</form>
+					</li>
+				{/each}
+			</ul>
+		{/if}
+		{#if data.linkable.length > 0}
+			{#if data.hasPassword}
+				<form method="post" action={resolve('/account/link')}>
+					<TextField
+						label={m.account_provider_password()}
+						name="current"
+						type="password"
+						required
+						autocomplete="current-password"
+					/>
+					<div class="buttons">
+						{#each data.linkable as provider (provider.key)}
+							<button name="provider" value={provider.key}
+								>{m.account_provider_link({ provider: provider.label })}</button
+							>
+						{/each}
+					</div>
+				</form>
+			{:else}
+				<p class="muted">{m.account_provider_link_needs_password()}</p>
+			{/if}
+		{/if}
+	</section>
+{/if}
+
+<style>
+	.links {
+		display: grid;
+		gap: var(--s2);
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	.links li {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--s2);
+		align-items: center;
+		justify-content: space-between;
+	}
+
+	.buttons {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--s2);
+	}
+</style>

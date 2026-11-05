@@ -6,6 +6,9 @@ export interface UserSummary {
 	id: number;
 	email: string;
 	roles: Role[];
+	hasPassword: boolean;
+	/** The issuers of the identity providers the user is linked to. */
+	issuers: string[];
 }
 
 /**
@@ -17,12 +20,19 @@ export type UserRefusal = { error: 'last-admin' } | { error: 'self' } | { error:
 export function listUsers(db: DatabaseSync): UserSummary[] {
 	const rows = db
 		.prepare(
-			`SELECT id, email,
-				(SELECT json_group_array(role) FROM user_roles WHERE user_id = users.id) AS roles
+			`SELECT id, email, password_hash IS NOT NULL AS has_password,
+				(SELECT json_group_array(role) FROM user_roles WHERE user_id = users.id) AS roles,
+				(SELECT json_group_array(issuer) FROM user_identities WHERE user_id = users.id) AS issuers
 			FROM users ORDER BY email`
 		)
-		.all() as { id: number; email: string; roles: string }[];
-	return rows.map((row) => ({ ...row, roles: JSON.parse(row.roles) as Role[] }));
+		.all() as { id: number; email: string; has_password: number; roles: string; issuers: string }[];
+	return rows.map((row) => ({
+		id: row.id,
+		email: row.email,
+		roles: JSON.parse(row.roles) as Role[],
+		hasPassword: row.has_password === 1,
+		issuers: JSON.parse(row.issuers) as string[]
+	}));
 }
 
 function isAdmin(db: DatabaseSync, userId: number): boolean {

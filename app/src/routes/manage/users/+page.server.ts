@@ -12,13 +12,18 @@ import {
 } from '#lib/server/admin/invitations.js';
 import { deleteUser, listUsers, setAdmin, type UserRefusal } from '#lib/server/admin/users.js';
 import { mailer } from '#lib/server/mail/index.js';
+import { describeLinks } from '#lib/server/oidc/index.js';
+import { removeIdentity } from '#lib/server/oidc/identities.js';
 import { publicOrigin } from '#lib/server/public-origin.js';
 import { m } from '#lib/paraglide/messages.js';
 
 export const load: PageServerLoad = ({ locals }) => {
 	const db = database();
 	return {
-		users: listUsers(db),
+		users: listUsers(db).map(({ issuers, ...user }) => ({
+			...user,
+			links: describeLinks(issuers)
+		})),
 		invitations: listInvitations(db),
 		// The own account offers no delete: an admin cannot delete themselves.
 		me: locals.user!.id,
@@ -83,6 +88,10 @@ export const actions = {
 	demote: async ({ request }) => {
 		const problem = setAdmin(database(), await idOf(request), false);
 		if (problem) return refused(problem);
+	},
+	unlink: async ({ request }) => {
+		const data = await request.formData();
+		removeIdentity(database(), Number(data.get('id')), String(data.get('issuer') ?? ''));
 	},
 	delete: async ({ request, locals }) => {
 		const problem = deleteUser(database(), await idOf(request), locals.user!.id);
