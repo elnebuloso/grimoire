@@ -8,15 +8,17 @@
 
 	let { data }: PageProps = $props();
 
-	// One option per line: a phone wraps between them, not inside a flag.
+	// One option per line: a phone wraps between them, not inside a flag. A visitor has no key and
+	// reads the public sources without one.
 	const connectCommand = $derived(
 		[
 			'claude mcp add \\',
 			'  --transport http \\',
 			'  --scope user \\',
 			`  ${data.mcpName} \\`,
-			`  ${data.origin}/mcp \\`,
-			'  --header "Authorization: Bearer <key>"'
+			...(data.user
+				? [`  ${data.origin}/mcp \\`, '  --header "Authorization: Bearer <key>"']
+				: [`  ${data.origin}/mcp`])
 		].join('\n')
 	);
 </script>

@@ -299,7 +299,17 @@ test('links the documentation of a source only once its URL is set', async ({ pa
 
 test('shows how to connect Claude Code to this instance', async ({ page }) => {
 	await page.goto('/');
-	// The server derives the origin from `x-forwarded-proto`, as it would behind a proxy.
+	// The server derives the origin from `x-forwarded-proto`, as it would behind a proxy. A visitor
+	// has no key: the command connects without one.
+	await expect(page.locator('pre')).toHaveText(
+		'claude mcp add \\\n' +
+			'  --transport http \\\n' +
+			'  --scope user \\\n' +
+			'  grimoire \\\n' +
+			'  http://localhost:4173/mcp'
+	);
+	await asAdmin(page);
+	await page.goto('/');
 	await expect(page.locator('pre')).toHaveText(
 		'claude mcp add \\\n' +
 			'  --transport http \\\n' +
