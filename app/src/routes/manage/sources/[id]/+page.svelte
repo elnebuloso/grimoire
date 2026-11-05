@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { invalidateAll } from '$app/navigation';
+	import { refreshAll } from '$app/navigation';
 	import CircleCheck from '@lucide/svelte/icons/circle-check';
 	import { resolve } from '$app/paths';
 	import ChoiceField from '#lib/components/ChoiceField.svelte';
@@ -29,7 +29,7 @@
 	const PENDING_REFRESH_MS = 2000;
 	$effect(() => {
 		if (!data.syncPending) return;
-		const timer = setInterval(() => invalidateAll(), PENDING_REFRESH_MS);
+		const timer = setInterval(() => refreshAll(), PENDING_REFRESH_MS);
 		return () => clearInterval(timer);
 	});
 
@@ -64,7 +64,7 @@
 				const testing = action.search === '?/test';
 				if (testing) testPending = true;
 				return async ({ update }) => {
-					await update({ reset: false, invalidateAll: !testing });
+					await update({ reset: false, refreshAll: !testing });
 					testPending = false;
 					// The answer carries an entered token back only encrypted; as after a reload, the
 					// page keeps no plain copy of it.
@@ -202,7 +202,7 @@
 					action="?/sync"
 					use:enhance={() =>
 						async ({ result, update }) => {
-							if (result.type === 'redirect') await invalidateAll();
+							if (result.type === 'redirect') await refreshAll();
 							else await update();
 						}}
 				>
