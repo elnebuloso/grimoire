@@ -28,7 +28,7 @@ without a restart. It runs beside `make dev` (5173) and `make e2e` (4173, 4174).
 | `platform-docs` | `zensical/docs` | internal | synced within about 15 s of a reset, pages, snippets and 3 dead links |
 | `billing-docs` | `mkdocs/docs` | public | synced within about 15 s of a reset, pages, snippets and 3 dead links |
 | `billing-archive` | `archive/docs` (does not exist) | internal | sync fails with an error |
-| `platform-next` | `zensical/docs` | internal | paused and never synced; only "sync now" syncs it |
+| `platform-next` | `zensical/docs` | internal | paused and never synced; only "sync now" syncs it; duplicates `platform-docs` on purpose, written past the duplicate check, so `/manage/duplicates` has a pair to show |
 
 ## Identity providers
 

@@ -55,37 +55,5 @@ in its `TODO-UEBERNAHME.md` once released.
 
 - **`make admin-grant EMAIL=… PASSWORD=1` was never run through `make`**; only the script itself,
   with `--password` once in a pseudo terminal (`script -qec`). Try it before relying on it.
-- **`/setup` reopens whenever no account has the role `admin`**, not only on an empty instance.
-  The UI cannot get there (the last admin keeps the role); a direct database edit can.
-- **`backlog task list --plain | head` crashes** (Bun, "Error is not a constructor"); use
-  `--limit` instead of `head`.
-
 - **Every push to `main` releases.**
-- **Pull with `git pull --rebase origin main`.** VS Code fetches in the background; a fetch at the
-  same moment writes `main` twice into `.git/FETCH_HEAD`, and a plain `git pull --rebase` stops
-  with "Cannot rebase onto multiple branches".
-- **`app/src/lib/server/fixtures/export-schema-4.grimoire-export` is never written again.** It
-  stands for exports made by 1.4.0; specs and the image smoke import it through every later
-  migration. Its private source arrives as internal, its users without identities.
-- **A new column of an exported table fails `instance-export.spec.ts`** until it is listed in
-  `EXPORTED_COLUMNS` or `RUNTIME_COLUMNS`; a new table until it is in `EXPORTED_COLUMNS` or
-  `EMPTIED_TABLES`. A new kind of stored secret would travel encrypted: export and import handle
-  only `sources.encrypted_token`.
-- **Specs that mock `$app/env/private`** need what the modules behind the route read: `GIT_ALLOWED_HOSTS: []`
-  for the Git check, `OIDC_PROVIDERS: ''` and `BASE_URL: ''` for login, invite and account
-  routes. A missing one fails with `No "<NAME>" export is defined on the "$app/env/private" mock`.
-- **`OIDC_<KEY>_*` are read from `process.env`, not from `app/.env`**: SvelteKit reads only
-  declared variables from there. `make dev` needs them exported in the shell; the agent
-  environment exports them in `scripts/agent-env.sh`.
-- **In e2e, `getByRole('button', { name: 'Log in' })` also matches the provider buttons**
-  (`Log in with GitLab`); use `exact: true`.
-- **`make e2e` needs Docker, `openssl` and the ports 4443 (local https Git server), 4173, 4174
-  (second, empty instance for the import), 4125/4825 (mail catcher) and 4580 (OIDC mock).**
-- **The agent fixture `platform-next` duplicates `platform-docs`** (same repository and path). The
-  seed writes it directly, past the duplicate check, on purpose: `/manage/duplicates` has a pair
-  to show.
-- **Type errors from stale messages:** the Paraglide output under `app/src/lib/paraglide` is
-  generated; `svelte-check` alone may see an old one. `make lint` compiles it first.
-- **After a schema change** the agent environment needs `make agent-reset`.
-- **The Playwright MCP browser saves screenshots only inside the repository**
-  (`.playwright-mcp/`, ignored by git), not in the scratchpad.
+- Durable facts about the code and the tools are in `.claude/rules/`.

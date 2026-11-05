@@ -48,7 +48,16 @@ Measured on 2026-11-05 after 1.8.0. Every spec, story and e2e file also passes o
   stories of a changed component.
 - **`hooks.server.ts`, `app.html`, the root layout, `vite.config.ts`, a
   dependency or a migration:** these reach every page; run `make test` and `make e2e` in full.
-- **Types:** svelte-check sees the whole project; it runs with `make lint`, at the end.
+- **Types:** svelte-check sees the whole project; it runs with `make lint`, at the end. Run alone,
+  it may see stale messages: the Paraglide output under `app/src/lib/paraglide` is generated, and
+  `make lint` compiles it first.
+
+## Specs
+
+- A spec that mocks `$app/env/private` needs what the modules behind the route read:
+  `GIT_ALLOWED_HOSTS: []` for the Git check, `OIDC_PROVIDERS: ''` and `BASE_URL: ''` for login,
+  invite and account routes. A missing one fails with
+  `No "<NAME>" export is defined on the "$app/env/private" mock`.
 
 ## E2E files
 
@@ -62,6 +71,10 @@ Measured on 2026-11-05 after 1.8.0. Every spec, story and e2e file also passes o
 - `make e2e` runs a second, empty instance of the same build on port 4174, with its own database
   and `ENCRYPTION_KEY` and its log in `import-server.log`: `manage.e2e.ts` imports its export there
   on the setup page.
+- `make e2e` needs Docker, `openssl` and the ports 4443 (local https Git server), 4173, 4174,
+  4125/4825 (mail catcher) and 4580 (OIDC mock).
+- `getByRole('button', { name: 'Log in' })` also matches the provider buttons
+  (`Log in with GitLab`); use `exact: true`.
 - A new e2e file must not depend on the state another file leaves behind: files run in parallel
   workers, in no fixed order.
 
