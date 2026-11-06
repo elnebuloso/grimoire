@@ -20,8 +20,8 @@
 {:else}
 	<details>
 		<summary
-			>{#each slugs.slice(0, SHOWN) as slug (slug)}<code>{slug}</code
-				>{', '}{/each}{m.key_scope_more({ count: rest })}</summary
+			>{#each slugs.slice(0, SHOWN) as slug, index (slug)}{index > 0 ? ', ' : ''}<code>{slug}</code
+				>{/each}{`, ${m.key_scope_more({ count: rest })}`}</summary
 		>
 		<ul>
 			{#each slugs as slug (slug)}<li><code>{slug}</code></li>{/each}
