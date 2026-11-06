@@ -20,7 +20,6 @@
 		list={data.queries}
 		key={(query) => `${query.sources}\n${query.question}`}
 		search={m.missed_search()}
-		defaultSort="-asked"
 		columns={[
 			{ label: m.query_question(), sort: 'question' },
 			{ label: m.sources() },

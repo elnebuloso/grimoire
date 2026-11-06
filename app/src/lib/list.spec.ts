@@ -109,7 +109,19 @@ describe('listPage', () => {
 			rows: [],
 			total: 0,
 			page: 1,
-			pageCount: 1
+			pageCount: 1,
+			sort: { key: 'name', descending: false }
+		});
+	});
+
+	it('reports the sort it applied, also for an unknown one in the URL', () => {
+		expect(listPage(SOURCES, params('sort=-checked'), SPEC).sort).toEqual({
+			key: 'checked',
+			descending: true
+		});
+		expect(listPage(SOURCES, params('sort=-size'), SPEC).sort).toEqual({
+			key: 'name',
+			descending: false
 		});
 	});
 });

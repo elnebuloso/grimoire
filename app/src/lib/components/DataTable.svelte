@@ -1,5 +1,5 @@
 <script lang="ts" generics="Row">
-	import type { Snippet } from 'svelte';
+	import { onDestroy, type Snippet } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import TableScroll from './TableScroll.svelte';
@@ -19,7 +19,6 @@
 		row,
 		search,
 		filters = [],
-		defaultSort,
 		empty
 	}: {
 		/** Names the table and its scroll region. */
@@ -33,14 +32,11 @@
 		/** The label of the search field; no field without it. */
 		search?: string;
 		filters?: { name: string; label: string; options: { value: string; label: string }[] }[];
-		/** The `defaultSort` of the list on the server, where it is not its first column ascending. */
-		defaultSort?: string;
 		/** Shown in place of the table when nothing is listed. */
 		empty: Snippet;
 	} = $props();
 
 	const params = $derived(page.url.searchParams);
-	const sortParam = $derived(params.get('sort') || defaultSort || '');
 	const searchId = $props.id();
 
 	function show(changes: Record<string, string>) {
@@ -54,20 +50,19 @@
 		goto(url, { replace: true, reset: false });
 	}
 
-	// Each key typed would load the list again: only a pause of 300 ms does.
+	// Each key typed would load the list again: only a pause of 300 ms does. Leaving the page
+	// cancels it, or the search would follow onto the next page.
 	let timer: ReturnType<typeof setTimeout> | undefined;
 	function searchFor(value: string) {
 		clearTimeout(timer);
 		timer = setTimeout(() => show({ search: value }), 300);
 	}
+	onDestroy(() => clearTimeout(timer));
 
-	// No `sort` in the URL: the first sortable column, as the server's first sort.
-	const activeSort = $derived(
-		sortParam.replace(/^-/, '') || columns.find((column) => column.sort)?.sort
-	);
+	// As the server applied it, whatever the URL asked for.
 	function sortState(column: { sort?: string }): 'ascending' | 'descending' | 'none' {
-		if (!column.sort || column.sort !== activeSort) return 'none';
-		return sortParam.startsWith('-') ? 'descending' : 'ascending';
+		if (!column.sort || column.sort !== list.sort?.key) return 'none';
+		return list.sort.descending ? 'descending' : 'ascending';
 	}
 
 	function sortBy(column: { sort?: string }) {
@@ -90,7 +85,7 @@
 				<input
 					id={searchId}
 					type="search"
-					value={params.get('search') ?? ''}
+					defaultValue={params.get('search') ?? ''}
 					oninput={(event) => searchFor(event.currentTarget.value)}
 				/>
 			</div>

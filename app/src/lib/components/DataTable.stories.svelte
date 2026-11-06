@@ -33,6 +33,39 @@
 </script>
 
 <Story
+	name="Sorted as the server applied it"
+	play={async ({ canvas }) => {
+		await expect(canvas.getByRole('columnheader', { name: /Pages/ })).toHaveAttribute(
+			'aria-sort',
+			'descending'
+		);
+		await expect(canvas.getByRole('columnheader', { name: /Source/ })).toHaveAttribute(
+			'aria-sort',
+			'none'
+		);
+	}}
+>
+	{#snippet template()}
+		<DataTable
+			label="Sources"
+			list={{
+				rows: rows.slice(0, 3),
+				total: 3,
+				page: 1,
+				pageCount: 1,
+				sort: { key: 'pages', descending: true }
+			}}
+			{columns}
+			key={(source) => source.id}
+		>
+			{#snippet row(source)}<td>{source.name}</td><td class="num">{source.pages}</td><td
+				></td>{/snippet}
+			{#snippet empty()}<p>No sources.</p>{/snippet}
+		</DataTable>
+	{/snippet}
+</Story>
+
+<Story
 	name="A page of many"
 	play={async ({ canvas }) => {
 		await expect(canvas.getByRole('searchbox', { name: 'Search by name' })).toBeVisible();
@@ -58,7 +91,7 @@
 	{#snippet template()}
 		<DataTable
 			label="Sources"
-			list={{ rows, total: 512, page: 1, pageCount: 6 }}
+			list={{ rows, total: 512, page: 1, pageCount: 6, sort: { key: 'name', descending: false } }}
 			{columns}
 			key={(source) => source.id}
 			search="Search by name"

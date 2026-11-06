@@ -29,6 +29,8 @@ export interface ListPage<Row> {
 	total: number;
 	page: number;
 	pageCount: number;
+	/** The sort applied, for the table to mark its column; absent for a list that is not sorted. */
+	sort?: { key: string; descending: boolean };
 }
 
 /** Reads the state of a list from `url`, ignoring values the list does not know. */
@@ -81,6 +83,7 @@ export function listPage<Row>(rows: Row[], params: ListParams, spec: ListSpec<Ro
 		rows: sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
 		total: sorted.length,
 		page,
-		pageCount
+		pageCount,
+		sort: { key: params.sort, descending: params.descending }
 	};
 }
