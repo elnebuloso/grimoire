@@ -1,8 +1,8 @@
 # Testing strategy
 
 While working, run the cheapest check that can catch what the change can break. The full suites run
-once, before the commit that ships the work, or at the end of a batch of tasks. CI always runs all
-of them.
+once, before the push that ships a batch of tasks; local commits in between don't need them. CI
+always runs all of them.
 
 ## What a run costs
 
@@ -47,7 +47,8 @@ Measured on 2026-11-05 after 1.8.0. Every spec, story and e2e file also passes o
 - **Styles only:** no test catches a look; check the screen in both schemes instead, and the
   stories of a changed component.
 - **`hooks.server.ts`, `app.html`, the root layout, `vite.config.ts`, a
-  dependency or a migration:** these reach every page; run `make test` and `make e2e` in full.
+  dependency or a migration:** these reach every page; run `make test` in full before the task's
+  commit. `make e2e` waits for the push.
 - **Types:** svelte-check sees the whole project; it runs with `make lint`, at the end. Run alone,
   it may see stale messages: the Paraglide output under `app/src/lib/paraglide` is generated, and
   `make lint` compiles it first.
@@ -81,7 +82,15 @@ Measured on 2026-11-05 after 1.8.0. Every spec, story and e2e file also passes o
 - A new e2e file must not depend on the state another file leaves behind: files run in parallel
   workers, in no fixed order.
 
-## Before the commit that ships
+## Before each task's commit
 
-`make lint`, `make test` and `make e2e`, all three, after the last change. A narrow run that passed
-earlier does not stand in for them.
+`make format` and the targeted run the change calls for (above), plus the e2e file of a flow the
+task changed. No `make lint`, full `make test` or full `make e2e` here: a commit that stays local
+ships nothing.
+
+## Before the push
+
+Work in batches of a few related tasks. Before the push that ships a batch: `make lint`,
+`make test` and `make e2e`, all three, after the last change. A narrow run that passed earlier does
+not stand in for them. What they find is fixed in a commit of its own, never by amending, and then
+all three run again.
