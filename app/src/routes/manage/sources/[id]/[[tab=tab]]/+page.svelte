@@ -1,84 +1,43 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { goto, refreshAll } from '$app/navigation';
-	import CircleCheck from '@lucide/svelte/icons/circle-check';
 	import { resolve } from '$app/paths';
-	import ChoiceField from '#lib/components/ChoiceField.svelte';
-	import ConfirmAction from '#lib/components/ConfirmAction.svelte';
-	import ConfirmDialog from '#lib/components/ConfirmDialog.svelte';
-	import DeadLinkList from '#lib/components/DeadLinkList.svelte';
-	import DateTime from '#lib/components/DateTime.svelte';
-	import DescriptionList from '#lib/components/DescriptionList.svelte';
-	import FormError from '#lib/components/FormError.svelte';
-	import FormSection from '#lib/components/FormSection.svelte';
-	import NameField from '#lib/components/NameField.svelte';
 	import PageHead from '#lib/components/PageHead.svelte';
-	import PageList from '#lib/components/PageList.svelte';
-	import DataTable from '#lib/components/DataTable.svelte';
-	import SourceLabel from '#lib/components/SourceLabel.svelte';
-	import ScheduleField from '#lib/components/ScheduleField.svelte';
+	import SourceSettingsForm from '#lib/components/SourceSettingsForm.svelte';
 	import StatusBadge from '#lib/components/StatusBadge.svelte';
-	import SyncError from '#lib/components/SyncError.svelte';
 	import TabNav from '#lib/components/TabNav.svelte';
-	import TextAreaField from '#lib/components/TextAreaField.svelte';
-	import TextField from '#lib/components/TextField.svelte';
 	import { m } from '#lib/paraglide/messages.js';
-	import { submitWithToast, type SubmitResult } from '#lib/forms.js';
+	import { submitWithToast } from '#lib/forms.js';
 	import { showToast } from '#lib/toasts.svelte.js';
-	import { MAX_NAME_LENGTH, MAX_SLUG_LENGTH } from '#lib/slug.js';
 	import { NEW_SOURCE_FIELDS, toSourceFields } from '#lib/source-fields.js';
 	import { sourceState } from '#lib/source-state.js';
-	import { SYNC_FIX } from '#lib/sync-fix.js';
+	import HistoryTab from './HistoryTab.svelte';
+	import PagesTab from './PagesTab.svelte';
+	import SettingsTab from './SettingsTab.svelte';
+	import StatusTab from './StatusTab.svelte';
+	import { pollSyncEnd } from './sync-poll';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
 
-	let testPending = $state(false);
-
-	// Saving a source as public opens it to everyone: asked once, then the same submit again.
-	let askPublic = $state(false);
-	let publicConfirmed = false;
-	let pendingSave: { form: HTMLFormElement; submitter: HTMLElement | null } | undefined;
-	const becomesPublic = (formData: FormData) =>
-		formData.get('visibility') === 'public' && data.source?.visibility !== 'public';
-
-	let newSlug = $state('');
-
-	// Polls for the end of a queued sync, then refreshes the page data once and reports the outcome.
-	// The poll does not keep an idle session alive; a page reload would. Every sub page shares this
-	// component, so the poll goes on when the tab changes.
-	const PENDING_REFRESH_MS = 2000;
+	// The end of a queued sync refreshes the page data once and reports the outcome. Every tab
+	// shares this component, so the poll goes on when the tab changes.
 	$effect(() => {
 		if (!data.syncPending || !data.source) return;
 		const id = data.source.id;
-		const url = resolve('/manage/sources/[id]/sync-pending', { id: String(id) });
-		const timer = setInterval(async () => {
-			const response = await fetch(url);
-			// An ended session answers with the login page, not JSON: the refresh then leads there.
-			const { pending } = await response.json().catch(() => ({ pending: false }));
-			if (pending) return;
-			clearInterval(timer);
+		return pollSyncEnd(id, async () => {
 			await refreshAll();
 			if (data.source?.id !== id) return;
 			const name = data.source.name;
 			if (data.status?.error) showToast(m.source_sync_failed({ name }));
 			else showToast(m.source_sync_done({ name }));
-		}, PENDING_REFRESH_MS);
-		return () => clearInterval(timer);
+		});
 	});
 
 	// Links from before the sub pages pointed at sections of one page.
 	$effect(() => {
 		if (data.source && data.tab === 'status' && location.hash === '#settings') {
-			goto(
-				resolve('/manage/sources/[id]/[[tab=tab]]', {
-					id: String(data.source.id),
-					tab: 'settings'
-				}),
-				{
-					replace: true
-				}
-			);
+			goto(tabHref('settings'), { replace: true });
 		}
 	});
 
@@ -116,24 +75,28 @@
 			: 'never'
 	);
 
-	// An overlap is a refusal that asks for the confirmation box rather than a correction.
-	const overlapAsked = $derived(!!form && 'overlap' in form && form.overlap === true);
-
-	// A refusal of the settings form marks the field it is about, which points to the message: the
-	// path, which only the Git server can refuse, has its message next to it; the others at the top.
-	const ownMessage = (field: string | undefined) => (field === 'path' ? 'path-error' : undefined);
-	const invalid = (field: string) =>
-		form?.field === field
-			? { 'aria-invalid': true, 'aria-describedby': ownMessage(field) ?? 'source-error' }
-			: {};
-
-	const values = $derived(
-		form?.values ?? {
+	// What the settings form shows: what was sent, after a refusal or a test, else what is stored.
+	const settingsForm = $derived({
+		values: form?.values ?? {
 			...(data.source ? toSourceFields(data.source) : NEW_SOURCE_FIELDS),
 			removeToken: false,
 			encryptedToken: ''
-		}
-	);
+		},
+		refusal:
+			form && typeof form.error === 'string'
+				? {
+						error: form.error,
+						field: form.field,
+						overlap: 'overlap' in form && form.overlap === true
+					}
+				: undefined,
+		access: form?.access,
+		source: data.source,
+		globalSchedule: data.globalSchedule,
+		timeZone: data.timeZone,
+		nextCheck: data.nextCheck,
+		instanceTitle: data.instanceTitle
+	});
 </script>
 
 {#if data.source}
@@ -178,454 +141,23 @@
 	/>
 {/if}
 
-<!-- What each Git host calls the token the access section asks for. -->
-{#snippet gitlab()}{m.source_token_gitlab()} <code>read_repository</code>{/snippet}
-{#snippet github()}{m.source_token_github()} <code>Contents: read-only</code>{/snippet}
-
-{#snippet settings()}
-	<!-- In place: the connection test answers without reloading what was typed and where it was
-	scrolled to; saving still leads to the source as before. -->
-	<form
-		class="source-form"
-		method="post"
-		action="?/save"
-		use:enhance={(input) => {
-			const testing = input.action.search === '?/test';
-			if (!testing && !publicConfirmed && becomesPublic(input.formData)) {
-				pendingSave = { form: input.formElement, submitter: input.submitter };
-				askPublic = true;
-				return input.cancel();
-			}
-			publicConfirmed = false;
-			const isNew = !data.source;
-			const name = String(input.formData.get('name'));
-			if (testing) testPending = true;
-			const submit = submitWithToast({
-				success: (result) => {
-					if (testing) return undefined;
-					if (isNew) return m.source_created({ name });
-					const reindexing = result.type === 'success' && result.data?.reindexing === true;
-					return reindexing ? m.source_saved_sync({ name }) : m.source_saved({ name });
-				}
-			})(input) as SubmitResult;
-			return async (output) => {
-				await submit(output);
-				testPending = false;
-				// The answer carries an entered token back only encrypted; as after a reload, the
-				// page keeps no plain copy of it.
-				const token = input.formElement.elements.namedItem('token');
-				if (token instanceof HTMLInputElement) token.value = '';
-			};
-		}}
-	>
-		<!-- Enter in a field submits with the first submit button: saving, not the connection test
-		further down. -->
-		<button class="default-submit" tabindex="-1" aria-hidden="true"></button>
-		<FormError
-			message={overlapAsked || ownMessage(form?.field) ? undefined : form?.error}
-			id="source-error"
-		/>
-		<FormSection title={m.source_section_general()}>
-			<div class="fields">
-				{#if data.source}
-					<TextField
-						label={m.field_name()}
-						name="name"
-						required
-						maxlength={MAX_NAME_LENGTH}
-						value={values.name}
-						{...invalid('name')}
-					/>
-				{:else}
-					<NameField label={m.field_name()} name="name" value={values.name} {...invalid('name')} />
-				{/if}
-				<TextField label={m.field_description()} name="description" value={values.description} />
-			</div>
-			<TextField
-				label={m.field_docs_url()}
-				name="docsUrl"
-				type="url"
-				value={values.docsUrl}
-				{...invalid('docsUrl')}
-			/>
-		</FormSection>
-		<FormSection title={m.source_section_repository()} lead={m.source_section_repository_lead()}>
-			<div class="git-url">
-				<TextField
-					label={m.field_git_url()}
-					name="gitUrl"
-					type="url"
-					required
-					value={values.gitUrl}
-					aria-describedby="git-url-hint"
-					{...invalid('gitUrl')}
-				/>
-				<p class="hint" id="git-url-hint">{m.field_git_url_hint()}</p>
-			</div>
-			<div class="fields">
-				<TextField
-					label={m.field_branch()}
-					name="branch"
-					required
-					value={values.branch}
-					mono
-					{...invalid('branch')}
-				/>
-				<div class="field-with-error">
-					<TextField
-						label={m.field_path()}
-						name="path"
-						value={values.path}
-						mono
-						{...invalid('path')}
-					/>
-					<FormError message={form?.field === 'path' ? form.error : undefined} id="path-error" />
-				</div>
-			</div>
-			<TextAreaField label={m.field_exclusions()} name="exclusions" value={values.exclusions} />
-		</FormSection>
-		<FormSection title={m.source_section_access()} lead={m.source_section_access_lead()}>
-			<DescriptionList
-				items={[
-					['GitLab', gitlab],
-					['GitHub', github],
-					['Forgejo', m.source_token_forgejo()]
-				]}
-			/>
-			<div class="fields">
-				<TextField label={m.field_username()} name="username" value={values.username} />
-				<div class="token">
-					<TextField
-						label={values.encryptedToken
-							? m.field_token_entered()
-							: data.source?.hasToken
-								? m.field_token_stored()
-								: m.field_token_none_stored()}
-						name="token"
-						type="password"
-						autocomplete="off"
-						{...invalid('token')}
-					/>
-					{#if values.encryptedToken}
-						<ChoiceField name="discardToken" label={m.field_remove_entered_token()} />
-					{:else if data.source?.hasToken}
-						<ChoiceField
-							name="removeToken"
-							checked={values.removeToken}
-							label={m.field_remove_stored_token()}
-						/>
-					{/if}
-				</div>
-			</div>
-			<input type="hidden" name="encryptedToken" value={values.encryptedToken} />
-			{#if form?.access}
-				{#if 'error' in form.access}
-					<p class="notice alert" role="alert">{form.access.error}</p>
-				{:else}
-					<p class="notice reachable" role="status">
-						<CircleCheck size={18} aria-hidden="true" />
-						{form.access.message}
-					</p>
-				{/if}
-			{/if}
-			<!-- `formnovalidate`: the connection can be tested before the source has a name. -->
-			<button
-				class="test"
-				formaction="?/test"
-				formnovalidate
-				disabled={testPending}
-				aria-busy={testPending}>{m.access_test()}</button
-			>
-		</FormSection>
-		<FormSection title={m.source_section_schedule()}>
-			<ScheduleField
-				label={m.field_schedule({ schedule: data.globalSchedule })}
-				name="schedule"
-				value={values.schedule}
-				{...invalid('schedule')}
-				globalSchedule={data.globalSchedule}
-				timeZone={data.timeZone}
-			/>
-			{#if data.nextCheck}
-				<p class="hint">
-					{m.source_next_check()}
-					<DateTime value={data.nextCheck} timeZone={data.timeZone} />
-				</p>
-			{/if}
-			<ChoiceField name="paused" checked={values.paused} label={m.field_paused()} />
-			<fieldset>
-				<legend>{m.visibility()}</legend>
-				<ChoiceField
-					type="radio"
-					name="visibility"
-					value="internal"
-					checked={values.visibility === 'internal'}
-					label={m.field_visibility_internal({ name: data.instanceTitle })}
-				/>
-				<ChoiceField
-					type="radio"
-					name="visibility"
-					value="public"
-					checked={values.visibility === 'public'}
-					label={m.field_visibility_public({ name: data.instanceTitle })}
-				/>
-			</fieldset>
-		</FormSection>
-		{#if overlapAsked}
-			<p class="notice warn" role="alert" id="overlap-warning">{form?.error}</p>
-			<ChoiceField
-				name="confirmOverlap"
-				label={m.field_confirm_overlap()}
-				aria-describedby="overlap-warning"
-			/>
-		{/if}
-		<div class="actions">
-			<button class="primary">{data.source ? m.save() : m.source_create()}</button>
-		</div>
-	</form>
-	<ConfirmDialog
-		bind:open={askPublic}
-		title={m.source_public_title({ name: values.name || m.source_new() })}
-		consequence={m.source_public_consequence({ instance: data.instanceTitle })}
-		confirmLabel={m.source_public_confirm()}
-		onconfirm={() => {
-			askPublic = false;
-			publicConfirmed = true;
-			pendingSave?.form.requestSubmit(pendingSave.submitter);
-		}}
-	/>
-{/snippet}
-
 {#if data.source && data.status}
+	{@const source = data.source}
+	{@const status = data.status}
 	{#if data.tab === 'status'}
-		<section class="sheet" aria-labelledby="status">
-			<h2 id="status">{m.source_status()}</h2>
-			{#snippet lastCheck()}
-				{#if data.status?.lastCheckedAt}
-					<DateTime value={data.status.lastCheckedAt} timeZone={data.timeZone} />
-				{:else}
-					{m.never()}
-				{/if}
-			{/snippet}
-			{#snippet lastSync()}
-				{#if data.status?.lastSyncedAt}
-					<DateTime value={data.status.lastSyncedAt} timeZone={data.timeZone} />
-				{:else}
-					{m.never()}
-				{/if}
-			{/snippet}
-			{#snippet commit()}
-				{#if data.status?.lastCommit}<code>{data.status.lastCommit}</code>{:else}{m.none()}{/if}
-			{/snippet}
-			<DescriptionList
-				items={[
-					[
-						m.source_polling(),
-						data.source.paused
-							? m.source_polling_paused()
-							: data.syncsPaused
-								? m.source_polling_all_paused()
-								: m.active()
-					],
-					[m.source_last_check(), lastCheck],
-					[m.source_last_sync(), lastSync],
-					[m.source_indexed_commit(), commit],
-					[
-						m.source_totals(),
-						`${data.status.totals.pages}, ${data.status.totals.snippets}, ${data.status.totals.tokens}`
-					]
-				]}
-			/>
-			{#if data.status.error}
-				<div class="part">
-					<h3>{m.source_error()}</h3>
-					<p class="notice alert" role="alert">
-						<SyncError error={data.status.error} kind={data.status.errorKind} />
-					</p>
-					{#if data.status.errorKind}
-						<p class="fix">
-							{SYNC_FIX[data.status.errorKind]()}
-							<a href={tabHref('settings')}>{m.source_fix_in_settings()}</a>
-						</p>
-					{/if}
-				</div>
-			{/if}
-			{#if data.overlaps.length > 0}
-				<div class="part">
-					<h3>{m.duplicates_title()}</h3>
-					<ul class="overlaps">
-						{#each data.overlaps as { overlap, other } (other.sourceId)}
-							<li>
-								{overlap === 'duplicate' ? m.source_duplicate_of() : m.source_overlaps_with()}
-								<SourceLabel
-									name={other.name}
-									slug={other.source}
-									href={resolve('/manage/sources/[id]/[[tab=tab]]', {
-										id: String(other.sourceId)
-									})}
-								/>
-							</li>
-						{/each}
-					</ul>
-				</div>
-			{/if}
-			{#if data.status.warnings.length > 0}
-				<div class="part">
-					<h3>{m.source_warnings()}</h3>
-					<ul class="warnings">
-						{#each data.status.warnings as warning, index (index)}
-							<li><code>{warning}</code></li>
-						{/each}
-					</ul>
-				</div>
-			{/if}
-			{#if data.status.deadLinks.length > 0}
-				<div class="part">
-					<h3>{m.dead_links()}</h3>
-					<DeadLinkList
-						links={data.status.deadLinks}
-						source={{ id: data.source.id, path: data.source.path }}
-					/>
-				</div>
-			{/if}
-		</section>
+		<StatusTab data={{ ...data, source, status }} settingsHref={tabHref('settings')} />
 	{:else if data.tab === 'pages'}
-		<section class="sheet" aria-labelledby="pages">
-			{#if data.preview}
-				<a class="back" href={tabHref('pages')}>{m.source_all_pages()}</a>
-				<h2 id="pages">{m.source_preview_title({ file: data.preview.file })}</h2>
-				{#if data.preview.snippets?.length === 0}
-					<p class="notice warn">{m.source_preview_no_snippets({ name: data.instanceTitle })}</p>
-				{:else if data.preview.snippets}
-					<p>
-						{m.source_preview_intro_before()} <code>read</code>
-						{m.source_preview_intro_after()}
-					</p>
-					<ol class="snippets">
-						{#each data.preview.snippets as snippet, index (index)}
-							<li>
-								<h3>{snippet.titlePath.join(' › ')}</h3>
-								<p class="hint">
-									<code>{snippet.id}</code> – {m.source_preview_snippet_tokens({
-										tokens: snippet.tokens
-									})}
-								</p>
-								<pre>{snippet.markdown}</pre>
-							</li>
-						{/each}
-					</ol>
-				{:else}
-					<p class="notice warn">{m.source_preview_missing({ file: data.preview.file })}</p>
-				{/if}
-			{:else}
-				<h2 id="pages">{m.pages()}</h2>
-				{#if data.status.pages.length === 0}
-					<p class="muted">{m.source_pages_none()}</p>
-				{:else}
-					<PageList pages={data.status.pages} sourceId={data.source.id} />
-				{/if}
-			{/if}
-		</section>
+		<PagesTab data={{ ...data, source, status }} pagesHref={tabHref('pages')} />
 	{:else if data.tab === 'history'}
-		<section class="sheet" aria-labelledby="history">
-			<h2 id="history">{m.source_history()}</h2>
-			<DataTable
-				label={m.source_history()}
-				list={{
-					rows: data.status.history,
-					total: data.status.history.length,
-					page: 1,
-					pageCount: 1
-				}}
-				key={(run) => run.finishedAt}
-				columns={[
-					{ label: m.source_history_when() },
-					{ label: m.source_history_outcome() },
-					{ label: m.source_commit() },
-					{ label: m.source_error() }
-				]}
-			>
-				{#snippet row(run)}
-					<td class="when">
-						{#if run.runs > 1}
-							<span><DateTime value={run.startedAt} timeZone={data.timeZone} /> –</span>
-							<span><DateTime value={run.finishedAt} timeZone={data.timeZone} /></span>
-							<span class="runs">({m.source_history_runs({ runs: run.runs })})</span>
-						{:else}
-							<DateTime value={run.finishedAt} timeZone={data.timeZone} />
-						{/if}
-					</td>
-					<td><StatusBadge state={run.outcome} /></td>
-					<td
-						>{#if run.commit}<code title={run.commit}>{run.commit.slice(0, 12)}</code>{/if}</td
-					>
-					<td
-						>{#if run.error}<SyncError error={run.error} kind={run.errorKind} />{/if}</td
-					>
-				{/snippet}
-				{#snippet empty()}<p class="muted">{m.source_history_none()}</p>{/snippet}
-			</DataTable>
-		</section>
+		<HistoryTab data={{ ...data, status }} />
 	{:else}
-		<div class="settings">{@render settings()}</div>
-		<section class="danger" aria-labelledby="danger">
-			<h2 id="danger">{m.source_danger_zone()}</h2>
-			<section class="sheet" aria-labelledby="slug">
-				<h2 id="slug">{m.slug_change_heading()}</h2>
-				<p class="muted">{m.slug_change_source_effects_short()}</p>
-				<ConfirmAction
-					action="?/slug"
-					label={m.slug_change_submit()}
-					title={m.slug_change_title({ name: data.source.name, slug: newSlug || data.source.slug })}
-					consequence={m.slug_change_source_effects({ slug: data.source.slug })}
-					typed={{
-						value: data.source.slug,
-						label: m.confirm_type_slug({ slug: data.source.slug })
-					}}
-					success={m.slug_changed()}
-				>
-					<TextField
-						label={m.slug_change_new()}
-						name="slug"
-						required
-						maxlength={MAX_SLUG_LENGTH}
-						value={data.source.slug}
-						mono
-						oninput={(event) => (newSlug = event.currentTarget.value)}
-					/>
-				</ConfirmAction>
-			</section>
-			<section class="sheet" aria-labelledby="delete">
-				<h2 id="delete">{m.delete()}</h2>
-				<ConfirmAction
-					action="?/delete"
-					label={m.source_delete()}
-					title={m.source_delete_title({ name: data.source.name })}
-					consequence={m.source_delete_consequence()}
-					danger
-					typed={{
-						value: data.source.slug,
-						label: m.confirm_type_slug({ slug: data.source.slug })
-					}}
-					success={m.source_deleted({ name: data.source.name })}
-				/>
-			</section>
-		</section>
+		<SettingsTab data={{ ...data, source }} form={settingsForm} />
 	{/if}
 {:else}
-	<div class="new">{@render settings()}</div>
+	<div class="new"><SourceSettingsForm {...settingsForm} /></div>
 {/if}
 
 <style>
-	.reachable {
-		display: flex;
-		align-items: center;
-		gap: var(--s2);
-	}
-	.reachable :global(svg) {
-		flex: none;
-		color: var(--ok);
-	}
 	.head {
 		display: flex;
 		align-items: end;
@@ -638,120 +170,7 @@
 		align-items: center;
 		gap: var(--s2) var(--s4);
 	}
-	.back {
-		justify-self: start;
-		font-size: 14px;
-	}
-	.settings,
 	.new {
 		max-width: 52rem;
-	}
-	.source-form {
-		display: grid;
-		gap: var(--s5);
-	}
-	/* Out of sight and out of reach; it only takes the Enter of the form. */
-	.default-submit {
-		display: none;
-	}
-	.test {
-		justify-self: start;
-	}
-	/* Rare and breaking: set apart below the settings, each action in a sheet of its own. */
-	.danger {
-		display: grid;
-		grid-template-columns: 1fr 1fr;
-		align-items: start;
-		gap: var(--s5);
-		max-width: 52rem;
-		padding-top: var(--s5);
-		border-top: 1px solid var(--line);
-	}
-	.danger > h2 {
-		grid-column: 1 / -1;
-		color: var(--err);
-	}
-	.sheet:has(.snippets),
-	.sheet[aria-labelledby='pages'],
-	.sheet[aria-labelledby='status'] {
-		display: grid;
-		gap: var(--s4);
-	}
-	.part {
-		display: grid;
-		gap: var(--s3);
-		min-width: 0;
-		padding-top: var(--s4);
-		border-top: 1px solid var(--line);
-	}
-	.fields {
-		display: grid;
-		grid-template-columns: 1fr 1fr;
-		gap: var(--s4);
-	}
-
-	.git-url,
-	.token,
-	.field-with-error {
-		display: grid;
-		gap: var(--s2);
-	}
-	.actions {
-		display: flex;
-		flex-wrap: wrap;
-		gap: var(--s3);
-	}
-	.hint {
-		color: var(--ink-2);
-		font-size: 13px;
-	}
-	.fix {
-		color: var(--ink-2);
-	}
-	.warnings,
-	.overlaps {
-		display: grid;
-		gap: var(--s2);
-		list-style: none;
-	}
-	.warnings li,
-	.overlaps li {
-		padding-inline-start: var(--s4);
-		border-inline-start: 3px solid var(--warn);
-		overflow-wrap: anywhere;
-	}
-	.warnings code {
-		font-size: 13px;
-	}
-	/* A date breaks between its parts, never inside them: a run range is start, end and count on
-	lines of their own instead of one word per line in a narrow column. */
-	.when {
-		white-space: nowrap;
-	}
-	.when span {
-		display: block;
-	}
-	.runs {
-		color: var(--ink-2);
-	}
-	td:has(code[title]) {
-		white-space: nowrap;
-	}
-	.snippets {
-		display: grid;
-		gap: var(--s5);
-		list-style: none;
-		counter-reset: snippet;
-	}
-	.snippets li {
-		display: grid;
-		gap: var(--s2);
-		counter-increment: snippet;
-	}
-	.snippets h3::before {
-		content: counter(snippet) '  ';
-		color: var(--ink-2);
-		font-family: var(--mono);
-		font-weight: 400;
 	}
 </style>
