@@ -1,9 +1,11 @@
 ---
 id: TASK-347
 title: 'OIDC: no provider login or sign-up before setup is done'
-status: To Do
-assignee: []
+status: Done
+assignee:
+  - '@claude'
 created_date: '2026-11-06 23:46'
+updated_date: '2026-11-06 23:57'
 labels:
   - admin
 dependencies: []
@@ -29,7 +31,27 @@ Found by the third whole-repo audit on 2026-11-07 (HEAD 4a72798).
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Starting a provider login while no admin exists redirects to `/setup` and sets no flow cookie
-- [ ] #2 With an admin, provider logins work as before
-- [ ] #3 A spec in `start.spec.ts` (or the route's spec) covers both
+- [x] #1 Starting a provider login while no admin exists redirects to `/setup` and sets no flow cookie
+- [x] #2 With an admin, provider logins work as before
+- [x] #3 A spec in `start.spec.ts` (or the route's spec) covers both
 <!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. Spec in start.spec.ts: without an admin the start redirects to /setup and starts no flow
+2. POST /auth/oidc/[key] checks checkAdminAccount(database()) first, as /login does
+<!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+- The spec failed before and passes after; OIDC route specs and access.spec pass (47 tests). With an admin the existing start specs pass unchanged.
+- checkAdminAccount also logs the setup token while none exists, as /login does.
+<!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Starting a login at an identity provider now leads to /setup while no admin exists, as /login does, so a provider sign-up can no longer create an account on an empty instance and make its setup import refuse with "instance not empty". Covered by a spec in start.spec.ts.
+<!-- SECTION:FINAL_SUMMARY:END -->

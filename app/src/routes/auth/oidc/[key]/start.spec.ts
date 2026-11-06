@@ -4,6 +4,7 @@ import { ProviderMisconfigured, ProviderUnavailable } from '#lib/server/oidc/flo
 import { sha256 } from '#lib/server/sha256.js';
 
 const startFlow = vi.fn();
+const adminExists = vi.fn(() => true);
 
 vi.mock('$app/env/private', () => ({
 	ENCRYPTION_KEY: { oidcFlows: Buffer.alloc(32) },
@@ -12,6 +13,10 @@ vi.mock('$app/env/private', () => ({
 	TZ: 'UTC'
 }));
 vi.mock('#lib/server/db/index.js', () => ({ database: () => undefined }));
+vi.mock('#lib/server/auth/auth.js', async (original) => ({
+	...(await original<typeof import('#lib/server/auth/auth.js')>()),
+	checkAdminAccount: () => adminExists()
+}));
 vi.mock('#lib/server/oidc/index.js', () => ({
 	providerByKey: (key: string) => (key === 'gitlab' ? { key: 'gitlab' } : undefined)
 }));
@@ -40,6 +45,16 @@ async function start(
 	}
 	throw new Error('no redirect');
 }
+
+describe('starting a login before setup', () => {
+	it('leads to the setup and starts no flow while there is no admin', async () => {
+		adminExists.mockReturnValueOnce(false);
+		startFlow.mockClear();
+
+		expect(await start()).toBe('/setup');
+		expect(startFlow).not.toHaveBeenCalled();
+	});
+});
 
 describe('starting a login at a provider that cannot be used', () => {
 	it('asks to try later when the provider is down', async () => {

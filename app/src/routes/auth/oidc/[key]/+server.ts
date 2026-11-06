@@ -1,7 +1,7 @@
 import { error, redirect } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { database } from '#lib/server/db/index.js';
-import { SESSION_COOKIE } from '#lib/server/auth/auth.js';
+import { checkAdminAccount, SESSION_COOKIE } from '#lib/server/auth/auth.js';
 import { sha256 } from '#lib/server/sha256.js';
 import { invitedEmail } from '#lib/server/admin/invitations.js';
 import { providerByKey } from '#lib/server/oidc/index.js';
@@ -12,6 +12,9 @@ import { pathOnThisSite } from '#lib/server/path-on-this-site.js';
 export const POST: RequestHandler = async ({ params, request, cookies, url }) => {
 	const provider = providerByKey(params.key);
 	if (!provider) error(404);
+	// Like the login page: before setup, an account made here would make the instance not empty
+	// and refuse the import of the setup.
+	if (!checkAdminAccount(database())) redirect(303, '/setup');
 	const data = await request.formData();
 	const next = String(data.get('next') ?? '');
 	const invite = String(data.get('invite') ?? '') || undefined;
