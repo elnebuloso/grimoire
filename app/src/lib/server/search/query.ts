@@ -189,11 +189,19 @@ function toSnippetHit({ title_path, part, parts, ...row }: SnippetRow): SnippetH
 	};
 }
 
+// Each OR term multiplies the work of one search, which blocks the server while it runs: 250
+// terms took over a minute on 50,000 snippets. A question rarely needs more than a few words.
+const MAX_SEARCH_TERMS = 16;
+
 // Raw input breaks FTS5 syntax (`auth-service` reads as a column filter, `?` and `=` are errors).
 // OR keeps natural-language questions matching; BM25 still ranks hits with more terms higher.
 function toMatchExpression(query: string): string {
 	const words = query.match(/[\p{L}\p{N}_]+/gu) ?? [];
-	return words.map((word) => `"${word}"`).join(' OR ');
+	const distinct = [...new Set(words.map((word) => word.toLowerCase()))];
+	return distinct
+		.slice(0, MAX_SEARCH_TERMS)
+		.map((word) => `"${word}"`)
+		.join(' OR ');
 }
 
 function packIntoBudget(hits: SnippetHit[], budget: number): SearchResult {

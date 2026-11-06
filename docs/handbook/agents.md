@@ -21,7 +21,7 @@ MCP and HTTP offer the same four:
 |---|---|
 | `sources` | The sources the key may read, with their short description. |
 | `index` | The pages and sections of one source, with their IDs. |
-| `query` | The snippets matching a search, from the given sources or all, within a token budget, default 3000. Only the first 500 characters of the search count. |
+| `query` | The snippets matching a search, from the given sources or all, within a token budget, default 3000. Only the first 500 characters and the first 16 different words of the search count. |
 | `read` | A page, `auth-service/deploy`, or one section, `auth-service/deploy#rollback`. |
 
 Every snippet starts with its title path, a `Source:` line with the ID to `read` on, and an

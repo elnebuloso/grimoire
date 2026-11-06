@@ -202,4 +202,24 @@ describe('searchSnippets', () => {
 		).toEqual(['auth-service/a']);
 		expect(searchSnippets(db, { query: '?!', allowedSources: 'all' })).toBe('');
 	});
+
+	it('searches a repeated word once, so the words after it still count', () => {
+		addPage(addSource('platform'), 'deploy.md', { title: 'Deploy', text: 'rollback steps' });
+
+		const question = `${'the '.repeat(100)}rollback`;
+		expect(sourceIds(searchSnippets(db, { query: question, allowedSources: 'all' }))).toEqual([
+			'platform/deploy'
+		]);
+	});
+
+	it('searches only the first words of a long question', () => {
+		addPage(addSource('platform'), 'deploy.md', { title: 'Deploy', text: 'rollback steps' });
+		const words = (count: number) =>
+			Array.from({ length: count }, (_, index) => `word${index}`).join(' ');
+
+		expect(
+			sourceIds(searchSnippets(db, { query: `${words(15)} rollback`, allowedSources: 'all' }))
+		).toEqual(['platform/deploy']);
+		expect(searchSnippets(db, { query: `${words(16)} rollback`, allowedSources: 'all' })).toBe('');
+	});
 });
