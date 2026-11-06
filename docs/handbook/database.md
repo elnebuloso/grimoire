@@ -93,5 +93,30 @@ another key, or to change the key, export the instance (see [Moving an instance]
 The script refuses a file that exists already, so name a new one for every backup. grimoire keeps
 serving and syncing while it runs.
 
-A plain file copy of a running database can miss changes still in `<file>-wal`; copy files only
-while grimoire is stopped.
+A plain file copy of a running database can miss changes still in `<file>-wal`. Copy files only
+while grimoire is stopped, and then all three: `grimoire.db`, `grimoire.db-wal` and
+`grimoire.db-shm`.
+
+## Restoring a backup
+
+Restoring replaces everything written since the backup. Stop grimoire first, and delete
+`grimoire.db-wal` and `grimoire.db-shm` before copying the backup in: a WAL file left by a
+container that was killed rather than stopped holds newer changes, and SQLite would apply them to
+the restored file on the next start without any error.
+
+With the volume `grimoire-data` and the backup `grimoire-backup.db` in the current directory:
+
+```bash
+docker stop grimoire
+docker run --rm --volume grimoire-data:/data --volume "$PWD":/backup \
+  elnebuloso/grimoire:<VERSION_OF_THE_BACKUP> \
+  sh -c 'rm -f /data/grimoire.db-wal /data/grimoire.db-shm && cp /backup/grimoire-backup.db /data/grimoire.db'
+docker start grimoire
+```
+
+The command runs as uid 1000 like the server, so the restored file stays writable for it. After a
+failed update, start the version the backup was taken with: a newer version updates the restored
+file again on its start.
+
+On Kubernetes, scale the deployment to `0` replicas, run the same `rm` and `cp` in a pod that mounts
+the volume, then scale it back to `1`.

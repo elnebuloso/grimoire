@@ -1,9 +1,11 @@
 ---
 id: TASK-310
 title: 'Handbook: restore a backup without replaying a leftover WAL file'
-status: To Do
-assignee: []
+status: Done
+assignee:
+  - '@claude'
 created_date: '2026-11-06 20:51'
+updated_date: '2026-11-06 21:11'
 labels:
   - ops
 dependencies: []
@@ -30,7 +32,28 @@ Found by a whole-repo audit on 2026-11-06 (commit 601c588 plus six local refacto
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 `docs/handbook/database.md` has a restore section that removes `-wal` and `-shm` before copying the backup in
-- [ ] #2 The instruction for copying the database file names all three files and requires grimoire to be stopped
-- [ ] #3 `make handbook` passes
+- [x] #1 `docs/handbook/database.md` has a restore section that removes `-wal` and `-shm` before copying the backup in
+- [x] #2 The instruction for copying the database file names all three files and requires grimoire to be stopped
+- [x] #3 `make handbook` passes
 <!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. database.md: the copy paragraph names all three files and requires a stop
+2. New section "Restoring a backup": stop, delete -wal and -shm, copy the backup in as uid 1000, start the version the backup was taken with; one line for Kubernetes
+<!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+- The restore command was tried on a throwaway Docker volume with node:24.22.1-trixie-slim as uid 1000 (the base and user of the image): -wal and -shm are removed, the backup lands as grimoire.db owned by 1000.
+- make handbook passes.
+- Not done: closing the database on shutdown, which the task named as optional; the restore steps cover the killed-container case.
+<!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+The handbook page database.md now has a "Restoring a backup" section: stop grimoire, delete grimoire.db-wal and grimoire.db-shm, copy the backup in through a container running as uid 1000, start the version the backup was taken with. It says why: a WAL left by a killed container would otherwise be replayed into the restored file without an error. The plain-copy advice now names all three files. The command was tried on a throwaway volume; make handbook passes.
+<!-- SECTION:FINAL_SUMMARY:END -->
