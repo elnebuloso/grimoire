@@ -266,18 +266,22 @@ changes its sources or expiry. Revoke keys that leaked or have not been used for
 
 ## Users
 
-`Management > Access > Users`.
+`Management > Access > Users`. The tab **Users** lists the accounts, the tab **Invitations** the
+invitations not yet accepted. **Make admin**, **Remove admin role**, **Password link** and
+**Delete** sit in the **…** menu at the end of each account's row. **Keys** counts the account's
+API keys and leads to them under **All API keys**.
 
 ### Inviting
 
-Enter the address and **Send invitation**. The invited person chooses a password through the link
+**Invite user**, enter the address and **Send invitation**. The invited person chooses a password through the link
 and has an account without the admin role.
 
 - With mail set up, the link goes out by mail. Without mail, or when the mail server refuses it,
-  the page shows the link once, to send yourself; grimoire cannot show it again.
-- The link works once and for 7 days. **Pending invitations** shows when it was sent and marks it
+  the dialog shows the link once, to send yourself; grimoire cannot show it again.
+- The link works once and for 7 days. **Invitations** shows when it was sent and marks it
   as expired after that.
-- **Send again** replaces the link and its 7 days; the link sent before stops working.
+- **Send again** replaces the link and its 7 days; the link sent before stops working. Without
+  mail the action is called **Create new link** and shows the new link once.
   **Withdraw** stops it without a new one.
 - `This email address already has an account.`, `An invitation to this address is waiting already;
   send it again from the list.`: nothing to invite; use **Send again** for the waiting one.
@@ -286,8 +290,8 @@ and has an account without the admin role.
 
 **Logs in with** shows whether a user has a password and which identity providers are linked;
 `(no longer offered here)` marks a link to a provider the instance no longer configures.
-**Remove** takes a link away, also the last way the user logs in, and ends every session of
-theirs. Which providers exist and who gets an account through them is set by the operator
+**Remove** takes a link away and ends every session of theirs. It also removes the last way the
+user logs in; the confirmation says so, and only a **Password link** lets them in again. Which providers exist and who gets an account through them is set by the operator
 (see [Single sign-on](sso.md)).
 
 ### Password link

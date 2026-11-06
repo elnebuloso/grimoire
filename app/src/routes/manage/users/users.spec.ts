@@ -47,19 +47,24 @@ describe('users page', () => {
 		expect(load()).toMatchObject({
 			users: {
 				rows: [
-					{ email: 'admin@example.com', roles: ['admin'] },
-					{ email: 'writer@example.com', roles: [] }
+					{ email: 'admin@example.com', roles: ['admin'], keys: 0 },
+					{ email: 'writer@example.com', roles: [], keys: 0 }
 				]
 			},
 			invitations: [{ email: 'new@example.com', sentAt: '2026-11-03T09:00:00.000Z' }],
-			me: 1
+			me: 1,
+			tab: 'users',
+			mailConfigured: false
 		});
+		expect(load('?tab=invitations')).toMatchObject({ tab: 'invitations' });
+		expect(load('?tab=other')).toMatchObject({ tab: 'users' });
 	});
 
 	it('sends an invitation again with a new link, which voids the old one', async () => {
 		const first = inviteUser(db, 'new@example.com', 1) as { token: string };
 		const [{ id }] = listInvitations(db);
-		const result = (await action('resend', id)) as { invited: { link: string } };
+		const result = (await action('resend', id)) as { invited: { link: string }; resent: true };
+		expect(result.resent).toBe(true);
 
 		const token = result.invited.link.split('/invite/')[1];
 		expect(invitedEmail(db, token)).toBe('new@example.com');

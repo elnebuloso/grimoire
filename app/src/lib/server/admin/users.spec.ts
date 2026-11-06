@@ -27,18 +27,26 @@ beforeEach(() => {
 });
 
 describe('listUsers', () => {
-	it('lists every user with their roles and how they log in', () => {
+	it('lists every user with their roles, how they log in and how many keys they own', () => {
 		db.exec(`UPDATE users SET password_hash = NULL WHERE id = 2;
 			INSERT INTO user_identities VALUES (2, 'https://gitlab.example.com', '42');`);
 
 		expect(listUsers(db)).toEqual([
-			{ id: 1, email: 'admin@example.com', roles: ['admin'], hasPassword: true, issuers: [] },
+			{
+				id: 1,
+				email: 'admin@example.com',
+				roles: ['admin'],
+				hasPassword: true,
+				issuers: [],
+				keys: 0
+			},
 			{
 				id: 2,
 				email: 'writer@example.com',
 				roles: [],
 				hasPassword: false,
-				issuers: ['https://gitlab.example.com']
+				issuers: ['https://gitlab.example.com'],
+				keys: 1
 			}
 		]);
 	});

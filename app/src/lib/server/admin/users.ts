@@ -9,6 +9,8 @@ export interface UserSummary {
 	hasPassword: boolean;
 	/** The issuers of the identity providers the user is linked to. */
 	issuers: string[];
+	/** How many API keys the user owns. */
+	keys: number;
 }
 
 /**
@@ -22,16 +24,25 @@ export function listUsers(db: DatabaseSync): UserSummary[] {
 		.prepare(
 			`SELECT id, email, password_hash IS NOT NULL AS has_password,
 				(SELECT json_group_array(role) FROM user_roles WHERE user_id = users.id) AS roles,
-				(SELECT json_group_array(issuer) FROM user_identities WHERE user_id = users.id) AS issuers
+				(SELECT json_group_array(issuer) FROM user_identities WHERE user_id = users.id) AS issuers,
+				(SELECT count(*) FROM api_keys WHERE owner_id = users.id) AS keys
 			FROM users ORDER BY email`
 		)
-		.all() as { id: number; email: string; has_password: number; roles: string; issuers: string }[];
+		.all() as {
+		id: number;
+		email: string;
+		has_password: number;
+		roles: string;
+		issuers: string;
+		keys: number;
+	}[];
 	return rows.map((row) => ({
 		id: row.id,
 		email: row.email,
 		roles: JSON.parse(row.roles) as Role[],
 		hasPassword: row.has_password === 1,
-		issuers: JSON.parse(row.issuers) as string[]
+		issuers: JSON.parse(row.issuers) as string[],
+		keys: row.keys
 	}));
 }
 

@@ -2,7 +2,7 @@ import { execFileSync } from 'node:child_process';
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
-import { expect, test, type Cookie, type Page, type Route } from '@playwright/test';
+import { expect, test, type Cookie, type Page } from '@playwright/test';
 import { createUser } from '../../lib/server/admin/auth.ts';
 import { readExport } from '../../lib/server/instance-export.ts';
 
@@ -94,23 +94,14 @@ async function asAdmin(page: Page) {
 	await page.goto('/manage');
 }
 
-// Holds the page's scripts until the field is filled, as on a slow connection, then waits until
-// Svelte has applied the field's attributes: it keeps them in a symbol property on the element.
-async function fillBeforeHydration(page: Page, path: string, label: string, value: string) {
-	const held: Route[] = [];
-	let released = false;
-	await page.route('**/_app/immutable/**', (route) =>
-		released ? route.continue() : held.push(route)
-	);
-	await page.goto(path, { waitUntil: 'commit' });
-	const field = page.getByLabel(label);
-	await field.fill(value);
-	released = true;
-	for (const route of held) await route.continue();
-	await page.waitForFunction(
-		(element) => Object.getOwnPropertySymbols(element).length > 0,
-		await field.elementHandle()
-	);
+/** Invites `email` through the dialog on the users page. */
+async function invite(page: Page, email: string) {
+	await page.goto('/manage/users', { waitUntil: 'networkidle' });
+	await page.getByRole('button', { name: 'Invite user' }).click();
+	const dialog = page.getByRole('dialog');
+	await dialog.getByLabel('Email address').fill(email);
+	await dialog.getByRole('button', { name: 'Send invitation' }).click();
+	await expect(dialog).toBeHidden();
 }
 
 test('leads from the empty start page through the login action to the setup', async ({ page }) => {
@@ -651,11 +642,9 @@ test('invites a user who reads internal sources with their own key, but manages 
 	const writer = 'writer@example.com';
 	await fetch(`${MAIL_API}/messages`, { method: 'DELETE' });
 	await asAdmin(page);
-	// Typed before the page hydrates, as on a slow connection: the address must stay.
-	await fillBeforeHydration(page, '/manage/users', 'Email address', writer);
-	await expect(page.getByLabel('Email address')).toHaveValue(writer);
-	await page.getByRole('button', { name: 'Send invitation' }).click();
+	await invite(page, writer);
 	await expect(toasts(page)).toContainText(`Invitation sent to ${writer}.`);
+	await page.getByRole('link', { name: 'Invitations (1)' }).click();
 	await expect(page.getByRole('row', { name: new RegExp(writer) })).toContainText('Send again');
 
 	const link = await linkFromMail(writer, '/invite/');
@@ -689,6 +678,7 @@ test('invites a user who reads internal sources with their own key, but manages 
 	await page.context().clearCookies();
 	await page.context().addCookies(adminSession);
 	await page.goto('/manage/users');
+	await page.getByRole('button', { name: `Actions for ${writer}` }).click();
 	await page.getByRole('button', { name: `Delete ${writer}` }).click();
 	await page.getByRole('dialog').getByRole('button', { name: 'Delete' }).click();
 	await expect(page.getByRole('row', { name: new RegExp(writer) })).toHaveCount(0);
@@ -704,9 +694,7 @@ test('accepts an invitation through an identity provider for the invited address
 	const partner = 'partner@partner.example';
 	await fetch(`${MAIL_API}/messages`, { method: 'DELETE' });
 	await asAdmin(page);
-	await fillBeforeHydration(page, '/manage/users', 'Email address', partner);
-	await expect(page.getByLabel('Email address')).toHaveValue(partner);
-	await page.getByRole('button', { name: 'Send invitation' }).click();
+	await invite(page, partner);
 	await expect(toasts(page)).toContainText(`Invitation sent to ${partner}.`);
 
 	const link = await linkFromMail(partner, '/invite/');
@@ -729,13 +717,13 @@ test('accepts an invitation through an identity provider for the invited address
 	await expect(signIn).toContainText('GitLab');
 	await expect(signIn).not.toContainText('Password');
 	await page.getByRole('button', { name: `Remove GitLab from ${partner}` }).click();
+	await expect(page.getByRole('dialog')).toContainText('It is their only way to log in');
 	await page.getByRole('dialog').getByRole('button', { name: 'Remove' }).click();
 	await expect(signIn).not.toContainText('GitLab');
 
 	// Without any way to log in left, the admin sends a link to set a password.
-	await page
-		.getByRole('button', { name: `Create a link to set the password of ${partner}` })
-		.click();
+	await page.getByRole('button', { name: `Actions for ${partner}` }).click();
+	await page.getByRole('button', { name: `Password link for ${partner}` }).click();
 	await page.getByRole('dialog').getByRole('button', { name: 'Create link' }).click();
 	await expect(toasts(page)).toContainText(`Link to set the password sent to ${partner}.`);
 	const passwordLink = await linkFromMail(partner, '/login/reset/');

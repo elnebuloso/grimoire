@@ -280,7 +280,7 @@
 	{#snippet actions()}
 		{#if created}
 			<button type="button" class="primary" onclick={() => (creating = false)}
-				>{m.apikeys_done()}</button
+				>{m.dialog_done()}</button
 			>
 		{:else}
 			<button type="button" onclick={() => (creating = false)}>{m.dialog_cancel()}</button>

@@ -36,8 +36,11 @@ export const load: PageServerLoad = ({ locals, url }) => {
 		users: listPage(users, readListParams(url, USER_LIST), USER_LIST),
 		invitations: listInvitations(db),
 		// The own account offers no delete: an admin cannot delete themselves.
+		tab: url.searchParams.get('tab') === 'invitations' ? 'invitations' : 'users',
 		me: locals.user!.id,
-		now: new Date().toISOString()
+		now: new Date().toISOString(),
+		// Only whether there is one: the page names its actions after it.
+		mailConfigured: mailer() !== undefined
 	};
 };
 
@@ -94,7 +97,8 @@ export const actions = {
 		const resent = resendInvitation(database(), await idOf(request));
 		// Accepted or withdrawn in another window: the list no longer shows it.
 		if (!resent) error(404);
-		return { invited: await deliverInvitation(resent, url) };
+		// Told apart from a new invitation: its link shows on the list, not in the invite dialog.
+		return { invited: await deliverInvitation(resent, url), resent: true };
 	},
 	withdraw: async ({ request }) => {
 		revokeInvitation(database(), await idOf(request));
