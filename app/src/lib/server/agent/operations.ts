@@ -139,12 +139,13 @@ export interface QueryResult extends OperationResult {
 // with request-sized questions. A real question is far shorter.
 export const MAX_QUESTION_LENGTH = 500;
 
-// Agents often send an optional list as `[]`; read literally it would search nothing.
+// Agents often send an optional list as `[]`; read literally it would search nothing. Each source
+// named is checked on the server thread, so a request naming one thousands of times checks it once.
 function normalizeQueryOptions(options: QueryOptions): QueryOptions {
 	return {
 		...options,
 		query: options.query.trim().slice(0, MAX_QUESTION_LENGTH),
-		sources: options.sources?.length ? options.sources : undefined
+		sources: options.sources?.length ? [...new Set(options.sources)] : undefined
 	};
 }
 

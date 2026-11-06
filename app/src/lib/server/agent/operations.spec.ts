@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import type { DatabaseSync } from 'node:sqlite';
 import { openDatabase } from '../db/schema';
 import { replaceSourceIndex } from '../db/sources';
@@ -164,6 +164,20 @@ describe('indexSource', () => {
 });
 
 describe('querySources', () => {
+	it('checks a source named many times once, and answers as if it was named once', () => {
+		const once = querySources(db, { query: 'rollback', sources: ['billing-docs'] }, 'all');
+		const prepare = vi.spyOn(db, 'prepare');
+
+		const repeated = querySources(
+			db,
+			{ query: 'rollback', sources: Array(1000).fill('billing-docs') },
+			'all'
+		);
+
+		expect(repeated).toEqual(once);
+		expect(prepare.mock.calls.length).toBeLessThan(10);
+	});
+
 	it('returns the hits in the snippet format, and the hits it rendered', () => {
 		const result = querySources(db, { query: 'rollback', sources: ['billing-docs'] }, 'all');
 
@@ -262,7 +276,11 @@ describe('agentQuery', () => {
 	});
 
 	it('records the sources a missed question was asked in', () => {
-		agentQuery(db, { query: 'kubernetes', sources: ['platform-docs', 'billing-docs'] }, 'all');
+		agentQuery(
+			db,
+			{ query: 'kubernetes', sources: ['platform-docs', 'billing-docs', 'platform-docs'] },
+			'all'
+		);
 
 		expect(listMissedQueries(db)).toMatchObject([
 			{ question: 'kubernetes', sources: ['billing-docs', 'platform-docs'] }

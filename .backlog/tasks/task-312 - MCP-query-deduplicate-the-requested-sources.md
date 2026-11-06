@@ -1,9 +1,11 @@
 ---
 id: TASK-312
 title: 'MCP query: deduplicate the requested sources'
-status: To Do
-assignee: []
+status: Done
+assignee:
+  - '@claude'
 created_date: '2026-11-06 20:51'
+updated_date: '2026-11-06 21:01'
 labels:
   - agent-api
 dependencies: []
@@ -29,7 +31,27 @@ Found by a whole-repo audit on 2026-11-06 (commit 601c588 plus six local refacto
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 A query naming the same source many times checks it once and answers like a query naming it once
-- [ ] #2 An empty `sources` list behaves as today
-- [ ] #3 A spec in `operations.spec.ts` covers duplicates
+- [x] #1 A query naming the same source many times checks it once and answers like a query naming it once
+- [x] #2 An empty `sources` list behaves as today
+- [x] #3 A spec in `operations.spec.ts` covers duplicates
 <!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. Specs: a source named 1000 times answers as named once with few prepared statements; a missed query with a repeated source records it once
+2. normalizeQueryOptions deduplicates sources with a Set; an empty list stays undefined
+<!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+- Both specs failed before (1000 prepares, duplicate in the recorded sources) and pass after; operations.spec.ts and agent-api.spec.ts pass (80 tests).
+- HTTP goes through the same normalization, so repeated ?source= is deduplicated too.
+<!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Query options now deduplicate the named sources before each one is checked, so an MCP request naming one source tens of thousands of times costs one check instead of seconds on the server thread. The answer is identical to naming it once, an empty list still means all sources, and a missed query records each source once. Covered by two specs in operations.spec.ts.
+<!-- SECTION:FINAL_SUMMARY:END -->
