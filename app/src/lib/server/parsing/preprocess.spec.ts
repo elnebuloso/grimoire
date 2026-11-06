@@ -130,6 +130,25 @@ Some text with \`code\` and a [link](other.md#section).
 		it('ignores a horizontal rule that is not at the start', () => {
 			expect(preprocessPage('Text\n\n---\n\nMore\n').markdown).toBe('Text\n\n***\n\nMore\n');
 		});
+
+		it('reads frontmatter after a byte order mark', () => {
+			expect(
+				preprocessPage('\uFEFF---\ntitle: Deploy\ndescription: How to deploy\n---\n## Steps\n')
+			).toMatchObject({ title: 'Deploy', description: 'How to deploy', markdown: '## Steps\n' });
+		});
+
+		it('ends frontmatter at `...`, and a later rule stays content', () => {
+			expect(
+				preprocessPage('---\ntitle: Deploy\n...\n\n## Steps\n\ntext\n\n---\n\nmore\n')
+			).toMatchObject({ title: 'Deploy', markdown: '## Steps\n\ntext\n\n***\n\nmore\n' });
+		});
+
+		it('accepts spaces after the opening dashes', () => {
+			expect(preprocessPage('--- \t\ntitle: Deploy\n---\nText\n')).toMatchObject({
+				title: 'Deploy',
+				markdown: 'Text\n'
+			});
+		});
 	});
 
 	describe('admonitions', () => {

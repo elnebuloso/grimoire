@@ -10,7 +10,8 @@ export interface PreprocessedPage {
 	markdown: string;
 }
 
-const FRONTMATTER = /^---\r?\n([\s\S]*?)^---[ \t]*(?:\r?\n|$)/m;
+// As MkDocs reads it: spaces may follow the opening dashes, and `...` may close it as in YAML.
+const FRONTMATTER = /^---[ \t]*\r?\n([\s\S]*?)^(?:---|\.\.\.)[ \t]*(?:\r?\n|$)/m;
 const ADMONITION = /^(?:!!!|\?\?\?\+?)\s+([\w-]+)(?:\s+[\w-]+)*?(?:\s+"(.*)")?\s*$/;
 const CONTENT_TAB = /^===[+!]?\s+"(.*)"\s*$/;
 const FENCE = /^(`{3,}|~{3,})/;
@@ -29,7 +30,8 @@ const HTML_PICTURE_SOURCE = /<source\b[^<>]*>/gi;
  * Throws when the frontmatter is not valid YAML.
  */
 export function preprocessPage(source: string): PreprocessedPage {
-	const { metadata, body } = splitFrontmatter(source);
+	// MkDocs reads pages as `utf-8-sig`: a byte order mark would hide the frontmatter.
+	const { metadata, body } = splitFrontmatter(source.replace(/^\uFEFF/, ''));
 	const tree = parseMarkdown(convertBlocks(body));
 	dropImageUrlsAndComments(tree);
 	return { ...metadata, markdown: stringifyMarkdown(tree) };
