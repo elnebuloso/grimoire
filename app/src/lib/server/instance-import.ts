@@ -50,7 +50,8 @@ export async function importExport(
 		});
 	} catch (error) {
 		// It decrypted, so it was sealed with the passphrase, but it is no database of this schema.
-		if (isSqliteError(error)) return { error: 'not-an-export' };
+		// Unless the instance's database failed: locked by the server, read-only, broken or full.
+		if (isSqliteError(error) && !isInstanceProblem(error)) return { error: 'not-an-export' };
 		throw error;
 	} finally {
 		content.close();
@@ -59,6 +60,15 @@ export async function importExport(
 
 function isSqliteError(error: unknown): boolean {
 	return (error as { code?: unknown })?.code === 'ERR_SQLITE_ERROR';
+}
+
+// SQLITE_BUSY, SQLITE_READONLY, SQLITE_IOERR and SQLITE_FULL; extended codes keep the primary one
+// in their low byte.
+const INSTANCE_PROBLEMS = new Set([5, 8, 10, 13]);
+
+function isInstanceProblem(error: unknown): boolean {
+	const code = (error as { errcode?: unknown }).errcode;
+	return typeof code === 'number' && INSTANCE_PROBLEMS.has(code & 0xff);
 }
 
 function isEmpty(db: DatabaseSync): boolean {

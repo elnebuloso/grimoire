@@ -3,9 +3,11 @@ id: TASK-314
 title: >-
   Import: report database errors of the target instance instead of calling the
   file no export
-status: To Do
-assignee: []
+status: Done
+assignee:
+  - '@claude'
 created_date: '2026-11-06 20:51'
+updated_date: '2026-11-06 21:10'
 labels:
   - ops
 dependencies: []
@@ -29,7 +31,29 @@ Found by a whole-repo audit on 2026-11-06 (commit 601c588 plus six local refacto
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 An import while another connection holds the write lock does not report `not-an-export`; the script reports that the database is busy
-- [ ] #2 A malformed export that decrypts still reports `not-an-export`
-- [ ] #3 A spec holds the write lock on a second connection during an import
+- [x] #1 An import while another connection holds the write lock does not report `not-an-export`; the script reports that the database is busy
+- [x] #2 A malformed export that decrypts still reports `not-an-export`
+- [x] #3 A spec holds the write lock on a second connection during an import
 <!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. Spec: an import into a file database whose write lock another connection holds rejects with errcode 5 and writes nothing
+2. importExport rethrows SQLite errors whose primary code is BUSY, READONLY, IOERR or FULL; the rest stay not-an-export
+3. scripts/import.ts already passes a busy error to failWhenBusy
+<!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+- The spec failed before (answered not-an-export) and passes after; instance-import.spec.ts and the setup route specs pass (12 tests).
+- Extended result codes are masked with 0xff, so SQLITE_IOERR_WRITE and friends count as IOERR.
+- On the setup page such an error now ends in the server error page instead of the wrong file refusal; scripts/import.ts prints its existing busy message.
+<!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+An import no longer reports a locked, read-only, broken or full instance database as "not a grimoire export": those SQLite errors are passed on, so scripts/import.ts prints its busy message and other callers see the real error. A file that decrypts but holds another schema is still refused as not-an-export. A spec holds the write lock from a second connection.
+<!-- SECTION:FINAL_SUMMARY:END -->

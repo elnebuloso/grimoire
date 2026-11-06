@@ -1,6 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
 import { randomBytes } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { login } from './auth/auth';
 import { scopeForKey } from './api-keys';
@@ -138,6 +140,28 @@ describe('importExport', () => {
 		expect(rows(db, 'SELECT error, last_commit FROM sources')).toEqual([
 			{ error: null, last_commit: null }
 		]);
+	});
+
+	it('passes on a database error of the instance instead of refusing the file', async () => {
+		const directory = mkdtempSync(join(tmpdir(), 'grimoire-import-'));
+		try {
+			const path = join(directory, 'grimoire.db');
+			const db = openDatabase(path);
+			db.exec('PRAGMA busy_timeout = 0');
+			const server = new DatabaseSync(path);
+			server.exec('BEGIN IMMEDIATE');
+
+			await expect(
+				importExport(db, FIXTURE, PASSPHRASE, migrations, tokenKey)
+			).rejects.toMatchObject({ errcode: 5 });
+
+			server.exec('ROLLBACK');
+			expect(rows(db, 'SELECT * FROM users')).toEqual([]);
+			server.close();
+			db.close();
+		} finally {
+			rmSync(directory, { recursive: true, force: true });
+		}
 	});
 
 	it('refuses a file that decrypts but holds another schema, and writes nothing', async () => {
