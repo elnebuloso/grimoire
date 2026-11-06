@@ -268,9 +268,11 @@ describe('agentQuery', () => {
 		expect(question.startsWith(missed.question)).toBe(true);
 	});
 
-	it('records a missed question trimmed, and one of only whitespace not at all', () => {
+	it('records a missed question trimmed, and one without a word to search not at all', () => {
 		agentQuery(db, { query: '  release process \n' }, 'all');
 		agentQuery(db, { query: ' \t ' }, 'all');
+		agentQuery(db, { query: '???' }, 'all');
+		agentQuery(db, { query: '-- !' }, 'all');
 
 		expect(listMissedQueries(db)).toMatchObject([{ question: 'release process', count: 1 }]);
 	});

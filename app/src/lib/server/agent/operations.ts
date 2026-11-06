@@ -2,6 +2,7 @@ import type { DatabaseSync } from 'node:sqlite';
 import type { SourceScope } from '../api-keys';
 import { grimoireId, type SectionLocation } from '../grimoire-id';
 import {
+	hasSearchTerms,
 	IN_SCOPE,
 	readSnippets,
 	renderSnippet,
@@ -185,7 +186,7 @@ export function agentQuery(
 ): QueryResult {
 	const { query, sources } = normalizeQueryOptions(options);
 	const result = querySources(db, options, scope);
-	if (result.missed && query && scope !== 'public') {
+	if (result.missed && hasSearchTerms(query) && scope !== 'public') {
 		recordMissedQuery(db, { question: query, sources: sources ?? null }, now);
 	}
 	return result;
