@@ -72,9 +72,15 @@ describe('sourceProblem', () => {
 		[{ branch: ' ' }, 'branch'],
 		[{ path: '../other' }, 'path'],
 		[{ schedule: 'daily' }, 'schedule'],
-		[{ exclusions: `docs/drafts/**\n${'a'.repeat(1001)}` }, 'exclusions']
+		[{ exclusions: `docs/drafts/**\n${'a'.repeat(1001)}` }, 'exclusions'],
+		[{ exclusions: 'docs/{a,b}{c,d}{e,f}{g,h}{i,j}/**' }, 'exclusions']
 	])('names the field of %j', (changes, field) => {
 		expect(sourceProblem(db, undefined, undefined, sourceForm(changes))).toMatchObject({ field });
+	});
+
+	it('accepts exclusions with up to 4 brace groups', () => {
+		const form = sourceForm({ exclusions: 'docs/{a,b}/{c,d}/{e,f}/{g,h}/**' });
+		expect(sourceProblem(db, undefined, undefined, form)).toBeUndefined();
 	});
 
 	it('accepts exclusions up to the length a glob may have', () => {

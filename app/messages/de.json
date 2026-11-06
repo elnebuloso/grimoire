@@ -198,6 +198,7 @@
 	"error_branch": "Gib den Branch ein.",
 	"error_path": "Der Pfad ist relativ zum Repository-Root und darf kein „..“ enthalten.",
 	"error_exclusion_too_long": "Ein Ausschluss darf höchstens {max} Zeichen pro Zeile haben.",
+	"error_exclusion_braces": "Ein Ausschluss darf höchstens {max} Gruppen in geschweiften Klammern haben.",
 	"error_source_changed": "Jemand anderes hat die Quelle geändert, während sie gespeichert wurde. Lade die Seite neu und speichere erneut.",
 	"error_schedule": "Zeitplan: {detail}",
 	"error_token_other_server": "Die Git-URL zeigt auf einen anderen Server: Gib das Token erneut ein oder entferne es.",

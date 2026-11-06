@@ -116,6 +116,9 @@ function sourceSlugTaken(db: DatabaseSync, slug: string, sourceId: number | unde
 // Far beyond any real pattern; `matchesGlob` throws past 64 KiB, and a stored pattern it cannot
 // read fails every page of the management area and every sync of the source.
 const MAX_EXCLUSION_LENGTH = 1000;
+// `matchesGlob` expands braces with exponential cost, on the server thread: 13 groups took 6 s, 16
+// did not finish in a minute; 4 take milliseconds.
+const MAX_EXCLUSION_BRACES = 4;
 
 export function sourceProblem(
 	db: DatabaseSync,
@@ -147,12 +150,16 @@ export function sourceProblem(
 		return { error: m.error_path(), field: 'path' };
 	}
 
-	const tooLong = form.exclusions
-		.split('\n')
-		.some((line) => line.trim().length > MAX_EXCLUSION_LENGTH);
-	if (tooLong) {
+	const exclusions = form.exclusions.split('\n').map((line) => line.trim());
+	if (exclusions.some((line) => line.length > MAX_EXCLUSION_LENGTH)) {
 		return {
 			error: m.error_exclusion_too_long({ max: MAX_EXCLUSION_LENGTH }),
+			field: 'exclusions'
+		};
+	}
+	if (exclusions.some((line) => line.split('{').length - 1 > MAX_EXCLUSION_BRACES)) {
+		return {
+			error: m.error_exclusion_braces({ max: MAX_EXCLUSION_BRACES }),
 			field: 'exclusions'
 		};
 	}

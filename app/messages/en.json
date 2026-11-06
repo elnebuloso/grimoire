@@ -198,6 +198,7 @@
 	"error_branch": "Enter the branch.",
 	"error_path": "The path is relative to the repository root and may not contain \"..\".",
 	"error_exclusion_too_long": "An exclusion may have at most {max} characters per line.",
+	"error_exclusion_braces": "An exclusion may have at most {max} groups in curly braces.",
 	"error_source_changed": "Someone else changed this source while it was being saved. Reload the page and save again.",
 	"error_schedule": "Schedule: {detail}",
 	"error_token_other_server": "The Git URL points to another server: enter the token again or remove it.",
