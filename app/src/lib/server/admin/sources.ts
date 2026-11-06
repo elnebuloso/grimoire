@@ -1,5 +1,5 @@
 import type { DatabaseSync } from 'node:sqlite';
-import { redactUrl } from '../sync/git';
+import { redactUrl } from '../redact-url';
 import { parseSchedule } from '../sync/schedule';
 import type { SourceFields, StoredSourceFields, Visibility } from '#lib/source-fields.js';
 import { encryptSecret } from '../secret-encryption';

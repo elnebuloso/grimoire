@@ -5,7 +5,7 @@ import { ENCRYPTION_KEY, GIT_ALLOWED_HOSTS, SYNC_SCHEDULE, TZ } from '$app/env/p
 import { database } from '#lib/server/db/index.js';
 import { deleteSource } from '#lib/server/db/sources.js';
 import { requestSyncInBackground, syncPending } from '#lib/server/sync/index.js';
-import { redactUrl } from '#lib/server/sync/git.js';
+import { redactUrl } from '#lib/server/redact-url.js';
 import { connectionPolicy } from '#lib/server/sync/connection-policy.js';
 import { nextRun } from '#lib/server/sync/schedule.js';
 import { checkAccess, checkSourceAccess } from '#lib/server/admin/source-access.js';

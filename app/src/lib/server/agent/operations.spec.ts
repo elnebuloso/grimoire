@@ -402,5 +402,10 @@ describe('agentInstructions', () => {
 		const text = agentInstructions('Acme Docs');
 		expect(text).toContain('Acme Docs is the organization');
 		expect(text).not.toContain('grimoire');
+		expect(text).not.toContain('INSTANCE_NAME');
+	});
+
+	it('takes the name as it is, also where it reads like a replacement pattern', () => {
+		expect(agentInstructions('Docs $& more')).toContain('Docs $& more is the organization');
 	});
 });

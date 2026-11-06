@@ -1,4 +1,4 @@
-grimoire is the organization's internal knowledge base: how services, tools and
+{INSTANCE_NAME} is the organization's internal knowledge base: how services, tools and
 processes work and how to use them.
 
 Reading
@@ -12,7 +12,7 @@ Reading
 
 Writing
 
-- grimoire is read-only. To change docs, edit the Markdown file in its source repo and
+- {INSTANCE_NAME} is read-only. To change docs, edit the Markdown file in its source repo and
   commit. Repo, branch and file are in the "Edit:" line of each snippet.
 - Search first whether the topic exists. Extend instead of creating duplicates.
 - One topic per file. Every section must stand on its own: descriptive heading,

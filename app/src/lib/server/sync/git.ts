@@ -13,6 +13,7 @@ import {
 	type ConnectionPolicy
 } from './connection-policy.ts';
 import { SyncFailure, UNRESOLVABLE, type SyncErrorKind } from './failure.ts';
+import { redactUrl } from '../redact-url.ts';
 
 const run = promisify(execFile);
 
@@ -365,11 +366,6 @@ export function redact(message: string, remote?: GitRemote): string {
 		redacted = redacted.replaceAll(remote.token, '***').replaceAll(basicCredentials(remote), '***');
 	}
 	return redacted;
-}
-
-/** Drops `user:password@` from every URL in a text. */
-export function redactUrl(text: string): string {
-	return text.replace(/(\w+:\/\/)[^/\s@]+@/g, '$1');
 }
 
 function basicCredentials(remote: GitRemote): string {

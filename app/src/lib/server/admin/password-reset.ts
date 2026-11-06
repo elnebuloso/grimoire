@@ -6,9 +6,9 @@ import {
 	MIN_PASSWORD_LENGTH,
 	normalizeEmail,
 	setPasswordHash,
-	sha256,
 	type AuthProblem
 } from './auth.ts';
+import { sha256 } from '../sha256.ts';
 import { clientKey, createAttemptLimit } from './attempt-limit.ts';
 
 const LINK_MINUTES = 60;

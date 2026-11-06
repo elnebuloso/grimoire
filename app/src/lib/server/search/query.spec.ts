@@ -1,7 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import type { DatabaseSync } from 'node:sqlite';
 import { openDatabase } from '../db/schema';
-import { parseTokenBudget, searchHits, searchSnippets } from './query';
+import { parseTokenBudget, searchHits, type SearchOptions } from './query';
+
+const searchSnippets = (db: DatabaseSync, options: SearchOptions) =>
+	searchHits(db, options).markdown;
 
 let db: DatabaseSync;
 

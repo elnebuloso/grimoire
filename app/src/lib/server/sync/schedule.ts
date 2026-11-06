@@ -1,4 +1,5 @@
 import { Cron } from 'croner';
+import { upcomingRuns } from '../../schedule';
 
 /**
  * Checks a cron expression with the five standard fields (minute, hour, day of month, month,
@@ -40,7 +41,10 @@ export function isDue(
 	return next !== null && next <= now;
 }
 
-/** The first run of `schedule` after `after`, with times read in `timezone`. */
+/**
+ * The first run of `schedule` after `after`, with times read in `timezone`: the first of what the
+ * schedule field previews, so the two cannot drift apart.
+ */
 export function nextRun(schedule: string, after: Date, timezone: string): Date | null {
-	return new Cron(parseSchedule(schedule), { mode: '5-part', timezone }).nextRun(after);
+	return upcomingRuns(parseSchedule(schedule), timezone, after, 1)?.[0] ?? null;
 }

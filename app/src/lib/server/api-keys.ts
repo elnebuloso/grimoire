@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import type { DatabaseSync } from 'node:sqlite';
-import { sha256 } from './admin/auth.ts';
+import { sha256 } from './sha256.ts';
 import { inTransaction } from './db/transaction.ts';
 
 // The prefix lets secret scanners recognise a leaked key.

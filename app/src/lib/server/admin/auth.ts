@@ -1,4 +1,5 @@
-import { createHash, randomBytes, scrypt, timingSafeEqual, type ScryptOptions } from 'node:crypto';
+import { randomBytes, scrypt, timingSafeEqual, type ScryptOptions } from 'node:crypto';
+import { sha256 } from '../sha256.ts';
 import { promisify } from 'node:util';
 import type { DatabaseSync } from 'node:sqlite';
 // With its extension: the scripts in `scripts/` load this file with plain node.
@@ -63,10 +64,6 @@ export type AuthProblem =
 // Kept in memory only: it exists solely to prove access to the server log, so it is never stored.
 let setupTokenValue: string | undefined;
 const failedLogins = createAttemptLimit(MAX_FAILED_LOGINS, FAILED_LOGIN_MINUTES);
-
-export function sha256(value: string): string {
-	return createHash('sha256').update(value).digest('hex');
-}
 
 function sameText(a: string, b: string): boolean {
 	return timingSafeEqual(Buffer.from(sha256(a)), Buffer.from(sha256(b)));

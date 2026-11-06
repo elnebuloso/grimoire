@@ -14,7 +14,8 @@ import instructions from './instructions.md?raw';
 
 /** How agents use the instance `name`; the same text for HTTP and as MCP server instructions. */
 export function agentInstructions(name: string): string {
-	return instructions.replaceAll('grimoire', name);
+	// A function, so a `$&` in the name is taken as it is, not as a replacement pattern.
+	return instructions.replaceAll('{INSTANCE_NAME}', () => name);
 }
 
 /** The answer of an operation; `found` is false for an unknown or hidden source or ID. */

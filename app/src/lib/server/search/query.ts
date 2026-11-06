@@ -1,7 +1,7 @@
 import { posix } from 'node:path';
 import type { DatabaseSync, SQLInputValue } from 'node:sqlite';
 import { estimateTokens } from '../parsing/chunk';
-import { redactUrl } from '../sync/git';
+import { redactUrl } from '../redact-url';
 import type { KeyScope, SourceScope } from '../api-keys';
 import { grimoireId, withSlug, type SectionLocation } from '../grimoire-id';
 
@@ -137,17 +137,9 @@ export const DEFAULT_TOKENS = 3000;
 export function parseTokenBudget(value: string): number | undefined {
 	return /^[1-9]\d*$/.test(value) ? Number(value) : undefined;
 }
+
 // Caps the list of hits that did not fit; beyond this the agent should rephrase, not read on.
 const MAX_HITS = 20;
-
-/**
- * Full-text search over all snippets, ranked by BM25 with the title path weighted above the
- * text and the text above code. Returns the rendered hits in ranking order, as many as fit into
- * the token budget, followed by a line naming the IDs of hits that did not fit.
- */
-export function searchSnippets(db: DatabaseSync, options: SearchOptions): string {
-	return searchHits(db, options).markdown;
-}
 
 /** What a search found within its budget: the hits, the IDs that did not fit and the rendering. */
 export interface SearchResult {
@@ -157,7 +149,12 @@ export interface SearchResult {
 	markdown: string;
 }
 
-/** `searchSnippets` with the packed hits, for a page that shows them on its own. */
+/**
+ * Full-text search over all snippets, ranked by BM25 with the title path weighted above the
+ * text and the text above code. Returns the rendered hits in ranking order, as many as fit into
+ * the token budget, followed by a line naming the IDs of hits that did not fit, and the packed
+ * hits themselves for a page that shows them on its own.
+ */
 export function searchHits(db: DatabaseSync, options: SearchOptions): SearchResult {
 	const match = toMatchExpression(options.query);
 	if (!match) return { hits: [], skipped: [], markdown: '' };

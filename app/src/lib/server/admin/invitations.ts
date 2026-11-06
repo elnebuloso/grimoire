@@ -9,9 +9,9 @@ import {
 	looksLikeEmail,
 	MIN_PASSWORD_LENGTH,
 	normalizeEmail,
-	sha256,
 	type AuthProblem
 } from './auth.ts';
+import { sha256 } from '../sha256.ts';
 
 // Long enough to reach someone back from a week away; anyone holding the mail can use the link,
 // so it does not stay valid for good.
