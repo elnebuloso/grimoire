@@ -527,5 +527,6 @@
 	"mail_password_link_subject": "Setze dein Passwort für {name}",
 	"mail_password_link_text": "Ein Admin von {name} hat für deinen Account {email} einen Link zum Setzen des Passworts erzeugt. Setze es innerhalb von 24 Stunden mit diesem Link:\n\n{url}\n\nDer Link funktioniert einmal. Wenn du ihn nicht angefragt hast, sag dem Admin Bescheid; dein Passwort bleibt, wie es ist, bis der Link benutzt wird.",
 	"password_none_send_link": "Link an mich senden",
-	"source_indexed_commit": "Indexierter Commit"
+	"source_indexed_commit": "Indexierter Commit",
+	"switch_failed": "Deine Auswahl konnte nicht gespeichert werden. Versuch es noch einmal."
 }

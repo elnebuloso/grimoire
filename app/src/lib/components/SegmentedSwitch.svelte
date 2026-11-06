@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import { m } from '#lib/paraglide/messages.js';
+	import { showToast } from '#lib/toasts.svelte.js';
 
 	/**
 	 * A choice between a few options as a segmented track, the picked one raised. Each option is a
@@ -29,8 +31,14 @@
 		const body = new FormData(form, event.submitter);
 		// The endpoint stores the choice and redirects back for a plain form; that page is not needed
 		// here, and on an error page it would answer with an error.
-		const response = await fetch(action, { method: 'POST', body, redirect: 'manual' });
-		if (response.type === 'opaqueredirect' || response.ok) await onpick(String(body.get(name)));
+		const response = await fetch(action, { method: 'POST', body, redirect: 'manual' }).catch(
+			() => undefined
+		);
+		if (response && (response.type === 'opaqueredirect' || response.ok)) {
+			await onpick(String(body.get(name)));
+		} else {
+			showToast(m.switch_failed());
+		}
 	}
 
 	const labelId = $derived(`${name}-switch-label`);

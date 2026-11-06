@@ -530,7 +530,7 @@ test('leads through the management area with one navigation that marks the curre
 	);
 	await expect(navigation.getByRole('link', { name: 'My API keys' })).toHaveCount(0);
 
-	// The server already marks it: before hydration, and for a reader without JavaScript.
+	// The server already marks it, so the link is right before the page hydrates.
 	const html = await (await page.request.get('/manage/settings')).text();
 	expect(html).toMatch(/<a href="[^"]*settings"[^>]*aria-current="page"/);
 });

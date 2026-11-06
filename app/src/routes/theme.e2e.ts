@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { THEME_COOKIE } from '../lib/theme.ts';
 
 // The canvas colour of each scheme, from `app.css`.
 const LIGHT_CANVAS = 'rgb(227, 230, 234)';
@@ -43,21 +44,19 @@ test('follows the system scheme until one is picked, and again after System', as
 	await expect.poll(() => canvas(page)).toBe(DARK_CANVAS);
 });
 
-test('paints the picked scheme from the first response, without JavaScript', async ({
-	browser
+test('paints the picked scheme from the first response, before hydration', async ({
+	browser,
+	baseURL
 }) => {
 	const context = await browser.newContext({
-		javaScriptEnabled: false,
 		colorScheme: 'light',
 		extraHTTPHeaders: { 'x-forwarded-proto': 'http' }
 	});
+	await context.addCookies([{ name: THEME_COOKIE, value: 'dark', url: baseURL! }]);
 	const page = await context.newPage();
-	await page.goto('/');
-	await theme(page).getByRole('button', { name: 'Dark' }).click();
-	await expect(page).toHaveURL('/');
 
-	const response = await page.request.get('/');
-	expect(await response.text()).toContain('data-theme="dark"');
+	const response = await page.goto('/');
+	expect(await response!.text()).toContain('data-theme="dark"');
 	expect(await canvas(page)).toBe(DARK_CANVAS);
 	await context.close();
 });

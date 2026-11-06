@@ -1,6 +1,7 @@
 <script module lang="ts">
 	import { defineMeta } from '@storybook/addon-svelte-csf';
-	import { expect, fn } from 'storybook/test';
+	import { expect, fn, spyOn, userEvent, waitFor } from 'storybook/test';
+	import { toasts } from '#lib/toasts.svelte.js';
 	import SegmentedSwitch from './SegmentedSwitch.svelte';
 
 	const { Story } = defineMeta({
@@ -68,5 +69,22 @@
 			'aria-pressed',
 			'true'
 		);
+	}}
+/>
+
+<Story
+	name="A choice the server does not take"
+	args={{ label: 'Theme', action: '/theme', name: 'theme', options: themes, current: 'system' }}
+	play={async ({ args, canvas }) => {
+		const fetch = spyOn(window, 'fetch').mockRejectedValue(new TypeError('Failed to fetch'));
+		try {
+			await userEvent.click(canvas.getByRole('button', { name: 'Dark' }));
+			await waitFor(() =>
+				expect(toasts[0]?.message).toBe('Your choice could not be saved. Try again.')
+			);
+			await expect(args.onpick).not.toHaveBeenCalled();
+		} finally {
+			fetch.mockRestore();
+		}
 	}}
 />
