@@ -261,6 +261,29 @@ describe('syncSource', () => {
 		expect(fork).toHaveBeenCalledTimes(2);
 	});
 
+	it('indexes a commit again whose indexing failed for a passing reason', async () => {
+		indexing.run = () => ({
+			error: 'git sparse-checkout failed: Could not resolve host: git.example.com',
+			kind: 'noAddress'
+		});
+		expect(await sync()).toMatchObject({ status: 'failed', kind: 'noAddress', commit: 'c1' });
+
+		indexing.run = indexOnePage;
+		expect(await sync()).toMatchObject({ status: 'synced', commit: 'c1', pages: 1 });
+		expect(fork).toHaveBeenCalledTimes(2);
+	});
+
+	it('remembers the commit it cloned as failed, not the one the check saw', async () => {
+		vi.mocked(remoteCommit).mockResolvedValue('c1');
+		vi.mocked(headCommit).mockResolvedValue('c2');
+		indexing.run = () => ({ error: 'no page could be indexed, index.md: skipped', kind: 'noPage' });
+
+		expect(await sync()).toMatchObject({ status: 'failed', commit: 'c2' });
+		expect(rows('SELECT failed_commit FROM sources WHERE id = ?', source)).toEqual([
+			{ failed_commit: 'c2' }
+		]);
+	});
+
 	it('indexes the next commit after one whose indexing failed', async () => {
 		indexing.run = () => ({ error: 'indexing took longer than 10 minutes' });
 		await sync();

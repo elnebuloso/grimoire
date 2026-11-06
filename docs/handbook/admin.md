@@ -208,8 +208,11 @@ detail.
 | `Indexing stopped before it finished.` | `indexing ended with … before it finished, out of memory for example` | Ask the operator for more memory (see [Memory and CPU limits](docker.md#memory-and-cpu-limits)). |
 | none | `invalid cron expression "0 25 * * *": …` | Correct **Schedule**. |
 
-When indexing fails, that commit is not indexed again: checks keep showing the error until the
-branch moves on. **Sync now** and saving the source try the same commit again.
+When indexing fails because of the commit's content (no page could be indexed, the source path is
+missing, indexing ran past its time limit or out of memory), that commit is not indexed again:
+checks keep showing the error until the branch moves on. **Sync now** and saving the source try the
+same commit again. Any other failure while indexing, such as the Git server not answering, is
+retried at the next check.
 
 A Git server that does not answer within 30 seconds is skipped until the next scheduled check and
 shows as error. Warnings about single pages and includes are for the authors; they explain them on

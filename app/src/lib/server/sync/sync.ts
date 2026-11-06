@@ -117,7 +117,7 @@ async function checkAndSync(
 			try {
 				await sparseClone(remote, source.branch, source.path, checkout);
 				const commit = await headCommit(checkout);
-				indexingCommit = latest;
+				indexingCommit = commit;
 				const indexed = await indexInProcess(
 					{
 						checkout,
@@ -139,12 +139,17 @@ async function checkAndSync(
 	} catch (error) {
 		const message = redact((error as Error).message, remote);
 		const kind = failureKind(error as Error);
-		recordSyncError(db, sourceId, { message, kind }, indexingCommit);
+		const repeats = REPEATING_KINDS.has(kind);
+		recordSyncError(db, sourceId, { message, kind }, repeats ? indexingCommit : undefined);
 		return { status: 'failed', error: message, kind, commit: indexingCommit };
 	} finally {
 		recordCheck(db, sourceId, checkedAt);
 	}
 }
+
+// Indexing the same commit again fails the same way for these; a network error or a locked
+// database while indexing passes, so its commit is tried again at the next check.
+const REPEATING_KINDS = new Set<SyncErrorKind>(['noPage', 'path', 'deadline', 'aborted']);
 
 function failureKind(error: Error): SyncErrorKind {
 	if (error instanceof SyncFailure) return error.kind;
