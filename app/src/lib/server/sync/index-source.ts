@@ -158,11 +158,14 @@ function listPages(checkout: string, sourcePath: string, exclusions: string[]): 
 	if (start === undefined || !statSync(start).isDirectory()) {
 		throw new SyncFailure('path', `source path "${sourcePath}" does not exist in the repository`);
 	}
-	const files: string[] = [];
+	// Each page with its path below the source and its real path in the repository.
+	const files: { path: string; real: string }[] = [];
 	// A symlinked directory is followed only inside the checkout, and every directory once: a docs
 	// branch could otherwise link to `/` and list the server, or link twice to its own parent and
-	// keep the walk going until the deadline.
+	// keep the walk going until the deadline. Real directories are walked first, so a directory is
+	// listed under its real path however a link to it is named.
 	const visited = new Set([start]);
+	const linked: { real: string; path: string }[] = [];
 	const walk = (directory: string, prefix: string) => {
 		const entries = readdirSync(directory, { withFileTypes: true }).toSorted((a, b) =>
 			a.name < b.name ? -1 : a.name > b.name ? 1 : 0
@@ -170,25 +173,35 @@ function listPages(checkout: string, sourcePath: string, exclusions: string[]): 
 		for (const entry of entries) {
 			if (entry.name === '.git') continue;
 			const path = prefix ? `${prefix}/${entry.name}` : entry.name;
-			const real =
-				entry.isDirectory() || entry.isSymbolicLink()
-					? realInside(root, join(directory, entry.name))
-					: undefined;
-			if (real !== undefined && statSync(real).isDirectory()) {
-				if (visited.has(real)) continue;
-				visited.add(real);
-				walk(real, path);
+			const full = join(directory, entry.name);
+			if (entry.isDirectory()) {
+				// Reached once already when a link led into the directory around it first.
+				if (visited.has(full)) continue;
+				visited.add(full);
+				walk(full, path);
+				continue;
+			}
+			const real = entry.isSymbolicLink() ? realInside(root, full) : full;
+			if (real !== undefined && entry.isSymbolicLink() && statSync(real).isDirectory()) {
+				linked.push({ real, path });
 			} else if (entry.name.endsWith('.md')) {
 				// A file linking outside is listed still: reading it refuses it with a warning.
-				files.push(path);
+				files.push({ path, real: relative(root, real ?? full) });
 			}
 		}
 	};
 	walk(start, '');
+	for (const { real, path } of linked) {
+		if (visited.has(real)) continue;
+		visited.add(real);
+		walk(real, path);
+	}
+	// Excluded by where it is listed or where it really lies: a link must not bring an excluded
+	// directory back.
+	const excluded = (file: string) => exclusions.some((pattern) => matchesGlob(file, pattern));
 	return files
-		.filter(
-			(file) => !exclusions.some((pattern) => matchesGlob(posix.join(sourcePath, file), pattern))
-		)
+		.filter((file) => !excluded(posix.join(sourcePath, file.path)) && !excluded(file.real))
+		.map((file) => file.path)
 		.sort();
 }
 

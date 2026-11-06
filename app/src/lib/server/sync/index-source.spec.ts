@@ -243,6 +243,39 @@ describe('indexCheckout with symlinks', () => {
 		await expect(indexCheckout(noUrls)).rejects.toThrow('does not exist in the repository');
 	});
 
+	it('lists a directory under its real path, also when a link to it sorts first', async () => {
+		write({ 'docs/index.md': '# Start\n', 'docs/guide/a.md': '# A\n' });
+		symlinkSync('guide', join(checkout, 'docs/current'));
+
+		const index = await indexCheckout(noUrls);
+
+		expect(index.pages.map((page) => page.file)).toEqual(['guide/a.md', 'index.md']);
+	});
+
+	it('indexes no excluded page through a link to its directory', async () => {
+		write({
+			'docs/index.md': '# Start\n',
+			'docs/internal/secret.md': '# Secret\n',
+			'shared/private/plan.md': '# Plan\n'
+		});
+		symlinkSync('internal', join(checkout, 'docs/a-internal'));
+		symlinkSync('../shared/private', join(checkout, 'docs/plans'));
+		const excluding = { path: 'docs/', exclusions: ['docs/internal/**', 'shared/private/**'] };
+
+		const prepared = await prepareCheckout(checkout, excluding, async () => {}, noUrls);
+
+		expect(indexPages(prepared).pages.map((page) => page.file)).toEqual(['index.md']);
+	});
+
+	it('follows a link to a directory outside the source path but inside the checkout', async () => {
+		write({ 'docs/index.md': '# Start\n', 'shared/note.md': '# Note\n' });
+		symlinkSync('../shared', join(checkout, 'docs/shared'));
+
+		const index = await indexCheckout(noUrls);
+
+		expect(index.pages.map((page) => page.file)).toEqual(['index.md', 'shared/note.md']);
+	});
+
 	it('follows a symlink that stays inside the checkout', async () => {
 		write({
 			'shared/note.md': 'Shared note.\n',
