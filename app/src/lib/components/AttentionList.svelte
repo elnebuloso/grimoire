@@ -141,7 +141,7 @@
 		color: var(--ink-2);
 	}
 	.attention code {
-		font-size: 13px;
+		font-size: var(--fs-3);
 	}
 	.all {
 		justify-self: start;

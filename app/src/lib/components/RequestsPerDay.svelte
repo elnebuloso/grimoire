@@ -43,6 +43,6 @@
 	}
 	caption {
 		text-align: start;
-		font-size: 13px;
+		font-size: var(--fs-3);
 	}
 </style>

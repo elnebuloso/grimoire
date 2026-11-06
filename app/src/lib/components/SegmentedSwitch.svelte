@@ -69,7 +69,7 @@
 	span {
 		padding-inline: var(--s1) var(--s2);
 		color: var(--ink-2);
-		font-size: 12px;
+		font-size: var(--fs-1);
 		font-weight: 500;
 	}
 	button {
@@ -80,7 +80,7 @@
 		border: 0;
 		border-radius: var(--r-small);
 		box-shadow: none;
-		font-size: 13px;
+		font-size: var(--fs-3);
 		font-weight: 400;
 	}
 	button:hover {

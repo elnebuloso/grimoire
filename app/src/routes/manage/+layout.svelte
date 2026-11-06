@@ -133,7 +133,7 @@
 		margin: var(--s4) 0 0;
 		padding-inline: var(--s3);
 		color: var(--ink-2);
-		font-size: 12px;
+		font-size: var(--fs-1);
 		font-weight: 600;
 		letter-spacing: 0.04em;
 		text-transform: uppercase;
@@ -150,7 +150,7 @@
 		min-height: 34px;
 		padding: 0 var(--s3);
 		color: var(--ink-2);
-		font-size: 14px;
+		font-size: var(--fs-5);
 		text-decoration: none;
 		border-radius: var(--r-control);
 		transition:
@@ -173,7 +173,7 @@
 		color: var(--ink);
 		background: var(--well);
 		border-radius: 999px;
-		font-size: 12px;
+		font-size: var(--fs-1);
 		font-weight: 600;
 	}
 	/* Read by screen readers in place of the number, which alone would not say what it counts. */

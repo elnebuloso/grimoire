@@ -25,6 +25,6 @@
 	}
 	.mono {
 		font-family: var(--mono);
-		font-size: 14px;
+		font-size: var(--fs-5);
 	}
 </style>

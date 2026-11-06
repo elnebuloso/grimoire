@@ -118,7 +118,7 @@
 		margin-top: calc(var(--s2) * -1);
 		padding-inline-start: calc(18px + var(--s3));
 		color: var(--ink-2);
-		font-size: 13px;
+		font-size: var(--fs-3);
 		text-wrap: pretty;
 	}
 </style>

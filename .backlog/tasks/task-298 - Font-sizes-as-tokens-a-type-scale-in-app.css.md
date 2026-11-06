@@ -1,9 +1,11 @@
 ---
 id: TASK-298
 title: 'Font sizes as tokens: a type scale in app.css'
-status: To Do
-assignee: []
+status: Done
+assignee:
+  - '@claude'
 created_date: '2026-11-06 19:35'
+updated_date: '2026-11-06 19:37'
 labels: []
 dependencies: []
 priority: medium
@@ -19,7 +21,27 @@ ordinal: 360000
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 app.css defines a type scale covering every font size in use
-- [ ] #2 No component or page sets a literal font-size in px
-- [ ] #3 Pages and stories look the same in light and dark; stories pass
+- [x] #1 app.css defines a type scale covering every font size in use
+- [x] #2 No component or page sets a literal font-size in px
+- [x] #3 Pages and stories look the same in light and dark; stories pass
 <!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. --fs-1 … --fs-9 in app.css :root, one per size in use (12, 12.5, 13, 13.5, 14, 15, 18, 23, 26 px)
+2. Replace every literal font-size in px in app.css, components and pages
+<!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+- 54 declarations replaced in 31 files; values unchanged, so nothing moves on screen. Every story passes in light and dark.
+- --fs-8 (23 px) is used only by the phone restyle of h1 that TASK-302 removes; that task drops the token if nothing else uses it.
+<!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Font sizes are tokens now: app.css defines a scale --fs-1 to --fs-9 with the sizes in use, and no component, page or base style sets a literal px font size. Values are unchanged; all stories pass in both schemes.
+<!-- SECTION:FINAL_SUMMARY:END -->

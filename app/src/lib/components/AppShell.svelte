@@ -142,7 +142,7 @@
 		text-decoration: none;
 	}
 	.login {
-		font-size: 14px;
+		font-size: var(--fs-5);
 	}
 
 	main {
@@ -187,7 +187,7 @@
 	.product {
 		margin-inline-end: auto;
 		color: var(--ink-2);
-		font-size: 13px;
+		font-size: var(--fs-3);
 		font-weight: 500;
 		letter-spacing: -0.01em;
 	}

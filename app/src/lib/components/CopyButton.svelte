@@ -35,7 +35,7 @@
 
 <style>
 	span {
-		font-size: 14px;
+		font-size: var(--fs-5);
 		font-weight: 500;
 	}
 	.copied {

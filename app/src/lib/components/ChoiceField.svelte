@@ -33,7 +33,7 @@
 	}
 	.mono {
 		font-family: var(--mono);
-		font-size: 13.5px;
+		font-size: var(--fs-4);
 	}
 	@media (pointer: coarse) {
 		label {

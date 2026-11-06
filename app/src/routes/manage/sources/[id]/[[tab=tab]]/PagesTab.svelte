@@ -65,11 +65,11 @@
 	}
 	.back {
 		justify-self: start;
-		font-size: 14px;
+		font-size: var(--fs-5);
 	}
 	.hint {
 		color: var(--ink-2);
-		font-size: 13px;
+		font-size: var(--fs-3);
 	}
 	.snippets {
 		display: grid;

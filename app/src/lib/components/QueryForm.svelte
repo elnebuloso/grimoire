@@ -94,13 +94,13 @@
 	}
 	h3 {
 		margin: 0;
-		font-size: 15px;
+		font-size: var(--fs-6);
 		overflow-wrap: anywhere;
 	}
 	.id {
 		justify-self: start;
 		color: var(--ink-2);
-		font-size: 12.5px;
+		font-size: var(--fs-2);
 	}
 	/* The snippet exactly as stored: its line breaks carry lists and code. */
 	.content {

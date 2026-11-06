@@ -333,7 +333,7 @@
 		flex-wrap: wrap;
 		gap: 0 var(--s4);
 		color: var(--ink-2);
-		font-size: 13px;
+		font-size: var(--fs-3);
 	}
 	.expired {
 		color: var(--err);

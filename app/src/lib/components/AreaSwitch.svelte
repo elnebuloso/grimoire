@@ -36,7 +36,7 @@
 		padding: 0 var(--s3);
 		color: var(--ink-2);
 		border-radius: var(--r-small);
-		font-size: 14px;
+		font-size: var(--fs-5);
 		text-decoration: none;
 	}
 	a:hover {

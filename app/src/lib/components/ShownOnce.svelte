@@ -26,7 +26,7 @@
 		flex: 1 1 18rem;
 		padding: var(--s3);
 		font-family: var(--mono);
-		font-size: 14px;
+		font-size: var(--fs-5);
 		background: var(--sheet);
 		border: 1px dashed var(--edge);
 		border-radius: var(--r-control);

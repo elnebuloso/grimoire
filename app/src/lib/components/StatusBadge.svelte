@@ -25,7 +25,7 @@
 		color: var(--ink-2);
 		background: var(--well);
 		border-radius: 999px;
-		font-size: 13px;
+		font-size: var(--fs-3);
 		font-weight: 500;
 		white-space: nowrap;
 	}

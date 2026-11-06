@@ -40,7 +40,7 @@
 	dt {
 		padding-inline-end: var(--s5);
 		color: var(--ink-2);
-		font-size: 14px;
+		font-size: var(--fs-5);
 	}
 	dd {
 		overflow-wrap: anywhere;

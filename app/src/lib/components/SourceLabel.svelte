@@ -19,6 +19,6 @@
 	}
 	code {
 		color: var(--ink-2);
-		font-size: 12.5px;
+		font-size: var(--fs-2);
 	}
 </style>

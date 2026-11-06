@@ -33,6 +33,6 @@
 	output {
 		color: var(--ink-2);
 		font-family: var(--mono);
-		font-size: 13px;
+		font-size: var(--fs-3);
 	}
 </style>

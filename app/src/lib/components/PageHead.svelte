@@ -49,7 +49,7 @@
 	}
 	.back {
 		justify-self: start;
-		font-size: 14px;
+		font-size: var(--fs-5);
 	}
 	/* A reading measure, not a layout width: 60ch of this face is about 78 characters, a line
 	longer is hard to follow back to the next one. */

@@ -77,11 +77,11 @@
 		border-top: 0;
 	}
 	code {
-		font-size: 13px;
+		font-size: var(--fs-3);
 	}
 	.repository {
 		color: var(--ink-2);
-		font-size: 13px;
+		font-size: var(--fs-3);
 	}
 	li li code {
 		font-weight: 500;

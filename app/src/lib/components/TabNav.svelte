@@ -33,7 +33,7 @@
 		min-height: 38px;
 		padding: 0 var(--s4);
 		color: var(--ink-2);
-		font-size: 14px;
+		font-size: var(--fs-5);
 		text-decoration: none;
 		border-radius: var(--r-control);
 		transition:

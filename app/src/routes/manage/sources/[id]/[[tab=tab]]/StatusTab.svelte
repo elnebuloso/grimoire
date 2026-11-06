@@ -142,6 +142,6 @@
 		overflow-wrap: anywhere;
 	}
 	.flagged code {
-		font-size: 13px;
+		font-size: var(--fs-3);
 	}
 </style>

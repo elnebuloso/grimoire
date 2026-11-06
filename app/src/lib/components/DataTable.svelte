@@ -165,7 +165,7 @@
 		gap: var(--s1);
 	}
 	.field label {
-		font-size: 13px;
+		font-size: var(--fs-3);
 		font-weight: 600;
 	}
 	input[type='search'] {
@@ -190,6 +190,6 @@
 		align-items: center;
 		gap: var(--s4);
 		color: var(--ink-2);
-		font-size: 14px;
+		font-size: var(--fs-5);
 	}
 </style>

@@ -14,7 +14,7 @@
 
 <style>
 	code {
-		font-size: 12.5px;
+		font-size: var(--fs-2);
 		overflow-wrap: anywhere;
 	}
 	.summary + code {

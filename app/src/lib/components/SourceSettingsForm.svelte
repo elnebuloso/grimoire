@@ -322,7 +322,7 @@ scrolled to; saving a new source leads to it. -->
 	}
 	.hint {
 		color: var(--ink-2);
-		font-size: 13px;
+		font-size: var(--fs-3);
 	}
 	.reachable {
 		display: flex;

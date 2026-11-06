@@ -49,7 +49,7 @@
 		gap: var(--s2);
 		max-width: 20rem;
 		min-height: 34px;
-		font-size: 14px;
+		font-size: var(--fs-5);
 	}
 	.email {
 		overflow: hidden;
@@ -79,17 +79,17 @@
 		margin: 0;
 	}
 	p {
-		font-size: 12px;
+		font-size: var(--fs-1);
 	}
 	h2 {
 		overflow-wrap: anywhere;
-		font-size: 15px;
+		font-size: var(--fs-6);
 	}
 	a,
 	form {
 		justify-self: start;
 	}
 	a {
-		font-size: 14px;
+		font-size: var(--fs-5);
 	}
 </style>

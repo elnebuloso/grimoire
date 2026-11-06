@@ -72,6 +72,16 @@
 	--font: 'IBM Plex Sans', system-ui, sans-serif;
 	--mono: 'IBM Plex Mono', ui-monospace, monospace;
 
+	/* Font sizes, smallest first: every size a component or page sets. */
+	--fs-1: 12px;
+	--fs-2: 12.5px;
+	--fs-3: 13px;
+	--fs-4: 13.5px;
+	--fs-5: 14px;
+	--fs-6: 15px;
+	--fs-7: 18px;
+	--fs-8: 23px;
+	--fs-9: 26px;
 	--s1: 4px;
 	--s2: 8px;
 	--s3: 12px;
@@ -111,17 +121,17 @@ h4 {
 	font-weight: 600;
 }
 h1 {
-	font-size: 26px;
+	font-size: var(--fs-9);
 	letter-spacing: -0.015em;
 }
 h2 {
-	font-size: 18px;
+	font-size: var(--fs-7);
 }
 h3 {
-	font-size: 15px;
+	font-size: var(--fs-6);
 }
 h4 {
-	font-size: 14px;
+	font-size: var(--fs-5);
 	font-weight: 500;
 }
 p,
@@ -142,7 +152,7 @@ p {
 }
 @media (max-width: 40rem) {
 	h1 {
-		font-size: 23px;
+		font-size: var(--fs-8);
 	}
 }
 
@@ -160,7 +170,7 @@ pre {
 	background: var(--well);
 	box-shadow: var(--sink);
 	border-radius: var(--r-control);
-	font-size: 13px;
+	font-size: var(--fs-3);
 	line-height: 1.6;
 	white-space: pre-wrap;
 	overflow-wrap: anywhere;
@@ -207,7 +217,7 @@ fieldset {
 }
 label,
 legend {
-	font-size: 14px;
+	font-size: var(--fs-5);
 	font-weight: 500;
 }
 legend {
@@ -239,7 +249,7 @@ textarea {
 	min-height: 84px;
 	resize: vertical;
 	font-family: var(--mono);
-	font-size: 13.5px;
+	font-size: var(--fs-4);
 }
 input:hover,
 textarea:hover {
@@ -277,7 +287,7 @@ input[type='file']::file-selector-button {
 	margin: 0 var(--s3) 0 0;
 	padding: 0 var(--s4);
 	font: inherit;
-	font-size: 14px;
+	font-size: var(--fs-5);
 	font-weight: 500;
 	color: var(--ink);
 	background: var(--raised);
@@ -313,7 +323,7 @@ a.button {
 	min-height: 40px;
 	padding: 0 var(--s4);
 	font: inherit;
-	font-size: 14px;
+	font-size: var(--fs-5);
 	font-weight: 500;
 	color: var(--ink);
 	background: var(--raised);
@@ -388,7 +398,7 @@ details > summary {
 	width: fit-content;
 	padding: var(--s1) 0;
 	color: var(--accent);
-	font-size: 14px;
+	font-size: var(--fs-5);
 	font-weight: 500;
 	cursor: pointer;
 }
@@ -413,12 +423,12 @@ details > summary:hover {
 table {
 	width: 100%;
 	border-collapse: collapse;
-	font-size: 14px;
+	font-size: var(--fs-5);
 }
 thead th {
 	padding: var(--s2) var(--s3);
 	color: var(--ink-2);
-	font-size: 13px;
+	font-size: var(--fs-3);
 	font-weight: 500;
 	text-align: start;
 	white-space: nowrap;

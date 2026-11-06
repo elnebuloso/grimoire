@@ -43,7 +43,7 @@
 		justify-self: center;
 		gap: var(--s3);
 		color: var(--ink);
-		font-size: 18px;
+		font-size: var(--fs-7);
 		font-weight: 600;
 		letter-spacing: -0.01em;
 		text-decoration: none;
