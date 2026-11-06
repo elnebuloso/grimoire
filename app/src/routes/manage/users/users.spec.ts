@@ -100,7 +100,7 @@ describe('users page', () => {
 		await action('demote', 2);
 		expect(await action('demote', 1)).toMatchObject({
 			status: 400,
-			data: { userError: 'The last admin keeps the role: make another user an admin first.' }
+			data: { error: 'The last admin keeps the role: make another user an admin first.' }
 		});
 		expect(listUsers(db)[0].roles).toEqual(['admin']);
 	});
@@ -108,7 +108,7 @@ describe('users page', () => {
 	it('deletes another user, but not the own account', async () => {
 		expect(await action('delete', 1)).toMatchObject({
 			status: 400,
-			data: { userError: 'You cannot delete your own account.' }
+			data: { error: 'You cannot delete your own account.' }
 		});
 		await action('delete', 2);
 		expect(listUsers(db).map((user) => user.email)).toEqual(['admin@example.com']);

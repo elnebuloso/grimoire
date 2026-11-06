@@ -4,9 +4,14 @@ import { requestPasswordReset } from '#lib/server/admin/password-reset.js';
 import { m } from '#lib/paraglide/messages.js';
 import type { Actions, PageServerLoad } from './$types';
 import { database } from '#lib/server/db/index.js';
-import { changePassword, hasPassword, SESSION_COOKIE } from '#lib/server/admin/auth.js';
+import {
+	changePassword,
+	hasPassword,
+	MIN_PASSWORD_LENGTH,
+	SESSION_COOKIE
+} from '#lib/server/admin/auth.js';
 import { mailer } from '#lib/server/mail/index.js';
-import { authMessage, isAuthProblem } from '#lib/server/admin/auth-messages.js';
+import { authMessage, authRefusal, isAuthProblem } from '#lib/server/admin/auth-messages.js';
 import { describeLinks, oidcProviders, providerByKey } from '#lib/server/oidc/index.js';
 import { linkedIssuers, unlinkIdentity } from '#lib/server/oidc/identities.js';
 
@@ -21,6 +26,7 @@ export const load: PageServerLoad = ({ locals, url }) => {
 	return {
 		email: user.email,
 		hasPassword: hasPassword(db, user.id),
+		minPasswordLength: MIN_PASSWORD_LENGTH,
 		resetByMail: mailer() !== undefined,
 		links: describeLinks(issuers),
 		linkable: providers
@@ -43,7 +49,7 @@ export const actions = {
 				password: String(data.get('password') ?? '')
 			}
 		);
-		if (refused) return fail(400, { error: authMessage(refused.error) });
+		if (refused) return fail(400, authRefusal(refused.error));
 		return { changed: true };
 	},
 	/** Mails the own address a link to set a password, as "forgot password" would. */
@@ -53,7 +59,7 @@ export const actions = {
 		const email = locals.user!.email;
 		const link = requestPasswordReset(database(), getClientAddress(), email);
 		// Undefined when this address had its links for the hour: the same answer as blocked.
-		if (!link || 'error' in link) return fail(429, { linkError: authMessage('reset-blocked') });
+		if (!link || 'error' in link) return fail(429, { error: authMessage('reset-blocked') });
 		const sent = await mail.send({
 			to: link.to,
 			subject: m.mail_reset_subject({ name: INSTANCE_TITLE }),
@@ -63,7 +69,7 @@ export const actions = {
 				name: INSTANCE_TITLE
 			})
 		});
-		if (!sent) return fail(502, { linkError: m.account_password_link_mail_failed({ email }) });
+		if (!sent) return fail(502, { error: m.account_password_link_mail_failed({ email }) });
 		return { linkSent: email };
 	},
 	/** Removes a link of the own account; the other sessions end, since one of them may be the reason. */
@@ -77,7 +83,7 @@ export const actions = {
 			configured,
 			cookies.get(SESSION_COOKIE)
 		);
-		if (refused) return fail(400, { problem: authMessage(refused.error) });
+		if (refused) return fail(400, { error: authMessage(refused.error) });
 		return { unlinked: true };
 	}
 } satisfies Actions;

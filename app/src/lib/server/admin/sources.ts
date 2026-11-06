@@ -6,6 +6,7 @@ import { encryptSecret } from '../secret-encryption';
 import { m } from '#lib/paraglide/messages.js';
 import { isSlug, MAX_NAME_LENGTH, MAX_SLUG_LENGTH, slugify } from '../../slug';
 import { compareSources, directoryKey, repositoryKey, type Overlap } from './duplicates';
+import type { Refusal } from '#lib/forms.js';
 
 /** A new slug, and the current one typed again to show the admin knows what changes. */
 export interface SlugChangeForm {
@@ -117,26 +118,29 @@ export function sourceProblem(
 	sourceId: number | undefined,
 	stored: StoredSource | undefined,
 	form: SourceForm
-): string | undefined {
+): Refusal | undefined {
 	const nameIssue = nameProblem(form.name);
-	if (nameIssue) return nameIssue;
+	if (nameIssue) return { error: nameIssue, field: 'name' };
 	if (sourceId === undefined) {
+		// The slug of a new source comes from its name.
 		const slug = slugify(form.name);
-		if (!slug) return m.error_slug_empty();
-		if (sourceSlugTaken(db, slug, undefined)) return m.error_source_slug_taken({ slug });
+		if (!slug) return { error: m.error_slug_empty(), field: 'name' };
+		if (sourceSlugTaken(db, slug, undefined)) {
+			return { error: m.error_source_slug_taken({ slug }), field: 'name' };
+		}
 	}
 
 	const remoteIssue = remoteProblem(stored, form);
 	if (remoteIssue) return remoteIssue;
 
 	const docsUrlProblem = checkDocsUrl(form.docsUrl.trim());
-	if (docsUrlProblem) return docsUrlProblem;
+	if (docsUrlProblem) return { error: docsUrlProblem, field: 'docsUrl' };
 
-	if (!form.branch.trim()) return m.error_branch();
+	if (!form.branch.trim()) return { error: m.error_branch(), field: 'branch' };
 
 	const path = form.path.trim();
 	if (path.startsWith('/') || path.split('/').includes('..')) {
-		return m.error_path();
+		return { error: m.error_path(), field: 'path' };
 	}
 
 	const schedule = form.schedule.trim();
@@ -145,7 +149,7 @@ export function sourceProblem(
 			parseSchedule(schedule);
 		} catch (error) {
 			// The detail comes from the cron parser and stays English.
-			return m.error_schedule({ detail: (error as Error).message });
+			return { error: m.error_schedule({ detail: (error as Error).message }), field: 'schedule' };
 		}
 	}
 
@@ -279,10 +283,10 @@ export function savingChanges(stored: StoredSource | undefined, form: SourceForm
 export function remoteProblem(
 	previous: StoredSource | undefined,
 	form: SourceForm
-): string | undefined {
+): Refusal | undefined {
 	const gitUrl = form.gitUrl.trim();
 	const urlProblem = checkGitUrl(gitUrl);
-	if (urlProblem) return urlProblem;
+	if (urlProblem) return { error: urlProblem, field: 'gitUrl' };
 
 	// A stored token goes to whatever server the URL names; moving it to another one needs the
 	// admin to enter it again, so a changed URL cannot carry it off unnoticed.
@@ -292,7 +296,7 @@ export function remoteProblem(
 		!form.removeToken &&
 		new URL(previous.gitUrl).origin !== new URL(gitUrl).origin
 	) {
-		return m.error_token_other_server();
+		return { error: m.error_token_other_server(), field: 'token' };
 	}
 	return undefined;
 }

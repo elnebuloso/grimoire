@@ -125,7 +125,8 @@ describe('accepting', () => {
 		expect(invite.load({ params: { token }, setHeaders: vi.fn() } as never)).toEqual({
 			email: 'writer@example.com',
 			providers: [],
-			token
+			token,
+			minPasswordLength: 12
 		});
 
 		const { run, cookies } = accept(token, PASSWORD);
@@ -171,7 +172,8 @@ describe('accepting', () => {
 		expect(invite.load({ params: { token }, setHeaders: vi.fn() } as never)).toEqual({
 			email: undefined,
 			providers: [],
-			token
+			token,
+			minPasswordLength: 12
 		});
 	});
 });

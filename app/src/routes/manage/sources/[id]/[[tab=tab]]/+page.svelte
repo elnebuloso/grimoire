@@ -116,6 +116,17 @@
 			: 'never'
 	);
 
+	// An overlap is a refusal that asks for the confirmation box rather than a correction.
+	const overlapAsked = $derived(!!form && 'overlap' in form && form.overlap === true);
+
+	// A refusal of the settings form marks the field it is about, which points to the message: the
+	// path, which only the Git server can refuse, has its message next to it; the others at the top.
+	const ownMessage = (field: string | undefined) => (field === 'path' ? 'path-error' : undefined);
+	const invalid = (field: string) =>
+		form?.field === field
+			? { 'aria-invalid': true, 'aria-describedby': ownMessage(field) ?? 'source-error' }
+			: {};
+
 	const values = $derived(
 		form?.values ?? {
 			...(data.source ? toSourceFields(data.source) : NEW_SOURCE_FIELDS),
@@ -209,7 +220,10 @@
 		<!-- Enter in a field submits with the first submit button: saving, not the connection test
 		further down. -->
 		<button class="default-submit" tabindex="-1" aria-hidden="true"></button>
-		<FormError message={form?.error} />
+		<FormError
+			message={overlapAsked || ownMessage(form?.field) ? undefined : form?.error}
+			id="source-error"
+		/>
 		<FormSection title={m.source_section_general()}>
 			<div class="fields">
 				{#if data.source}
@@ -219,13 +233,20 @@
 						required
 						maxlength={MAX_NAME_LENGTH}
 						value={values.name}
+						{...invalid('name')}
 					/>
 				{:else}
-					<NameField label={m.field_name()} name="name" value={values.name} />
+					<NameField label={m.field_name()} name="name" value={values.name} {...invalid('name')} />
 				{/if}
 				<TextField label={m.field_description()} name="description" value={values.description} />
 			</div>
-			<TextField label={m.field_docs_url()} name="docsUrl" type="url" value={values.docsUrl} />
+			<TextField
+				label={m.field_docs_url()}
+				name="docsUrl"
+				type="url"
+				value={values.docsUrl}
+				{...invalid('docsUrl')}
+			/>
 		</FormSection>
 		<FormSection title={m.source_section_repository()} lead={m.source_section_repository_lead()}>
 			<div class="git-url">
@@ -236,20 +257,28 @@
 					required
 					value={values.gitUrl}
 					aria-describedby="git-url-hint"
+					{...invalid('gitUrl')}
 				/>
 				<p class="hint" id="git-url-hint">{m.field_git_url_hint()}</p>
 			</div>
 			<div class="fields">
-				<TextField label={m.field_branch()} name="branch" required value={values.branch} mono />
+				<TextField
+					label={m.field_branch()}
+					name="branch"
+					required
+					value={values.branch}
+					mono
+					{...invalid('branch')}
+				/>
 				<div class="field-with-error">
 					<TextField
 						label={m.field_path()}
 						name="path"
 						value={values.path}
 						mono
-						{...form?.pathError ? { 'aria-invalid': true, 'aria-describedby': 'path-error' } : {}}
+						{...invalid('path')}
 					/>
-					<FormError message={form?.pathError} id="path-error" />
+					<FormError message={form?.field === 'path' ? form.error : undefined} id="path-error" />
 				</div>
 			</div>
 			<TextAreaField label={m.field_exclusions()} name="exclusions" value={values.exclusions} />
@@ -274,6 +303,7 @@
 						name="token"
 						type="password"
 						autocomplete="off"
+						{...invalid('token')}
 					/>
 					{#if values.encryptedToken}
 						<ChoiceField name="discardToken" label={m.field_remove_entered_token()} />
@@ -311,6 +341,7 @@
 				label={m.field_schedule({ schedule: data.globalSchedule })}
 				name="schedule"
 				value={values.schedule}
+				{...invalid('schedule')}
 				globalSchedule={data.globalSchedule}
 				timeZone={data.timeZone}
 			/>
@@ -339,9 +370,13 @@
 				/>
 			</fieldset>
 		</FormSection>
-		{#if form?.overlap}
-			<p class="notice warn" role="alert">{form.overlap}</p>
-			<ChoiceField name="confirmOverlap" label={m.field_confirm_overlap()} />
+		{#if overlapAsked}
+			<p class="notice warn" role="alert" id="overlap-warning">{form?.error}</p>
+			<ChoiceField
+				name="confirmOverlap"
+				label={m.field_confirm_overlap()}
+				aria-describedby="overlap-warning"
+			/>
 		{/if}
 		<div class="actions">
 			<button class="primary">{data.source ? m.save() : m.source_create()}</button>

@@ -13,11 +13,9 @@
 
 	let { data, form }: PageProps = $props();
 
-	// Each refusal but the lockout concerns one field; it points to the message and takes focus.
-	// MIN_PASSWORD_LENGTH of the server, which code in the browser cannot import.
-	const MIN_LENGTH = 12;
-	const marked = (message: string) =>
-		form?.error === message ? { 'aria-invalid': true, 'aria-describedby': 'password-error' } : {};
+	// Each refusal but the lockout concerns one field; it points to the message.
+	const marked = (field: string) =>
+		form?.field === field ? { 'aria-invalid': true, 'aria-describedby': 'password-error' } : {};
 
 	// Back from linking at the provider: the outcome comes in the address, shown once. A refusal
 	// stays on the page until the next action, not in the address.
@@ -30,11 +28,6 @@
 	});
 	$effect(() => {
 		if (form) problem = undefined;
-	});
-
-	let sheet = $state<HTMLElement>();
-	$effect(() => {
-		if (form?.error) sheet?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
 	});
 </script>
 
@@ -51,14 +44,14 @@
 			})}
 		>
 			<p>{m.password_none_reset()}</p>
-			<FormError message={form?.linkError} id="link-error" />
+			<FormError message={form?.error} id="link-error" />
 			<button>{m.password_none_send_link()}</button>
 		</form>
 	{:else}
 		<p class="notice">{m.password_none_ask_admin()}</p>
 	{/if}
 {:else}
-	<section class="sheet" bind:this={sheet} aria-labelledby="password-title">
+	<section class="sheet" aria-labelledby="password-title">
 		<h2 id="password-title">{m.password_title()}</h2>
 		<p class="muted">{m.password_lead()}</p>
 		<form
@@ -82,16 +75,16 @@
 				type="password"
 				required
 				autocomplete="current-password"
-				{...marked(m.auth_wrong_current_password())}
+				{...marked('current')}
 			/>
 			<TextField
 				label={m.password_new()}
 				name="password"
 				type="password"
 				required
-				minlength={MIN_LENGTH}
+				minlength={data.minPasswordLength}
 				autocomplete="new-password"
-				{...marked(m.auth_new_password_too_short({ min: MIN_LENGTH }))}
+				{...marked('password')}
 			/>
 			<button class="primary">{m.password_submit()}</button>
 		</form>

@@ -30,16 +30,20 @@ export const load: PageServerLoad = ({ locals, url }) => {
 	};
 };
 
-/** Scope and expiry as both forms send them, or the message saying what is wrong. */
+/** Scope and expiry as both forms send them, or the message and field saying what is wrong. */
 function readAccess(data: FormData) {
 	const allSources = data.get('scope') === 'all';
 	const sources = data.getAll('sources').map(String);
 	const validUntil = String(data.get('validUntil') ?? '').trim();
 	const values = { allSources, sources, validUntil };
-	if (!allSources && sources.length === 0) return { values, error: m.apikeys_error_scope() };
-	if (validUntil && !isDate(validUntil)) return { values, error: m.apikeys_error_valid_until() };
+	if (!allSources && sources.length === 0) {
+		return { values, refusal: { error: m.apikeys_error_scope(), field: 'scope' } };
+	}
+	if (validUntil && !isDate(validUntil)) {
+		return { values, refusal: { error: m.apikeys_error_valid_until(), field: 'validUntil' } };
+	}
 	if (validUntil && isExpired(validUntil, dateIn(TZ, new Date()))) {
-		return { values, error: m.apikeys_error_valid_until_past() };
+		return { values, refusal: { error: m.apikeys_error_valid_until_past(), field: 'validUntil' } };
 	}
 	return { values };
 }
@@ -61,8 +65,8 @@ export const actions = {
 		const access = readAccess(data);
 		const values = { name, ...access.values };
 
-		if (!name) return fail(400, { error: m.apikeys_error_name(), values });
-		if (access.error) return fail(400, { error: access.error, values });
+		if (!name) return fail(400, { error: m.apikeys_error_name(), field: 'name', values });
+		if (access.refusal) return fail(400, { ...access.refusal, values });
 		const created = createApiKey(
 			database(),
 			name,
@@ -71,14 +75,16 @@ export const actions = {
 			locals.user!.id
 		);
 		// A source deleted while the form was open.
-		if ('error' in created) return fail(400, { error: m.apikeys_error_source_gone(), values });
+		if ('error' in created) {
+			return fail(400, { error: m.apikeys_error_source_gone(), field: 'scope', values });
+		}
 		return { created: { name, key: created.key } };
 	},
 	update: async ({ request, locals }) => {
 		const data = await request.formData();
 		const id = Number(data.get('id'));
-		const { values, error: problem } = readAccess(data);
-		if (problem) return fail(400, { update: { id, error: problem, values } });
+		const { values, refusal } = readAccess(data);
+		if (refusal) return fail(400, { ...refusal, values });
 		// Revoked in another window: the key is gone from the list, so there is no form to answer in.
 		if (!Number.isSafeInteger(id)) error(404);
 		const updated = updateApiKey(
@@ -90,7 +96,7 @@ export const actions = {
 		);
 		if ('error' in updated) {
 			if (updated.error === 'unknown-key') error(404);
-			return fail(400, { update: { id, error: m.apikeys_error_source_gone(), values } });
+			return fail(400, { error: m.apikeys_error_source_gone(), field: 'scope', values });
 		}
 		return { updated: id };
 	},

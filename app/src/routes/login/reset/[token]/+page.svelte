@@ -24,14 +24,17 @@
 	</p>
 {:else}
 	<form method="post">
-		<FormError message={form?.error} />
+		<FormError message={form?.error} id="reset-error" />
 		<TextField
 			label={m.field_new_password()}
 			name="password"
 			type="password"
 			required
-			minlength={12}
+			minlength={data.minPasswordLength}
 			autocomplete="new-password"
+			{...form?.field === 'password'
+				? { 'aria-invalid': true, 'aria-describedby': 'reset-error' }
+				: {}}
 		/>
 		<button class="primary">{m.reset_submit()}</button>
 	</form>

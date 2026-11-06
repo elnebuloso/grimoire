@@ -83,16 +83,14 @@
 	name="Invalid"
 	args={{
 		values: { question: 'rollback', tokens: '0' },
-		error: 'The token budget must be a positive whole number.'
+		refusal: { error: 'Ask for at least one token.', field: 'tokens' }
 	}}
 	play={async ({ canvas }) => {
-		await expect(canvas.getByRole('alert')).toHaveTextContent('positive whole number');
+		await expect(canvas.getByRole('alert')).toHaveTextContent('Ask for at least one token.');
 		const tokens = canvas.getByRole('spinbutton', { name: 'Token budget' });
 		await expect(tokens).toHaveValue(0);
 		await expect(tokens).toHaveAttribute('aria-invalid', 'true');
-		await expect(tokens).toHaveAccessibleDescription(
-			'The token budget must be a positive whole number.'
-		);
+		await expect(tokens).toHaveAccessibleDescription('Ask for at least one token.');
 		await expect(canvas.getByRole('searchbox')).not.toHaveAttribute('aria-invalid');
 		await expect(tokens).toHaveFocus();
 	}}

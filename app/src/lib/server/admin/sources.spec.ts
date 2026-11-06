@@ -49,8 +49,9 @@ function storedToken(sourceId: number): string | null {
 /** Checks and saves `form` as the source page does, without asking the Git server. */
 function trySave(sourceId: number | undefined, form: SourceForm) {
 	const stored = storedSource(db, sourceId);
+	// The message only; which field a refusal names is checked on its own.
 	const problem = sourceProblem(db, sourceId, stored, form);
-	if (problem) return { error: problem };
+	if (problem) return { error: problem.error };
 	return saveSource(db, KEY, sourceId, form, savingChanges(stored, form));
 }
 
@@ -61,6 +62,19 @@ function created(result: { id: number } | { error: string } | 'not-found'): numb
 
 beforeEach(() => {
 	db = openDatabase(':memory:');
+});
+
+describe('sourceProblem', () => {
+	it.each([
+		[{ name: '' }, 'name'],
+		[{ gitUrl: 'http://gitlab.example.com/a.git' }, 'gitUrl'],
+		[{ docsUrl: 'ftp://docs.example.com/' }, 'docsUrl'],
+		[{ branch: ' ' }, 'branch'],
+		[{ path: '../other' }, 'path'],
+		[{ schedule: 'daily' }, 'schedule']
+	])('names the field of %j', (changes, field) => {
+		expect(sourceProblem(db, undefined, undefined, sourceForm(changes))).toMatchObject({ field });
+	});
 });
 
 describe('saveSource', () => {

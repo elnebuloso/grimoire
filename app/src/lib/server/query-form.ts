@@ -4,6 +4,7 @@ import { querySources } from './agent/operations';
 import { DEFAULT_TOKENS, parseTokenBudget } from './search/query';
 import { grimoireId } from './grimoire-id';
 import { m } from '#lib/paraglide/messages.js';
+import type { Refusal } from '#lib/forms.js';
 
 export interface QueryFormValues {
 	question: string;
@@ -28,7 +29,8 @@ export interface QueryFormAnswer {
 
 export interface QueryFormState {
 	values: QueryFormValues;
-	error?: string;
+	/** Why the question was not asked; `field` is the name of the input it is about. */
+	refusal?: Refusal;
 	answer?: QueryFormAnswer;
 }
 
@@ -44,9 +46,11 @@ export function answerQueryForm(db: DatabaseSync, url: URL, scope: SourceScope):
 		tokens: url.searchParams.get('tokens') || String(DEFAULT_TOKENS)
 	};
 	if (question === null) return { values };
-	if (!question.trim()) return { values, error: m.query_error_question() };
+	if (!question.trim()) return { values, refusal: { error: m.query_error_question(), field: 'q' } };
 	const tokens = parseTokenBudget(values.tokens);
-	if (tokens === undefined) return { values, error: m.query_error_tokens() };
+	if (tokens === undefined) {
+		return { values, refusal: { error: m.query_error_tokens(), field: 'tokens' } };
+	}
 
 	const result = querySources(db, { query: question, tokens }, scope);
 	const hits = result.hits.map((hit) => ({

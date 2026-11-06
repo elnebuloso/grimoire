@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
-	import { enhance, type SubmitFunction } from '$app/forms';
-	import { tick } from 'svelte';
+	import { enhance } from '$app/forms';
 	import ActionMenu from '#lib/components/ActionMenu.svelte';
 	import ConfirmAction from '#lib/components/ConfirmAction.svelte';
 	import DateTime from '#lib/components/DateTime.svelte';
@@ -12,7 +11,7 @@
 	import DataTable from '#lib/components/DataTable.svelte';
 	import TabNav from '#lib/components/TabNav.svelte';
 	import TextField from '#lib/components/TextField.svelte';
-	import { submitWithToast } from '#lib/forms.js';
+	import { submitWithToast, type Refusal } from '#lib/forms.js';
 	import { m } from '#lib/paraglide/messages.js';
 	import type { PageProps } from './$types';
 
@@ -31,12 +30,12 @@
 	// Each opening starts a fresh form.
 	let opened = $state(0);
 	let inviting = $state(false);
-	let inviteError = $state<string>();
+	let inviteRefusal = $state<Refusal>();
 	let inviteEmail = $state('');
 	let invited = $state<Exclude<Invited, { sent: true }>>();
 
 	function openInvite() {
-		inviteError = undefined;
+		inviteRefusal = undefined;
 		inviteEmail = '';
 		invited = undefined;
 		opened++;
@@ -45,27 +44,22 @@
 
 	// Mailed, the invitation reports in a toast and the dialog closes; a link to pass on stays in
 	// the dialog, shown only now.
-	const invite: SubmitFunction = (input) => {
-		const done = submitWithToast({
-			success: (result) =>
-				result.type === 'success' && result.data?.invited && 'sent' in result.data.invited
-					? m.invite_sent({ email: String(result.data.invited.email) })
-					: undefined,
-			onfailure: async (answer) => {
-				inviteError = answer?.error as string | undefined;
-				inviteEmail = (answer?.email as string | undefined) ?? inviteEmail;
-				await tick();
-				document.querySelector<HTMLElement>('dialog[open] [aria-invalid="true"]')?.focus();
-			}
-		})(input);
-		return async (output) => {
-			if (typeof done === 'function') await done(output);
-			if (output.result.type !== 'success') return;
-			const answer = output.result.data?.invited as Invited | undefined;
+	const invite = submitWithToast({
+		success: (result) =>
+			result.type === 'success' && result.data?.invited && 'sent' in result.data.invited
+				? m.invite_sent({ email: String(result.data.invited.email) })
+				: undefined,
+		onfailure: (answer) => {
+			inviteRefusal = answer;
+			inviteEmail = (answer?.email as string | undefined) ?? inviteEmail;
+		},
+		onsuccess: (result) => {
+			if (result.type !== 'success') return;
+			const answer = result.data?.invited as Invited | undefined;
 			if (!answer || 'sent' in answer) inviting = false;
 			else invited = answer;
-		};
-	};
+		}
+	});
 </script>
 
 <PageHead title={m.users_title()} />
@@ -315,7 +309,7 @@
 	{:else}
 		{#key opened}
 			<form id="invite-user" method="post" action="?/invite" use:enhance={invite}>
-				<FormError message={inviteError} id="invite-error" />
+				<FormError message={inviteRefusal?.error} id="invite-error" />
 				<TextField
 					label={m.field_email()}
 					name="email"
@@ -323,7 +317,9 @@
 					required
 					autocomplete="off"
 					value={inviteEmail}
-					{...inviteError ? { 'aria-invalid': true, 'aria-describedby': 'invite-error' } : {}}
+					{...inviteRefusal?.field === 'email'
+						? { 'aria-invalid': true, 'aria-describedby': 'invite-error' }
+						: {}}
 				/>
 			</form>
 		{/key}

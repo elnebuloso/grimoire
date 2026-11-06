@@ -1,4 +1,5 @@
 import { m } from '#lib/paraglide/messages.js';
+import type { Refusal } from '#lib/forms.js';
 import { MIN_PASSWORD_LENGTH, type AuthProblem } from './auth';
 
 const MESSAGES: Record<AuthProblem, () => string> = {
@@ -35,4 +36,21 @@ export function isAuthProblem(code: string | null): code is AuthProblem {
 /** The message for the form, in the language of the request. */
 export function authMessage(problem: AuthProblem): string {
 	return MESSAGES[problem]();
+}
+
+// The field of the account forms each refusal is about; the others concern the whole form.
+const FIELDS: Partial<Record<AuthProblem, string>> = {
+	'wrong-setup-token': 'token',
+	'email-invalid': 'email',
+	'account-exists': 'email',
+	'invitation-exists': 'email',
+	'password-too-short': 'password',
+	'new-password-too-short': 'password',
+	'wrong-current-password': 'current'
+};
+
+/** The refusal for the form: the message, and the field it is about. */
+export function authRefusal(problem: AuthProblem): Refusal {
+	const field = FIELDS[problem];
+	return field ? { error: authMessage(problem), field } : { error: authMessage(problem) };
 }

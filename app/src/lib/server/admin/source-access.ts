@@ -1,4 +1,5 @@
 import type { DatabaseSync } from 'node:sqlite';
+import type { Refusal } from '#lib/forms.js';
 import { m } from '#lib/paraglide/messages.js';
 import type { ConnectionPolicy } from '../sync/connection-policy';
 import { checkRemote, redirectTarget, remotePathExists, type GitRemote } from '../sync/git';
@@ -14,7 +15,7 @@ const PATH_TIMEOUT_MS = 60 * 1000;
  * What the Git server answered: a report when the source can be read, otherwise why not, with
  * `field` naming the form field the refusal is about.
  */
-export type AccessResult = { message: string } | { error: string; field?: 'path' };
+export type AccessResult = { message: string } | Refusal;
 
 /**
  * Asks the Git server whether the source in `form` can be read; a URL that could not be saved is
@@ -29,7 +30,7 @@ export async function checkSourceAccess(
 ): Promise<AccessResult> {
 	const stored = storedSource(db, sourceId);
 	const problem = remoteProblem(stored, form);
-	if (problem) return { error: problem };
+	if (problem) return problem;
 	return checkAccess(key, stored, form, policy);
 }
 
@@ -54,7 +55,7 @@ export async function checkAccess(
 		try {
 			storedToken = decryptSecret(stored.encryptedToken, key);
 		} catch {
-			return { error: m.error_stored_token_unreadable() };
+			return { error: m.error_stored_token_unreadable(), field: 'token' };
 		}
 	}
 	const remote: GitRemote = {
@@ -78,7 +79,7 @@ export async function checkAccess(
 			return { message: m.access_ok({ branch, commit: check.commit.slice(0, 12) }) };
 		}
 		case 'no-branch':
-			return { error: m.access_no_branch({ branch }) };
+			return { error: m.access_no_branch({ branch }), field: 'branch' };
 		case 'refused':
 			return { error: m.access_refused({ detail: check.detail }) };
 		case 'unreachable':

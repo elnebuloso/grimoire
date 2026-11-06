@@ -95,7 +95,8 @@ describe('without SMTP', () => {
 		// Without mail, an invalid link can only point to an admin for a new one.
 		expect(await pages.reset.load(event(`/login/reset/${token}`, undefined, { token }))).toEqual({
 			valid: true,
-			resetByMail: false
+			resetByMail: false,
+			minPasswordLength: 12
 		});
 		expect(
 			await pages.reset.actions.default(
@@ -120,7 +121,8 @@ describe('with SMTP', () => {
 			await pages.reset.load(event('/login/reset/x', undefined, { token: linkToken() }))
 		).toEqual({
 			valid: true,
-			resetByMail: true
+			resetByMail: true,
+			minPasswordLength: 12
 		});
 		// Three links an hour reach one address, as for a forgotten password.
 		await sendLink();
@@ -139,7 +141,7 @@ describe('with SMTP', () => {
 
 		expect(answer).toMatchObject({
 			status: 502,
-			data: { linkError: expect.stringContaining('could not be sent') }
+			data: { error: expect.stringContaining('could not be sent') }
 		});
 	});
 
@@ -171,7 +173,11 @@ describe('with SMTP', () => {
 		const token = linkToken();
 		const page = event(`/login/reset/${token}`, undefined, { token });
 
-		expect(await pages.reset.load(page)).toEqual({ valid: true, resetByMail: true });
+		expect(await pages.reset.load(page)).toEqual({
+			valid: true,
+			resetByMail: true,
+			minPasswordLength: 12
+		});
 		expect((page as { setHeaders: ReturnType<typeof vi.fn> }).setHeaders).toHaveBeenCalledWith({
 			'referrer-policy': 'same-origin'
 		});
@@ -182,7 +188,8 @@ describe('with SMTP', () => {
 		).toEqual({ done: true });
 		expect(await pages.reset.load(event(`/login/reset/${token}`, undefined, { token }))).toEqual({
 			valid: false,
-			resetByMail: true
+			resetByMail: true,
+			minPasswordLength: 12
 		});
 	});
 

@@ -53,7 +53,7 @@ const REFUSALS: Record<Exclude<UserRefusal['error'], 'unknown-user'>, () => stri
 /** The answer to a refused change of a user; a user deleted in another window is a 404. */
 function refused(refusal: UserRefusal) {
 	if (refusal.error === 'unknown-user') error(404);
-	return fail(400, { userError: REFUSALS[refusal.error]() });
+	return fail(400, { error: REFUSALS[refusal.error]() });
 }
 
 async function idOf(request: Request): Promise<number> {
@@ -91,7 +91,9 @@ export const actions = {
 	invite: async ({ request, locals, url }) => {
 		const email = String((await request.formData()).get('email') ?? '');
 		const invited = inviteUser(database(), email, locals.user!.id);
-		if ('error' in invited) return fail(400, { error: authMessage(invited.error), email });
+		if ('error' in invited) {
+			return fail(400, { error: authMessage(invited.error), field: 'email', email });
+		}
 		return { invited: await deliverInvitation(invited, url) };
 	},
 	resend: async ({ request, url }) => {

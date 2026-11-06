@@ -7,11 +7,12 @@ import {
 	checkAdminAccount,
 	checkSetupToken,
 	login,
+	MIN_PASSWORD_LENGTH,
 	setupAdmin,
 	SESSION_COOKIE,
 	sessionCookieOptions
 } from '#lib/server/admin/auth.js';
-import { authMessage } from '#lib/server/admin/auth-messages.js';
+import { authMessage, authRefusal } from '#lib/server/admin/auth-messages.js';
 import { importExport, type ImportProblem } from '#lib/server/instance-import.js';
 import { log } from '#lib/server/log.js';
 import { connectionPolicy, refusedSources } from '#lib/server/sync/connection-policy.js';
@@ -23,6 +24,7 @@ export const csr = false;
 // The access hook decides; thrown here, the error renders in the layout.
 export const load: PageServerLoad = ({ locals }) => {
 	if (locals.accessDenied) error(locals.accessDenied);
+	return { minPasswordLength: MIN_PASSWORD_LENGTH };
 };
 
 // The field a refusal concerns, marked on the page; none when it is about the instance.
@@ -44,7 +46,7 @@ export const actions = {
 		};
 		const db = database();
 		const refused = await setupAdmin(db, form);
-		if (refused) return fail(400, { error: authMessage(refused.error), email: form.email });
+		if (refused) return fail(400, { ...authRefusal(refused.error), email: form.email });
 		const result = await login(db, getClientAddress(), form);
 		if ('session' in result) cookies.set(SESSION_COOKIE, result.session, sessionCookieOptions);
 		redirect(303, '/manage');
@@ -55,10 +57,11 @@ export const actions = {
 		const data = await request.formData();
 		const db = database();
 		const refused = checkSetupToken(db, String(data.get('token') ?? ''));
-		if (refused) return fail(400, { importError: authMessage(refused.error), field: 'token' });
+		if (refused)
+			return fail(400, { error: authMessage(refused.error), field: 'token', import: true });
 		const file = data.get('file');
 		if (!(file instanceof File) || file.size === 0) {
-			return fail(400, { importError: m.import_no_file(), field: 'file' });
+			return fail(400, { error: m.import_no_file(), field: 'file', import: true });
 		}
 		const result = await importExport(
 			db,
@@ -69,7 +72,7 @@ export const actions = {
 		);
 		if ('error' in result) {
 			const { message, field } = IMPORT_REFUSALS[result.error];
-			return fail(400, { importError: message(), field });
+			return fail(400, { error: message(), field, import: true });
 		}
 		checkAdminAccount(db);
 		log.info(`export imported on the setup page: ${result.users} users, ${result.sources} sources`);

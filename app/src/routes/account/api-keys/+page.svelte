@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { enhance, type SubmitFunction } from '$app/forms';
+	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
-	import { onMount, tick } from 'svelte';
+	import { onMount } from 'svelte';
 	import ChoiceField from '#lib/components/ChoiceField.svelte';
 	import ConfirmAction from '#lib/components/ConfirmAction.svelte';
 	import CopyButton from '#lib/components/CopyButton.svelte';
@@ -19,7 +19,7 @@
 	import { m } from '#lib/paraglide/messages.js';
 	import { getLocale } from '#lib/paraglide/runtime.js';
 	import { formatDate } from '#lib/time-zone.js';
-	import { submitWithToast } from '#lib/forms.js';
+	import { submitWithToast, type Refusal } from '#lib/forms.js';
 	import { connectCommand } from '#lib/connect-command.js';
 	import type { PageProps } from './$types';
 
@@ -34,28 +34,21 @@
 
 	const NEW_KEY = { name: '', allSources: true, sources: [] as string[], validUntil: '' };
 
-	// Every refusal names one field: it is marked, points to the message and takes focus.
-	const SCOPE_ERRORS = [m.apikeys_error_scope(), m.apikeys_error_source_gone()];
-	const DATE_ERRORS = [m.apikeys_error_valid_until(), m.apikeys_error_valid_until_past()];
-	const marked = (error: string | undefined, errorId: string, about: string[]) =>
-		error && about.includes(error) ? { 'aria-invalid': true, 'aria-describedby': errorId } : {};
-
-	async function focusRefusal() {
-		await tick();
-		document.querySelector<HTMLElement>('dialog[open] [aria-invalid="true"]')?.focus();
-	}
+	// Every refusal names one field: it is marked and points to the message.
+	const marked = (refusal: Refusal | undefined, errorId: string, field: string) =>
+		refusal?.field === field ? { 'aria-invalid': true, 'aria-describedby': errorId } : {};
 
 	// Each opening starts a fresh form: what was typed or picked before is gone.
 	let opened = $state(0);
 
 	let creating = $state(false);
 	let createValues = $state(NEW_KEY);
-	let createError = $state<string>();
+	let createRefusal = $state<Refusal>();
 	let created = $state<{ name: string; key: string }>();
 
 	function openNew() {
 		createValues = NEW_KEY;
-		createError = undefined;
+		createRefusal = undefined;
 		created = undefined;
 		opened++;
 		creating = true;
@@ -69,7 +62,7 @@
 	let editOpen = $state(false);
 	let editing = $state<Key>();
 	let editValues = $state<Access>(NEW_KEY);
-	let editError = $state<string>();
+	let editRefusal = $state<Refusal>();
 
 	function openEdit(key: Key) {
 		editing = key;
@@ -78,58 +71,38 @@
 			sources: key.sources === 'all' ? [] : key.sources,
 			validUntil: key.validUntil ?? ''
 		};
-		editError = undefined;
+		editRefusal = undefined;
 		opened++;
 		editOpen = true;
 	}
 
-	/** Shows a refusal in the dialog; `onresult` takes the answer of a successful action. */
-	function submitInDialog(
-		toast: (data: Record<string, unknown> | undefined) => string | undefined,
-		refused: (data: Record<string, unknown> | undefined) => void,
-		onresult: (data: Record<string, unknown> | undefined) => void
-	): SubmitFunction {
-		const submit = submitWithToast({
-			success: (result) => (result.type === 'success' ? toast(result.data) : undefined),
-			onfailure: (data) => {
-				refused(data);
-				focusRefusal();
-			}
-		});
-		return (input) => {
-			const done = submit(input);
-			return async (output) => {
-				if (typeof done === 'function') await done(output);
-				if (output.result.type === 'success') onresult(output.result.data);
-			};
-		};
-	}
-
-	const createSubmit = submitInDialog(
-		(answer) => {
-			const name = (answer?.created as { name: string } | undefined)?.name;
+	const createSubmit = submitWithToast({
+		success: (result) => {
+			const name = result.type === 'success' && (result.data?.created as { name: string }).name;
 			return name ? m.apikeys_created_toast({ name }) : undefined;
 		},
-		(answer) => {
-			createError = answer?.error as string | undefined;
+		onfailure: (answer) => {
+			createRefusal = answer;
 			createValues = (answer?.values as typeof NEW_KEY | undefined) ?? createValues;
 		},
 		// The form gives way to the key: nothing is left to send a second time.
-		(answer) => (created = answer?.created as { name: string; key: string })
-	);
+		onsuccess: (result) => {
+			if (result.type === 'success')
+				created = result.data?.created as { name: string; key: string };
+		}
+	});
 
-	const editSubmit = submitInDialog(
-		() => (editing ? m.apikeys_updated({ name: editing.name }) : undefined),
-		(answer) => {
-			const update = answer?.update as { error: string; values: Access } | undefined;
-			editError = update?.error;
-			editValues = update?.values ?? editValues;
+	const editSubmit = submitWithToast({
+		success: () => (editing ? m.apikeys_updated({ name: editing.name }) : undefined),
+		onfailure: (answer) => {
+			editRefusal = answer;
+			editValues = (answer?.values as Access | undefined) ?? editValues;
 		},
-		() => (editOpen = false)
-	);
+		onsuccess: () => (editOpen = false)
+	});
 </script>
 
-{#snippet accessFields(access: Access, error: string | undefined, errorId: string)}
+{#snippet accessFields(access: Access, refusal: Refusal | undefined, errorId: string)}
 	<fieldset>
 		<legend>{m.apikeys_scope()}</legend>
 		<ChoiceField
@@ -145,7 +118,7 @@
 			value="selected"
 			checked={!access.allSources}
 			label={m.apikeys_scope_selected()}
-			{...marked(error, errorId, SCOPE_ERRORS)}
+			{...marked(refusal, errorId, 'scope')}
 		/>
 		<div class="sources">
 			<SourcePicker
@@ -161,7 +134,7 @@
 		type="date"
 		min={data.today}
 		value={access.validUntil}
-		{...marked(error, errorId, DATE_ERRORS)}
+		{...marked(refusal, errorId, 'validUntil')}
 	/>
 {/snippet}
 
@@ -269,16 +242,16 @@
 	{:else}
 		{#key opened}
 			<form id="create-key" method="post" action="?/create" use:enhance={createSubmit}>
-				<FormError message={createError} id="create-error" />
+				<FormError message={createRefusal?.error} id="create-error" />
 				<TextField
 					label={m.field_name()}
 					name="name"
 					required
 					value={createValues.name}
 					mono
-					{...marked(createError, 'create-error', [m.apikeys_error_name()])}
+					{...marked(createRefusal, 'create-error', 'name')}
 				/>
-				{@render accessFields(createValues, createError, 'create-error')}
+				{@render accessFields(createValues, createRefusal, 'create-error')}
 			</form>
 		{/key}
 	{/if}
@@ -301,9 +274,9 @@
 	{#if editing}
 		{#key opened}
 			<form id="edit-key" method="post" action="?/update" use:enhance={editSubmit}>
-				<FormError message={editError} id="edit-error" />
+				<FormError message={editRefusal?.error} id="edit-error" />
 				<input type="hidden" name="id" value={editing.id} />
-				{@render accessFields(editValues, editError, 'edit-error')}
+				{@render accessFields(editValues, editRefusal, 'edit-error')}
 			</form>
 		{/key}
 	{/if}

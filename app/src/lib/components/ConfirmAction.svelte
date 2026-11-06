@@ -41,15 +41,10 @@
 	let busy = $state(false);
 	let error = $state<string>();
 
-	// The refusals of the actions behind this component, whichever name the page gives them.
-	const REFUSAL_KEYS = ['error', 'userError', 'slugError', 'problem'];
-	const refusal = (data: Record<string, unknown> | undefined) =>
-		REFUSAL_KEYS.map((key) => data?.[key]).find((value) => typeof value === 'string');
-
 	const submit = submitWithToast({
 		success: (result) => (typeof success === 'string' ? success : success(result)),
 		onsuccess: () => (open = false),
-		onfailure: (data) => (error = refusal(data))
+		onfailure: (data) => (error = data?.error)
 	});
 </script>
 

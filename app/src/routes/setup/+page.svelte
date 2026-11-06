@@ -7,13 +7,15 @@
 
 	let { data, form }: PageProps = $props();
 
-	// Each refusal concerns one field: it is marked and points to the message.
-	// MIN_LENGTH is the server's MIN_PASSWORD_LENGTH, which code in the browser cannot import.
-	const MIN_LENGTH = 12;
-	const marked = (message: string) =>
-		form?.error === message ? { 'aria-invalid': true, 'aria-describedby': 'setup-error' } : {};
+	// Each refusal concerns one field of one of the two forms: it is marked and points to the message.
+	const marked = (field: string) =>
+		!form?.import && form?.field === field
+			? { 'aria-invalid': true, 'aria-describedby': 'setup-error' }
+			: {};
 	const importMarked = (field: string) =>
-		form?.field === field ? { 'aria-invalid': true, 'aria-describedby': 'import-error' } : {};
+		form?.import && form.field === field
+			? { 'aria-invalid': true, 'aria-describedby': 'import-error' }
+			: {};
 </script>
 
 <PageHead title={m.setup_title({ name: data.instanceTitle })} namesInstance
@@ -25,14 +27,14 @@
 		<h2 id="new-title">{m.setup_new_title()}</h2>
 		<p class="muted">{m.setup_new_lead()}</p>
 		<form method="post" action="?/create">
-			<FormError message={form?.error} id="setup-error" />
+			<FormError message={form?.import ? undefined : form?.error} id="setup-error" />
 			<TextField
 				label={m.setup_token()}
 				name="token"
 				required
 				autocomplete="off"
 				mono
-				{...marked(m.auth_wrong_setup_token())}
+				{...marked('token')}
 			/>
 			<TextField
 				label={m.field_email()}
@@ -41,16 +43,16 @@
 				required
 				autocomplete="username"
 				value={form?.email ?? ''}
-				{...marked(m.auth_email_invalid())}
+				{...marked('email')}
 			/>
 			<TextField
 				label={m.field_new_password()}
 				name="password"
 				type="password"
 				required
-				minlength={MIN_LENGTH}
+				minlength={data.minPasswordLength}
 				autocomplete="new-password"
-				{...marked(m.auth_password_too_short({ min: MIN_LENGTH }))}
+				{...marked('password')}
 			/>
 			<button class="primary">{m.setup_submit()}</button>
 		</form>
@@ -60,7 +62,7 @@
 		<h2 id="import-title">{m.setup_import_title()}</h2>
 		<p class="muted">{m.setup_import_lead()}</p>
 		<form method="post" action="?/import" enctype="multipart/form-data">
-			<FormError message={form?.importError} id="import-error" />
+			<FormError message={form?.import ? form.error : undefined} id="import-error" />
 			<TextField
 				label={m.setup_token()}
 				name="token"

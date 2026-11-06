@@ -299,7 +299,7 @@ describe('source page', () => {
 
 		expect(await saveSource('1', { ...SOURCE, token: '', path: 'site' })).toMatchObject({
 			status: 400,
-			data: { pathError: 'The path site does not exist on branch main.' }
+			data: { error: 'The path site does not exist on branch main.', field: 'path' }
 		});
 		expect(db.prepare('SELECT path FROM sources').get()).toEqual({ path: 'docs' });
 	});
@@ -520,7 +520,12 @@ describe('duplicate sources', () => {
 		const inner = { ...SOURCE, name: 'Auth API', path: 'docs/api' };
 		expect(await saveSource('new', inner)).toMatchObject({
 			status: 400,
-			data: { overlap: expect.stringContaining('"Auth Service"'), values: { path: 'docs/api' } }
+			data: {
+				error: expect.stringContaining('"Auth Service"'),
+				field: 'confirmOverlap',
+				overlap: true,
+				values: { path: 'docs/api' }
+			}
 		});
 		expect(sourceCount()).toBe(1);
 

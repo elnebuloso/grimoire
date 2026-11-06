@@ -118,12 +118,12 @@ describe('checkSourceAccess', () => {
 	});
 
 	it.each([
-		[{ branch: 'develop' }, 'The repository has no branch develop.'],
+		[{ branch: 'develop' }, 'The repository has no branch develop.', 'branch'],
 		[{ gitUrl: 'https://git.example/nowhere.git' }, 'Access refused, or there is no repository']
-	])('says why it cannot read %j', async (changes, message) => {
+	])('says why it cannot read %j', async (changes, message, field?: string) => {
 		const result = await checkSourceAccess(db, KEY, undefined, form(changes), LOCAL);
 
-		expect(result).toEqual({ error: expect.stringContaining(message) });
+		expect(result).toEqual({ error: expect.stringContaining(message), ...(field && { field }) });
 	});
 
 	it('uses the stored token unless a new one is entered or its removal is asked for', async () => {
@@ -155,7 +155,10 @@ describe('checkSourceAccess', () => {
 
 			const result = await checkSourceAccess(db, otherKey, id, form(), LOCAL);
 
-			expect(result).toEqual({ error: expect.stringContaining('Enter the token again') });
+			expect(result).toEqual({
+				error: expect.stringContaining('Enter the token again'),
+				field: 'token'
+			});
 			expect(git.checkRemote).not.toHaveBeenCalled();
 		});
 	});
@@ -168,7 +171,7 @@ describe('checkSourceAccess', () => {
 	])('contacts no server for %s, which could not be saved', async (gitUrl, message) => {
 		const result = await checkSourceAccess(db, KEY, undefined, form({ gitUrl }), LOCAL);
 
-		expect(result).toEqual({ error: expect.stringContaining(message) });
+		expect(result).toEqual({ error: expect.stringContaining(message), field: 'gitUrl' });
 		expect(git.checkRemote).not.toHaveBeenCalled();
 	});
 
@@ -183,7 +186,7 @@ describe('checkSourceAccess', () => {
 			LOCAL
 		);
 
-		expect(result).toEqual({ error: expect.stringContaining('token') });
+		expect(result).toEqual({ error: expect.stringContaining('token'), field: 'token' });
 		expect(git.checkRemote).not.toHaveBeenCalled();
 	});
 

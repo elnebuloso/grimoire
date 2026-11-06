@@ -243,11 +243,9 @@ describe('update', () => {
 		).toMatchObject({
 			status: 400,
 			data: {
-				update: {
-					id,
-					error: 'Choose all sources or at least one.',
-					values: { allSources: false, sources: [], validUntil: '' }
-				}
+				error: 'Choose all sources or at least one.',
+				field: 'scope',
+				values: { allSources: false, sources: [], validUntil: '' }
 			}
 		});
 		expect(
@@ -259,7 +257,8 @@ describe('update', () => {
 		).toMatchObject({
 			status: 400,
 			data: {
-				update: { error: 'A selected source no longer exists or you may no longer read it.' }
+				error: 'A selected source no longer exists or you may no longer read it.',
+				field: 'scope'
 			}
 		});
 		expect(listApiKeys(db)[0].sources).toBe('all');

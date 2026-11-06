@@ -1,5 +1,6 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
+import type { Refusal } from '#lib/forms.js';
 import { ENCRYPTION_KEY, GIT_ALLOWED_HOSTS, SYNC_SCHEDULE, TZ } from '$app/env/private';
 import { database } from '#lib/server/db/index.js';
 import { deleteSource } from '#lib/server/db/sources.js';
@@ -81,33 +82,40 @@ function readSourceForm(data: FormData) {
 		removeToken: token.remove,
 		encryptedToken: token.sealed
 	};
-	return { form, values, damaged: token.damaged ? m.error_token_damaged() : undefined };
+	const damaged = token.damaged ? { error: m.error_token_damaged(), field: 'token' } : undefined;
+	return { form, values, damaged };
 }
 
 /** Why the Git server refuses the source in `form`, as the form shows it; undefined when it may be saved. */
 async function accessProblem(
 	stored: StoredSource | undefined,
 	form: SourceForm
-): Promise<{ error: string } | { pathError: string } | undefined> {
+): Promise<Refusal | undefined> {
 	const access = await checkAccess(
 		ENCRYPTION_KEY.sourceTokens,
 		stored,
 		form,
 		connectionPolicy(GIT_ALLOWED_HOSTS)
 	);
-	if (!('error' in access)) return undefined;
-	return access.field === 'path' ? { pathError: access.error } : { error: access.error };
+	return 'error' in access ? access : undefined;
 }
 
-/** What the form shows for a conflict: a refused duplicate, or an overlap not yet confirmed. */
+/**
+ * What the form shows for a conflict: a refused duplicate, or an overlap not yet confirmed, which
+ * asks for the confirmation box.
+ */
 function conflictAnswer(
 	conflict: SourceConflict | undefined,
 	overlapConfirmed: boolean
-): { error: string } | { overlap: string } | undefined {
+): (Refusal & { overlap?: true }) | undefined {
 	if (conflict?.kind === 'duplicate')
 		return { error: m.error_source_duplicate({ name: conflict.name }) };
 	if (conflict?.kind === 'overlap' && !overlapConfirmed) {
-		return { overlap: m.warning_source_overlap({ name: conflict.name }) };
+		return {
+			error: m.warning_source_overlap({ name: conflict.name }),
+			field: 'confirmOverlap',
+			overlap: true
+		};
 	}
 	return undefined;
 }
@@ -121,7 +129,7 @@ export const actions = {
 		const stored = storedSource(db, source?.id);
 		const changes = savingChanges(stored, form);
 		const problem = damaged ?? sourceProblem(db, source?.id, stored, form);
-		if (problem) return fail(400, { error: problem, values });
+		if (problem) return fail(400, { ...problem, values });
 		const confirmed = data.get('confirmOverlap') === 'on';
 		const conflict = conflictAnswer(sourceConflict(db, source?.id, stored, form), confirmed);
 		if (conflict) return fail(400, { ...conflict, values });
@@ -149,7 +157,7 @@ export const actions = {
 		// Only the remote, not `sourceProblem`: access can be tested before the source is named.
 		const source = sourceFor(params);
 		const { form, values, damaged } = readSourceForm(await request.formData());
-		if (damaged) return fail(400, { error: damaged, values });
+		if (damaged) return fail(400, { ...damaged, values });
 		const access = await checkSourceAccess(
 			database(),
 			ENCRYPTION_KEY.sourceTokens,
@@ -179,7 +187,7 @@ export const actions = {
 		const changed = changeSourceSlug(database(), source.id, form);
 		if (changed === 'not-found') error(404);
 		if ('error' in changed) {
-			return fail(400, { slugError: changed.error, slugValues: { slug: form.slug } });
+			return fail(400, { error: changed.error });
 		}
 		return { slugChanged: true };
 	},

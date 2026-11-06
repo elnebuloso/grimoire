@@ -83,21 +83,21 @@ describe('import on the setup page', () => {
 	it('needs the setup token, before the file is read', async () => {
 		expect(await submit({ token: 'not-the-token', file: FIXTURE })).toMatchObject({
 			status: 400,
-			data: { importError: 'Wrong setup token. It is in the server log.', field: 'token' }
+			data: { error: 'Wrong setup token. It is in the server log.', field: 'token' }
 		});
 		expect(users()).toEqual([]);
 	});
 
 	it('marks the field a refusal of the file concerns, and writes nothing', async () => {
 		expect(await submit({})).toMatchObject({
-			data: { importError: 'Choose the export file to import.', field: 'file' }
+			data: { error: 'Choose the export file to import.', field: 'file' }
 		});
 		expect(await submit({ file: Buffer.from('not an export') })).toMatchObject({
-			data: { importError: 'The file is not a grimoire export.', field: 'file' }
+			data: { error: 'The file is not a grimoire export.', field: 'file' }
 		});
 		expect(await submit({ file: FIXTURE, passphrase: 'harbour lantern eighteen' })).toMatchObject({
 			data: {
-				importError:
+				error:
 					'The passphrase is wrong, or the file was changed or cut short since it was exported.',
 				field: 'passphrase'
 			}
@@ -110,7 +110,7 @@ describe('import on the setup page', () => {
 			VALUES ('docs', 'Docs', 'https://git.example.com/docs.git', 'main', 'docs')`);
 		expect(await submit({ file: FIXTURE })).toMatchObject({
 			data: {
-				importError:
+				error:
 					'This instance has users or sources already; an export is imported only into an empty one.'
 			}
 		});

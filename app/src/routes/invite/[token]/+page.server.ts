@@ -2,8 +2,13 @@ import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { database } from '#lib/server/db/index.js';
 import { WELCOME_PAGE } from '#lib/server/admin/access.js';
-import { createSession, SESSION_COOKIE, sessionCookieOptions } from '#lib/server/admin/auth.js';
-import { authMessage } from '#lib/server/admin/auth-messages.js';
+import {
+	createSession,
+	MIN_PASSWORD_LENGTH,
+	SESSION_COOKIE,
+	sessionCookieOptions
+} from '#lib/server/admin/auth.js';
+import { authRefusal } from '#lib/server/admin/auth-messages.js';
 import { acceptInvitation, invitedEmail } from '#lib/server/admin/invitations.js';
 import { oidcProviders } from '#lib/server/oidc/index.js';
 
@@ -18,7 +23,8 @@ export const load: PageServerLoad = ({ params, setHeaders }) => {
 		email: invitedEmail(database(), params.token),
 		providers: oidcProviders().map(({ key, label }) => ({ key, label })),
 		// Sent along by the provider buttons: holding the link is what proves the invitation.
-		token: params.token
+		token: params.token,
+		minPasswordLength: MIN_PASSWORD_LENGTH
 	};
 };
 
@@ -29,7 +35,7 @@ export const actions = {
 		const accepted = await acceptInvitation(db, params.token, password);
 		if ('error' in accepted) {
 			return fail(400, {
-				error: authMessage(accepted.error),
+				...authRefusal(accepted.error),
 				linkInvalid: accepted.error !== 'password-too-short'
 			});
 		}

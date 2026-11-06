@@ -8,9 +8,6 @@
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
-
-	// MIN_LENGTH is the server's MIN_PASSWORD_LENGTH, which code in the browser cannot import.
-	const MIN_LENGTH = 12;
 </script>
 
 {#if !data.email || form?.linkInvalid}
@@ -37,9 +34,11 @@
 			name="password"
 			type="password"
 			required
-			minlength={MIN_LENGTH}
+			minlength={data.minPasswordLength}
 			autocomplete="new-password"
-			{...form?.error ? { 'aria-invalid': true, 'aria-describedby': 'invite-error' } : {}}
+			{...form?.field === 'password'
+				? { 'aria-invalid': true, 'aria-describedby': 'invite-error' }
+				: {}}
 		/>
 		<button class="primary">{m.invite_submit()}</button>
 	</form>
