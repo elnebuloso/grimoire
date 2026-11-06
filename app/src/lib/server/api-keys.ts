@@ -120,6 +120,9 @@ export function createApiKey(
 				.run(name, sha256(key), sources === 'all' ? 1 : 0, validUntil, ownerId).lastInsertRowid
 		);
 		insertScope(db, id, sourceIds);
+		// SQLite gives a new key the id of the latest deleted one: a key deleted with its owner may
+		// have left counts here that are not this key's.
+		unwrittenFor(db).delete(id);
 		return { id, key };
 	});
 }

@@ -373,6 +373,22 @@ describe('requests per day', () => {
 		expect(requestsOf(other.id)).toEqual([{ day: '2026-10-30', requests: 1 }]);
 	});
 
+	it('starts a key with no requests when it gets the id of a key deleted with its owner', () => {
+		db.prepare(
+			"INSERT INTO users (id, email, password_hash) VALUES (2, 'bob@example.com', 'hash')"
+		).run();
+		const bobs = newKey(db, 'agent', 'all', null, 2);
+		for (let request = 0; request < 3; request++) scopeForKey(db, bobs.key, later(request));
+		db.prepare('DELETE FROM users WHERE id = 2').run();
+
+		const alices = newKey(db, 'laptop', 'all');
+
+		expect(alices.id).toBe(bobs.id);
+		expect(requestsOf(alices.id)).toEqual([]);
+		scopeForKey(db, alices.key, later(120));
+		expect(written()).toEqual([{ day: '2026-10-30', requests: 1 }]);
+	});
+
 	it('counts no request with an unknown or expired key', () => {
 		const { id, key } = newKey(db, 'ci', 'all', '2026-10-29');
 		scopeForKey(db, key, CLOCK);
