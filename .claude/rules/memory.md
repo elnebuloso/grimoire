@@ -22,6 +22,12 @@ Facts learned while building grimoire.
   `make dev` or the agent environment.
 - `redirect()` to another origin throws unless it names it:
   `redirect(303, url, { external: [origin] })`.
+- Param matchers are not files in `src/params/`: they live in `app/src/params.ts`, declared with
+  `defineParams` from `@sveltejs/kit/params`. A running dev server (also the agent environment)
+  sees a new matcher only after a restart; until then every page answers 500
+  `param_matcher_missing`.
+- `goto` options: `replace` (not `replaceState`) and `reset: false` (instead of `keepFocus` and
+  `noScroll`).
 
 ## Runtime
 
@@ -68,6 +74,14 @@ Facts learned while building grimoire.
 - The Playwright MCP browser answers native `confirm()` dialogs on its own in some runs and holds
   them in others; register `page.on('dialog', …)` in the script to decide, and never click a
   destructive action outside the agent environment.
+- Sources added to the agent database by hand with made-up Git URLs are synced by its scheduler
+  within seconds and end with a sync error; reset afterwards.
+
+## Storybook
+
+- A native `popover` opened through `popovertarget` gives its button no `aria-expanded` attribute
+  to assert, and `userEvent.keyboard('{Escape}')` does not close it: check closing and focus in the
+  real browser instead.
 
 ## Database
 
