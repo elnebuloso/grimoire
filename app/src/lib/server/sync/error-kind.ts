@@ -1,4 +1,4 @@
-import { REFUSED } from './git';
+import { saysRefused } from './git';
 import { UNRESOLVABLE, type SyncErrorKind } from './failure';
 
 export type { SyncErrorKind } from './failure';
@@ -22,7 +22,7 @@ const CREDENTIALS = /the Git server (refused the username and token|asks for a u
 export function syncErrorKind(message: string): SyncErrorKind {
 	for (const [kind, pattern] of KINDS) if (pattern.test(message)) return kind;
 	if (UNRESOLVABLE.test(message)) return 'noAddress';
-	if (CREDENTIALS.test(message) || REFUSED.test(message)) return 'access';
+	if (CREDENTIALS.test(message) || saysRefused(message)) return 'access';
 	if (/^git \S+ failed: /.test(message)) return 'unreachable';
 	return 'unknown';
 }

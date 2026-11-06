@@ -15,6 +15,15 @@ describe('syncErrorKind', () => {
 			'access'
 		],
 		['fatal: Authentication failed for https://git.example.com/x.git/', 'access'],
+		[
+			"git ls-remote failed: fatal: unable to access 'https://git.example.com/web/404-pages.git/': Failed to connect to git.example.com port 443",
+			'unreachable'
+		],
+		[
+			'git ls-remote failed: fatal: unable to access https://git.example.com/team-403/docs.git/: Connection timed out',
+			'unreachable'
+		],
+		["fatal: repository 'https://git.example.com/web/404-pages.git/' not found", 'access'],
 		['git ls-remote failed: no answer within 30 s', 'unreachable'],
 		[
 			'git ls-remote failed: fatal: unable to access https://git.example.com/x.git/: Could not resolve host: git.example.com',

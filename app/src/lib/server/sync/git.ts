@@ -40,8 +40,16 @@ export type RemoteCheck =
 	| { status: 'forbidden'; host: string; detail: string };
 
 // Git hosts answer a missing repository and missing access alike, so both count as refused.
-export const REFUSED =
+const REFUSED =
 	/authentication failed|refused the username|asks for a username|\b40[134]\b|not found|does not appear to be a git repository/i;
+// Git names the URL in its messages, quoted or not, and a path like `/web/404-pages.git` must not
+// read as an answer of the server.
+const URLS = /'[^']*'|\b[a-z][a-z0-9+.-]*:\/\/\S+/gi;
+
+/** Whether Git's output says the server refused the repository or the credentials. */
+export function saysRefused(output: string): boolean {
+	return REFUSED.test(output.replace(URLS, ''));
+}
 // Git wanted to ask for other credentials, which grimoire never lets it do: the server refused
 // the ones it got, or wants some.
 const CREDENTIALS_ASKED = /could not read (username|password) for/i;
@@ -71,7 +79,9 @@ export async function checkRemote(
 		}
 		const redirect = REDIRECT_REASON.exec(detail);
 		if (redirect) return { status: 'redirected', httpStatus: Number(redirect[1]), detail };
-		return { status: REFUSED.test(detail) ? 'refused' : 'unreachable', detail };
+		// The kind git() found, so a check and a sync name the same cause.
+		const refused = error instanceof SyncFailure ? error.kind === 'access' : saysRefused(detail);
+		return { status: refused ? 'refused' : 'unreachable', detail };
 	}
 	const commit = output.split('\t')[0].trim();
 	return commit ? { status: 'ok', commit } : { status: 'no-branch' };
@@ -225,7 +235,7 @@ async function git(
 			reason = redirectProblem(Number(REDIRECT_REFUSED.exec(output)![1]));
 		} else if (UNRESOLVABLE.test(output)) {
 			kind = 'noAddress';
-		} else if (REFUSED.test(output)) {
+		} else if (saysRefused(output)) {
 			kind = 'access';
 		}
 		// No `cause`: the original error carries the unredacted command line and output.

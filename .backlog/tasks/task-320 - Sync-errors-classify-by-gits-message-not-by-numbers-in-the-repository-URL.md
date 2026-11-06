@@ -1,9 +1,11 @@
 ---
 id: TASK-320
 title: 'Sync errors: classify by git''s message, not by numbers in the repository URL'
-status: To Do
-assignee: []
+status: Done
+assignee:
+  - '@claude'
 created_date: '2026-11-06 20:52'
+updated_date: '2026-11-06 21:27'
 labels:
   - sync
 dependencies: []
@@ -29,8 +31,29 @@ Found by a whole-repo audit on 2026-11-06 (commit 601c588 plus six local refacto
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 A connection failure for a URL containing 404, 401 or 403 is classified as unreachable, not access
-- [ ] #2 A real HTTP 403/404 answer of the Git server is still classified as access
-- [ ] #3 `checkRemote` reports the same kind as the failing git call
-- [ ] #4 Specs in `git.spec.ts` or `error-kind.spec.ts` cover the URL case
+- [x] #1 A connection failure for a URL containing 404, 401 or 403 is classified as unreachable, not access
+- [x] #2 A real HTTP 403/404 answer of the Git server is still classified as access
+- [x] #3 `checkRemote` reports the same kind as the failing git call
+- [x] #4 Specs in `git.spec.ts` or `error-kind.spec.ts` cover the URL case
 <!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. Specs: stored messages with 404/403 in a quoted or bare URL and a connection failure read as unreachable, a real "not found" as access; checkRemote and remoteCommit against a closed port with /web/404-pages.git report unreachable
+2. git.ts: saysRefused tests REFUSED with quoted parts and URLs removed; git() and syncErrorKind use it
+3. checkRemote takes the kind git() found when it has one
+<!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+- The three new cases failed before and pass after; git.spec.ts, error-kind.spec.ts and source-access.spec.ts pass (56 tests).
+- REFUSED is no longer exported; saysRefused is its only use outside git().
+<!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Sync errors are no longer classified as refused access because the repository URL contains 401, 403, 404 or "not found": the quoted or bare URL is removed from git's output before the test, for new errors and for stored ones. checkRemote now reports the kind git() already found, so the access test and a sync name the same cause. Specs cover stored messages and a closed port with /web/404-pages.git.
+<!-- SECTION:FINAL_SUMMARY:END -->

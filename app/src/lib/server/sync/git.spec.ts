@@ -124,6 +124,23 @@ describe('checkRemote', () => {
 		expect(existsSync(marker)).toBe(false);
 	});
 
+	it('counts a server that is down as unreachable, also when the URL holds an HTTP status', async () => {
+		const server = createServer();
+		await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+		const { port } = server.address() as { port: number };
+		await new Promise<void>((resolve) => server.close(() => resolve()));
+
+		expect(
+			await checkRemote(
+				{ url: `http://127.0.0.1:${port}/web/404-pages.git`, policy: LOCAL },
+				'main'
+			)
+		).toMatchObject({ status: 'unreachable' });
+		await expect(
+			remoteCommit({ url: `http://127.0.0.1:${port}/web/404-pages.git`, policy: LOCAL }, 'main')
+		).rejects.toMatchObject({ kind: 'unreachable' });
+	});
+
 	it('counts a server that never answers as unreachable', async () => {
 		await withSilentServer(async (silent) => {
 			expect(await checkRemote({ url: silent, policy: LOCAL }, 'main', 500)).toEqual({
