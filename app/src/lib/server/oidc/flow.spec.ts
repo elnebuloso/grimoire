@@ -30,7 +30,8 @@ describe('the flow cookie', () => {
 		expect(sealed).not.toContain('verifier');
 		expect(openFlow(sealed, 'gitlab', oidcFlows, NOW)).toEqual({ flow: FLOW });
 		expect(openFlow(sealed, 'gitlab', oidcFlows, new Date(FLOW.expiresAt))).toEqual({
-			problem: 'expired'
+			problem: 'expired',
+			expired: FLOW
 		});
 	});
 

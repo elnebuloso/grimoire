@@ -203,13 +203,16 @@ export function sealFlow(flow: OidcFlow, key: Buffer): string {
 /** Why a callback has no flow to finish; the log names it. */
 export type FlowProblem = 'missing' | 'unreadable' | 'for another provider' | 'expired';
 
-/** The flow of the cookie, if it is intact, unexpired and for `provider`; otherwise why not. */
+/**
+ * The flow of the cookie, if it is intact, unexpired and for `provider`; otherwise why not, and
+ * an expired flow too, which still tells where its user came from.
+ */
 export function openFlow(
 	sealed: string | undefined,
 	provider: string,
 	key: Buffer,
 	now = new Date()
-): { flow: OidcFlow } | { problem: FlowProblem } {
+): { flow: OidcFlow } | { problem: FlowProblem; expired?: OidcFlow } {
 	if (!sealed) return { problem: 'missing' };
 	let flow: OidcFlow;
 	try {
@@ -218,7 +221,7 @@ export function openFlow(
 		return { problem: 'unreadable' };
 	}
 	if (flow.provider !== provider) return { problem: 'for another provider' };
-	if (flow.expiresAt <= now.toISOString()) return { problem: 'expired' };
+	if (flow.expiresAt <= now.toISOString()) return { problem: 'expired', expired: flow };
 	return { flow };
 }
 

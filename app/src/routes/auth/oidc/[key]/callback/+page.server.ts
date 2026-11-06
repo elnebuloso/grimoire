@@ -33,14 +33,11 @@ export const csr = false;
 // failures count: many people log in from one office address within minutes.
 const answers = createAttemptLimit(30, 15);
 
-function refuse(problem: AuthProblem, page = '/login'): never {
-	redirect(303, `${page}?problem=${problem}`);
-}
-
 /**
  * Takes the provider's answer and logs the user in. The session cookie is strict and therefore not
  * sent on a request that comes from the provider's site; the page forwards from here, a request of
- * this site, so the first page after it already sees the login.
+ * this site, so the first page after it already sees the login. A refusal is forwarded the same
+ * way: a redirect would arrive without the session of a user who was linking an account.
  */
 export const load: PageServerLoad = async ({ params, url, cookies, getClientAddress, locals }) => {
 	const provider = providerByKey(params.key);
@@ -50,14 +47,18 @@ export const load: PageServerLoad = async ({ params, url, cookies, getClientAddr
 	cookies.delete(FLOW_COOKIE, flowCookieOptions);
 	// Back or reload after a login: the page stays in the history, its flow is gone.
 	if ('problem' in opened && locals.user) redirect(303, homeOf(locals.user));
+	const linking = 'flow' in opened ? opened.flow.link : opened.expired?.link;
+	const refuse = (problem: AuthProblem) => ({
+		next: `${linking ? '/account' : '/login'}?problem=${problem}`
+	});
 	const client = clientKey(getClientAddress());
 	if (!answers.take(client, now)) {
 		log.info(`OIDC login through ${provider.key} refused: too many failed logins from the client`);
-		refuse('oidc-blocked');
+		return refuse('oidc-blocked');
 	}
 	if ('problem' in opened) {
 		log.info(`OIDC login through ${provider.key} failed: the flow cookie is ${opened.problem}`);
-		refuse('oidc-failed');
+		return refuse('oidc-failed');
 	}
 	const { flow } = opened;
 
@@ -67,13 +68,13 @@ export const load: PageServerLoad = async ({ params, url, cookies, getClientAddr
 	} catch (failure) {
 		if (failure instanceof ProviderUnavailable) {
 			log.warn(unavailableMessage(provider.key, failure));
-			refuse('oidc-unavailable');
+			return refuse('oidc-unavailable');
 		}
 		const { text, cause } = classifyLoginFailure(failure);
 		const message = `OIDC login through ${provider.key} failed: ${text}`;
 		if (cause === 'configuration') log.warn(message);
 		else log.info(message);
-		refuse('oidc-failed');
+		return refuse('oidc-failed');
 	}
 
 	const db = database();
@@ -88,7 +89,7 @@ export const load: PageServerLoad = async ({ params, url, cookies, getClientAddr
 	);
 	if (decision.action === 'refuse') {
 		log.info(`OIDC login through ${provider.key} refused: ${decision.reason}`);
-		refuse(decision.reason, flow.link ? '/account' : '/login');
+		return refuse(decision.reason);
 	}
 
 	if (decision.action === 'link') {
@@ -113,7 +114,7 @@ export const load: PageServerLoad = async ({ params, url, cookies, getClientAddr
 		const accepted = acceptInvitationWithIdentity(db, flow.invite!, decision.identity, now);
 		if ('error' in accepted) {
 			log.info(`OIDC invitation through ${provider.key} refused: ${accepted.error}`);
-			refuse(accepted.error);
+			return refuse(accepted.error);
 		}
 		log.info(`OIDC provider ${provider.key} accepted an invitation`);
 		userId = accepted.userId;
@@ -121,7 +122,7 @@ export const load: PageServerLoad = async ({ params, url, cookies, getClientAddr
 		const { issuer, subject } = decision.identity;
 		const created = createLinkedUser(db, decision.email, issuer, subject);
 		// Taken by a parallel request between the decision and the insert.
-		if (created === undefined) refuse('oidc-email-taken');
+		if (created === undefined) return refuse('oidc-email-taken');
 		log.info(`OIDC provider ${provider.key} created an account`);
 		userId = created;
 	}

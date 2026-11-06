@@ -57,7 +57,9 @@ const serverEnv = {
 	SMTP_FROM: 'grimoire <grimoire@e2e.example>',
 	BASE_URL: 'http://localhost:4173',
 	OIDC_PROVIDERS: 'gitlab entra',
-	OIDC_GITLAB_ISSUER: 'http://localhost:4580/gitlab',
+	// Another site than the app, as a real provider is: its answers arrive without the strict
+	// session cookie. The other provider stays on the app's site.
+	OIDC_GITLAB_ISSUER: 'http://127.0.0.1:4580/gitlab',
 	OIDC_GITLAB_CLIENT_ID: 'grimoire',
 	OIDC_GITLAB_CLIENT_SECRET: 'e2e-gitlab-secret',
 	OIDC_GITLAB_LABEL: 'GitLab',

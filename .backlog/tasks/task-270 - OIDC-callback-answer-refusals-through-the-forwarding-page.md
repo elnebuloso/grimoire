@@ -1,9 +1,11 @@
 ---
 id: TASK-270
 title: 'OIDC callback: answer refusals through the forwarding page'
-status: To Do
-assignee: []
+status: Done
+assignee:
+  - '@claude'
 created_date: '2026-11-06 15:55'
+updated_date: '2026-11-06 16:31'
 labels:
   - admin
 dependencies: []
@@ -28,8 +30,32 @@ Tests cannot see it: `make e2e` runs app and OIDC mock both on `localhost` (`app
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Every refusal after the flow is open is answered through the forwarding page (`{ next: "<page>?problem=…" }`), not a 303 redirect
-- [ ] #2 The target page is chosen from `flow.link` for every refusal, so a refused link returns to the account page
-- [ ] #3 `callback.spec.ts` distinguishes a forwarded answer from a redirect and covers a cancelled flow with `link` set
-- [ ] #4 Decide whether an e2e with the issuer on another site (e.g. `127.0.0.1` against `localhost`) is added; record the decision in the task
+- [x] #1 Every refusal after the flow is open is answered through the forwarding page (`{ next: "<page>?problem=…" }`), not a 303 redirect
+- [x] #2 The target page is chosen from `flow.link` for every refusal, so a refused link returns to the account page
+- [x] #3 `callback.spec.ts` distinguishes a forwarded answer from a redirect and covers a cancelled flow with `link` set
+- [x] #4 Decide whether an e2e with the issuer on another site (e.g. `127.0.0.1` against `localhost`) is added; record the decision in the task
 <!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. Specs first: callback.spec answer() marks redirects (redirect:<target>), new cases for a link flow cancelled, provider down, expired, blocked
+2. Callback returns { next: page?problem=… } for every refusal; page from flow.link, also for an expired flow (openFlow returns it)
+3. e2e: GitLab issuer of make e2e moved to 127.0.0.1 (another site); manage.e2e cancels a link at the provider and lands on /account still logged in
+<!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+- Decision on AC #4 (owner): yes, an e2e on another site. The GitLab provider of make e2e now has its issuer at http://127.0.0.1:4580/gitlab, so every GitLab login in the e2e suite crosses sites like a real provider; Entra stays on localhost.
+- The cancel is simulated by navigating from the provider page (script on 127.0.0.1) to the callback with error=access_denied and the flow's state, since the mock has no cancel button.
+- Verified the e2e fails without the fix (landed on /login?problem=oidc-failed) and passes with it.
+- Refusals before a flow exists (missing or unreadable cookie) still go to /login, through the forwarding page; an expired flow keeps its link target.
+- The back-or-reload redirect for a logged-in user without a flow stays a 303: that request comes from this site.
+<!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Every refusal of the OIDC callback is now answered through the forwarding page instead of a 303, and returns to /account when the flow was a link (expired flows included). callback.spec tells forwards from redirects and covers cancel, provider down, expired and blocked link flows. make e2e now runs the GitLab mock on another site (127.0.0.1); manage.e2e cancels a link at the provider and stays logged in on /account — failed before the fix, passes after.
+<!-- SECTION:FINAL_SUMMARY:END -->

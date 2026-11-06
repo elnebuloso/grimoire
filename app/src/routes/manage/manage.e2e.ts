@@ -760,6 +760,24 @@ test('links a provider to an existing account with its password, and removes it 
 	await page.getByRole('button', { name: 'Link GitLab' }).click();
 	await expect(page.getByRole('alert')).toHaveText('Wrong current password.');
 
+	// Cancelled at the provider: the provider's site sends the browser back, without the session
+	// cookie, and the user lands on the account page still logged in.
+	await page.getByLabel('Your password, to confirm').fill(PASSWORD);
+	await page.getByRole('button', { name: 'Link GitLab' }).click();
+	await expect(page).toHaveURL(/^http:\/\/127\.0\.0\.1:4580\/gitlab\/authorize/);
+	const authorize = new URL(page.url()).searchParams;
+	const cancelled = new URL(authorize.get('redirect_uri')!);
+	cancelled.search = new URLSearchParams({
+		error: 'access_denied',
+		state: authorize.get('state')!
+	}).toString();
+	await page.evaluate((url) => (location.href = url), cancelled.href);
+	await expect(page).toHaveURL('/account?problem=oidc-failed');
+	await expect(
+		page.getByText('The login at the identity provider did not complete.')
+	).toBeVisible();
+	await expect(page.getByRole('button', { name: EMAIL })).toBeVisible();
+
 	await page.getByLabel('Your password, to confirm').fill(PASSWORD);
 	await page.getByRole('button', { name: 'Link GitLab' }).click();
 	await page.locator('input[name="username"]').fill('admin-at-gitlab');

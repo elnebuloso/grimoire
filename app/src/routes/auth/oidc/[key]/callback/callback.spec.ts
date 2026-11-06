@@ -66,7 +66,10 @@ function fakeCookies(initial: Record<string, string>) {
 	};
 }
 
-/** Runs the callback for `client` and returns where it sends the browser. */
+/**
+ * Runs the callback for `client` and returns where it sends the browser: the page it forwards to,
+ * or `redirect:` and the target of a redirect, which a strict session cookie does not follow.
+ */
 async function answer(
 	client: string,
 	cookies = fakeCookies({ [FLOW_COOKIE]: flowCookie() }),
@@ -83,7 +86,7 @@ async function answer(
 		} as never);
 		return (result as { next: string }).next;
 	} catch (thrown) {
-		if (isRedirect(thrown)) return thrown.location;
+		if (isRedirect(thrown)) return `redirect:${thrown.location}`;
 		throw thrown;
 	}
 }
@@ -170,7 +173,7 @@ describe('a callback without a flow', () => {
 	it('forwards a logged-in user home, as after going back to it or reloading it', async () => {
 		const user: SessionUser = { id: 1, email: 'ada@example.com', roles: ['admin'] };
 
-		expect(await answer('203.0.113.10', fakeCookies({}), { user })).toBe('/manage');
+		expect(await answer('203.0.113.10', fakeCookies({}), { user })).toBe('redirect:/manage');
 		expect(finishFlow).not.toHaveBeenCalled();
 	});
 
@@ -231,5 +234,36 @@ describe('a code exchange that fails', () => {
 		finishFlow.mockRejectedValue(new ProviderUnavailable('token request failed: TypeError'));
 
 		expect(await answer('203.0.113.11')).toBe('/login?problem=oidc-unavailable');
+	});
+});
+
+describe('a refused link of a logged-in user', () => {
+	// The hash of the session that started the link; the callback only passes it on.
+	const linking = (changes: Partial<OidcFlow> = {}) =>
+		fakeCookies({ [FLOW_COOKIE]: flowCookie({ link: 'session-hash', ...changes }) });
+
+	it('returns to the account page when the user cancels at the provider', async () => {
+		finishFlow.mockRejectedValue(
+			new client.AuthorizationResponseError('authorization response error', {
+				cause: new URLSearchParams({ error: 'access_denied' })
+			})
+		);
+
+		expect(await answer('203.0.113.12', linking())).toBe('/account?problem=oidc-failed');
+	});
+
+	it('returns to the account page when the provider is down or the flow expired', async () => {
+		finishFlow.mockRejectedValue(new ProviderUnavailable('token request failed: TypeError'));
+		const expired = linking({ expiresAt: new Date(Date.now() - 1000).toISOString() });
+
+		expect(await answer('203.0.113.12', linking())).toBe('/account?problem=oidc-unavailable');
+		expect(await answer('203.0.113.12', expired)).toBe('/account?problem=oidc-failed');
+	});
+
+	it('returns to the account page when the client is blocked', async () => {
+		finishFlow.mockRejectedValue(new Error('invalid_grant'));
+		for (let attempt = 0; attempt < 30; attempt++) await answer('203.0.113.13', linking());
+
+		expect(await answer('203.0.113.13', linking())).toBe('/account?problem=oidc-blocked');
 	});
 });
