@@ -12,7 +12,9 @@ import {
 	sourceForSync
 } from '../db/sources';
 import { decryptSecret } from '../secret-encryption';
-import type { ConnectionPolicy } from './connection-policy';
+import { ConnectionRefused, type ConnectionPolicy } from './connection-policy';
+import { syncErrorKind } from './error-kind';
+import { SyncFailure, type SyncErrorKind } from './failure';
 import { headCommit, redact, remoteCommit, sparseClone, type GitRemote } from './git';
 import type { IndexJob, IndexOutcome } from './index-worker';
 import type { SyncLanes } from './queue';
@@ -46,7 +48,7 @@ export type SyncResult =
 	| { status: 'unchanged'; commit: string }
 	| { status: 'synced'; commit: string; pages: number; warnings: string[] }
 	/** `commit` is the one that failed to index; undefined when the sync failed before one was known. */
-	| { status: 'failed'; error: string; commit?: string };
+	| { status: 'failed'; error: string; kind: SyncErrorKind; commit?: string };
 
 /**
  * Brings one source into the index: checks the branch with `ls-remote`, and when it moved, clones
@@ -66,7 +68,8 @@ export async function syncSource(
 		finishedAt: new Date(),
 		outcome: result.status,
 		commit: result.commit ?? null,
-		error: result.status === 'failed' ? result.error : null
+		error: result.status === 'failed' ? result.error : null,
+		errorKind: result.status === 'failed' ? result.kind : null
 	});
 	return result;
 }
@@ -105,7 +108,8 @@ async function checkAndSync(
 		// Indexing the same commit again fails the same way, and a run up to the deadline would
 		// otherwise hold the single sync slot in every interval; a new commit or a forced run retries.
 		if (latest === source.failedCommit && source.error && !options.force) {
-			return { status: 'failed', error: source.error, commit: latest };
+			const kind = source.errorKind ?? syncErrorKind(source.error);
+			return { status: 'failed', error: source.error, kind, commit: latest };
 		}
 
 		return await lanes.sync(async () => {
@@ -134,11 +138,19 @@ async function checkAndSync(
 		});
 	} catch (error) {
 		const message = redact((error as Error).message, remote);
-		recordSyncError(db, sourceId, message, indexingCommit);
-		return { status: 'failed', error: message, commit: indexingCommit };
+		const kind = failureKind(error as Error);
+		recordSyncError(db, sourceId, { message, kind }, indexingCommit);
+		return { status: 'failed', error: message, kind, commit: indexingCommit };
 	} finally {
 		recordCheck(db, sourceId, checkedAt);
 	}
+}
+
+function failureKind(error: Error): SyncErrorKind {
+	if (error instanceof SyncFailure) return error.kind;
+	if (error instanceof ConnectionRefused) return 'forbidden';
+	// Thrown outside grimoire's own code, such as Node's name lookup: only the message tells.
+	return syncErrorKind(error.message);
 }
 
 function storedToken(encryptedToken: string | null, key: Buffer): string | undefined {
@@ -146,7 +158,8 @@ function storedToken(encryptedToken: string | null, key: Buffer): string | undef
 	try {
 		return decryptSecret(encryptedToken, key);
 	} catch {
-		throw new Error(
+		throw new SyncFailure(
+			'access',
 			'the stored access token cannot be decrypted with the current key: enter it again on the source page'
 		);
 	}
@@ -174,19 +187,25 @@ function indexInProcess(
 		// A killed process holds no lock: SQLite rolls its open transaction back, and the rows it
 		// already committed belong to a generation that never went live and go with the next sync.
 		const deadline = setTimeout(() => {
-			reject(new Error(`indexing took longer than ${formatDuration(deadlineMs)}`));
+			reject(
+				new SyncFailure('deadline', `indexing took longer than ${formatDuration(deadlineMs)}`)
+			);
 			child.kill('SIGKILL');
 		}, deadlineMs);
 		child.once('message', (outcome: IndexOutcome) => {
-			if ('error' in outcome) reject(new Error(outcome.error));
-			else resolve(outcome);
+			if (!('error' in outcome)) resolve(outcome);
+			else if (outcome.kind) reject(new SyncFailure(outcome.kind, outcome.error));
+			else reject(new Error(outcome.error));
 		});
 		child.once('error', reject);
 		child.once('close', (code, signal) => {
 			clearTimeout(deadline);
 			const ending = signal ?? `exit code ${code}`;
 			reject(
-				new Error(`indexing ended with ${ending} before it finished, out of memory for example`)
+				new SyncFailure(
+					'aborted',
+					`indexing ended with ${ending} before it finished, out of memory for example`
+				)
 			);
 		});
 	});

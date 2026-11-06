@@ -12,6 +12,7 @@ import {
 	type CheckedRemote,
 	type ConnectionPolicy
 } from './connection-policy.ts';
+import { SyncFailure, UNRESOLVABLE, type SyncErrorKind } from './failure.ts';
 
 const run = promisify(execFile);
 
@@ -84,9 +85,22 @@ export async function remoteCommit(
 	const check = await checkRemote(remote, branch, timeoutMs);
 	if (check.status === 'ok') return check.commit;
 	if (check.status === 'no-branch') {
-		throw new Error(`branch "${branch}" not found in ${redactUrl(remote.url)}`);
+		throw new SyncFailure('branch', `branch "${branch}" not found in ${redactUrl(remote.url)}`);
 	}
-	throw new Error(check.detail);
+	throw new SyncFailure(checkFailureKind(check), check.detail);
+}
+
+function checkFailureKind(check: Exclude<RemoteCheck, { status: 'ok' | 'no-branch' }>) {
+	switch (check.status) {
+		case 'refused':
+			return 'access';
+		case 'redirected':
+			return 'redirect';
+		case 'forbidden':
+			return 'forbidden';
+		case 'unreachable':
+			return UNRESOLVABLE.test(check.detail) ? 'noAddress' : 'unreachable';
+	}
 }
 
 /**
@@ -198,16 +212,24 @@ async function git(
 			killed?: boolean;
 		};
 		const output = stderr?.trim() || message;
-		const reason = killed
-			? `no answer within ${timeoutMs / 1000} s`
-			: CREDENTIALS_ASKED.test(output)
-				? credentialsProblem(remote)
-				: REDIRECT_REFUSED.test(output)
-					? redirectProblem(Number(REDIRECT_REFUSED.exec(output)![1]))
-					: output;
+		let kind: SyncErrorKind = 'unreachable';
+		let reason = output;
+		if (killed) {
+			reason = `no answer within ${timeoutMs / 1000} s`;
+		} else if (CREDENTIALS_ASKED.test(output)) {
+			kind = 'access';
+			reason = credentialsProblem(remote);
+		} else if (REDIRECT_REFUSED.test(output)) {
+			kind = 'redirect';
+			reason = redirectProblem(Number(REDIRECT_REFUSED.exec(output)![1]));
+		} else if (UNRESOLVABLE.test(output)) {
+			kind = 'noAddress';
+		} else if (REFUSED.test(output)) {
+			kind = 'access';
+		}
 		// No `cause`: the original error carries the unredacted command line and output.
 		// eslint-disable-next-line preserve-caught-error
-		throw new Error(redact(`git ${command} failed: ${reason}`, remote));
+		throw new SyncFailure(kind, redact(`git ${command} failed: ${reason}`, remote));
 	}
 }
 

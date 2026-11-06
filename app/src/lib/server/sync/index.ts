@@ -50,7 +50,7 @@ function dueSources(): number[] {
 			try {
 				return isDue(schedule ?? SYNC_SCHEDULE, lastCheckedAt, now, TZ);
 			} catch (error) {
-				recordSyncError(db, id, (error as Error).message);
+				recordSyncError(db, id, { message: (error as Error).message, kind: 'unknown' });
 				return false;
 			}
 		})

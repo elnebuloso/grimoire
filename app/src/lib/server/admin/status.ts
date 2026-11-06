@@ -2,7 +2,7 @@ import type { DatabaseSync } from 'node:sqlite';
 import { grimoireId } from '../grimoire-id';
 import { readSnippets, renderSnippet } from '../search/query';
 import { sourceStats, type SourceStats } from '../stats';
-import { syncErrorKind, type SyncErrorKind } from '../sync/error-kind';
+import { errorKind, type SyncErrorKind } from '../sync/error-kind';
 import { findOverlaps, type Overlap } from './duplicates';
 import { listSources } from './sources';
 
@@ -77,7 +77,7 @@ export interface SourceStatus {
 export function sourceStatus(db: DatabaseSync, sourceId: number): SourceStatus | undefined {
 	const source = db
 		.prepare(
-			`SELECT last_checked_at, last_synced_at, last_commit, error, warnings
+			`SELECT last_checked_at, last_synced_at, last_commit, error, error_kind, warnings
 			FROM sources WHERE id = ?`
 		)
 		.get(sourceId) as
@@ -86,6 +86,7 @@ export function sourceStatus(db: DatabaseSync, sourceId: number): SourceStatus |
 				last_synced_at: string | null;
 				last_commit: string | null;
 				error: string | null;
+				error_kind: SyncErrorKind | null;
 				warnings: string;
 		  }
 		| undefined;
@@ -102,17 +103,17 @@ export function sourceStatus(db: DatabaseSync, sourceId: number): SourceStatus |
 	const history = db
 		.prepare(
 			`SELECT started_at AS startedAt, finished_at AS finishedAt, outcome, commit_hash AS 'commit',
-				error, runs
+				error, error_kind AS errorKind, runs
 			FROM sync_runs WHERE source_id = ? ORDER BY id DESC`
 		)
-		.all(sourceId) as unknown as Omit<SyncHistoryEntry, 'errorKind'>[];
+		.all(sourceId) as unknown as SyncHistoryEntry[];
 
 	return {
 		lastCheckedAt: source.last_checked_at,
 		lastSyncedAt: source.last_synced_at,
 		lastCommit: source.last_commit,
 		error: source.error,
-		errorKind: source.error === null ? null : syncErrorKind(source.error),
+		errorKind: errorKind(source.error, source.error_kind),
 		warnings: JSON.parse(source.warnings) as string[],
 		pages,
 		totals: {
@@ -127,7 +128,7 @@ export function sourceStatus(db: DatabaseSync, sourceId: number): SourceStatus |
 		})),
 		history: history.map((run) => ({
 			...run,
-			errorKind: run.error === null ? null : syncErrorKind(run.error)
+			errorKind: errorKind(run.error, run.errorKind)
 		}))
 	};
 }
@@ -184,6 +185,8 @@ export interface SourceHealth {
 	neverSynced: boolean;
 	paused: boolean;
 	error: string | null;
+	/** As recorded with `error`; null for an error stored before kinds were recorded. */
+	errorKind: SyncErrorKind | null;
 	warnings: string[];
 }
 
@@ -191,7 +194,8 @@ export interface SourceHealth {
 export function sourceHealth(db: DatabaseSync): SourceHealth[] {
 	const rows = db
 		.prepare(
-			`SELECT id AS sourceId, slug AS source, name, last_synced_at AS lastSyncedAt, paused, error, warnings
+			`SELECT id AS sourceId, slug AS source, name, last_synced_at AS lastSyncedAt, paused, error,
+				error_kind AS errorKind, warnings
 			FROM sources
 			ORDER BY slug`
 		)
@@ -264,7 +268,7 @@ export function problems(
 				...of,
 				kind: 'error',
 				error: health.error,
-				errorKind: syncErrorKind(health.error)
+				errorKind: errorKind(health.error, health.errorKind)!
 			});
 		}
 		if (health.warnings.length > 0) {

@@ -137,8 +137,8 @@ describe('checkRemote', () => {
 describe('remoteCommit', () => {
 	it('gives up on a server that never answers', async () => {
 		await withSilentServer(async (silent) => {
-			await expect(remoteCommit({ url: silent, policy: LOCAL }, 'main', 500)).rejects.toThrow(
-				'git ls-remote failed: no answer within 0.5 s'
+			await expect(remoteCommit({ url: silent, policy: LOCAL }, 'main', 500)).rejects.toMatchObject(
+				{ message: 'git ls-remote failed: no answer within 0.5 s', kind: 'unreachable' }
 			);
 		});
 	});
@@ -173,9 +173,11 @@ describe('a Git server that refuses the credentials', () => {
 	});
 
 	it('says the repository needs a username and token when the source has none', async () => {
-		await expect(remoteCommit({ url, policy: LOCAL }, 'main')).rejects.toThrow(
-			'git ls-remote failed: the Git server asks for a username and token: the repository is private, or there is none at this URL'
-		);
+		await expect(remoteCommit({ url, policy: LOCAL }, 'main')).rejects.toMatchObject({
+			message:
+				'git ls-remote failed: the Git server asks for a username and token: the repository is private, or there is none at this URL',
+			kind: 'access'
+		});
 	});
 });
 
@@ -242,7 +244,10 @@ describe('a Git server that redirects', () => {
 			httpStatus: 301,
 			detail: `git ls-remote failed: ${advice}`
 		});
-		await expect(remoteCommit(project, 'main')).rejects.toThrow(advice);
+		await expect(remoteCommit(project, 'main')).rejects.toMatchObject({
+			message: `git ls-remote failed: ${advice}`,
+			kind: 'redirect'
+		});
 	});
 
 	it('names a target on the same host, without credentials, query or fragment', async () => {
@@ -294,6 +299,9 @@ describe('a host the server may not connect to', () => {
 	it('fails a sync with the message for the operator', async () => {
 		await expect(
 			remoteCommit({ url: 'https://localhost/auth.git', policy: PUBLIC_ONLY }, 'main')
-		).rejects.toThrow('The server may not connect to localhost.');
+		).rejects.toMatchObject({
+			message: expect.stringContaining('The server may not connect to localhost.'),
+			kind: 'forbidden'
+		});
 	});
 });

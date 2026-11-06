@@ -4,6 +4,7 @@ import type { ChunkedPage } from '../parsing/chunk';
 import type { Link } from '../parsing/links';
 import type { PreprocessedPage } from '../parsing/preprocess';
 import { inTransaction } from './transaction.ts';
+import type { SyncErrorKind } from '../sync/failure';
 
 export interface SyncSource {
 	id: number;
@@ -17,6 +18,8 @@ export interface SyncSource {
 	/** The commit whose indexing failed with `error`; null once a sync succeeds or is unchanged. */
 	failedCommit: string | null;
 	error: string | null;
+	/** Recorded with the error; null for one stored before kinds were recorded. */
+	errorKind: SyncErrorKind | null;
 }
 
 export interface IndexedPage {
@@ -48,6 +51,7 @@ interface SourceRow {
 	last_commit: string | null;
 	failed_commit: string | null;
 	error: string | null;
+	error_kind: SyncErrorKind | null;
 }
 
 export interface SourceSchedule {
@@ -85,7 +89,7 @@ export function sourceForSync(db: DatabaseSync, sourceId: number): SyncSource {
 	const row = db
 		.prepare(
 			`SELECT id, git_url, branch, path, exclusions, username, encrypted_token, last_commit,
-				failed_commit, error
+				failed_commit, error, error_kind
 			FROM sources WHERE id = ?`
 		)
 		.get(sourceId) as SourceRow | undefined;
@@ -100,7 +104,8 @@ export function sourceForSync(db: DatabaseSync, sourceId: number): SyncSource {
 		encryptedToken: row.encrypted_token,
 		lastCommit: row.last_commit,
 		failedCommit: row.failed_commit,
-		error: row.error
+		error: row.error,
+		errorKind: row.error_kind
 	};
 }
 
@@ -193,7 +198,7 @@ export function replaceSourceIndex(
 
 	db.prepare(
 		`UPDATE sources SET index_generation = ?, last_commit = ?, last_synced_at = ?, error = NULL,
-			failed_commit = NULL, warnings = ?
+			error_kind = NULL, failed_commit = NULL, warnings = ?
 		WHERE id = ?`
 	).run(
 		generation,
@@ -278,14 +283,19 @@ function batches<T>(items: T[], weight: (item: T) => number, max: number): T[][]
 export function recordSyncError(
 	db: DatabaseSync,
 	sourceId: number,
-	message: string,
+	error: { message: string; kind: SyncErrorKind },
 	failedCommit?: string
 ) {
 	if (failedCommit === undefined) {
-		db.prepare('UPDATE sources SET error = ? WHERE id = ?').run(message, sourceId);
+		db.prepare('UPDATE sources SET error = ?, error_kind = ? WHERE id = ?').run(
+			error.message,
+			error.kind,
+			sourceId
+		);
 	} else {
-		db.prepare('UPDATE sources SET error = ?, failed_commit = ? WHERE id = ?').run(
-			message,
+		db.prepare('UPDATE sources SET error = ?, error_kind = ?, failed_commit = ? WHERE id = ?').run(
+			error.message,
+			error.kind,
 			failedCommit,
 			sourceId
 		);
@@ -294,7 +304,9 @@ export function recordSyncError(
 
 /** The source was reachable and is up to date, so an earlier error no longer applies. */
 export function clearSyncError(db: DatabaseSync, sourceId: number) {
-	db.prepare('UPDATE sources SET error = NULL, failed_commit = NULL WHERE id = ?').run(sourceId);
+	db.prepare(
+		'UPDATE sources SET error = NULL, error_kind = NULL, failed_commit = NULL WHERE id = ?'
+	).run(sourceId);
 }
 
 // Enough to see a source's recent story; repeats are counted in one entry, not stored apart.
@@ -305,6 +317,7 @@ export interface SyncRun {
 	/** Null for a run that failed before it learned the commit. */
 	commit: string | null;
 	error: string | null;
+	errorKind: SyncErrorKind | null;
 }
 
 /**
@@ -338,14 +351,15 @@ export function recordSyncRun(
 		return;
 	}
 	db.prepare(
-		`INSERT INTO sync_runs (source_id, started_at, finished_at, outcome, commit_hash, error)
-		SELECT id, ?, ?, ?, ?, ? FROM sources WHERE id = ?`
+		`INSERT INTO sync_runs (source_id, started_at, finished_at, outcome, commit_hash, error, error_kind)
+		SELECT id, ?, ?, ?, ?, ?, ? FROM sources WHERE id = ?`
 	).run(
 		run.startedAt.toISOString(),
 		run.finishedAt.toISOString(),
 		run.outcome,
 		run.commit,
 		run.error,
+		run.errorKind,
 		sourceId
 	);
 	db.prepare(

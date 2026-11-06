@@ -128,6 +128,7 @@ describe('deleteSource', () => {
 			outcome: 'synced',
 			commit: 'large',
 			error: null,
+			errorKind: null,
 			startedAt: new Date(),
 			finishedAt: new Date()
 		});
@@ -170,17 +171,27 @@ describe('sync state of a source', () => {
 	it('sets last_synced_at only when an index is swapped in, never on a failure', () => {
 		db.exec(`INSERT INTO sources (id, slug, name, git_url, branch, path)
 			VALUES (2, 'new', 'New', 'https://git.example/new.git', 'main', 'docs/');`);
-		recordSyncError(db, 2, 'git ls-remote failed');
+		recordSyncError(db, 2, { message: 'git ls-remote failed', kind: 'unreachable' });
 		expect(state(2)).toMatchObject({ last_synced_at: null, error: 'git ls-remote failed' });
 
 		const synced = state().last_synced_at;
 		expect(synced).not.toBeNull();
-		recordSyncError(db, 1, 'indexing took longer than 10 minutes', 'bad');
+		recordSyncError(
+			db,
+			1,
+			{ message: 'indexing took longer than 10 minutes', kind: 'deadline' },
+			'bad'
+		);
 		expect(state()).toMatchObject({ last_synced_at: synced, failed_commit: 'bad' });
 	});
 
 	it('clears the error and the failed commit when a new index is swapped in', () => {
-		recordSyncError(db, 1, 'indexing took longer than 10 minutes', 'bad');
+		recordSyncError(
+			db,
+			1,
+			{ message: 'indexing took longer than 10 minutes', kind: 'deadline' },
+			'bad'
+		);
 		replaceSourceIndex(db, 1, sourceIndex('new', NEW));
 		expect(state()).toMatchObject({ last_commit: 'new', error: null, failed_commit: null });
 	});
@@ -203,9 +214,24 @@ describe('recordSyncRun', () => {
 			.all();
 	}
 
-	const synced = (commit: string): SyncRun => ({ outcome: 'synced', commit, error: null });
-	const unchanged = (commit: string): SyncRun => ({ outcome: 'unchanged', commit, error: null });
-	const failed = (error: string): SyncRun => ({ outcome: 'failed', commit: null, error });
+	const synced = (commit: string): SyncRun => ({
+		outcome: 'synced',
+		commit,
+		error: null,
+		errorKind: null
+	});
+	const unchanged = (commit: string): SyncRun => ({
+		outcome: 'unchanged',
+		commit,
+		error: null,
+		errorKind: null
+	});
+	const failed = (error: string): SyncRun => ({
+		outcome: 'failed',
+		commit: null,
+		error,
+		errorKind: 'unknown'
+	});
 
 	it('counts repeats of the latest entry in it, keeping when the first started', () => {
 		record(synced('a'), 0);

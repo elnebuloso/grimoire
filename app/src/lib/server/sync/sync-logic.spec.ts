@@ -118,7 +118,11 @@ describe('syncSource', () => {
 		await sync();
 		vi.mocked(remoteCommit).mockRejectedValue(new Error('git ls-remote failed: not found'));
 
-		expect(await sync()).toEqual({ status: 'failed', error: 'git ls-remote failed: not found' });
+		expect(await sync()).toEqual({
+			status: 'failed',
+			error: 'git ls-remote failed: not found',
+			kind: 'access'
+		});
 		expect(rows('SELECT count(*) AS n FROM live_pages')).toEqual([{ n: 1 }]);
 		expect(rows('SELECT error FROM sources WHERE id = ?', source)).toEqual([
 			{ error: 'git ls-remote failed: not found' }
@@ -234,19 +238,20 @@ describe('syncSource', () => {
 	});
 
 	it('does not index a commit again whose indexing failed, unless forced', async () => {
-		indexing.run = () => ({ error: 'indexing took longer than 10 minutes' });
-		expect(await sync()).toEqual({
+		indexing.run = () => ({ error: 'no page could be indexed, index.md: skipped', kind: 'noPage' });
+		const failed = {
 			status: 'failed',
-			error: 'indexing took longer than 10 minutes',
+			error: 'no page could be indexed, index.md: skipped',
+			kind: 'noPage',
 			commit: 'c1'
-		});
+		};
+		expect(await sync()).toEqual(failed);
 
 		indexing.run = indexOnePage;
-		expect(await sync()).toEqual({
-			status: 'failed',
-			error: 'indexing took longer than 10 minutes',
-			commit: 'c1'
-		});
+		expect(await sync()).toEqual(failed);
+		expect(rows('SELECT error_kind FROM sync_runs WHERE source_id = ?', source)).toEqual([
+			{ error_kind: 'noPage' }
+		]);
 		expect(fork).toHaveBeenCalledTimes(1);
 		expect(
 			rows('SELECT outcome, commit_hash, runs FROM sync_runs WHERE source_id = ?', source)

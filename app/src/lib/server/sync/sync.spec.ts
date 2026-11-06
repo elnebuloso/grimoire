@@ -196,6 +196,20 @@ describe('syncSource', () => {
 		]);
 	});
 
+	it('records the kind the indexing process found, with the error and the run', async () => {
+		db.prepare("UPDATE sources SET path = 'archive/docs' WHERE id = ?").run(source);
+
+		const result = await syncSource(db, source, { key, policy: LOCAL, workDirectory: work });
+
+		expect(result).toMatchObject({ status: 'failed', kind: 'path' });
+		expect(rows('SELECT error_kind FROM sources WHERE id = ?', source)).toEqual([
+			{ error_kind: 'path' }
+		]);
+		expect(rows('SELECT error_kind FROM sync_runs WHERE source_id = ?', source)).toEqual([
+			{ error_kind: 'path' }
+		]);
+	});
+
 	it('fails a sync whose indexing outlasts the deadline and frees the sync slot', async () => {
 		const lanes: SyncLanes = { check: createLimiter(1), sync: createLimiter(1) };
 
@@ -211,6 +225,7 @@ describe('syncSource', () => {
 		expect(result).toEqual({
 			status: 'failed',
 			error: 'indexing took longer than 0.001 seconds',
+			kind: 'deadline',
 			commit: git(bare, 'rev-parse', 'main').trim()
 		});
 		expect(rows('SELECT error FROM sources WHERE id = ?', source)).toEqual([
@@ -237,6 +252,7 @@ describe('syncSource', () => {
 		expect(exhausted).toEqual({
 			status: 'failed',
 			error: expect.stringMatching(/^indexing ended with .+ before it finished, out of memory/),
+			kind: 'aborted',
 			commit: git(bare, 'rev-parse', 'main').trim()
 		});
 		const other = addSource(`file://${bare}`, ['docs/huge.md', 'docs/drafts/**']);

@@ -5,6 +5,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { replaceSourceIndex } from '../db/sources.ts';
 import { addSparseDirectories, type GitRemote } from './git.ts';
 import { indexPages } from './index-pages.ts';
+import { SyncFailure, type SyncErrorKind } from './failure.ts';
 import { prepareCheckout, type IndexedSource } from './index-source.ts';
 import { fetchInclude } from './url-include.ts';
 
@@ -22,7 +23,8 @@ export interface IndexJob {
 	commit: string;
 }
 
-export type IndexOutcome = { pages: number; warnings: string[] } | { error: string };
+export type IndexOutcome =
+	{ pages: number; warnings: string[] } | { error: string; kind?: SyncErrorKind };
 
 async function index(job: IndexJob): Promise<IndexOutcome> {
 	const prepared = await prepareCheckout(
@@ -48,7 +50,10 @@ async function index(job: IndexJob): Promise<IndexOutcome> {
 const stop = () => process.exit(1);
 process.once('disconnect', stop);
 process.once('message', async (job: IndexJob) => {
-	const outcome = await index(job).catch((error: Error) => ({ error: error.message }));
+	const outcome = await index(job).catch((error: Error) => ({
+		error: error.message,
+		kind: error instanceof SyncFailure ? error.kind : undefined
+	}));
 	process.off('disconnect', stop);
 	process.send!(outcome, () => process.disconnect());
 });

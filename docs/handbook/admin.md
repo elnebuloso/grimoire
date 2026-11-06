@@ -189,19 +189,24 @@ The new slug must be free.
 A failed sync keeps the index of the last successful one in use and shows its error on the source
 page and under **Needs attention** in `Management > Overview`.
 
-| Error | Fix |
-|---|---|
-| `the Git server refused the username and token: wrong, expired or revoked, or without access to this repository` | Create a new token (see [Access tokens per Git host](#access-tokens-per-git-host)) and enter it. |
-| `the Git server asks for a username and token: the repository is private, or there is none at this URL` | Enter a username and token, or correct the Git URL. |
-| `branch "main" not found in https://…` | Correct **Branch**. |
-| `the Git server redirects this URL elsewhere (HTTP 301): …` | Run **Test connection** on the **Settings** tab of the source: it names the URL to enter where it can. Otherwise copy the clone URL from the **Clone** button of the repository. |
-| `The server may not connect to <host>. If it is your organisation's Git server, ask the person running grimoire to add it to GIT_ALLOWED_HOSTS.` | The address is an IP address, uses another port than 443, or leads into an internal network, or the instance runs behind a proxy. Ask the operator to allow the host (see [Git servers](docker.md#git-servers)). |
-| `source path "docs" does not exist in the repository` | Correct **Path in the repository**. |
-| `no page could be indexed, …` | Every page was skipped, so the previous index stays; the message ends with the last reason. Ask the authors to fix what the message names (see [Writing documentation](writing.md#sync-warnings)). |
-| `invalid cron expression "0 25 * * *": …` | Correct **Schedule**. |
-| `the stored access token cannot be decrypted with the current key: …` | Enter the token again, or remove it. The instance's encryption key is not the one the token was stored with, or the stored value is damaged. If every source with a token shows this, ask the operator whether the key was replaced. |
-| `indexing took longer than 10 minutes`, or the deadline set | Split the source into smaller paths, ask authors to look for a huge or generated page, or ask the operator for a longer indexing deadline (see [Memory and CPU limits](docker.md#memory-and-cpu-limits)). |
-| `indexing ended with … before it finished, out of memory for example` | Ask the operator for more memory (see [Memory and CPU limits](docker.md#memory-and-cpu-limits)). |
+Above the error stands a summary of its kind; the error itself is in English and names the
+detail.
+
+| Summary | Error, for example | Fix |
+|---|---|---|
+| `The Git server refused access.` | `the Git server refused the username and token: wrong, expired or revoked, or without access to this repository` | Create a new token (see [Access tokens per Git host](#access-tokens-per-git-host)) and enter it. |
+| `The Git server refused access.` | `the Git server asks for a username and token: the repository is private, or there is none at this URL` | Enter a username and token, or correct the Git URL. |
+| `The Git server refused access.` | `the stored access token cannot be decrypted with the current key: …` | Enter the token again, or remove it. The instance's encryption key is not the one the token was stored with, or the stored value is damaged. If every source with a token shows this, ask the operator whether the key was replaced. |
+| `The branch was not found in the repository.` | `branch "main" not found in https://…` | Correct **Branch**. |
+| `The Git server redirects this URL elsewhere.` | `the Git server redirects this URL elsewhere (HTTP 301): …` | Run **Test connection** on the **Settings** tab of the source: it names the URL to enter where it can. Otherwise copy the clone URL from the **Clone** button of the repository. |
+| `grimoire may not connect to this Git server.` | `The server may not connect to <host>. …` | The address is an IP address, uses another port than 443, or leads into an internal network, or the instance runs behind a proxy. Ask the operator to allow the host (see [Git servers](docker.md#git-servers)). |
+| `The host name of the Git server does not resolve.` | `git.acme.example has no address`, `getaddrinfo ENOTFOUND git.acme.example` | Check the host name in the Git URL. If it is right, ask the operator whether the instance can resolve internal names. |
+| `The Git server could not be reached.` | `git ls-remote failed: no answer within 30 s` | Check the Git URL. If it is right, **Sync now** tries again. |
+| `The path does not exist in the repository.` | `source path "docs" does not exist in the repository` | Correct **Path in the repository**. |
+| `No page could be indexed.` | `no page could be indexed, …` | Every page was skipped, so the previous index stays; the message ends with the last reason. Ask the authors to fix what the message names (see [Writing documentation](writing.md#sync-warnings)). |
+| `Indexing took too long.` | `indexing took longer than 10 minutes`, or the deadline set | Split the source into smaller paths, ask authors to look for a huge or generated page, or ask the operator for a longer indexing deadline (see [Memory and CPU limits](docker.md#memory-and-cpu-limits)). |
+| `Indexing stopped before it finished.` | `indexing ended with … before it finished, out of memory for example` | Ask the operator for more memory (see [Memory and CPU limits](docker.md#memory-and-cpu-limits)). |
+| none | `invalid cron expression "0 25 * * *": …` | Correct **Schedule**. |
 
 When indexing fails, that commit is not indexed again: checks keep showing the error until the
 branch moves on. **Sync now** and saving the source try the same commit again.

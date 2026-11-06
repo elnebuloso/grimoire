@@ -63,6 +63,7 @@ export const RUNTIME_COLUMNS: Record<string, string[]> = {
 		'last_synced_at',
 		'index_generation',
 		'error',
+		'error_kind',
 		'failed_commit',
 		'warnings'
 	],

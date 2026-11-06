@@ -9,6 +9,7 @@ import {
 	type SiteConfig
 } from '../parsing/site-config.ts';
 import type { PreparedSource } from './index-pages.ts';
+import { SyncFailure } from './failure.ts';
 
 export interface IndexedSource {
 	/** Path of the source in the repository, e.g. `docs/`. */
@@ -59,7 +60,7 @@ export async function prepareCheckout(
 	const files = [...raw.keys()];
 	// An empty index would replace the working one.
 	if (listed.length > 0 && files.length === 0) {
-		throw new Error(`no page could be indexed, ${warnings.at(-1)}`);
+		throw new SyncFailure('noPage', `no page could be indexed, ${warnings.at(-1)}`);
 	}
 
 	let config: SiteConfig | undefined;
@@ -126,7 +127,7 @@ function listPages(checkout: string, sourcePath: string, exclusions: string[]): 
 	try {
 		entries = readdirSync(join(checkout, sourcePath), { recursive: true }) as string[];
 	} catch {
-		throw new Error(`source path "${sourcePath}" does not exist in the repository`);
+		throw new SyncFailure('path', `source path "${sourcePath}" does not exist in the repository`);
 	}
 	return entries
 		.filter((file) => file.endsWith('.md') && !file.split('/').includes('.git'))

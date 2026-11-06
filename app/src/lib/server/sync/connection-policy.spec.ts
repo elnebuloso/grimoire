@@ -10,6 +10,7 @@ import {
 	type Lookup
 } from './connection-policy';
 import { openDatabase } from '../db/schema';
+import { syncErrorKind } from './error-kind';
 
 const PUBLIC_ONLY: ConnectionPolicy = { allowedHosts: [], proxy: false };
 const LISTED = { allowedHosts: ['gitlab.acme.example'], proxy: false };
@@ -142,6 +143,27 @@ describe('checkConnection', () => {
 		await expect(checkConnection('https://10.0.0.5/x.git', PUBLIC_ONLY)).rejects.toThrow(
 			"The server may not connect to 10.0.0.5. If it is your organisation's Git server, ask the person running grimoire to add it to GIT_ALLOWED_HOSTS."
 		);
+	});
+});
+
+describe('the kind of a failed connection check', () => {
+	async function failure(url: string, lookup: Lookup) {
+		return (await checkConnection(url, PUBLIC_ONLY, lookup).catch((error) => error)) as Error;
+	}
+
+	it('tells a host without an address from a refused host', async () => {
+		const noAddress = await failure('https://docs.acme.example/a.git', resolvingTo());
+		const unknownName = await failure('https://docs.acme.example/a.git', async () => {
+			// What Node's lookup rejects with for a name no DNS server knows.
+			throw Object.assign(new Error('getaddrinfo ENOTFOUND docs.acme.example'), {
+				code: 'ENOTFOUND'
+			});
+		});
+		const refused = await failure('https://10.0.0.5/a.git', resolvingTo('10.0.0.5'));
+
+		expect(syncErrorKind(noAddress.message)).toBe('noAddress');
+		expect(syncErrorKind(unknownName.message)).toBe('noAddress');
+		expect(syncErrorKind(refused.message)).toBe('forbidden');
 	});
 });
 

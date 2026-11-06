@@ -6,6 +6,7 @@ import { splitCode } from '../parsing/markdown.ts';
 import { preprocessPage } from '../parsing/preprocess.ts';
 import type { SiteConfig } from '../parsing/site-config.ts';
 import { configuredSlugify, pythonMarkdownSlugify, type Slugify } from '../parsing/slugs.ts';
+import { SyncFailure } from './failure.ts';
 
 /** A page with its includes resolved, ready to be turned into snippets. */
 export interface PreparedPage {
@@ -58,7 +59,7 @@ export function indexPages(job: PagesToIndex): Omit<SourceIndex, 'commit'> {
 	}
 
 	if (job.pages.length > 0 && indexed.length === 0) {
-		throw new Error(`no page could be indexed, ${warnings.at(-1)}`);
+		throw new SyncFailure('noPage', `no page could be indexed, ${warnings.at(-1)}`);
 	}
 
 	const linked = resolveLinks(new Map(indexed.map((page) => [page.file, page.chunked])));
