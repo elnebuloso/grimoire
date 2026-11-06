@@ -212,14 +212,23 @@ describe('searchSnippets', () => {
 		]);
 	});
 
-	it('searches only the first words of a long question', () => {
+	it('searches the 16 longest different words of a long question', () => {
 		addPage(addSource('platform'), 'deploy.md', { title: 'Deploy', text: 'rollback steps' });
-		const words = (count: number) =>
-			Array.from({ length: count }, (_, index) => `word${index}`).join(' ');
+		const short = Array.from({ length: 16 }, (_, index) => `w${index}`).join(' ');
+		const long = Array.from({ length: 16 }, (_, index) => `configuration${index}`).join(' ');
 
 		expect(
-			sourceIds(searchSnippets(db, { query: `${words(15)} rollback`, allowedSources: 'all' }))
+			sourceIds(searchSnippets(db, { query: `${short} rollback`, allowedSources: 'all' }))
 		).toEqual(['platform/deploy']);
-		expect(searchSnippets(db, { query: `${words(16)} rollback`, allowedSources: 'all' })).toBe('');
+		expect(searchSnippets(db, { query: `${long} rollback`, allowedSources: 'all' })).toBe('');
+		expect(
+			sourceIds(
+				searchSnippets(db, {
+					query:
+						'How do I configure the retry policy and the timeout for outgoing HTTP requests in the payment gateway rollback?',
+					allowedSources: 'all'
+				})
+			)
+		).toEqual(['platform/deploy']);
 	});
 });

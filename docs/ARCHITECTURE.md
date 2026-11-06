@@ -348,7 +348,7 @@ Reading
 - Before making assumptions about internal systems, call `query` with a concrete
   question. Pass the sources if known, otherwise search everything.
 - `query` returns matching sections within a token budget; "Did not fit:" lists the IDs
-  of the other hits. For more context, `read` the ID from "Source:". Read whole pages only when needed. Over HTTP, `#anchor`
+  of the other hits. Its 16 longest words count. For more context, `read` the ID from "Source:". Read whole pages only when needed. Over HTTP, `#anchor`
   becomes `?section=anchor`.
 - No results: try other terms, then look at a source's `index`.
 

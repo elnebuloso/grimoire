@@ -204,8 +204,10 @@ export function hasSearchTerms(query: string): boolean {
 // OR keeps natural-language questions matching; BM25 still ranks hits with more terms higher.
 function toMatchExpression(query: string): string {
 	const words = query.match(SEARCH_WORD) ?? [];
+	// The longest words: a long question starts with "how do I", and its specific terms come last.
 	const distinct = [...new Set(words.map((word) => word.toLowerCase()))];
 	return distinct
+		.toSorted((a, b) => b.length - a.length)
 		.slice(0, MAX_SEARCH_TERMS)
 		.map((word) => `"${word}"`)
 		.join(' OR ');
