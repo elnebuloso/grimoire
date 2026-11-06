@@ -1,9 +1,11 @@
 ---
 id: TASK-335
 title: 'Includes: find named sections in files with CRLF line endings'
-status: To Do
-assignee: []
+status: Done
+assignee:
+  - '@claude'
 created_date: '2026-11-06 22:05'
+updated_date: '2026-11-06 22:21'
 labels:
   - parsing
 dependencies: []
@@ -28,7 +30,27 @@ Found by the second whole-repo audit on 2026-11-06 (HEAD 06aada8).
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 A named section in a CRLF file is included like in an LF file
-- [ ] #2 Marker lines of a CRLF page are removed from the output
-- [ ] #3 Specs in `include.spec.ts` cover CRLF
+- [x] #1 A named section in a CRLF file is included like in an LF file
+- [x] #2 Marker lines of a CRLF page are removed from the output
+- [x] #3 Specs in `include.spec.ts` cover CRLF
 <!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. Spec: a named section in a CRLF file is found; markers of a whole CRLF file and of a CRLF page are removed
+2. include.ts splits lines with /\r?\n/ everywhere (LINE_BREAK), as pymdownx strips line endings per line
+<!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+- The spec failed before and passes after; all parsing specs and index-source.spec.ts pass (135 tests).
+- Pages and included files leave resolveIncludes with LF line endings; Markdown parsing reads both the same.
+<!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Include resolution now splits lines on CRLF as well as LF, like pymdownx, so named sections (`file.md:name`) are found in files saved with Windows line endings and their marker lines are removed from CRLF pages and files instead of staying in the text. Covered by a spec in include.spec.ts.
+<!-- SECTION:FINAL_SUMMARY:END -->

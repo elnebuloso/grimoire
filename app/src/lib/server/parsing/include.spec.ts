@@ -188,6 +188,16 @@ describe('resolveIncludes', () => {
 			expect(result.warnings).toEqual([]);
 		});
 
+		it('finds a section and removes the markers in a file with CRLF line endings', () => {
+			const crlf = { 'docs/b.md': 'x\r\n--8<-- [start:s]\r\nIN\r\n--8<-- [end:s]\r\n' };
+
+			const section = resolve('--8<-- "docs/b.md:s"', crlf);
+			expect(section.markdown).toBe('IN');
+			expect(section.warnings).toEqual([]);
+			expect(resolve('--8<-- "docs/b.md"', crlf).markdown).toBe('x\nIN');
+			expect(resolve('a\r\n--8<-- [start:s]\r\nb\r\n', {}).markdown).toBe('a\nb\n');
+		});
+
 		it('removes the markers when the whole file is included', () => {
 			expect(resolve('--8<-- "app.py"', files).markdown).toBe(
 				'import os\ndef main():\n    # --8<-- [start:kept]\n    print("hi")\nx = 1'

@@ -39,6 +39,7 @@ const BLOCK_MARKER = /^([ \t]*)(;*)-+8<-+\r?$/;
 const FIRST_RANGE = /^(?::-?[0-9]*){1,2}$/;
 const LATER_RANGE = /^(?=[-0-9:])-?[0-9]*(?::-?[0-9]*)?$/;
 const SECTION_NAME = /^[a-z][-_0-9a-z]*$/i;
+const LINE_BREAK = /\r?\n/;
 // `--8<-- [start:name]` anywhere on a line, so it may sit inside a code comment. The lookbehinds
 // let a match start only where a run of `;` or `-` starts – the first match pymdownx's leading
 // `^(.*?)` finds – instead of at every dash of a long run, which took quadratic time.
@@ -70,7 +71,8 @@ export function resolveIncludes(
 	const sourcePath = posix.normalize(page.sourcePath).replace(/\/$/, '');
 
 	function expand(text: string, chain: string[], isSection = false): string[] {
-		const lines = text.split('\n');
+		// Line endings go, as pymdownx strips them: a marker line ending in `\r` must still match.
+		const lines = text.split(LINE_BREAK);
 		const output: string[] = [];
 
 		for (let i = 0; i < lines.length; i++) {
@@ -130,11 +132,11 @@ export function resolveIncludes(
 
 		const content = isUrl ? fetched(target) : readLocal(target);
 		if (content === undefined) return [];
-		let lines = content.replace(/\r?\n$/, '').split('\n');
+		let lines = content.replace(/\r?\n$/, '').split(LINE_BREAK);
 		// Counted like pymdownx.snippets, where a final newline makes a last, empty line.
-		if (ranges) lines = selectLines(content.split('\n'), ranges);
+		if (ranges) lines = selectLines(content.split(LINE_BREAK), ranges);
 		if (section) {
-			const selected = extractSection(content.split('\n'), section);
+			const selected = extractSection(content.split(LINE_BREAK), section);
 			if (!selected) {
 				warnings.push(`${page.path}: include "${target}" has no section "${section}"`);
 				return [];
