@@ -33,12 +33,14 @@ export function readHidden(question: string): Promise<string> {
 			}
 		};
 		process.stdin.on('data', onData);
+		// Before the earlier input: a line found in it pauses stdin again, and a running stdin
+		// would keep the script from exiting.
+		process.stdin.resume();
 		if (pending) {
 			const earlier = pending;
 			pending = '';
 			onData(earlier);
 		}
-		process.stdin.resume();
 	});
 }
 
