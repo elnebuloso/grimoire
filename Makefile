@@ -53,7 +53,8 @@ admin-grant: ## Make an existing account an admin: EMAIL=<address>, add PASSWORD
 	cd app && node --env-file-if-exists=.env ../scripts/grant-admin.ts $(EMAIL) $(if $(PASSWORD),--password)
 
 # Without --python, uv picked an interpreter for which it built zensical from source.
-handbook: ## Build the handbook site into site/
+handbook: ## Build the handbook site into site/, failing on a page missing from nav
+	uv run --python 3.12 --no-project scripts/check-handbook-nav.py
 	uvx --python 3.12 zensical==0.0.70 build --strict
 
 agent-start: ## Start the agent environment on port 5174 in the background, mails at http://localhost:5825
