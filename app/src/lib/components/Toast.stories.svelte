@@ -1,6 +1,6 @@
 <script module lang="ts">
 	import { defineMeta } from '@storybook/addon-svelte-csf';
-	import { expect, fn, userEvent, waitFor } from 'storybook/test';
+	import { expect, fn, spyOn, userEvent, waitFor } from 'storybook/test';
 	import Toast from './Toast.svelte';
 
 	const { Story } = defineMeta({
@@ -63,12 +63,46 @@
 
 <Story
 	name="Kept while the pointer rests on it"
-	args={{ items: [revoked], duration: 1000 }}
+	args={{ items: [revoked], duration: 600_000 }}
 	play={async ({ args, canvas }) => {
-		await userEvent.hover(canvas.getByRole('listitem'));
-		await new Promise((resolve) => setTimeout(resolve, 1500));
-		await expect(args.ondismiss).not.toHaveBeenCalled();
-		await userEvent.unhover(canvas.getByRole('listitem'));
-		await waitFor(() => expect(args.ondismiss).toHaveBeenCalledWith(1), { timeout: 3000 });
+		// The timer started at mount runs in real time but not within the story; the ones after it
+		// wait in `pending` until the story lets them run, so no hover races a clock.
+		const pending = new Map<number, () => void>();
+		let nextId = 1_000_000;
+		const realSet = window.setTimeout;
+		const realClear = window.clearTimeout;
+		const set = spyOn(window, 'setTimeout').mockImplementation(((
+			run: () => void,
+			delay?: number,
+			...rest: unknown[]
+		) => {
+			if (delay !== args.duration) return realSet(run, delay, ...rest);
+			pending.set(++nextId, run);
+			return nextId;
+		}) as typeof setTimeout);
+		const clear = spyOn(window, 'clearTimeout').mockImplementation((id) => {
+			if (!pending.delete(id as number)) realClear(id);
+		});
+		const elapse = () => {
+			const due = [...pending.values()];
+			pending.clear();
+			due.forEach((run) => run());
+		};
+		try {
+			const item = canvas.getByRole('listitem');
+			await userEvent.hover(item);
+			await expect(clear).toHaveBeenCalled();
+			await expect(pending.size).toBe(0);
+			elapse();
+			await expect(args.ondismiss).not.toHaveBeenCalled();
+
+			await userEvent.unhover(item);
+			await expect(pending.size).toBe(1);
+			elapse();
+			await expect(args.ondismiss).toHaveBeenCalledWith(1);
+		} finally {
+			set.mockRestore();
+			clear.mockRestore();
+		}
 	}}
 />
