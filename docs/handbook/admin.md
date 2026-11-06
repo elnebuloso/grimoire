@@ -72,7 +72,9 @@ sessions are logged out; the browser you changed it in stays logged in.
 Only admins add, change, sync, rename and delete sources; users read them and create their own API
 keys (see [Your account and API keys](users.md)).
 
-`Management > Content > Sources` lists every source and starts **New source**. A source opens on
+`Management > Content > Sources` lists every source and starts **New source**. This list, the
+users, all API keys and the queries without results show 100 rows a page; search, filters, sort and
+page stand in the address, so a filtered list can be bookmarked or sent to someone. A source opens on
 its **Status**; **Pages**, **History** and **Settings** are tabs beside it, and **Delete source**
 sits under **Danger zone** on **Settings**. The numbers beside
 the sidebar entries count what needs you: sources with a sync error, dead links, duplicate pairs

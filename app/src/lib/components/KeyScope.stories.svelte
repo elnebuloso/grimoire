@@ -15,6 +15,14 @@
 />
 
 <Story
+	name="No source left"
+	args={{ allSources: false, slugs: [] }}
+	play={async ({ canvas }) => {
+		await expect(canvas.getByText('no sources')).toBeVisible();
+	}}
+/>
+
+<Story
 	name="A few sources"
 	args={{ allSources: false, slugs: ['billing-docs', 'platform-docs'] }}
 	play={async ({ canvas }) => {

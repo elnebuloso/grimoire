@@ -2,6 +2,7 @@
 	import { resolve } from '$app/paths';
 	import DeadLinkList from '#lib/components/DeadLinkList.svelte';
 	import PageHead from '#lib/components/PageHead.svelte';
+	import SourceLabel from '#lib/components/SourceLabel.svelte';
 	import { m } from '#lib/paraglide/messages.js';
 	import type { PageProps } from './$types';
 
@@ -17,9 +18,11 @@
 		{#each data.groups as group (group.sourceId)}
 			<section class="sheet" aria-labelledby="source-{group.sourceId}">
 				<h2 id="source-{group.sourceId}">
-					<a href={resolve('/manage/sources/[id]/[[tab=tab]]', { id: String(group.sourceId) })}
-						><code>{group.source}</code></a
-					>
+					<SourceLabel
+						name={group.name}
+						slug={group.source}
+						href={resolve('/manage/sources/[id]/[[tab=tab]]', { id: String(group.sourceId) })}
+					/>
 				</h2>
 				<DeadLinkList links={group.links} />
 			</section>

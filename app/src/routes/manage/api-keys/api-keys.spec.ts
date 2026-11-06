@@ -18,12 +18,23 @@ beforeEach(() => {
 
 describe('all API keys', () => {
 	it('lists every key with its owner, never the key', () => {
-		expect(page.load({} as never)).toMatchObject({
-			keys: [
-				{ name: 'ci', owner: 'admin@example.com', lastUsedAt: null },
-				{ name: 'laptop', owner: 'writer@example.com', lastUsedAt: null }
-			]
+		expect(
+			page.load({ url: new URL('https://grimoire.example/manage/api-keys') } as never)
+		).toMatchObject({
+			keys: {
+				rows: [
+					{ name: 'ci', owner: 'admin@example.com', lastUsedAt: null },
+					{ name: 'laptop', owner: 'writer@example.com', lastUsedAt: null }
+				],
+				total: 2
+			}
 		});
+		// Found by the owner as well as by the name.
+		expect(
+			page.load({
+				url: new URL('https://grimoire.example/manage/api-keys?search=writer')
+			} as never)
+		).toMatchObject({ keys: { rows: [{ name: 'laptop' }], total: 1 }, filtered: true });
 	});
 
 	it("revokes another user's key", async () => {

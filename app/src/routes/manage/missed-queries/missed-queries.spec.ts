@@ -16,11 +16,17 @@ beforeEach(() => {
 
 describe('queries without results page', () => {
 	it('lists the recorded queries', () => {
-		expect(page.load({ locals: { user: ADMIN } } as never)).toEqual({ queries: [] });
+		const load = (search = '') =>
+			page.load({
+				locals: { user: ADMIN },
+				url: new URL(`https://grimoire.example/manage/missed-queries${search}`)
+			} as never);
+		expect(load()).toMatchObject({ queries: { rows: [], total: 0 }, filtered: false });
 
 		recordMissedQuery(db, { question: 'vpn', sources: ['platform-docs'] }, new Date());
-		expect(page.load({ locals: { user: ADMIN } } as never)).toMatchObject({
-			queries: [{ question: 'vpn', sources: ['platform-docs'], count: 1 }]
+		expect(load()).toMatchObject({
+			queries: { rows: [{ question: 'vpn', sources: ['platform-docs'], count: 1 }] }
 		});
+		expect(load('?search=kubernetes')).toMatchObject({ queries: { total: 0 }, filtered: true });
 	});
 });

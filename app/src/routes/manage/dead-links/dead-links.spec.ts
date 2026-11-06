@@ -45,6 +45,6 @@ describe('dead links page', () => {
 			['billing-docs', ['billing-docs/z']],
 			['platform-auth', ['platform-auth/x', 'platform-auth/y']]
 		]);
-		expect(Object.keys(groups[0]).sort()).toEqual(['links', 'source', 'sourceId']);
+		expect(Object.keys(groups[0]).sort()).toEqual(['links', 'name', 'source', 'sourceId']);
 	});
 });

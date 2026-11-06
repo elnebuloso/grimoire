@@ -19,6 +19,8 @@ export interface ListSpec<Row> {
 	filters?: Record<string, (row: Row) => string>;
 	/** Sort keys, the first the default. A null value sorts last. */
 	sorts: Record<string, (row: Row) => string | number | null>;
+	/** The sort without one in the URL, `-` first for descending; else the first, ascending. */
+	defaultSort?: string;
 }
 
 export interface ListPage<Row> {
@@ -31,7 +33,7 @@ export interface ListPage<Row> {
 
 /** Reads the state of a list from `url`, ignoring values the list does not know. */
 export function readListParams<Row>(url: URL, spec: ListSpec<Row>): ListParams {
-	const sortParam = url.searchParams.get('sort') ?? '';
+	const sortParam = url.searchParams.get('sort') || spec.defaultSort || '';
 	const descending = sortParam.startsWith('-');
 	const sortKey = descending ? sortParam.slice(1) : sortParam;
 	const known = sortKey in spec.sorts;

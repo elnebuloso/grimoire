@@ -52,6 +52,16 @@ describe('readListParams', () => {
 		});
 		expect(params('page=0').page).toBe(1);
 	});
+
+	it('takes the default sort of the list, descending where it says so', () => {
+		const spec = { ...SPEC, defaultSort: '-checked' };
+		const url = (query: string) => new URL(`https://grimoire.example/x?${query}`);
+		expect(readListParams(url(''), spec)).toMatchObject({ sort: 'checked', descending: true });
+		expect(readListParams(url('sort=name'), spec)).toMatchObject({
+			sort: 'name',
+			descending: false
+		});
+	});
 });
 
 describe('listPage', () => {

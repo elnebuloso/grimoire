@@ -7,7 +7,7 @@ import { listSources } from '#lib/server/admin/sources.js';
 export const load: PageServerLoad = () => ({
 	pairs: findOverlaps(listSources(database())).map(({ kind, first, second }) => ({
 		kind,
-		first: { id: first.id, slug: first.slug },
-		second: { id: second.id, slug: second.slug }
+		first: { id: first.id, slug: first.slug, name: first.name },
+		second: { id: second.id, slug: second.slug, name: second.name }
 	}))
 });

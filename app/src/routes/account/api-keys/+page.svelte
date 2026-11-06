@@ -5,6 +5,7 @@
 	import ChoiceField from '#lib/components/ChoiceField.svelte';
 	import ConfirmAction from '#lib/components/ConfirmAction.svelte';
 	import DateTime from '#lib/components/DateTime.svelte';
+	import KeyScope from '#lib/components/KeyScope.svelte';
 	import PageHead from '#lib/components/PageHead.svelte';
 	import ShownOnce from '#lib/components/ShownOnce.svelte';
 	import RequestsPerDay from '#lib/components/RequestsPerDay.svelte';
@@ -110,9 +111,10 @@
 						<div class="facts">
 							<strong>{key.name}</strong>
 							<p>
-								{#if key.sources === 'all'}{m.apikeys_all_sources()}{:else if key.sources.length > 0}<code
-										>{key.sources.join(', ')}</code
-									>{:else}{m.apikeys_no_sources()}{/if}
+								<KeyScope
+									allSources={key.sources === 'all'}
+									slugs={key.sources === 'all' ? [] : key.sources}
+								/>
 							</p>
 							<p class="meta">
 								<span

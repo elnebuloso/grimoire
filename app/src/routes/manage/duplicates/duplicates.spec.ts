@@ -32,18 +32,18 @@ describe('duplicate sources page', () => {
 			pairs: [
 				{
 					kind: 'overlap',
-					first: { id: 3, slug: 'platform-api' },
-					second: { id: 1, slug: 'platform-docs' }
+					first: { id: 3, slug: 'platform-api', name: 'Platform API' },
+					second: { id: 1, slug: 'platform-docs', name: 'Platform' }
 				},
 				{
 					kind: 'overlap',
-					first: { id: 3, slug: 'platform-api' },
-					second: { id: 2, slug: 'platform-next' }
+					first: { id: 3, slug: 'platform-api', name: 'Platform API' },
+					second: { id: 2, slug: 'platform-next', name: 'Platform next' }
 				},
 				{
 					kind: 'duplicate',
-					first: { id: 1, slug: 'platform-docs' },
-					second: { id: 2, slug: 'platform-next' }
+					first: { id: 1, slug: 'platform-docs', name: 'Platform' },
+					second: { id: 2, slug: 'platform-next', name: 'Platform next' }
 				}
 			]
 		});

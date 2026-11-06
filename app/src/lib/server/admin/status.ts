@@ -36,13 +36,14 @@ export interface SyncHistoryEntry {
 export interface DeadLinkInSource extends DeadLink {
 	sourceId: number;
 	source: string;
+	name: string;
 }
 
 /** The dead links of all sources, or of one, by source and page. */
 export function deadLinks(db: DatabaseSync, sourceId?: number): DeadLinkInSource[] {
 	return db
 		.prepare(
-			`SELECT sources.id AS sourceId, sources.slug AS source, pages.file, links.anchor,
+			`SELECT sources.id AS sourceId, sources.slug AS source, sources.name, pages.file, links.anchor,
 				links.target
 			FROM links
 			JOIN live_pages AS pages ON pages.id = links.page_id

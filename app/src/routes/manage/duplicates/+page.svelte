@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import PageHead from '#lib/components/PageHead.svelte';
-	import TableScroll from '#lib/components/TableScroll.svelte';
+	import DataTable from '#lib/components/DataTable.svelte';
+	import SourceLabel from '#lib/components/SourceLabel.svelte';
 	import { m } from '#lib/paraglide/messages.js';
 	import type { PageProps } from './$types';
 
@@ -10,39 +11,37 @@
 
 <PageHead title={m.duplicates_title()}><p>{m.duplicates_lead()}</p></PageHead>
 
-<section class="sheet flush">
-	{#if data.pairs.length === 0}
-		<p class="muted">{m.duplicates_none()}</p>
-	{:else}
-		<TableScroll label={m.duplicates_title()}>
-			<table>
-				<thead>
-					<tr>
-						<th scope="col">{m.duplicates_kind()}</th>
-						<th scope="col">{m.sources()}</th>
-					</tr>
-				</thead>
-				<tbody>
-					{#each data.pairs as pair (`${pair.first.id}-${pair.second.id}`)}
-						<tr>
-							<td>
-								{pair.kind === 'duplicate'
-									? m.duplicates_kind_duplicate()
-									: m.duplicates_kind_overlap()}
-							</td>
-							<td>
-								<a href={resolve('/manage/sources/[id]/[[tab=tab]]', { id: String(pair.first.id) })}
-									><code>{pair.first.slug}</code></a
-								>,
-								<a
-									href={resolve('/manage/sources/[id]/[[tab=tab]]', { id: String(pair.second.id) })}
-									><code>{pair.second.slug}</code></a
-								>
-							</td>
-						</tr>
+<section class="sheet flush" aria-label={m.duplicates_title()}>
+	<DataTable
+		label={m.duplicates_title()}
+		list={{ rows: data.pairs, total: data.pairs.length, page: 1, pageCount: 1 }}
+		key={(pair) => `${pair.first.id}-${pair.second.id}`}
+		columns={[{ label: m.duplicates_kind() }, { label: m.sources() }]}
+	>
+		{#snippet row(pair)}
+			<td>
+				{pair.kind === 'duplicate' ? m.duplicates_kind_duplicate() : m.duplicates_kind_overlap()}
+			</td>
+			<td>
+				<div class="pair">
+					{#each [pair.first, pair.second] as source (source.id)}
+						<SourceLabel
+							name={source.name}
+							slug={source.slug}
+							href={resolve('/manage/sources/[id]/[[tab=tab]]', { id: String(source.id) })}
+						/>
 					{/each}
-				</tbody>
-			</table>
-		</TableScroll>
-	{/if}
+				</div>
+			</td>
+		{/snippet}
+		{#snippet empty()}<p class="muted">{m.duplicates_none()}</p>{/snippet}
+	</DataTable>
 </section>
+
+<style>
+	.pair {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--s5);
+	}
+</style>

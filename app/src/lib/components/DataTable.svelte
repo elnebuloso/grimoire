@@ -19,6 +19,7 @@
 		row,
 		search,
 		filters = [],
+		defaultSort,
 		empty
 	}: {
 		/** Names the table and its scroll region. */
@@ -32,12 +33,14 @@
 		/** The label of the search field; no field without it. */
 		search?: string;
 		filters?: { name: string; label: string; options: { value: string; label: string }[] }[];
+		/** The `defaultSort` of the list on the server, where it is not its first column ascending. */
+		defaultSort?: string;
 		/** Shown in place of the table when nothing is listed. */
 		empty: Snippet;
 	} = $props();
 
 	const params = $derived(page.url.searchParams);
-	const sortParam = $derived(params.get('sort') ?? '');
+	const sortParam = $derived(params.get('sort') || defaultSort || '');
 	const searchId = $props.id();
 
 	function show(changes: Record<string, string>) {

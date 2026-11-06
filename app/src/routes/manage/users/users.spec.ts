@@ -36,11 +36,21 @@ beforeEach(() => {
 describe('users page', () => {
 	it('lists users with roles and pending invitations with the time sent', () => {
 		inviteUser(db, 'new@example.com', 1, new Date('2026-11-03T09:00:00.000Z'));
-		expect(page.load({ locals: { user: ADMIN } } as never)).toMatchObject({
-			users: [
-				{ email: 'admin@example.com', roles: ['admin'] },
-				{ email: 'writer@example.com', roles: [] }
-			],
+		const load = (search = '') =>
+			page.load({
+				locals: { user: ADMIN },
+				url: new URL(`https://grimoire.example/manage/users${search}`)
+			} as never);
+		expect(load('?role=user')).toMatchObject({
+			users: { rows: [{ email: 'writer@example.com' }], total: 1 }
+		});
+		expect(load()).toMatchObject({
+			users: {
+				rows: [
+					{ email: 'admin@example.com', roles: ['admin'] },
+					{ email: 'writer@example.com', roles: [] }
+				]
+			},
 			invitations: [{ email: 'new@example.com', sentAt: '2026-11-03T09:00:00.000Z' }],
 			me: 1
 		});

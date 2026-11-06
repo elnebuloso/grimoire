@@ -112,6 +112,7 @@ describe('deadLinks', () => {
 			{
 				sourceId: 1,
 				source: 'auth',
+				name: 'Auth',
 				file: 'deploy.md',
 				anchor: 'rollback',
 				target: 'auth/gone'
@@ -119,6 +120,7 @@ describe('deadLinks', () => {
 			{
 				sourceId: 2,
 				source: 'billing',
+				name: 'Billing',
 				file: 'index.md',
 				anchor: null,
 				target: 'billing/old'

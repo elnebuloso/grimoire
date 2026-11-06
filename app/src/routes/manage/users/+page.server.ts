@@ -18,14 +18,22 @@ import { describeLinks } from '#lib/server/oidc/index.js';
 import { removeIdentity } from '#lib/server/oidc/identities.js';
 import { publicOrigin } from '#lib/server/public-origin.js';
 import { m } from '#lib/paraglide/messages.js';
+import { listPage, readListParams, type ListSpec } from '#lib/list.js';
 
-export const load: PageServerLoad = ({ locals }) => {
+const USER_LIST: ListSpec<{ email: string; roles: string[] }> = {
+	search: (user) => user.email,
+	filters: { role: (user) => (user.roles.includes('admin') ? 'admin' : 'user') },
+	sorts: { email: (user) => user.email }
+};
+
+export const load: PageServerLoad = ({ locals, url }) => {
 	const db = database();
+	const users = listUsers(db).map(({ issuers, ...user }) => ({
+		...user,
+		links: describeLinks(issuers)
+	}));
 	return {
-		users: listUsers(db).map(({ issuers, ...user }) => ({
-			...user,
-			links: describeLinks(issuers)
-		})),
+		users: listPage(users, readListParams(url, USER_LIST), USER_LIST),
 		invitations: listInvitations(db),
 		// The own account offers no delete: an admin cannot delete themselves.
 		me: locals.user!.id,

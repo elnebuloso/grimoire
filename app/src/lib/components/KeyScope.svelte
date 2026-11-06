@@ -10,6 +10,8 @@
 
 {#if allSources}
 	<span>{m.apikeys_all_sources()}</span>
+{:else if slugs.length === 0}
+	<span>{m.apikeys_no_sources()}</span>
 {:else if rest <= 0}
 	<span
 		>{#each slugs as slug, index (slug)}{#if index > 0},
