@@ -1,9 +1,11 @@
 ---
 id: TASK-274
 title: 'German texts: one word per term, du in fix hints'
-status: To Do
-assignee: []
+status: Done
+assignee:
+  - '@claude'
 created_date: '2026-11-06 15:56'
+updated_date: '2026-11-06 18:10'
 labels: []
 dependencies: []
 priority: medium
@@ -26,9 +28,32 @@ A search for the "Not" terms passes, so the obvious check cannot see any of this
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Each listed term has one German word throughout `de.json`; owner, operator and duplicate get glossary rows
-- [ ] #2 The `admin_fix_*` hints address the reader with „du“
-- [ ] #3 „Dokumentations-Website“ and the masculine gender of Account are used; „Access-Token“ is either replaced or named as an exception in the glossary
-- [ ] #4 The glossary English column uses the word the English texts use
-- [ ] #5 Tests that assert changed texts are run (search `*.e2e.ts`, `*.spec.ts`, `*.stories.svelte`)
+- [x] #1 Each listed term has one German word throughout `de.json`; owner, operator and duplicate get glossary rows
+- [x] #2 The `admin_fix_*` hints address the reader with „du“
+- [x] #3 „Dokumentations-Website“ and the masculine gender of Account are used; „Access-Token“ is either replaced or named as an exception in the glossary
+- [x] #4 The glossary English column uses the word the English texts use
+- [x] #5 Tests that assert changed texts are run (search `*.e2e.ts`, `*.spec.ts`, `*.stories.svelte`)
 <!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. de.json: Anmeldedienst for every provider text, Besitzer, Duplikat, Betreiber, Zugriffstoken, Dokumentations-Website, masculine Account
+2. The admin_fix_* hints in du form
+3. Glossary: English column says identity provider; rows for owner, operator, duplicate, documentation site; Access-Token among the Not terms; du in hints and Account masculine noted
+4. Search tests for the changed texts
+<!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+- Owner decision: Anmeldedienst, Besitzer, Duplikat, Betreiber, Zugriffstoken.
+- Searched *.e2e.ts, *.spec.ts and *.stories.svelte for every changed text: none asserts one, so no test file changed. The full suites run at the end of the batch.
+- The three new fix hints from TASK-268 were already in du form.
+<!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+de.json now uses one German word per term (Anmeldedienst, Besitzer, Duplikat, Betreiber, Zugriffstoken, Dokumentations-Website), treats Account as masculine, and the admin fix hints address the reader with du. The glossary names the English term the texts use (identity provider) and has rows for the new terms. No test asserted the changed texts.
+<!-- SECTION:FINAL_SUMMARY:END -->
