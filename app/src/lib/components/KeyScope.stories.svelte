@@ -41,6 +41,7 @@
 	play={async ({ canvas }) => {
 		const summary = canvas.getByText(/and 3 more/);
 		await expect(summary).toBeVisible();
+		await expect(summary.textContent).toBe('auth, billing-docs, cli, and 3 more');
 		await expect(canvas.getByText('events')).not.toBeVisible();
 		await userEvent.click(summary);
 		await expect(canvas.getByText('events')).toBeVisible();

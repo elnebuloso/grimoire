@@ -2,7 +2,7 @@ import { error, fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { INSTANCE_TITLE } from '$app/env/private';
 import { database } from '#lib/server/db/index.js';
-import { requestPasswordReset } from '#lib/server/auth/password-reset.js';
+import { requestPasswordReset, withdrawPasswordReset } from '#lib/server/auth/password-reset.js';
 import { authMessage } from '#lib/server/auth/auth-messages.js';
 import { mailer } from '#lib/server/mail/index.js';
 import { m } from '#lib/paraglide/messages.js';
@@ -27,11 +27,15 @@ export const actions = {
 		if (result) {
 			const url = mail.link(`/login/reset/${result.token}`);
 			// Not awaited: the answer must not take longer for an address that has an account.
-			void mail.send({
-				to: result.to,
-				subject: m.mail_reset_subject({ name: INSTANCE_TITLE }),
-				text: m.mail_reset_text({ email: result.to, url, name: INSTANCE_TITLE })
-			});
+			void mail
+				.send({
+					to: result.to,
+					subject: m.mail_reset_subject({ name: INSTANCE_TITLE }),
+					text: m.mail_reset_text({ email: result.to, url, name: INSTANCE_TITLE })
+				})
+				.then((sent) => {
+					if (!sent) withdrawPasswordReset(database(), result);
+				});
 		}
 		return { sent: true };
 	}

@@ -44,6 +44,15 @@ export function requestPasswordReset(
 }
 
 /**
+ * Withdraws a link of `requestPasswordReset` whose mail could not be sent: it stops working and no
+ * longer counts against the requests for its address. The client's request still counts.
+ */
+export function withdrawPasswordReset(db: DatabaseSync, link: { to: string; token: string }) {
+	db.prepare('DELETE FROM password_resets WHERE token_hash = ?').run(sha256(link.token));
+	addressRequests.giveBack(link.to);
+}
+
+/**
  * A link an admin creates for the account `userId` to set its password, for an account without
  * one or when no mail server can send the reset. Voids the account's earlier links; the current
  * password stays valid until the link is used. Undefined for an unknown account.

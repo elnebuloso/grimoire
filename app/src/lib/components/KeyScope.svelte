@@ -13,15 +13,15 @@
 {:else if slugs.length === 0}
 	<span>{m.apikeys_no_sources()}</span>
 {:else if rest <= 0}
-	<!-- The space as an expression: Svelte trims whitespace at the edges of a block. -->
+	<!-- Spaces as expressions here and below: Svelte trims whitespace at the edges of a block. -->
 	<span
 		>{#each slugs as slug, index (slug)}{index > 0 ? ', ' : ''}<code>{slug}</code>{/each}</span
 	>
 {:else}
 	<details>
 		<summary
-			>{#each slugs.slice(0, SHOWN) as slug (slug)}<code>{slug}</code>,
-			{/each}{m.key_scope_more({ count: rest })}</summary
+			>{#each slugs.slice(0, SHOWN) as slug (slug)}<code>{slug}</code
+				>{', '}{/each}{m.key_scope_more({ count: rest })}</summary
 		>
 		<ul>
 			{#each slugs as slug (slug)}<li><code>{slug}</code></li>{/each}

@@ -143,6 +143,19 @@ describe('with SMTP', () => {
 			status: 502,
 			data: { error: expect.stringContaining('could not be sent') }
 		});
+		// The unsent link is withdrawn and counts against nothing: three more still go out.
+		const unsent = linkToken();
+		expect(
+			await pages.reset.load(event('/login/reset/x', undefined, { token: unsent }))
+		).toMatchObject({ valid: false });
+		for (let attempt = 0; attempt < 3; attempt++) {
+			expect(
+				await pages.account.actions.passwordLink({
+					...(event('/account?/passwordLink', {}) as object),
+					locals: { user }
+				} as never)
+			).toEqual({ linkSent: EMAIL });
+		}
 	});
 
 	it('links to the reset from the login page', async () => {

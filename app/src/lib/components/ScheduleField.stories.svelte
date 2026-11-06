@@ -57,3 +57,25 @@
 		await expect(input).toHaveAccessibleDescription('Not a valid schedule yet.');
 	}}
 />
+
+<Story
+	name="Refused, pointing to the form's message too"
+	play={async ({ canvas }) => {
+		const input = canvas.getByRole('textbox', { name: field });
+		await expect(input).toHaveAttribute('aria-invalid', 'true');
+		// The message of the form and the field's own explanation, both read.
+		await expect(input).toHaveAccessibleDescription(
+			/^Enter five cron fields\. Next runs \(Europe\/Berlin\): /
+		);
+	}}
+>
+	{#snippet template()}
+		<p id="schedule-error">Enter five cron fields.</p>
+		<ScheduleField
+			{...args}
+			value="0 6 * * 1-5"
+			aria-invalid="true"
+			aria-describedby="schedule-error"
+		/>
+	{/snippet}
+</Story>

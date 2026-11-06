@@ -23,6 +23,10 @@ export function createAttemptLimit(max: number, windowMinutes: number) {
 			attempts.set(key, [...times, now.getTime()]);
 			return true;
 		},
+		/** Takes back the latest attempt of `key`, such as a request whose mail never went out. */
+		giveBack(key: string) {
+			attempts.get(key)?.pop();
+		},
 		/** Forgets the attempts of `key`, such as a client's failed logins once one succeeded. */
 		forget(key: string) {
 			attempts.delete(key);

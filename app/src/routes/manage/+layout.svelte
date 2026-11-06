@@ -66,7 +66,11 @@
 			entries: [
 				{
 					route: '/manage/users',
-					href: resolve('/manage/users'),
+					// The count is of invitations, so it leads to them while there are any.
+					href:
+						data.counts.invitations > 0
+							? `${resolve('/manage/users')}?tab=invitations`
+							: resolve('/manage/users'),
 					label: m.users_title(),
 					count: data.counts.invitations,
 					describe: (count) => m.manage_count_invitations({ count })

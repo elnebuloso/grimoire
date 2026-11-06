@@ -657,6 +657,10 @@ test('invites a user who reads internal sources with their own key, but manages 
 	await asAdmin(page);
 	await invite(page, writer);
 	await expect(toasts(page)).toContainText(`Invitation sent to ${writer}.`);
+	// The count beside Users is of invitations, and leads to them.
+	await expect(
+		page.getByRole('navigation', { name: 'Management' }).getByRole('link', { name: /^Users/ })
+	).toHaveAttribute('href', /\/manage\/users\?tab=invitations$/);
 	await page.getByRole('link', { name: 'Invitations (1)' }).click();
 	await expect(page.getByRole('row', { name: new RegExp(writer) })).toContainText('Send again');
 

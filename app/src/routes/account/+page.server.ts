@@ -1,6 +1,6 @@
 import { error, fail } from '@sveltejs/kit';
 import { INSTANCE_TITLE } from '$app/env/private';
-import { requestPasswordReset } from '#lib/server/auth/password-reset.js';
+import { requestPasswordReset, withdrawPasswordReset } from '#lib/server/auth/password-reset.js';
 import { m } from '#lib/paraglide/messages.js';
 import type { Actions, PageServerLoad } from './$types';
 import { database } from '#lib/server/db/index.js';
@@ -69,7 +69,10 @@ export const actions = {
 				name: INSTANCE_TITLE
 			})
 		});
-		if (!sent) return fail(502, { error: m.account_password_link_mail_failed({ email }) });
+		if (!sent) {
+			withdrawPasswordReset(database(), link);
+			return fail(502, { error: m.account_password_link_mail_failed({ email }) });
+		}
 		return { linkSent: email };
 	},
 	/** Removes a link of the own account; the other sessions end, since one of them may be the reason. */

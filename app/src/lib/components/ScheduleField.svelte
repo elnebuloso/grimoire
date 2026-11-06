@@ -7,13 +7,15 @@
 
 	/**
 	 * A cron schedule with its next runs below it while it is typed, or those of the global default
-	 * while it is empty. Further attributes, such as `aria-invalid`, go on the input.
+	 * while it is empty. Further attributes, such as `aria-invalid`, go on the input; a description
+	 * the page gives it, such as its error message, is read before the field's own.
 	 */
 	let {
 		label,
 		value = '',
 		globalSchedule,
 		timeZone,
+		'aria-describedby': describedBy,
 		...input
 	}: {
 		label: string;
@@ -48,7 +50,7 @@
 		{label}
 		{value}
 		mono
-		aria-describedby={hintId}
+		aria-describedby={describedBy ? `${describedBy} ${hintId}` : hintId}
 		oninput={(event: Event) => (typed = (event.currentTarget as HTMLInputElement).value)}
 		{...input}
 	/>
