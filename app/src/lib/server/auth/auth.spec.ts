@@ -183,6 +183,42 @@ describe('login', () => {
 		expect(wrongUser).toEqual(wrongPassword);
 	});
 
+	it('keeps the failures of a client when it logs in to another account', async () => {
+		await auth.createUser(db, { email: 'editor@example.com', password: PASSWORD, roles: [] });
+		const fail = () =>
+			auth.login(db, 'attacker', { email: 'admin@example.com', password: 'nope' }, NOW);
+		for (let attempt = 0; attempt < 9; attempt++) await fail();
+		const own = await auth.login(
+			db,
+			'attacker',
+			{ email: 'editor@example.com', password: PASSWORD },
+			NOW
+		);
+		expect('session' in own).toBe(true);
+		expect(await fail()).toEqual({ error: 'wrong-credentials' });
+
+		expect(await fail()).toEqual({ error: 'blocked' });
+	});
+
+	it('keeps the failures of a client when it confirms its current password', async () => {
+		await auth.createUser(db, { email: 'editor@example.com', password: PASSWORD, roles: [] });
+		const own = await auth.login(
+			db,
+			'editor-pc',
+			{ email: 'editor@example.com', password: PASSWORD },
+			NOW
+		);
+		if (!('session' in own)) throw new Error(own.error);
+		const fail = () =>
+			auth.login(db, 'attacker', { email: 'admin@example.com', password: 'nope' }, NOW);
+		for (let attempt = 0; attempt < 9; attempt++) await fail();
+		const confirmed = await auth.checkCurrentPassword(db, 'attacker', own.session, PASSWORD, NOW);
+		expect('userId' in confirmed).toBe(true);
+		expect(await fail()).toEqual({ error: 'wrong-credentials' });
+
+		expect(await fail()).toEqual({ error: 'blocked' });
+	});
+
 	it('blocks a client for 15 minutes after 10 failures, others stay free', async () => {
 		for (let attempt = 0; attempt < 10; attempt++) {
 			await auth.login(db, 'attacker', { email: 'admin@example.com', password: 'nope' }, NOW);

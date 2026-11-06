@@ -238,7 +238,9 @@ export async function login(
 	now = new Date()
 ): Promise<{ session: string } | { error: AuthProblem }> {
 	// Counted as failed before the password is checked: requests sent in parallel would otherwise
-	// all pass the limit while their hashes run. A successful login forgets it again.
+	// all pass the limit while their hashes run. A successful login takes back only its own
+	// attempt: forgetting all of them would let a client with one account reset its count against
+	// any other account.
 	if (pendingHashes >= MAX_PENDING_HASHES || !failedLogins.take(clientKey(client), now)) {
 		return { error: 'blocked' };
 	}
@@ -247,7 +249,7 @@ export async function login(
 	unknownUserHash ??= await hashPassword(randomBytes(16).toString('hex'));
 	const matches = await passwordMatches(form.password, user?.password_hash ?? unknownUserHash);
 	if (!user || !matches) return { error: 'wrong-credentials' };
-	failedLogins.forget(clientKey(client));
+	failedLogins.giveBack(clientKey(client));
 	return { session: createSession(db, user.id, now) };
 }
 
@@ -272,7 +274,7 @@ export async function checkCurrentPassword(
 	unknownUserHash ??= await hashPassword(randomBytes(16).toString('hex'));
 	const matches = await passwordMatches(password, stored?.password_hash ?? unknownUserHash);
 	if (!stored || !matches) return { error: 'wrong-current-password' };
-	failedLogins.forget(clientKey(client));
+	failedLogins.giveBack(clientKey(client));
 	return { userId: stored.id };
 }
 

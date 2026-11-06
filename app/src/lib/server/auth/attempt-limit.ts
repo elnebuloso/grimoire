@@ -27,7 +27,7 @@ export function createAttemptLimit(max: number, windowMinutes: number) {
 		giveBack(key: string) {
 			attempts.get(key)?.pop();
 		},
-		/** Forgets the attempts of `key`, such as a client's failed logins once one succeeded. */
+		/** Forgets the attempts of `key`. */
 		forget(key: string) {
 			attempts.delete(key);
 		}

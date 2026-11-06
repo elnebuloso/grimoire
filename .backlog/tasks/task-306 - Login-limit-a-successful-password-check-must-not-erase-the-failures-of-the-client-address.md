@@ -3,9 +3,11 @@ id: TASK-306
 title: >-
   Login limit: a successful password check must not erase the failures of the
   client address
-status: To Do
-assignee: []
+status: Done
+assignee:
+  - '@claude'
 created_date: '2026-11-06 20:51'
+updated_date: '2026-11-06 20:56'
 labels:
   - admin
 dependencies: []
@@ -31,8 +33,30 @@ Found by a whole-repo audit on 2026-11-06 (commit 601c588 plus six local refacto
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 After 9 failed logins, 1 successful login and 1 more failure from the same client address, the next attempt is `blocked`
-- [ ] #2 The same holds when the success comes from `checkCurrentPassword`
-- [ ] #3 A successful login itself does not count as a failure
-- [ ] #4 Regression specs in `app/src/lib/server/auth/auth.spec.ts` fail before the fix and pass after
+- [x] #1 After 9 failed logins, 1 successful login and 1 more failure from the same client address, the next attempt is `blocked`
+- [x] #2 The same holds when the success comes from `checkCurrentPassword`
+- [x] #3 A successful login itself does not count as a failure
+- [x] #4 Regression specs in `app/src/lib/server/auth/auth.spec.ts` fail before the fix and pass after
 <!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. Specs: 9 failures, a success to another account (login and checkCurrentPassword), one more failure is still answered, the next is blocked
+2. login and checkCurrentPassword call failedLogins.giveBack instead of forget
+<!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+- Both specs failed before (the 11th attempt was answered) and pass after.
+- The tenth attempt answering wrong-credentials after the success shows the success itself is not counted.
+- The OIDC callback still forgets its own answer limit on success: that limit counts provider answers, where no password can be guessed, so it is left as it is.
+- auth.spec.ts, attempt-limit.spec.ts and the login and account route specs pass (80 tests).
+<!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+A successful login or current-password check now takes back only its own attempt instead of erasing every failure of the client address, so a client with one account can no longer reset the 10-failures-per-15-minutes limit while guessing another account's password. Two regression specs in auth.spec.ts fail before and pass after. Trade-off unchanged from before: clients behind one address share the limit.
+<!-- SECTION:FINAL_SUMMARY:END -->
