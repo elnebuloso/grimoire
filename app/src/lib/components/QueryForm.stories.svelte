@@ -26,12 +26,56 @@
 	name="Answered"
 	args={{
 		values: { question: 'invoice', tokens: '500' },
-		answer: '### billing-docs › Invoices\nSource: billing-docs/invoices'
+		answer: {
+			hits: [
+				{
+					id: 'billing-docs/invoices#storno',
+					titlePath: ['billing-docs', 'Invoices', 'Cancel an invoice'],
+					content: 'Run:\n\n```\nbilling cancel <invoice>\n```'
+				}
+			],
+			skipped: 2,
+			raw: '### billing-docs › Invoices › Cancel an invoice\nSource: billing-docs/invoices#storno'
+		}
 	}}
 	play={async ({ canvas }) => {
-		await expect(canvas.getByRole('heading', { name: 'Answer' })).toBeVisible();
 		await expect(canvas.getByRole('heading', { name: 'Answer' })).toHaveFocus();
-		await expect(canvas.getByText(/Source: billing-docs\/invoices/)).toBeVisible();
+		const hit = canvas.getByRole('region', { name: 'billing-docs › Invoices › Cancel an invoice' });
+		await expect(hit).toHaveTextContent('billing-docs/invoices#storno');
+		await expect(hit).toHaveTextContent('billing cancel <invoice>');
+		await expect(canvas.getByText('2 more hits did not fit the token budget.')).toBeVisible();
+
+		const raw = canvas.getByText('Raw answer, as an agent gets it');
+		await expect(canvas.getByText(/^### billing-docs/)).not.toBeVisible();
+		await userEvent.click(raw);
+		await expect(canvas.getByText(/^### billing-docs/)).toBeVisible();
+	}}
+/>
+
+<Story
+	name="Nothing found"
+	args={{
+		values: { question: 'kubernetes ', tokens: '3000' },
+		answer: { hits: [], skipped: 0, raw: 'No results for "kubernetes".' }
+	}}
+	play={async ({ canvas }) => {
+		await expect(
+			canvas.getByText('Nothing found for “kubernetes”. Try other words.')
+		).toBeVisible();
+		await expect(canvas.queryByText('Raw answer, as an agent gets it')).toBeNull();
+	}}
+/>
+
+<Story
+	name="Nothing fits the budget"
+	args={{
+		values: { question: 'invoice', tokens: '5' },
+		answer: { hits: [], skipped: 3, raw: 'Did not fit: billing-docs/invoices' }
+	}}
+	play={async ({ canvas }) => {
+		await expect(
+			canvas.getByText('3 hits found, but none fits the token budget: raise it.')
+		).toBeVisible();
 	}}
 />
 

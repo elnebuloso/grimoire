@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import type { DatabaseSync } from 'node:sqlite';
 import { openDatabase } from '../db/schema';
-import { parseTokenBudget, searchSnippets } from './query';
+import { parseTokenBudget, searchHits, searchSnippets } from './query';
 
 let db: DatabaseSync;
 
@@ -167,6 +167,12 @@ describe('searchSnippets', () => {
 
 		expect(sourceIds(result)).toEqual(['auth/deploy#first', 'auth/deploy#last']);
 		expect(result.endsWith('\n\nDid not fit: auth/deploy#large')).toBe(true);
+
+		// The same search with its hits, for the start page: the agent's answer stays as it is.
+		const found = searchHits(db, { query: 'rollback', tokens: 200, allowedSources: 'all' });
+		expect(found.markdown).toBe(result);
+		expect(found.hits.map((hit) => hit.anchor)).toEqual(['first', 'last']);
+		expect(found.skipped).toEqual(['auth/deploy#large']);
 	});
 
 	it('has no line about skipped hits when everything fits', () => {

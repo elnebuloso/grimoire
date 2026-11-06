@@ -6,7 +6,8 @@ import {
 	readSnippets,
 	renderSnippet,
 	scopeParameter,
-	searchSnippets
+	searchHits,
+	type SnippetHit
 } from '../search/query';
 import { recordMissedQuery } from '../missed-queries';
 import instructions from './instructions.md?raw';
@@ -126,6 +127,10 @@ export interface QueryOptions {
 /** The answer of `query`; `missed` when the search found nothing. */
 export interface QueryResult extends OperationResult {
 	missed: boolean;
+	/** The hits `markdown` renders, for a page that shows them on its own. */
+	hits: SnippetHit[];
+	/** The IDs of hits that did not fit the token budget. */
+	skipped: string[];
 }
 
 // Every word becomes a search term, and the search runs synchronously on the server thread: without
@@ -153,13 +158,16 @@ export function querySources(
 ): QueryResult {
 	const normalized = normalizeQueryOptions(options);
 	const hidden = normalized.sources?.find((source) => !findSource(db, source, scope));
-	if (hidden !== undefined) return { ...sourceNotFound(hidden), missed: false };
-	const markdown = searchSnippets(db, { ...normalized, allowedSources: scope });
-	if (markdown) return { found: true, markdown, missed: false };
+	if (hidden !== undefined)
+		return { ...sourceNotFound(hidden), missed: false, hits: [], skipped: [] };
+	const { markdown, hits, skipped } = searchHits(db, { ...normalized, allowedSources: scope });
+	if (markdown) return { found: true, markdown, missed: false, hits, skipped };
 	return {
 		found: true,
 		markdown: `No results for "${normalized.query}". Try other terms, or look at a source's \`index\`.`,
-		missed: true
+		missed: true,
+		hits,
+		skipped
 	};
 }
 

@@ -67,6 +67,27 @@ describe('start page', () => {
 		expect(slugs(1)).toEqual(['billing-docs', 'platform-docs']);
 	});
 
+	it('tells about a source only the state of its content, and searches its description', () => {
+		db.exec(`UPDATE sources SET error = 'git ls-remote failed', paused = 1,
+			description = 'Login and tokens' WHERE slug = 'platform-docs'`);
+		const [row] = load('?search=tokens', 1).sources.rows as Record<string, unknown>[];
+		expect(row).toMatchObject({ slug: 'platform-docs', description: 'Login and tokens' });
+		expect(Object.keys(row).sort()).toEqual(
+			[
+				'description',
+				'docsUrl',
+				'id',
+				'lastSync',
+				'name',
+				'pages',
+				'slug',
+				'snippets',
+				'tokens',
+				'visibility'
+			].sort()
+		);
+	});
+
 	it('offers no query to a visitor while no source is public', () => {
 		expect(load('?q=rollback').query).toBeUndefined();
 	});
@@ -81,13 +102,17 @@ describe('start page', () => {
 		});
 
 		it('answers a visitor from the public sources only, ignoring a source in the URL', () => {
-			expect(load('?q=rollback').query?.answer).toContain('Source: billing-docs/index');
-			expect(load('?q=rollback').query?.answer).not.toContain('platform-docs');
-			expect(load('?q=rollback&source=platform-docs').query?.answer).not.toContain('platform-docs');
+			expect(load('?q=rollback').query?.answer?.raw).toContain('Source: billing-docs/index');
+			expect(load('?q=rollback').query?.answer?.hits.map((hit) => hit.id)).toEqual([
+				'billing-docs/index'
+			]);
+			expect(load('?q=rollback&source=platform-docs').query?.answer?.raw).not.toContain(
+				'platform-docs'
+			);
 		});
 
 		it('answers a user from the public and internal sources', () => {
-			const answer = load('?q=rollback', 1).query?.answer;
+			const answer = load('?q=rollback', 1).query?.answer?.raw;
 			expect(answer).toContain('Source: platform-docs/index');
 			expect(answer).toContain('Source: billing-docs/index');
 		});
@@ -96,8 +121,11 @@ describe('start page', () => {
 			// The first 500 characters hold no word of the page; "rollback" only follows them.
 			const question = `${'kubernetes '.repeat(50)}rollback`;
 
-			expect(load(`?q=${encodeURIComponent(question)}`).query?.answer).toMatch(/^No results for/);
-			expect(load('?q=rollback').query?.answer).toContain('Source: billing-docs/index');
+			expect(load(`?q=${encodeURIComponent(question)}`).query?.answer).toMatchObject({
+				hits: [],
+				raw: expect.stringMatching(/^No results for/)
+			});
+			expect(load('?q=rollback').query?.answer?.raw).toContain('Source: billing-docs/index');
 		});
 
 		it('does not record a query that found nothing', () => {

@@ -1,14 +1,13 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import CopyButton from '#lib/components/CopyButton.svelte';
 	import PageHead from '#lib/components/PageHead.svelte';
 	import QueryForm from '#lib/components/QueryForm.svelte';
 	import DataTable from '#lib/components/DataTable.svelte';
 	import DateTime from '#lib/components/DateTime.svelte';
 	import SourceLabel from '#lib/components/SourceLabel.svelte';
-	import StatusBadge from '#lib/components/StatusBadge.svelte';
 	import { m } from '#lib/paraglide/messages.js';
 	import { getLocale } from '#lib/paraglide/runtime.js';
-	import { sourceState } from '#lib/source-state.js';
 	import { connectCommand } from '#lib/connect-command.js';
 	import type { PageProps } from './$types';
 
@@ -28,40 +27,44 @@
 		label={m.sources_table()}
 		list={data.sources}
 		key={(source) => source.id}
-		search={data.sources.total > 0 || data.filtered ? m.list_search_sources() : undefined}
+		search={data.sources.total > 0 || data.filtered ? m.list_search_catalog() : undefined}
 		columns={[
 			{ label: m.source(), sort: 'name' },
-			{ label: m.visibility() },
+			...(data.user ? [{ label: m.visibility() }] : []),
 			{ label: m.pages(), numeric: true },
 			{ label: m.snippets(), numeric: true },
 			{ label: m.tokens(), numeric: true },
-			{ label: m.source_status(), sort: 'status' },
-			{ label: m.last_check_in_zone({ zone: data.timeZone }), sort: 'checked' },
-			{ label: m.dead_links(), numeric: true }
+			{ label: m.catalog_state_in_zone({ zone: data.timeZone }), sort: 'updated' }
 		]}
 	>
 		{#snippet row(source)}
 			<th scope="row">
 				<div class="source">
-					<SourceLabel name={source.name} slug={source.slug} />
+					<SourceLabel
+						name={source.name}
+						slug={source.slug}
+						href={data.user?.mayManage
+							? resolve('/manage/sources/[id]/[[tab=tab]]', { id: String(source.id) })
+							: undefined}
+					/>
 					{#if source.description}<span class="muted">{source.description}</span>{/if}
 					{#if source.docsUrl}<a href={source.docsUrl} rel="external">{m.source_docs_link()}</a
 						>{/if}
 				</div>
 			</th>
-			<td>{source.visibility === 'public' ? m.visibility_public() : m.visibility_internal()}</td>
+			{#if data.user}
+				<td>{source.visibility === 'public' ? m.visibility_public() : m.visibility_internal()}</td>
+			{/if}
 			<td class="num">{count(source.pages)}</td>
 			<td class="num">{count(source.snippets)}</td>
 			<td class="num">{count(source.tokens)}</td>
-			<td><StatusBadge state={sourceState(source)} /></td>
 			<td class="when">
-				{#if source.lastCheck}
-					<DateTime value={source.lastCheck} timeZone={data.timeZone} short />
+				{#if source.lastSync}
+					<DateTime value={source.lastSync} timeZone={data.timeZone} short />
 				{:else}
-					{m.never()}
+					{m.catalog_not_available()}
 				{/if}
 			</td>
-			<td class="num">{count(source.deadLinks)}</td>
 		{/snippet}
 		{#snippet empty()}
 			<p class="muted">{data.filtered ? m.list_no_match() : m.no_sources_yet()}</p>
@@ -83,6 +86,12 @@
 		<p>{m.start_connect_intro()}</p>
 		<pre><code>{command}</code></pre>
 		<div><CopyButton value={command} label={m.start_connect_copy()} /></div>
+		{#if data.user}
+			<p>
+				{m.start_connect_key()}
+				<a href="{resolve('/account/api-keys')}?new">{m.apikeys_welcome_action()}</a>
+			</p>
+		{/if}
 		<p>
 			{m.start_connect_other()}
 			<a href="https://elnebuloso.github.io/grimoire/agents/">{m.start_connect_handbook_link()}</a>

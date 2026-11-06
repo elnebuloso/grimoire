@@ -2,7 +2,7 @@
 	import { enhance, type SubmitFunction } from '$app/forms';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
-	import { tick } from 'svelte';
+	import { onMount, tick } from 'svelte';
 	import ChoiceField from '#lib/components/ChoiceField.svelte';
 	import ConfirmAction from '#lib/components/ConfirmAction.svelte';
 	import CopyButton from '#lib/components/CopyButton.svelte';
@@ -60,6 +60,11 @@
 		opened++;
 		creating = true;
 	}
+
+	// The start page links here to create a key straight away.
+	onMount(() => {
+		if (page.url.searchParams.has('new')) openNew();
+	});
 
 	let editOpen = $state(false);
 	let editing = $state<Key>();

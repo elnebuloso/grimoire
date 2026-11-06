@@ -118,8 +118,21 @@ const MAX_HITS = 20;
  * the token budget, followed by a line naming the IDs of hits that did not fit.
  */
 export function searchSnippets(db: DatabaseSync, options: SearchOptions): string {
+	return searchHits(db, options).markdown;
+}
+
+/** What a search found within its budget: the hits, the IDs that did not fit and the rendering. */
+export interface SearchResult {
+	hits: SnippetHit[];
+	skipped: string[];
+	/** The answer an agent gets: the rendered hits and a line naming the skipped IDs. */
+	markdown: string;
+}
+
+/** `searchSnippets` with the packed hits, for a page that shows them on its own. */
+export function searchHits(db: DatabaseSync, options: SearchOptions): SearchResult {
 	const match = toMatchExpression(options.query);
-	if (!match) return '';
+	if (!match) return { hits: [], skipped: [], markdown: '' };
 
 	// bm25 weighs the columns title_path, text and code. Internal docs are full of names a title
 	// carries and commands code repeats, hence 10 / 1 / 0.25. Checked with typical questions
@@ -158,7 +171,8 @@ function toMatchExpression(query: string): string {
 	return words.map((word) => `"${word}"`).join(' OR ');
 }
 
-function packIntoBudget(hits: SnippetHit[], budget: number): string {
+function packIntoBudget(hits: SnippetHit[], budget: number): SearchResult {
+	const packed: SnippetHit[] = [];
 	const blocks: string[] = [];
 	const skipped: string[] = [];
 	let remaining = budget;
@@ -169,11 +183,12 @@ function packIntoBudget(hits: SnippetHit[], budget: number): string {
 			skipped.push(grimoireId(hit, hit.anchor));
 			continue;
 		}
+		packed.push(hit);
 		blocks.push(block);
 		remaining -= tokens;
 	}
 	if (skipped.length > 0) blocks.push(`Did not fit: ${skipped.join(', ')}`);
-	return blocks.join('\n\n');
+	return { hits: packed, skipped, markdown: blocks.join('\n\n') };
 }
 
 /** Renders a snippet with its title path, its grimoire ID and where to edit it. */

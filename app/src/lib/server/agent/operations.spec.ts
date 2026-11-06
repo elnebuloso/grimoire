@@ -164,12 +164,14 @@ describe('indexSource', () => {
 });
 
 describe('querySources', () => {
-	it('returns the hits in the snippet format', () => {
+	it('returns the hits in the snippet format, and the hits it rendered', () => {
 		const result = querySources(db, { query: 'rollback', sources: ['billing-docs'] }, 'all');
 
-		expect(result).toEqual({
+		expect(result).toMatchObject({
 			found: true,
 			missed: false,
+			hits: [{ source: 'billing-docs', file: 'index.md', content: 'Rollback.\n' }],
+			skipped: [],
 			markdown: [
 				'### billing-docs › Invoices › Overview',
 				'Source: billing-docs/index',
@@ -218,7 +220,9 @@ describe('querySources', () => {
 		).toEqual({
 			found: false,
 			missed: false,
-			markdown: 'Source "nope" not found. See `sources`.'
+			markdown: 'Source "nope" not found. See `sources`.',
+			hits: [],
+			skipped: []
 		});
 		expect(
 			querySources(db, { query: 'rollback', sources: ['billing-docs', 'platform-docs'] }, [
@@ -231,7 +235,9 @@ describe('querySources', () => {
 		expect(querySources(db, { query: 'rollback', sources: [''] }, 'all')).toEqual({
 			found: false,
 			missed: false,
-			markdown: expect.stringContaining('Source "" not found')
+			markdown: expect.stringContaining('Source "" not found'),
+			hits: [],
+			skipped: []
 		});
 	});
 });

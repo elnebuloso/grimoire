@@ -64,10 +64,11 @@ sessions are logged out; the browser you changed it in stays logged in.
 
 !!! note "Shown on the start page"
     The start page `/` lists the public sources to everyone, and to a logged-in user also the
-    internal ones: name, slug, short description, visibility, counts of
-    pages, snippets, tokens and dead links, last sync and whether it has a sync error. It shows
-    neither Git URLs nor error texts. For public sources it links the **Documentation** site and
-    offers **Try a query**, which searches what the viewer may read.
+    internal ones: name, slug, short description, visibility, counts of pages, snippets and
+    tokens, and the time of the last successful sync, or `Not available yet`. Sync errors,
+    paused polling and dead links show only here in the management area. For public sources it
+    links the **Documentation** site; for admins every name leads to the source's management
+    view. **Try a query** searches what the viewer may read.
 
 Only admins add, change, sync, rename and delete sources; users read them and create their own API
 keys (see [Your account and API keys](users.md)).
@@ -236,8 +237,9 @@ It keeps the newest 100 lines.
 - On the **Pages** tab of a source, every page links to a preview: the page exactly as `read` returns it, split into
   snippets with ID and estimated tokens. Use it to find sections that came out too large, too small
   or under a misleading title.
-- **Try a query** on the start page answers exactly like the agent operation `query`, with a line
-  naming the hits that did not fit the budget. Logged in, it searches every public and internal
+- **Try a query** on the start page shows each hit with its title path, ID and text, and how many
+  hits did not fit the budget; **Raw answer, as an agent gets it** holds the answer exactly as the
+  agent operation `query` returns it. Logged in, it searches every public and internal
   source; it needs no API key and is not recorded.
   Its address can be shared as a link.
 
