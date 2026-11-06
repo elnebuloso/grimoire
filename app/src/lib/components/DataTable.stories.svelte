@@ -1,6 +1,7 @@
 <script module lang="ts">
 	import { defineMeta } from '@storybook/addon-svelte-csf';
-	import { expect } from 'storybook/test';
+	import { expect, userEvent, waitFor } from 'storybook/test';
+	import { readListParams, type ListSpec } from '#lib/list.js';
 	import DataTable from './DataTable.svelte';
 
 	const { Story } = defineMeta({ title: 'DataTable', component: DataTable });
@@ -20,6 +21,22 @@
 		{ label: 'Pages', sort: 'pages', numeric: true },
 		{ label: 'Note' }
 	];
+	// The list as the server reads it, to check that the table writes what the server reads.
+	const SPEC: ListSpec<Source> = {
+		search: (source) => source.name,
+		filters: { status: () => 'synced' },
+		sorts: { name: (source) => source.name, pages: (source) => source.pages }
+	};
+
+	/** The URLs the table navigates to, in order. */
+	function recordNavigation(): URL[] {
+		const urls: URL[] = [];
+		window.addEventListener('storybook:goto', (event) => {
+			urls.push(new URL(String((event as CustomEvent<unknown[]>).detail[0])));
+		});
+		return urls;
+	}
+
 	const filters = [
 		{
 			name: 'status',
@@ -57,6 +74,44 @@
 			}}
 			{columns}
 			key={(source) => source.id}
+		>
+			{#snippet row(source)}<td>{source.name}</td><td class="num">{source.pages}</td><td
+				></td>{/snippet}
+			{#snippet empty()}<p>No sources.</p>{/snippet}
+		</DataTable>
+	{/snippet}
+</Story>
+
+<Story
+	name="Searched, filtered, sorted and paged by the reader"
+	play={async ({ canvas }) => {
+		const urls = recordNavigation();
+		const read = () => readListParams(urls.at(-1)!, SPEC);
+
+		await userEvent.type(canvas.getByRole('searchbox', { name: 'Search by name' }), 'Source 4');
+		await waitFor(() => expect(urls).toHaveLength(1));
+		await expect(read()).toMatchObject({ search: 'Source 4', page: 1 });
+
+		await userEvent.selectOptions(canvas.getByRole('combobox', { name: 'Status' }), 'synced');
+		await expect(read().filters).toEqual({ status: 'synced' });
+
+		await userEvent.click(canvas.getByRole('button', { name: /Pages/ }));
+		await expect(read()).toMatchObject({ sort: 'pages', descending: false });
+		await userEvent.click(canvas.getByRole('button', { name: /Source/ }));
+		await expect(read()).toMatchObject({ sort: 'name', descending: true });
+
+		await userEvent.click(canvas.getByRole('button', { name: 'Next' }));
+		await expect(read().page).toBe(2);
+	}}
+>
+	{#snippet template()}
+		<DataTable
+			label="Sources"
+			list={{ rows, total: 512, page: 1, pageCount: 6, sort: { key: 'name', descending: false } }}
+			{columns}
+			key={(source) => source.id}
+			search="Search by name"
+			{filters}
 		>
 			{#snippet row(source)}<td>{source.name}</td><td class="num">{source.pages}</td><td
 				></td>{/snippet}

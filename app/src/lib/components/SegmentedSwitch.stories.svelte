@@ -88,3 +88,20 @@
 		}
 	}}
 />
+
+<Story
+	name="Picked by a click"
+	args={{ label: 'Theme', action: '/theme', name: 'theme', options: themes, current: 'system' }}
+	play={async ({ args, canvas }) => {
+		const fetch = spyOn(window, 'fetch').mockResolvedValue(new Response(null, { status: 200 }));
+		try {
+			await userEvent.click(canvas.getByRole('button', { name: 'Dark' }));
+			await waitFor(() => expect(args.onpick).toHaveBeenCalledWith('dark'));
+			const [url, init] = fetch.mock.calls[0] as [string, RequestInit];
+			await expect(url).toBe('/theme');
+			await expect((init.body as FormData).get('theme')).toBe('dark');
+		} finally {
+			fetch.mockRestore();
+		}
+	}}
+/>

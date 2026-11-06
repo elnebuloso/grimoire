@@ -698,6 +698,17 @@ test('invites a user who reads internal sources with their own key, but manages 
 	expect(
 		(await page.request.get('/sources', { headers: { Authorization: `Bearer ${key}` } })).status()
 	).toBe(401);
+
+	// A refused action answers in its dialog, which stays open.
+	await page.getByRole('button', { name: `Actions for ${EMAIL}` }).click();
+	await page.getByRole('button', { name: `Remove admin role of ${EMAIL}` }).click();
+	const dialog = page.getByRole('dialog');
+	await dialog.getByRole('button', { name: 'Remove admin role' }).click();
+	await expect(dialog.getByRole('alert')).toHaveText(
+		'The last admin keeps the role: make another user an admin first.'
+	);
+	await dialog.getByRole('button', { name: 'Cancel' }).click();
+	await expect(page.getByRole('row', { name: new RegExp(EMAIL) })).toContainText('admin');
 });
 
 test('accepts an invitation through an identity provider for the invited address', async ({

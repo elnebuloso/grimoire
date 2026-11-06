@@ -1,9 +1,11 @@
 ---
 id: TASK-286
 title: 'Stories and e2e that operate lists, switches and a refusal'
-status: To Do
-assignee: []
+status: Done
+assignee:
+  - '@claude'
 created_date: '2026-11-06 15:58'
+updated_date: '2026-11-06 18:39'
 labels: []
 dependencies: []
 priority: medium
@@ -24,7 +26,28 @@ Storybook SvelteKit framework lets a story replace `goto` (`parameters.sveltekit
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 `DataTable` stories type in the search, sort and page, and assert the resulting URL
-- [ ] #2 `SegmentedSwitch` and `Preferences` stories click and assert the pick
-- [ ] #3 An e2e step triggers a refusal through a `ConfirmAction`, e.g. demoting the only admin in `manage.e2e.ts`, and asserts the message in the dialog
+- [x] #1 `DataTable` stories type in the search, sort and page, and assert the resulting URL
+- [x] #2 `SegmentedSwitch` and `Preferences` stories click and assert the pick
+- [x] #3 An e2e step triggers a refusal through a `ConfirmAction`, e.g. demoting the only admin in `manage.e2e.ts`, and asserts the message in the dialog
 <!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. DataTable story types in the search, picks a filter, sorts both ways and pages, records the URLs from Storybook's storybook:goto event and reads them with readListParams
+2. SegmentedSwitch and Preferences stories click an option (fetch answered) and assert the pick: onpick with the value and the posted form; data-theme on <html>
+3. manage.e2e demotes the only admin through its ConfirmAction and asserts the refusal in the open dialog
+<!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+- Storybook's $app/navigation stand-in dispatches a storybook:goto event with goto's arguments; the story listens to it instead of a parameter.
+- Stories (DataTable, SegmentedSwitch, Preferences) and manage.e2e pass.
+<!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Stories now operate what lives in the browser: the DataTable story types, filters, sorts and pages and checks that readListParams reads what the table writes; the SegmentedSwitch and Preferences stories click and assert the pick. manage.e2e triggers a refusal through a ConfirmAction (demoting the only admin) and checks the message in the dialog.
+<!-- SECTION:FINAL_SUMMARY:END -->
