@@ -48,7 +48,7 @@ they don't define isn't used.
   colours keep a contrast of at least 4.5:1 against the backgrounds they are used on.
 - **`app/src/app.css` holds what every page shares:** the tokens, the fonts, the base of native
   elements (type, links, focus ring, inputs, buttons, tables, code) and the page primitives
-  `.sheet`, `.notice`, `.table-scroll` and `.muted`. Nothing else goes there.
+  `.sheet`, `.notice`, `.table-scroll`, `.muted` and `.sr-only` (with `.sr-only-focusable`, shown once focused). Nothing else goes there.
 - **Component styles live in the component's own `<style>` block**, page arrangements in the
   page's. A style a second page needs moves into a component, not into `app.css`.
 - **Both schemes, always.** Check a change in light and dark; the Theme switch in the Storybook

@@ -42,7 +42,7 @@
 	const loggedIn = $derived(user !== null && !auth);
 </script>
 
-<a class="button skip" href="#main">{m.skip_to_content()}</a>
+<a class="button skip sr-only-focusable" href="#main">{m.skip_to_content()}</a>
 
 {#if auth}
 	<main id="main" class="auth">
@@ -104,14 +104,6 @@
 
 <style>
 	/* Off screen until focused, so keyboard users can pass the header. */
-	.skip:not(:focus) {
-		position: absolute;
-		width: 1px;
-		height: 1px;
-		overflow: hidden;
-		clip-path: inset(50%);
-		white-space: nowrap;
-	}
 	.skip:focus {
 		position: absolute;
 		top: var(--s2);

@@ -102,7 +102,7 @@
 							{entry.label}
 							{#if entry.count && entry.describe}
 								<span class="count" aria-hidden="true">{entry.count}</span>
-								<span class="hidden">{entry.describe(entry.count)}</span>
+								<span class="sr-only">{entry.describe(entry.count)}</span>
 							{/if}
 						</a>
 					</li>
@@ -177,14 +177,6 @@
 		font-weight: 600;
 	}
 	/* Read by screen readers in place of the number, which alone would not say what it counts. */
-	.hidden {
-		position: absolute;
-		width: 1px;
-		height: 1px;
-		overflow: hidden;
-		clip-path: inset(50%);
-		white-space: nowrap;
-	}
 	.content {
 		display: grid;
 		gap: var(--s5);

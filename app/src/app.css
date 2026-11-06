@@ -515,3 +515,14 @@ td.num {
 .muted {
 	color: var(--ink-2);
 }
+
+/* Read by a screen reader, not shown; the focusable variant shows once it has the focus. */
+.sr-only,
+.sr-only-focusable:not(:focus) {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+}

@@ -46,7 +46,8 @@
 			<ul role="list">
 				{#each group.targets as target, index (index)}
 					<li>
-						<span aria-hidden="true">→</span> <span class="spoken">{m.dead_link_to()}</span>
+						<!-- The arrow reads as "right arrow"; a screen reader gets the words instead. -->
+						<span aria-hidden="true">→</span> <span class="sr-only">{m.dead_link_to()}</span>
 						<code>{target}</code>
 					</li>
 				{/each}
@@ -88,14 +89,5 @@
 	}
 	[aria-hidden] {
 		color: var(--ink-2);
-	}
-	/* The arrow reads as "right arrow"; a screen reader gets the words instead. */
-	.spoken {
-		position: absolute;
-		width: 1px;
-		height: 1px;
-		overflow: hidden;
-		clip-path: inset(50%);
-		white-space: nowrap;
 	}
 </style>
