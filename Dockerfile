@@ -9,7 +9,7 @@ RUN npm run build && npm prune --omit=dev
 
 FROM node:24.22.1-trixie-slim
 RUN apt-get update \
-	&& apt-get install --yes --no-install-recommends git ca-certificates \
+	&& apt-get install --yes --no-install-recommends git ca-certificates tini \
 	&& rm -rf /var/lib/apt/lists/* \
 	&& mkdir /data && chown node:node /data
 WORKDIR /grimoire
@@ -27,4 +27,7 @@ ARG GRIMOIRE_VERSION=0.0.0
 ENV GRIMOIRE_VERSION=$GRIMOIRE_VERSION
 ENV DATABASE_PATH=/data/grimoire.db
 EXPOSE 3000
+# tini as process 1 reaps the orphans the indexing deadline leaves when it kills a process group;
+# Node does not, and each would stay a zombie for the life of the container.
+ENTRYPOINT ["/usr/bin/tini", "--"]
 CMD ["node", "app/build"]
