@@ -1,9 +1,11 @@
 ---
 id: TASK-297
 title: 'Clarify: seven open product and rule questions'
-status: To Do
-assignee: []
+status: Done
+assignee:
+  - '@claude'
 created_date: '2026-11-06 16:00'
+updated_date: '2026-11-06 19:36'
 labels: []
 dependencies: []
 priority: low
@@ -26,6 +28,25 @@ Questions where the code and the rules disagree or where behaviour may be delibe
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Each of the seven questions has a recorded decision in this task
-- [ ] #2 Every decision that needs work has its own task, or a rule change is made
+- [x] #1 Each of the seven questions has a recorded decision in this task
+- [x] #2 Every decision that needs work has its own task, or a rule change is made
 <!-- AC:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Decisions of the owner (2026-11-06):
+1. Font sizes count as token-only values: type scale in app.css → TASK-298.
+2. An admin removing their own identity link keeps the current session → done in TASK-280 (removeIdentity keeps the current session).
+3. Move auth.ts, access.ts, password-reset.ts out of admin/ to server/auth/ → TASK-299.
+4. Starting a provider login ends the session only once the login succeeds → TASK-300.
+5. Add a .sr-only primitive to app.css and the rule → TASK-301.
+6. Handbook links stay on the latest handbook; no versioned handbook. No work.
+7. Remove touch sizes and phone styles from app.css and components → TASK-302.
+<!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+All seven questions are decided by the owner and recorded. Decision 2 was built in TASK-280, decision 6 needs no work, the other five became TASK-298 to TASK-302.
+<!-- SECTION:FINAL_SUMMARY:END -->
