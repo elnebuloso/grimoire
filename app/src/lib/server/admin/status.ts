@@ -137,11 +137,14 @@ export function sourceStatus(
 		errorKind: errorKind(source.error, source.error_kind),
 		warnings: JSON.parse(source.warnings) as string[],
 		pages,
-		totals: {
-			pages: pages.length,
-			snippets: pages.reduce((sum, page) => sum + page.snippets, 0),
-			tokens: pages.reduce((sum, page) => sum + page.tokens, 0)
-		},
+		totals: db
+			.prepare(
+				`SELECT count(DISTINCT pages.id) AS pages, count(snippets.id) AS snippets,
+					coalesce(sum(snippets.tokens), 0) AS tokens
+				FROM live_pages AS pages LEFT JOIN snippets ON snippets.page_id = pages.id
+				WHERE pages.source_id = ?`
+			)
+			.get(sourceId) as unknown as SourceStatus['totals'],
 		deadLinks: (parts.deadLinks ? deadLinks(db, sourceId) : []).map(({ file, anchor, target }) => ({
 			file,
 			anchor,

@@ -55,7 +55,7 @@ export const load: PageServerLoad = ({ params, url, locals }) => {
 		status:
 			source &&
 			sourceStatus(database(), source.id, {
-				pages: tab === 'status' || tab === 'pages',
+				pages: tab === 'pages',
 				history: tab === 'history',
 				deadLinks: tab === 'status'
 			}),

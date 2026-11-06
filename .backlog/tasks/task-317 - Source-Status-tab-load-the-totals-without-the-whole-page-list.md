@@ -1,9 +1,11 @@
 ---
 id: TASK-317
 title: 'Source Status tab: load the totals without the whole page list'
-status: To Do
-assignee: []
+status: Done
+assignee:
+  - '@claude'
 created_date: '2026-11-06 20:51'
+updated_date: '2026-11-06 21:06'
 labels:
   - admin
 dependencies: []
@@ -29,8 +31,30 @@ Found by a whole-repo audit on 2026-11-06 (commit 601c588 plus six local refacto
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 The Status tab's data contains the totals but no page list
-- [ ] #2 The totals shown on the Status tab equal those of today for the same source
-- [ ] #3 The Pages tab still lists every page
-- [ ] #4 The route spec covers what the Status tab loads
+- [x] #1 The Status tab's data contains the totals but no page list
+- [x] #2 The totals shown on the Status tab equal those of today for the same source
+- [x] #3 The Pages tab still lists every page
+- [x] #4 The route spec covers what the Status tab loads
 <!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. Specs: sourceStatus without pages still returns the totals; the Status tab load carries the totals and an empty page list, the Pages tab the list
+2. sourceStatus takes the totals from one aggregate query over live_pages and snippets
+3. The source page load asks for pages only on the Pages tab
+<!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+- Both specs failed before and pass after; status.spec.ts and sources.spec.ts pass (47 tests).
+- Only PagesTab.svelte reads status.pages; the Status tab reads only totals.
+- The aggregate still sums the tokens of the source's snippets, but no longer groups per page nor ships one row per page to the browser.
+<!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+The source Status tab no longer loads the whole page list: the totals come from one aggregate query, and the page list is loaded on the Pages tab only, so a source with thousands of pages no longer ships them on every Status view and refresh. Totals are unchanged; specs for sourceStatus and the route cover both tabs.
+<!-- SECTION:FINAL_SUMMARY:END -->

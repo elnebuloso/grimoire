@@ -100,6 +100,26 @@ beforeEach(() => {
 });
 
 describe('source page', () => {
+	it('loads the page list on the Pages tab only, the totals on the Status tab', async () => {
+		await thrown(() => saveSource('new', SOURCE));
+		const pageId = db
+			.prepare(
+				`INSERT INTO pages (source_id, file, title, content) VALUES (1, 'deploy.md', 'Deploy', '')`
+			)
+			.run().lastInsertRowid;
+		db.prepare(
+			`INSERT INTO snippets (page_id, position, title_path, content, tokens)
+			VALUES (?, 0, '["Deploy"]', 'Rollback.', 12)`
+		).run(pageId);
+
+		expect(loadSource('1')).toMatchObject({
+			status: { pages: [], totals: { pages: 1, snippets: 1, tokens: 12 } }
+		});
+		expect(loadSource('1', '', 'pages')).toMatchObject({
+			status: { pages: [{ file: 'deploy.md', snippets: 1, tokens: 12 }] }
+		});
+	});
+
 	it('creates a source, requests a forced sync and redirects to its page', async () => {
 		const result = await thrown(() => saveSource('new', SOURCE));
 

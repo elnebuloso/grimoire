@@ -112,6 +112,21 @@ describe('sourceStatus', () => {
 	});
 });
 
+describe('sourceStatus without pages', () => {
+	it('counts the totals without listing the pages', () => {
+		insertPage(1, 'deploy.md', [
+			{ anchor: null, tokens: 10 },
+			{ anchor: 'rollback', tokens: 25 }
+		]);
+		insertPage(1, 'empty.md', []);
+
+		expect(sourceStatus(db, 1, { pages: false, history: false, deadLinks: false })).toMatchObject({
+			pages: [],
+			totals: { pages: 2, snippets: 2, tokens: 35 }
+		});
+	});
+});
+
 describe('deadLinks', () => {
 	it('lists the dead links of all sources with their source, or of one source', () => {
 		const auth = insertPage(1, 'deploy.md', [{ anchor: null, tokens: 1 }]);
