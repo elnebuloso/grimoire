@@ -1,3 +1,4 @@
+import { isHttpError } from '@sveltejs/kit';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import type { DatabaseSync } from 'node:sqlite';
 import { openDatabase } from '#lib/server/db/schema.js';
@@ -62,14 +63,18 @@ describe('all API keys', () => {
 		).toMatchObject({ keys: { total: 0 } });
 	});
 
-	it("revokes another user's key", async () => {
+	it("revokes another user's key, and answers 404 for one already gone", async () => {
 		const laptop = listApiKeys(db).find((key) => key.name === 'laptop')!;
-		await page.actions.revoke({
-			request: new Request('https://grimoire.example/manage/api-keys', {
-				method: 'POST',
-				body: new URLSearchParams({ id: String(laptop.id) })
-			})
-		} as never);
+		const revoke = () =>
+			page.actions.revoke({
+				request: new Request('https://grimoire.example/manage/api-keys', {
+					method: 'POST',
+					body: new URLSearchParams({ id: String(laptop.id) })
+				})
+			} as never);
+		await revoke();
 		expect(listApiKeys(db).map((key) => key.name)).toEqual(['ci']);
+		const again = await revoke().catch((error: unknown) => error);
+		expect(isHttpError(again, 404)).toBe(true);
 	});
 });

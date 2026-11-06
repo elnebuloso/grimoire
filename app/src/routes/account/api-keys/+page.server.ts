@@ -102,6 +102,6 @@ export const actions = {
 	},
 	revoke: async ({ request, locals }) => {
 		const id = Number((await request.formData()).get('id'));
-		revokeApiKey(database(), id, locals.user!.id);
+		if (!revokeApiKey(database(), id, locals.user!.id)) error(404);
 	}
 } satisfies Actions;

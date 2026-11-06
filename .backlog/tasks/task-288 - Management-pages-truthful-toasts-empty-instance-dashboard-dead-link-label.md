@@ -1,9 +1,11 @@
 ---
 id: TASK-288
 title: 'Management pages: truthful toasts, empty-instance dashboard, dead-link label'
-status: To Do
-assignee: []
+status: Done
+assignee:
+  - '@claude'
 created_date: '2026-11-06 15:59'
+updated_date: '2026-11-06 17:58'
 labels:
   - admin
 dependencies: []
@@ -24,8 +26,31 @@ Four small behaviour errors in the management area:
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Saving a source toasts a sync only when a reindex was started
-- [ ] #2 `withdraw`, `unlink` and both `revoke` actions answer 404 when nothing was removed, like the other actions
-- [ ] #3 The dashboard of an instance without sources says so and points to "New source"
-- [ ] #4 The dead-link label contains the formatted number
+- [x] #1 Saving a source toasts a sync only when a reindex was started
+- [x] #2 `withdraw`, `unlink` and both `revoke` actions answer 404 when nothing was removed, like the other actions
+- [x] #3 The dashboard of an instance without sources says so and points to "New source"
+- [x] #4 The dead-link label contains the formatted number
 <!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. Saving an existing source answers { saved, reindexing } instead of redirecting; the toast announces a sync only when a reindex started
+2. revokeInvitation, revokeApiKey and removeIdentity report whether they removed anything; withdraw, unlink and both revoke actions answer 404 otherwise
+3. The dashboard of an instance without sources says no_sources_yet and links New source
+4. The dead-link label passes the formatted number
+<!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+- Specs for the 404s failed before the fix and pass after; sources.spec checks reindexing false for a plain save and true for a changed path; manage.e2e checks the empty dashboard right after the setup.
+- AC #4 has no test: 1,000 dead links are not staged anywhere; the label and the text now come from the same count() formatter.
+- The sources spec helper thrown() now returns a handler's answer when it does not throw.
+<!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Saving a source toasts 'A sync has started' only when a reindex was started (the action answers whether it did). Withdraw, unlink and both revoke actions answer 404 when nothing was removed, like the other actions. The dashboard of an empty instance says 'No sources yet.' with a link to New source instead of 'every source is synced'. The dead-link label uses the same formatted number as the link text. Specs and manage.e2e cover all but the label.
+<!-- SECTION:FINAL_SUMMARY:END -->

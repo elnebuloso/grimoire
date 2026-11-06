@@ -104,7 +104,8 @@ export const actions = {
 		return { invited: await deliverInvitation(resent, url), resent: true };
 	},
 	withdraw: async ({ request }) => {
-		revokeInvitation(database(), await idOf(request));
+		// Accepted or withdrawn in another window.
+		if (!revokeInvitation(database(), await idOf(request))) error(404);
 	},
 	promote: async ({ request }) => {
 		const problem = setAdmin(database(), await idOf(request), true);
@@ -117,7 +118,8 @@ export const actions = {
 	unlink: async ({ request, cookies }) => {
 		const data = await request.formData();
 		const id = Number(data.get('id'));
-		removeIdentity(database(), id, String(data.get('issuer') ?? ''), cookies.get(SESSION_COOKIE));
+		const issuer = String(data.get('issuer') ?? '');
+		if (!removeIdentity(database(), id, issuer, cookies.get(SESSION_COOKIE))) error(404);
 	},
 	passwordLink: async ({ request, locals, url }) => {
 		const id = await idOf(request);

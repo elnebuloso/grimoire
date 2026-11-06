@@ -42,14 +42,16 @@ function formRequest(fields: Record<string, string>) {
 	});
 }
 
-/** Runs a handler that ends by throwing a redirect or an HTTP error, and returns what it threw. */
+/**
+ * Runs a handler and returns what it threw, a redirect or an HTTP error, or else its answer, such
+ * as that of saving an existing source.
+ */
 async function thrown(run: () => unknown): Promise<unknown> {
 	try {
-		await run();
+		return await run();
 	} catch (error) {
 		return error;
 	}
-	throw new Error('expected the handler to throw');
 }
 
 async function saveSource(id: string, fields: Record<string, string>) {
@@ -190,9 +192,8 @@ describe('source page', () => {
 	it('resumes a paused source when saved without the checkbox and checks it for a new commit', async () => {
 		await thrown(() => saveSource('new', { ...SOURCE, paused: 'on' }));
 
-		const saved = await thrown(() => saveSource('1', SOURCE));
-		// Saved settings stay in view.
-		expect(isRedirect(saved) && saved.location).toBe('/manage/sources/1/settings');
+		// Saved settings stay in view; only a check for a new commit started, no sync to announce.
+		expect(await saveSource('1', SOURCE)).toEqual({ saved: true, reindexing: false });
 
 		expect(loadSource('1')).toMatchObject({ source: { paused: false } });
 		expect(requestSyncInBackground).toHaveBeenCalledExactlyOnceWith(1, { force: false });
@@ -221,6 +222,11 @@ describe('source page', () => {
 
 		db.prepare('UPDATE sources SET error = \'branch "develop" not found\' WHERE id = 1').run();
 		expect(await forcedAfter({})).toBe(true);
+		// The answer tells the page which toast to show.
+		expect(await saveSource('1', { ...fields, path: 'handbook/' })).toEqual({
+			saved: true,
+			reindexing: true
+		});
 	});
 
 	it('changes the slug of a source, even a paused one, without syncing it again', async () => {
@@ -506,10 +512,8 @@ describe('duplicate sources', () => {
 	it('keeps an existing duplicate editable while its Git URL and path stay', async () => {
 		db.exec(`INSERT INTO sources (id, slug, name, git_url, branch, path)
 			VALUES (2, 'auth-old', 'Auth old', 'https://gitlab.example.com/platform/auth.git', 'main', 'docs')`);
-		const saved = await thrown(() =>
-			saveSource('2', { ...SOURCE, name: 'Auth renamed', branch: 'release-2' })
-		);
-		expect(isRedirect(saved)).toBe(true);
+		const saved = await saveSource('2', { ...SOURCE, name: 'Auth renamed', branch: 'release-2' });
+		expect(saved).toMatchObject({ saved: true });
 		expect(db.prepare('SELECT name, branch FROM sources WHERE id = 2').get()).toEqual({
 			name: 'Auth renamed',
 			branch: 'release-2'

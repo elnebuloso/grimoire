@@ -15,13 +15,14 @@ vi.mock('$app/env/private', () => ({ INSTANCE_TITLE: 'Acme Docs', BASE_URL: '' }
 
 const ADMIN = { id: 1, email: 'admin@example.com', roles: ['admin'] };
 
-function action(name: keyof typeof page.actions, id: number) {
+function action(name: keyof typeof page.actions, id: number, fields: Record<string, string> = {}) {
 	return page.actions[name]({
 		request: new Request(`https://grimoire.example/manage/users?/${name}`, {
 			method: 'POST',
-			body: new URLSearchParams({ id: String(id) })
+			body: new URLSearchParams({ id: String(id), ...fields })
 		}),
 		locals: { user: ADMIN },
+		cookies: { get: () => undefined },
 		url: new URL(`https://grimoire.example/manage/users?/${name}`)
 	} as never) as Promise<Record<string, unknown> | undefined>;
 }
@@ -92,6 +93,15 @@ describe('users page', () => {
 		await action('withdraw', listInvitations(db)[0].id);
 		expect(invitedEmail(db, token)).toBeUndefined();
 		expect(isHttpError(await action('resend', 1).catch((error) => error))).toBe(true);
+		expect(isHttpError(await action('withdraw', 1).catch((error) => error), 404)).toBe(true);
+	});
+
+	it('removes a link of a user, and answers 404 for one already gone', async () => {
+		db.exec("INSERT INTO user_identities VALUES (2, 'https://gitlab.example.com', '42')");
+		const unlink = () => action('unlink', 2, { issuer: 'https://gitlab.example.com' });
+
+		await unlink();
+		expect(isHttpError(await unlink().catch((error) => error), 404)).toBe(true);
 	});
 
 	it('makes a user an admin and takes the role away, but not from the last admin', async () => {

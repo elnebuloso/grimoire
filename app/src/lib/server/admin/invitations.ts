@@ -84,8 +84,8 @@ export function resendInvitation(
 	return row && { to: row.email, token: link.token };
 }
 
-export function revokeInvitation(db: DatabaseSync, id: number) {
-	db.prepare('DELETE FROM invitations WHERE id = ?').run(id);
+export function revokeInvitation(db: DatabaseSync, id: number): boolean {
+	return db.prepare('DELETE FROM invitations WHERE id = ?').run(id).changes > 0;
 }
 
 /** The invitations nobody accepted yet, expired ones included, the latest sent first. */

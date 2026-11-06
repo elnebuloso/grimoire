@@ -1,3 +1,4 @@
+import { error } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { TZ } from '$app/env/private';
 import { database } from '#lib/server/db/index.js';
@@ -36,6 +37,6 @@ export const load: PageServerLoad = ({ url }) => {
 export const actions = {
 	revoke: async ({ request }) => {
 		const id = Number((await request.formData()).get('id'));
-		revokeApiKey(database(), id);
+		if (!revokeApiKey(database(), id)) error(404);
 	}
 } satisfies Actions;

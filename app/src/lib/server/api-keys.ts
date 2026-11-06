@@ -234,12 +234,13 @@ function dailyRequests(
  * Deletes a key, only one of `ownerId` when given; nothing caches keys, so the next request with
  * it is rejected.
  */
-export function revokeApiKey(db: DatabaseSync, id: number, ownerId?: number) {
-	db.prepare('DELETE FROM api_keys WHERE id = :id AND (:owner IS NULL OR owner_id = :owner)').run({
-		id,
-		owner: ownerId ?? null
-	});
+/** Deletes the key, of `ownerId` only when given; false when there was no such key. */
+export function revokeApiKey(db: DatabaseSync, id: number, ownerId?: number): boolean {
+	const { changes } = db
+		.prepare('DELETE FROM api_keys WHERE id = :id AND (:owner IS NULL OR owner_id = :owner)')
+		.run({ id, owner: ownerId ?? null });
 	if (!db.prepare('SELECT 1 FROM api_keys WHERE id = ?').get(id)) unwrittenFor(db).delete(id);
+	return changes > 0;
 }
 
 /** Every source a key can be scoped to, by name, as the source picker offers them. */

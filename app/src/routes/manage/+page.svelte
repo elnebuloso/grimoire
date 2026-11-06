@@ -8,6 +8,8 @@
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
+
+	const count = (value: number) => value.toLocaleString(getLocale());
 </script>
 
 <PageHead title={m.admin_title({ name: data.instanceTitle })} namesInstance />
@@ -24,15 +26,20 @@
 		href={resolve('/manage/dead-links')}
 		aria-label={data.totals.deadLinks === 1
 			? m.admin_dead_link()
-			: m.admin_dead_links({ count: data.totals.deadLinks })}
-		>{data.totals.deadLinks.toLocaleString(getLocale())}</a
+			: m.admin_dead_links({ count: count(data.totals.deadLinks) })}
+		>{count(data.totals.deadLinks)}</a
 	>
 {/snippet}
 
 <div class="split">
 	<section class="sheet" aria-labelledby="attention">
 		<h2 id="attention">{m.admin_attention()}</h2>
-		{#if data.attention.length === 0}
+		{#if data.totals.sources === 0}
+			<p class="muted">
+				{m.no_sources_yet()}
+				<a href={resolve('/manage/sources/[id]/[[tab=tab]]', { id: 'new' })}>{m.source_new()}</a>
+			</p>
+		{:else if data.attention.length === 0}
 			<p class="muted">{m.admin_all_fine()}</p>
 		{:else}
 			<AttentionList groups={data.attention} />

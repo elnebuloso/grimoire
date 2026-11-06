@@ -334,7 +334,10 @@ describe('keys of other users', () => {
 			} as never)
 		);
 		expect(changed).toBe(404);
-		await page.actions.revoke({ request: formRequest([['id', String(id)]]), ...asOther } as never);
+		const revoked = await thrownStatus(() =>
+			page.actions.revoke({ request: formRequest([['id', String(id)]]), ...asOther } as never)
+		);
+		expect(revoked).toBe(404);
 		expect(listApiKeys(db)).toMatchObject([{ id, sources: 'all' }]);
 	});
 });

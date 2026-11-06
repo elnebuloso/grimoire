@@ -112,9 +112,13 @@ export function removeIdentity(
 	userId: number,
 	issuer: string,
 	keepSession?: string
-) {
-	inTransaction(db, () => {
-		db.prepare('DELETE FROM user_identities WHERE user_id = ? AND issuer = ?').run(userId, issuer);
+): boolean {
+	return inTransaction(db, () => {
+		const { changes } = db
+			.prepare('DELETE FROM user_identities WHERE user_id = ? AND issuer = ?')
+			.run(userId, issuer);
+		if (changes === 0) return false;
 		endSessions(db, userId, keepSession);
+		return true;
 	});
 }

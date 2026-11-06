@@ -135,6 +135,10 @@ test('sets up the admin account with the token from the server log', async ({ pa
 
 	await expect(page).toHaveURL('/manage');
 	await expect(page.getByRole('heading', { name: 'Manage grimoire' })).toBeVisible();
+	// Nothing to sync yet: the first step, not "every source is synced".
+	const attention = page.getByRole('region', { name: 'Needs attention' });
+	await expect(attention).toContainText('No sources yet.');
+	await expect(attention.getByRole('link', { name: 'New source' })).toBeVisible();
 });
 
 test('logs out and back in, and rejects a wrong password', async ({ page }) => {

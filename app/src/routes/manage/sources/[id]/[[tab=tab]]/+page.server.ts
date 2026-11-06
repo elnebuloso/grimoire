@@ -156,10 +156,12 @@ export const actions = {
 
 		// Forced only when the index changes, so a changed path or exclusions take effect without
 		// waiting for a new commit; a forced sync of a large source holds every other one for minutes.
-		if (syncsAutomatically(db, form))
-			requestSyncInBackground(result.id, { force: changes.reindex });
-		// A new source opens on its status; saved settings stay in view.
-		redirect(303, `/manage/sources/${result.id}${source ? '/settings' : ''}`);
+		const syncs = syncsAutomatically(db, form);
+		if (syncs) requestSyncInBackground(result.id, { force: changes.reindex });
+		// A new source opens on its status; saved settings stay in view, and the answer says
+		// whether a sync of the whole source started or only a check for a new commit.
+		if (!source) redirect(303, `/manage/sources/${result.id}`);
+		return { saved: true, reindexing: syncs && changes.reindex };
 	},
 	test: async ({ request, params }) => {
 		// Only the remote, not `sourceProblem`: access can be tested before the source is named.

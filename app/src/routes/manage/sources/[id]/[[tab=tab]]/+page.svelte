@@ -201,10 +201,11 @@
 			const name = String(input.formData.get('name'));
 			if (testing) testPending = true;
 			const submit = submitWithToast({
-				success: () => {
+				success: (result) => {
 					if (testing) return undefined;
 					if (isNew) return m.source_created({ name });
-					return data.syncPending ? m.source_saved_sync({ name }) : m.source_saved({ name });
+					const reindexing = result.type === 'success' && result.data?.reindexing === true;
+					return reindexing ? m.source_saved_sync({ name }) : m.source_saved({ name });
 				}
 			})(input) as SubmitResult;
 			return async (output) => {
