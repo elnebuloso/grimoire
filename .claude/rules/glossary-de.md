@@ -25,6 +25,7 @@ follows the table; a term not listed is chosen once and added here.
 | operator (who runs grimoire) | Betreiber | Betrieb, die Person, die grimoire betreibt |
 | duplicate | Duplikat | Dublette |
 | documentation site | Dokumentations-Website | Dokumentation Website |
+| exclusion (of a source) | Ausschluss | Exclusion |
 
 - The Git username of a source stays „Benutzername“: it is the Git server's term, not a grimoire
   user.

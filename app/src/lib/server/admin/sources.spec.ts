@@ -71,9 +71,15 @@ describe('sourceProblem', () => {
 		[{ docsUrl: 'ftp://docs.example.com/' }, 'docsUrl'],
 		[{ branch: ' ' }, 'branch'],
 		[{ path: '../other' }, 'path'],
-		[{ schedule: 'daily' }, 'schedule']
+		[{ schedule: 'daily' }, 'schedule'],
+		[{ exclusions: `docs/drafts/**\n${'a'.repeat(1001)}` }, 'exclusions']
 	])('names the field of %j', (changes, field) => {
 		expect(sourceProblem(db, undefined, undefined, sourceForm(changes))).toMatchObject({ field });
+	});
+
+	it('accepts exclusions up to the length a glob may have', () => {
+		const form = sourceForm({ exclusions: `docs/drafts/**\n${'a'.repeat(1000)}` });
+		expect(sourceProblem(db, undefined, undefined, form)).toBeUndefined();
 	});
 });
 

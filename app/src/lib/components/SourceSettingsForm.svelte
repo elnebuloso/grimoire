@@ -178,7 +178,12 @@ scrolled to; saving a new source leads to it. -->
 				/>
 			</div>
 		</div>
-		<TextAreaField label={m.field_exclusions()} name="exclusions" value={values.exclusions} />
+		<TextAreaField
+			label={m.field_exclusions()}
+			name="exclusions"
+			value={values.exclusions}
+			{...invalid('exclusions')}
+		/>
 	</FormSection>
 	<FormSection title={m.source_section_access()} lead={m.source_section_access_lead()}>
 		<DescriptionList

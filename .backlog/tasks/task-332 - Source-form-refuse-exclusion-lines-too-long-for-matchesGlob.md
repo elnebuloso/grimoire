@@ -1,9 +1,11 @@
 ---
 id: TASK-332
 title: 'Source form: refuse exclusion lines too long for matchesGlob'
-status: To Do
-assignee: []
+status: Done
+assignee:
+  - '@claude'
 created_date: '2026-11-06 22:05'
+updated_date: '2026-11-06 22:20'
 labels:
   - admin
   - sync
@@ -30,7 +32,28 @@ Found by the second whole-repo audit on 2026-11-06 (HEAD 06aada8).
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Saving a source with an exclusion line over the limit is refused at the exclusions field and writes nothing
-- [ ] #2 Normal exclusions save as before
-- [ ] #3 A spec covers the refusal
+- [x] #1 Saving a source with an exclusion line over the limit is refused at the exclusions field and writes nothing
+- [x] #2 Normal exclusions save as before
+- [x] #3 A spec covers the refusal
 <!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. Spec: sourceProblem refuses an exclusion line over 1,000 characters at the exclusions field and accepts one of 1,000
+2. sourceProblem checks every line against MAX_EXCLUSION_LENGTH; new message error_exclusion_too_long in en and de
+3. The exclusions field of SourceSettingsForm is marked with markRefusal like the other fields; handbook names the limit; glossary gets "Ausschluss"
+<!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+- The spec failed before and passes after; admin/sources.spec.ts, the route spec and the SourceSettingsForm stories pass (101 tests). make handbook passes.
+- The German term "Ausschluss" was already used in de.json (field label, fix hints); added to .claude/rules/glossary-de.md as the glossary rule asks for a new term.
+<!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Saving a source now refuses an exclusion line longer than 1,000 characters at the exclusions field, which is marked like the other fields. Before, a pasted line over 64 KiB was stored and made matchesGlob throw on every management page and every sync of the source, with no way back through the UI. Spec in admin/sources.spec.ts; the handbook names the limit.
+<!-- SECTION:FINAL_SUMMARY:END -->
