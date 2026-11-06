@@ -787,7 +787,8 @@ test('links a provider to an existing account with its password, and removes it 
 		state: authorize.get('state')!
 	}).toString();
 	await page.evaluate((url) => (location.href = url), cancelled.href);
-	await expect(page).toHaveURL('/account?problem=oidc-failed');
+	// The page drops `?problem=` from the address once it shows the message.
+	await expect(page).toHaveURL(/\/account(\?problem=oidc-failed)?$/);
 	await expect(
 		page.getByText('The login at the identity provider did not complete.')
 	).toBeVisible();
