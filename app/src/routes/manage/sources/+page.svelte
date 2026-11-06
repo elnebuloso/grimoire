@@ -8,13 +8,24 @@
 	import StatusBadge from '#lib/components/StatusBadge.svelte';
 	import { m } from '#lib/paraglide/messages.js';
 	import { getLocale } from '#lib/paraglide/runtime.js';
-	import { sourceState } from '#lib/source-state.js';
+	import { SOURCE_FILTERS, sourceState } from '#lib/source-state.js';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
 
 	const count = (value: number) => value.toLocaleString(getLocale());
 	const newSource = resolve('/manage/sources/[id]/[[tab=tab]]', { id: 'new' });
+
+	const STATE_LABELS: Record<(typeof SOURCE_FILTERS.status)[number], () => string> = {
+		error: m.source_state_error,
+		paused: m.state_paused,
+		never: m.not_synced,
+		synced: m.source_history_synced
+	};
+	const WARNING_LABELS: Record<(typeof SOURCE_FILTERS.warnings)[number], () => string> = {
+		yes: m.source_filter_warnings_yes,
+		no: m.source_filter_warnings_no
+	};
 </script>
 
 <PageHead title={m.sources()} />
@@ -36,12 +47,7 @@
 			{
 				name: 'status',
 				label: m.source_status(),
-				options: [
-					{ value: 'error', label: m.source_state_error() },
-					{ value: 'paused', label: m.state_paused() },
-					{ value: 'never', label: m.not_synced() },
-					{ value: 'synced', label: m.source_history_synced() }
-				]
+				options: SOURCE_FILTERS.status.map((value) => ({ value, label: STATE_LABELS[value]() }))
 			},
 			{
 				name: 'visibility',
@@ -54,10 +60,10 @@
 			{
 				name: 'warnings',
 				label: m.source_warnings(),
-				options: [
-					{ value: 'yes', label: m.source_filter_warnings_yes() },
-					{ value: 'no', label: m.source_filter_warnings_no() }
-				]
+				options: SOURCE_FILTERS.warnings.map((value) => ({
+					value,
+					label: WARNING_LABELS[value]()
+				}))
 			}
 		]}
 		columns={[

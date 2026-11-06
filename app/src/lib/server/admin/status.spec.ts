@@ -3,6 +3,10 @@ import type { DatabaseSync } from 'node:sqlite';
 import { openDatabase } from '../db/schema';
 import { readById } from '../agent/operations';
 import { parseGrimoireId } from '../grimoire-id';
+import { listPage, readListParams } from '#lib/list.js';
+import { sourceFilterQuery } from '#lib/source-state.js';
+import { SOURCE_LIST } from '../source-list';
+import { sourceStats } from '../stats';
 import {
 	dashboard,
 	deadLinks,
@@ -337,6 +341,31 @@ describe('dashboard', () => {
 				shown: [{ sourceId: 1, source: 'auth', name: 'Auth', kind: 'neverSynced' }]
 			}
 		]);
+	});
+
+	it('groups a paused source with a sync error under errors only, as the source list does', () => {
+		db.exec("UPDATE sources SET paused = 1 WHERE slug = 'broken'");
+		const sources = sourceStats(db);
+		const groups = dashboard(db).attention;
+
+		for (const group of groups.filter(
+			(group) => group.kind === 'paused' || group.kind === 'error'
+		)) {
+			const status = group.kind === 'paused' ? 'paused' : 'error';
+			const listed = listPage(
+				sources,
+				readListParams(
+					new URL(`https://grimoire.example/${sourceFilterQuery('status', status)}`),
+					SOURCE_LIST
+				),
+				SOURCE_LIST
+			);
+			expect(group.total, group.kind).toBe(listed.total);
+		}
+		const broken = groups
+			.flatMap((group) => group.shown)
+			.filter((problem) => problem.source === 'broken');
+		expect(broken.map((problem) => problem.kind)).toEqual(['error']);
 	});
 
 	it('shows the first five of a kind by name and counts the rest', () => {

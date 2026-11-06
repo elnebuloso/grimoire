@@ -1,4 +1,5 @@
 <script module lang="ts">
+	import { sourceFilterQuery } from '#lib/source-state.js';
 	import { defineMeta } from '@storybook/addon-svelte-csf';
 	import { expect, within } from 'storybook/test';
 	import AttentionList from './AttentionList.svelte';
@@ -110,11 +111,11 @@
 		await expect(never.getAllByRole('listitem')).toHaveLength(5);
 		await expect(never.getByRole('link', { name: 'Show all 12' })).toHaveAttribute(
 			'href',
-			'/manage/sources?status=never'
+			`/manage/sources${sourceFilterQuery('status', 'never')}`
 		);
 		await expect(canvas.getByRole('link', { name: 'Show all 6' })).toHaveAttribute(
 			'href',
-			'/manage/sources?warnings=yes'
+			`/manage/sources${sourceFilterQuery('warnings', 'yes')}`
 		);
 	}}
 />

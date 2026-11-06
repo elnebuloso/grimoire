@@ -3,6 +3,7 @@ import { grimoireId } from '../grimoire-id';
 import { readSnippets, renderSnippet } from '../search/query';
 import { sourceStats, type SourceStats } from '../stats';
 import { errorKind, type SyncErrorKind } from '../sync/error-kind';
+import { sourceState } from '#lib/source-state.js';
 import { findOverlaps, type Overlap } from './duplicates';
 import { listSources } from './sources';
 
@@ -275,9 +276,14 @@ export function problems(
 			found.push({ ...of, kind: 'warnings', warnings: health.warnings });
 		}
 		if (health.deadLinks > 0) found.push({ ...of, kind: 'deadLinks', count: health.deadLinks });
-		if (health.paused) found.push({ ...of, kind: 'paused', neverSynced: health.neverSynced });
-		else if (health.neverSynced && health.error === null)
-			found.push({ ...of, kind: 'neverSynced' });
+		// As the source list sorts it into its state filter, so a group counts what "show all" lists.
+		const state = sourceState({
+			error: health.error !== null,
+			paused: health.paused,
+			lastSync: health.lastSyncedAt
+		});
+		if (state === 'paused') found.push({ ...of, kind: 'paused', neverSynced: health.neverSynced });
+		if (state === 'never') found.push({ ...of, kind: 'neverSynced' });
 	}
 	for (const { kind, first, second } of pairs) {
 		found.push({ ...sourceRef(first), kind: 'duplicate', overlap: kind, other: sourceRef(second) });

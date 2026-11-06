@@ -3,6 +3,7 @@
 	import SourceLabel from './SourceLabel.svelte';
 	import SyncError from './SyncError.svelte';
 	import { m } from '#lib/paraglide/messages.js';
+	import { sourceFilterQuery } from '#lib/source-state.js';
 	import { SYNC_FIX } from '#lib/sync-fix.js';
 	import type { Problem, ProblemGroup } from '#lib/server/admin/status.js';
 
@@ -20,12 +21,12 @@
 
 	const sources = resolve('/manage/sources');
 	const ALL: Record<Problem['kind'], string> = {
-		error: `${sources}?status=error`,
+		error: `${sources}${sourceFilterQuery('status', 'error')}`,
 		duplicate: resolve('/manage/duplicates'),
-		warnings: `${sources}?warnings=yes`,
+		warnings: `${sources}${sourceFilterQuery('warnings', 'yes')}`,
 		deadLinks: resolve('/manage/dead-links'),
-		paused: `${sources}?status=paused`,
-		neverSynced: `${sources}?status=never`
+		paused: `${sources}${sourceFilterQuery('status', 'paused')}`,
+		neverSynced: `${sources}${sourceFilterQuery('status', 'never')}`
 	};
 
 	const statusOf = (sourceId: number) =>
