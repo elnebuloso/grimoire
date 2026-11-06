@@ -228,7 +228,6 @@ async function git(
 			kind = 'access';
 		}
 		// No `cause`: the original error carries the unredacted command line and output.
-		// eslint-disable-next-line preserve-caught-error
 		throw new SyncFailure(kind, redact(`git ${command} failed: ${reason}`, remote));
 	}
 }

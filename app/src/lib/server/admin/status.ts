@@ -1,7 +1,7 @@
 import type { DatabaseSync } from 'node:sqlite';
 import { grimoireId } from '../grimoire-id';
 import { readSnippets, renderSnippet } from '../search/query';
-import { sourceStats, type SourceStats } from '../stats';
+import { sourceStats } from '../stats';
 import { errorKind, type SyncErrorKind } from '../sync/error-kind';
 import { sourceState } from '#lib/source-state.js';
 import { findOverlaps, type Overlap } from './duplicates';
