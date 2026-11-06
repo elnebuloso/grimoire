@@ -5,6 +5,10 @@ next to it.
 
 ## A reactive application
 
+- **A desktop web application.** Pages are built and checked for a desktop browser from 1024 px
+  wide, which covers a tablet in landscape too. Nothing is laid out for phones and there are no
+  touch sizes; below 1024 px a page stays usable, scrolling sideways if need be. Phone styles
+  still in a page go when that page is rebuilt.
 - **JavaScript is required.** The web UI is a reactive Svelte application; nothing is built to work
   without JavaScript, and no fallback for it is kept or tested. There is no SEO requirement on
   server rendering; loads and form actions on the server stay the place for data and state.

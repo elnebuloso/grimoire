@@ -4,6 +4,7 @@ title: Source detail as header plus four sub pages
 status: To Do
 assignee: []
 created_date: '2026-11-05 20:46'
+updated_date: '2026-11-05 23:05'
 labels:
   - admin
 milestone: m-3
@@ -32,4 +33,5 @@ Measure M9 in the concept. Work on the branch `redesign`; it ships in one merge 
 - [ ] #4 Old links with `#settings` and `#status` land on the matching sub page
 - [ ] #5 Links from the overview and the quality lists point to the sub page where the problem is fixed
 - [ ] #6 `sources.spec.ts`, `manage.e2e.ts` and the handbook are updated
+- [ ] #7 The slug change shows its consequences once in full, in the confirmation dialog; above its button stands one line naming them (snippet IDs and agent URLs change). Owner decision after TASK-251, where the full text stood twice
 <!-- AC:END -->
