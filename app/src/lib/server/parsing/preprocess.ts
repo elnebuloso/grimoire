@@ -16,10 +16,11 @@ const CONTENT_TAB = /^===[+!]?\s+"(.*)"\s*$/;
 const FENCE = /^(`{3,}|~{3,})/;
 const INDENT = /^( {4}|\t)/;
 const NOT_A_PARAGRAPH = /^(\s|`{3}|~{3}|[-*+]\s|\d+[.)]\s|\||#|>)/;
-const HTML_COMMENT = /<!--[\s\S]*?-->/g;
-const HTML_IMAGE = /<img\b[^>]*>/gi;
+// `[^<>]`, not `[^>]`: from an unclosed tag the search stops at the next `<` instead of running to
+// the end of the page, which made a page of unclosed tags take minutes.
+const HTML_IMAGE = /<img\b[^<>]*>/gi;
 const HTML_ALT = /\balt\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i;
-const HTML_PICTURE_SOURCE = /<source\b[^>]*>/gi;
+const HTML_PICTURE_SOURCE = /<source\b[^<>]*>/gi;
 
 /**
  * Turns a Markdown page into plain Markdown for agents: frontmatter becomes metadata, MkDocs/Zensical
@@ -138,8 +139,7 @@ function dropImageUrlsAndComments(tree: Root) {
 		}
 
 		if (node.type === 'html') {
-			const value = node.value
-				.replace(HTML_COMMENT, '')
+			const value = withoutComments(node.value)
 				.replace(HTML_IMAGE, (tag) => HTML_ALT.exec(tag)?.slice(1).find(Boolean) ?? '')
 				.replace(HTML_PICTURE_SOURCE, '');
 			if (value.trim() === '') {
@@ -149,4 +149,18 @@ function dropImageUrlsAndComments(tree: Root) {
 			node.value = value;
 		}
 	});
+}
+
+// Found by position, not by a pattern: a lazy pattern searched to the end of the page again from
+// every `<!--` that is never closed.
+function withoutComments(html: string): string {
+	let kept = '';
+	let at = 0;
+	for (;;) {
+		const start = html.indexOf('<!--', at);
+		const end = start < 0 ? -1 : html.indexOf('-->', start + 4);
+		if (end < 0) return kept + html.slice(at);
+		kept += html.slice(at, start);
+		at = end + 3;
+	}
 }

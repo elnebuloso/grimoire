@@ -73,6 +73,22 @@ graph LR
 `;
 
 describe('preprocessPage', () => {
+	it('reads unclosed images, sources and comments in raw HTML in linear time', () => {
+		// Patterns that searched to the end of the page from every unclosed tag took seconds per
+		// 100 KB and minutes for a page of this size, far past the test timeout.
+		for (const unclosed of ['<img', '<source', '<!--']) {
+			const page = preprocessPage(`<div>\n${unclosed.repeat(100_000)}\n</div>\n\nAfter.\n`);
+			expect(page.markdown).toContain('After.');
+		}
+	});
+
+	it('removes closed images, sources and comments in raw HTML as before', () => {
+		const page = preprocessPage(
+			'<div>\n<!-- note --><img src="a.png" alt="Logo"><picture><source srcset="b.png"></picture>\n</div>\n'
+		);
+		expect(page.markdown).toBe('<div>\nLogo<picture></picture>\n</div>\n');
+	});
+
 	it('converts a MkDocs page with every supported element', () => {
 		expect(preprocessPage(mkdocsPage)).toEqual({
 			title: 'Auth-Service',

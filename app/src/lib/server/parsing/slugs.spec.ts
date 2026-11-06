@@ -124,6 +124,16 @@ const cases: [string, Slugify, string[]][] = [
 ];
 
 describe('slug functions', () => {
+	it('strips tags from a heading of unclosed angle brackets in linear time', () => {
+		// Searching to the end from every `<` took over half a minute for 160 KB.
+		expect(pymdownxSlugify({ case: 'lower' })(`Setup ${'<'.repeat(200_000)} done`)).toBe(
+			'setup--done'
+		);
+		expect(pymdownxSlugify({ case: 'lower' })('Install <code>grimoire</code> now')).toBe(
+			'install-grimoire-now'
+		);
+	});
+
 	it.each(cases)('%s matches the Python implementation', (_, slugify, expected) => {
 		expect(TEXTS.map(slugify)).toEqual(expected);
 	});

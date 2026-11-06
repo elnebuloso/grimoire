@@ -1,9 +1,11 @@
 ---
 id: TASK-324
 title: 'Parsing: HTML regexes must stay linear on unclosed tags and comments'
-status: To Do
-assignee: []
+status: Done
+assignee:
+  - '@claude'
 created_date: '2026-11-06 22:05'
+updated_date: '2026-11-06 22:13'
 labels:
   - parsing
   - sync
@@ -30,8 +32,30 @@ Found by the second whole-repo audit on 2026-11-06 (HEAD 06aada8).
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Preprocessing a page of 200 KB of unclosed `<img`, `<source` or `<!--` takes well under a second
-- [ ] #2 Slugifying a heading of 200 KB of `<` takes well under a second
-- [ ] #3 Closed comments, images (alt text kept) and `<source>` tags are removed exactly as before (existing specs pass)
-- [ ] #4 Specs in `preprocess.spec.ts` and the slug spec cover the unclosed inputs with a time limit
+- [x] #1 Preprocessing a page of 200 KB of unclosed `<img`, `<source` or `<!--` takes well under a second
+- [x] #2 Slugifying a heading of 200 KB of `<` takes well under a second
+- [x] #3 Closed comments, images (alt text kept) and `<source>` tags are removed exactly as before (existing specs pass)
+- [x] #4 Specs in `preprocess.spec.ts` and the slug spec cover the unclosed inputs with a time limit
 <!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. Specs (convention of the earlier linear-time specs: an input the old code needs far past the test timeout for): 100,000 unclosed <img, <source and <!-- in a raw HTML block; a 200,000-character heading of < in the pymdownx slugify; closed tags removed as before
+2. HTML_IMAGE, HTML_PICTURE_SOURCE and the slug tag pattern use [^<>]* instead of [^>]*
+3. Comments are removed by an indexOf loop (withoutComments) instead of a lazy pattern
+<!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+- Before: the preprocess spec ran 14 s, the slug spec 48 s, both failed; after: all 115 parsing specs pass.
+- withoutComments gives the same result as the lazy pattern: an unclosed <!-- has no --> after it, so no later comment could close either.
+- A `<` inside an attribute value of <img> (e.g. alt="a<b") no longer counts as one tag; such a tag stays in the HTML instead of being replaced by its alt text.
+<!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Raw HTML in pages is now stripped in linear time: the <img> and <source> patterns and the pymdownx slugify's tag pattern stop at the next `<`, and comments are found by position instead of a lazy pattern. A page or heading of unclosed tags that took seconds to minutes and could fill the indexing deadline of the shared sync slot now takes milliseconds. Closed tags are removed as before. Specs with 100,000 unclosed tags and a 200,000-character heading cover it.
+<!-- SECTION:FINAL_SUMMARY:END -->

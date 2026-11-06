@@ -23,7 +23,8 @@ export function pymdownxSlugify(options: PymdownxSlugOptions, separator = '-'): 
 	return (text) => {
 		let slug = text
 			.normalize((options.normalize ?? 'NFC') as 'NFC')
-			.replace(/<\/?[^>]*>/g, '')
+			// `[^<>]`: from an unclosed `<` the search stops at the next one, not at the end.
+			.replace(/<\/?[^<>]*>/g, '')
 			.trim();
 		if (options.case === 'lower') slug = slug.toLowerCase();
 		else if (options.case === 'lower-ascii') slug = slug.replace(/[A-Z]/g, (c) => c.toLowerCase());
