@@ -2,11 +2,18 @@
 	import CopyButton from '#lib/components/CopyButton.svelte';
 	import PageHead from '#lib/components/PageHead.svelte';
 	import QueryForm from '#lib/components/QueryForm.svelte';
-	import SourceStatsTable from '#lib/components/SourceStatsTable.svelte';
+	import DataTable from '#lib/components/DataTable.svelte';
+	import DateTime from '#lib/components/DateTime.svelte';
+	import SourceLabel from '#lib/components/SourceLabel.svelte';
+	import StatusBadge from '#lib/components/StatusBadge.svelte';
 	import { m } from '#lib/paraglide/messages.js';
+	import { getLocale } from '#lib/paraglide/runtime.js';
+	import { sourceState } from '#lib/source-state.js';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
+
+	const count = (value: number) => value.toLocaleString(getLocale());
 
 	// One option per line: a phone wraps between them, not inside a flag. A visitor has no key and
 	// reads the public sources without one.
@@ -27,11 +34,49 @@
 
 <section class="sheet flush" aria-labelledby="sources">
 	<div class="sheet-head"><h2 id="sources">{m.sources()}</h2></div>
-	{#if data.sources.length === 0}
-		<p class="muted">{m.no_sources_yet()}</p>
-	{:else}
-		<SourceStatsTable sources={data.sources} timeZone={data.timeZone} />
-	{/if}
+	<DataTable
+		label={m.sources_table()}
+		list={data.sources}
+		key={(source) => source.id}
+		search={data.sources.total > 0 || data.filtered ? m.list_search_sources() : undefined}
+		columns={[
+			{ label: m.source(), sort: 'name' },
+			{ label: m.visibility() },
+			{ label: m.pages(), numeric: true },
+			{ label: m.snippets(), numeric: true },
+			{ label: m.tokens(), numeric: true },
+			{ label: m.source_status(), sort: 'status' },
+			{ label: m.last_check_in_zone({ zone: data.timeZone }), sort: 'checked' },
+			{ label: m.dead_links(), numeric: true }
+		]}
+	>
+		{#snippet row(source)}
+			<th scope="row">
+				<div class="source">
+					<SourceLabel name={source.name} slug={source.slug} />
+					{#if source.description}<span class="muted">{source.description}</span>{/if}
+					{#if source.docsUrl}<a href={source.docsUrl} rel="external">{m.source_docs_link()}</a
+						>{/if}
+				</div>
+			</th>
+			<td>{source.visibility === 'public' ? m.visibility_public() : m.visibility_internal()}</td>
+			<td class="num">{count(source.pages)}</td>
+			<td class="num">{count(source.snippets)}</td>
+			<td class="num">{count(source.tokens)}</td>
+			<td><StatusBadge state={sourceState(source)} /></td>
+			<td class="when">
+				{#if source.lastCheck}
+					<DateTime value={source.lastCheck} timeZone={data.timeZone} short />
+				{:else}
+					{m.never()}
+				{/if}
+			</td>
+			<td class="num">{count(source.deadLinks)}</td>
+		{/snippet}
+		{#snippet empty()}
+			<p class="muted">{data.filtered ? m.list_no_match() : m.no_sources_yet()}</p>
+		{/snippet}
+	</DataTable>
 </section>
 
 <div class="pair">
@@ -57,6 +102,15 @@
 </div>
 
 <style>
+	.source {
+		display: grid;
+		gap: 2px;
+		min-width: 12rem;
+	}
+	.when {
+		color: var(--ink-2);
+		white-space: nowrap;
+	}
 	.pair {
 		display: grid;
 		gap: var(--s5);

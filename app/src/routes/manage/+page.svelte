@@ -2,6 +2,7 @@
 	import { resolve } from '$app/paths';
 	import PageHead from '#lib/components/PageHead.svelte';
 	import DescriptionList from '#lib/components/DescriptionList.svelte';
+	import SourceLabel from '#lib/components/SourceLabel.svelte';
 	import { m } from '#lib/paraglide/messages.js';
 	import { getLocale } from '#lib/paraglide/runtime.js';
 	import type { SyncErrorKind } from '#lib/server/sync/error-kind.js';
@@ -58,8 +59,7 @@
 			<ul class="attention">
 				{#each data.attention as item (`${item.sourceId}-${item.kind}`)}
 					<li class:error={item.kind === 'error'}>
-						<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- resolved in `fixAt` -->
-						<a href={fixAt(item)}>{item.source}</a>
+						<SourceLabel name={item.name} slug={item.source} href={fixAt(item)} />
 						{#if item.kind === 'error'}
 							– {m.admin_sync_error({ error: item.error })}
 							<p class="fix">{FIX[item.errorKind]()}</p>
@@ -132,11 +132,6 @@
 	}
 	.attention > li.error {
 		border-color: var(--err);
-	}
-	.attention > li > a:first-child {
-		font-family: var(--mono);
-		font-size: 14px;
-		font-weight: 500;
 	}
 	/* Warnings of a source: one step quieter than the source they belong to. */
 	.attention ul {

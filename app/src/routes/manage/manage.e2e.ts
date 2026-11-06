@@ -595,6 +595,7 @@ test('creates an API key that works for its source until it is revoked', async (
 }) => {
 	await asAdmin(page);
 	await area(page, 'Account').click();
+	await expect(page).toHaveURL('/account/api-keys');
 	await page.getByLabel('Name').fill('ci');
 	await page.getByLabel('Only these:').check();
 	await page.getByRole('button', { name: 'Create key' }).click();
@@ -655,6 +656,7 @@ test('invites a user who reads internal sources with their own key, but manages 
 
 	await page.goto('/');
 	await area(page, 'Account').click();
+	await expect(page).toHaveURL('/account/api-keys');
 	await page.getByLabel('Name').fill('writer-laptop');
 	await page.getByRole('button', { name: 'Create key' }).click();
 	const key = await page.locator('output').textContent();

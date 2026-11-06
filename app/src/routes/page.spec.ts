@@ -45,7 +45,7 @@ function load(search: string, userId?: number) {
 	return page.load({ url, locals } as never) as {
 		query?: QueryFormState;
 		mcpName: string;
-		sources: { slug: string }[];
+		sources: { rows: { slug: string }[] };
 	};
 }
 
@@ -61,7 +61,7 @@ describe('start page', () => {
 
 	it('lists the public sources to a visitor, and to a user also the internal ones', () => {
 		addSourceWithPage('billing-docs', '# Invoices', true);
-		const slugs = (userId?: number) => load('', userId).sources.map((source) => source.slug);
+		const slugs = (userId?: number) => load('', userId).sources.rows.map((source) => source.slug);
 
 		expect(slugs()).toEqual(['billing-docs']);
 		expect(slugs(1)).toEqual(['billing-docs', 'platform-docs']);

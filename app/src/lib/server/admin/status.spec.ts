@@ -252,6 +252,7 @@ describe('dashboard', () => {
 			{
 				sourceId: 3,
 				source: 'broken',
+				name: 'Broken',
 				kind: 'error',
 				error: 'git ls-remote failed',
 				errorKind: 'unknown'
@@ -259,20 +260,22 @@ describe('dashboard', () => {
 			{
 				sourceId: 6,
 				source: 'failing',
+				name: 'Failing',
 				kind: 'error',
 				error: 'source path "docs" does not exist in the repository',
 				errorKind: 'path'
 			},
-			{ sourceId: 5, source: 'fine', kind: 'deadLinks', count: 1 },
+			{ sourceId: 5, source: 'fine', name: 'Fine', kind: 'deadLinks', count: 1 },
 			{
 				sourceId: 4,
 				source: 'noisy',
+				name: 'Noisy',
 				kind: 'warnings',
 				warnings: ['docs/a.md: skipped, bad front matter']
 			},
-			{ sourceId: 1, source: 'auth', kind: 'neverSynced' },
-			{ sourceId: 2, source: 'billing', kind: 'paused', neverSynced: true },
-			{ sourceId: 7, source: 'held', kind: 'paused', neverSynced: false }
+			{ sourceId: 1, source: 'auth', name: 'Auth', kind: 'neverSynced' },
+			{ sourceId: 2, source: 'billing', name: 'Billing', kind: 'paused', neverSynced: true },
+			{ sourceId: 7, source: 'held', name: 'Held', kind: 'paused', neverSynced: false }
 		]);
 	});
 

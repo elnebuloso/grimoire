@@ -14,7 +14,8 @@
 	import NameField from '#lib/components/NameField.svelte';
 	import PageHead from '#lib/components/PageHead.svelte';
 	import PageList from '#lib/components/PageList.svelte';
-	import TableScroll from '#lib/components/TableScroll.svelte';
+	import DataTable from '#lib/components/DataTable.svelte';
+	import StatusBadge from '#lib/components/StatusBadge.svelte';
 	import TabNav from '#lib/components/TabNav.svelte';
 	import TextAreaField from '#lib/components/TextAreaField.svelte';
 	import TextField from '#lib/components/TextField.svelte';
@@ -23,6 +24,7 @@
 	import { showToast } from '#lib/toasts.svelte.js';
 	import { MAX_NAME_LENGTH, MAX_SLUG_LENGTH } from '#lib/slug.js';
 	import { NEW_SOURCE_FIELDS, toSourceFields } from '#lib/source-fields.js';
+	import { sourceState } from '#lib/source-state.js';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
@@ -97,14 +99,18 @@
 			: []
 	);
 
-	// One word for the state of the source, the most pressing first.
-	const badge = $derived.by(() => {
-		if (data.syncPending) return { word: m.source_syncing(), tone: 'running' };
-		if (data.status?.error) return { word: m.source_history_failed(), tone: 'error' };
-		if (data.source?.paused) return { word: m.state_paused(), tone: 'muted' };
-		if (!data.status?.lastSyncedAt) return { word: m.not_synced(), tone: 'muted' };
-		return { word: m.source_history_synced(), tone: 'ok' };
-	});
+	const headState = $derived(
+		data.source && data.status
+			? sourceState(
+					{
+						error: data.status.error !== null,
+						paused: data.source.paused,
+						lastSync: data.status.lastSyncedAt
+					},
+					data.syncPending
+				)
+			: 'never'
+	);
 
 	const values = $derived(
 		form?.values ?? {
@@ -129,7 +135,7 @@
 						? m.visibility_public()
 						: m.visibility_internal()}</span
 				>
-				<span class="badge {badge.tone}" aria-live="polite">{badge.word}</span>
+				<span aria-live="polite"><StatusBadge state={headState} /></span>
 				{#if data.source.docsUrl}
 					<a href={data.source.docsUrl} rel="external">{m.source_docs_link()}</a>
 				{/if}
@@ -156,6 +162,10 @@
 		back={{ href: resolve('/manage/sources'), label: m.all_sources_link() }}
 	/>
 {/if}
+
+<!-- What each Git host calls the token the access section asks for. -->
+{#snippet gitlab()}{m.source_token_gitlab()} <code>read_repository</code>{/snippet}
+{#snippet github()}{m.source_token_github()} <code>Contents: read-only</code>{/snippet}
 
 {#snippet settings()}
 	<!-- In place: the connection test answers without reloading what was typed and where it was
@@ -241,20 +251,13 @@
 			<TextAreaField label={m.field_exclusions()} name="exclusions" value={values.exclusions} />
 		</FormSection>
 		<FormSection title={m.source_section_access()} lead={m.source_section_access_lead()}>
-			<table class="hosts">
-				<thead>
-					<tr>
-						<th scope="col">{m.source_token_host()}</th>
-						<th scope="col">{m.source_token_kind()}</th>
-					</tr>
-				</thead>
-				<tbody>
-					<tr><td>GitLab</td><td>{m.source_token_gitlab()} <code>read_repository</code></td></tr>
-					<tr><td>GitHub</td><td>{m.source_token_github()} <code>Contents: read-only</code></td></tr
-					>
-					<tr><td>Forgejo</td><td>{m.source_token_forgejo()}</td></tr>
-				</tbody>
-			</table>
+			<DescriptionList
+				items={[
+					['GitLab', gitlab],
+					['GitHub', github],
+					['Forgejo', m.source_token_forgejo()]
+				]}
+			/>
 			<div class="fields">
 				<TextField label={m.field_username()} name="username" value={values.username} />
 				<div class="token">
@@ -455,51 +458,40 @@
 	{:else if data.tab === 'history'}
 		<section class="sheet" aria-labelledby="history">
 			<h2 id="history">{m.source_history()}</h2>
-			{#if data.status.history.length === 0}
-				<p class="muted">{m.source_history_none()}</p>
-			{:else}
-				<TableScroll label={m.source_history()}>
-					<table>
-						<thead>
-							<tr>
-								<th scope="col">{m.source_history_when()}</th>
-								<th scope="col">{m.source_history_outcome()}</th>
-								<th scope="col">{m.source_commit()}</th>
-								<th scope="col" class="error">{m.source_error()}</th>
-							</tr>
-						</thead>
-						<tbody>
-							{#each data.status.history as run, index (index)}
-								<tr>
-									<td class="when">
-										{#if run.runs > 1}
-											<span><DateTime value={run.startedAt} timeZone={data.timeZone} /> –</span>
-											<span><DateTime value={run.finishedAt} timeZone={data.timeZone} /></span>
-											<span class="runs">({m.source_history_runs({ runs: run.runs })})</span>
-										{:else}
-											<DateTime value={run.finishedAt} timeZone={data.timeZone} />
-										{/if}
-									</td>
-									<td>
-										<span class={run.outcome}
-											>{run.outcome === 'synced'
-												? m.source_history_synced()
-												: run.outcome === 'unchanged'
-													? m.source_history_unchanged()
-													: m.source_history_failed()}</span
-										>
-									</td>
-									<td
-										>{#if run.commit}<code title={run.commit}>{run.commit.slice(0, 12)}</code
-											>{/if}</td
-									>
-									<td class="error">{run.error ?? ''}</td>
-								</tr>
-							{/each}
-						</tbody>
-					</table>
-				</TableScroll>
-			{/if}
+			<DataTable
+				label={m.source_history()}
+				list={{
+					rows: data.status.history,
+					total: data.status.history.length,
+					page: 1,
+					pageCount: 1
+				}}
+				key={(run) => run.finishedAt}
+				columns={[
+					{ label: m.source_history_when() },
+					{ label: m.source_history_outcome() },
+					{ label: m.source_commit() },
+					{ label: m.source_error() }
+				]}
+			>
+				{#snippet row(run)}
+					<td class="when">
+						{#if run.runs > 1}
+							<span><DateTime value={run.startedAt} timeZone={data.timeZone} /> –</span>
+							<span><DateTime value={run.finishedAt} timeZone={data.timeZone} /></span>
+							<span class="runs">({m.source_history_runs({ runs: run.runs })})</span>
+						{:else}
+							<DateTime value={run.finishedAt} timeZone={data.timeZone} />
+						{/if}
+					</td>
+					<td><StatusBadge state={run.outcome} /></td>
+					<td
+						>{#if run.commit}<code title={run.commit}>{run.commit.slice(0, 12)}</code>{/if}</td
+					>
+					<td>{run.error ?? ''}</td>
+				{/snippet}
+				{#snippet empty()}<p class="muted">{m.source_history_none()}</p>{/snippet}
+			</DataTable>
 		</section>
 	{:else}
 		<div class="settings">{@render settings()}</div>
@@ -573,25 +565,6 @@
 		align-items: center;
 		gap: var(--s2) var(--s4);
 	}
-	.badge {
-		padding: 0 var(--s2);
-		border-radius: 999px;
-		background: var(--well);
-		font-size: 13px;
-		font-weight: 500;
-	}
-	.badge.ok {
-		color: var(--ok);
-	}
-	.badge.error {
-		color: var(--err);
-	}
-	.badge.running {
-		color: var(--accent);
-	}
-	.badge.muted {
-		color: var(--ink-2);
-	}
 	.back {
 		justify-self: start;
 		font-size: 14px;
@@ -610,9 +583,6 @@
 	}
 	.test {
 		justify-self: start;
-	}
-	.hosts {
-		font-size: 13px;
 	}
 	/* Rare and breaking: set apart below the settings, each action in a sheet of its own. */
 	.danger {
@@ -686,22 +656,8 @@
 	.runs {
 		color: var(--ink-2);
 	}
-	td:has(code[title]),
-	.synced,
-	.unchanged,
-	.failed {
+	td:has(code[title]) {
 		white-space: nowrap;
-	}
-	.synced {
-		color: var(--ok);
-		font-weight: 500;
-	}
-	.unchanged {
-		color: var(--ink-2);
-	}
-	.failed {
-		color: var(--err);
-		font-weight: 600;
 	}
 	.snippets {
 		display: grid;

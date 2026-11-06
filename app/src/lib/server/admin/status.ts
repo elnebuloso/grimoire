@@ -168,6 +168,7 @@ export interface Totals {
 export interface SourceHealth {
 	sourceId: number;
 	source: string;
+	name: string;
 	lastSyncedAt: string | null;
 	neverSynced: boolean;
 	paused: boolean;
@@ -179,7 +180,7 @@ export interface SourceHealth {
 export function sourceHealth(db: DatabaseSync): SourceHealth[] {
 	const rows = db
 		.prepare(
-			`SELECT id AS sourceId, slug AS source, last_synced_at AS lastSyncedAt, paused, error, warnings
+			`SELECT id AS sourceId, slug AS source, name, last_synced_at AS lastSyncedAt, paused, error, warnings
 			FROM sources
 			ORDER BY slug`
 		)
@@ -196,7 +197,7 @@ export function sourceHealth(db: DatabaseSync): SourceHealth[] {
 }
 
 /** One problem of one source, as the dashboard lists it under "needs attention". */
-export type Problem = { sourceId: number; source: string } & (
+export type Problem = { sourceId: number; source: string; name: string } & (
 	| { kind: 'error'; error: string; errorKind: SyncErrorKind }
 	| { kind: 'warnings'; warnings: string[] }
 	| { kind: 'deadLinks'; count: number }
@@ -219,7 +220,7 @@ const SEVERITY: Record<Problem['kind'], number> = {
 export function problems(sources: (SourceHealth & { deadLinks: number })[]): Problem[] {
 	const found: Problem[] = [];
 	for (const health of sources) {
-		const of = { sourceId: health.sourceId, source: health.source };
+		const of = { sourceId: health.sourceId, source: health.source, name: health.name };
 		if (health.error !== null) {
 			found.push({
 				...of,
