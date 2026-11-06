@@ -12,7 +12,7 @@
 	import TextAreaField from './TextAreaField.svelte';
 	import TextField from './TextField.svelte';
 	import { m } from '#lib/paraglide/messages.js';
-	import { submitWithToast, type Refusal, type SubmitResult } from '#lib/forms.js';
+	import { markRefusal, submitWithToast, type Refusal, type SubmitResult } from '#lib/forms.js';
 	import { MAX_NAME_LENGTH } from '#lib/slug.js';
 	import type { SourceFields } from '#lib/source-fields.js';
 
@@ -73,10 +73,8 @@
 	// A refusal marks the field it is about, which points to the message: the path, which only the
 	// Git server can refuse, has its message next to it; the others at the top.
 	const ownMessage = (field: string | undefined) => (field === 'path' ? 'path-error' : undefined);
-	const invalid = (field: string) =>
-		refusal?.field === field
-			? { 'aria-invalid': true, 'aria-describedby': ownMessage(field) ?? 'source-error' }
-			: {};
+	const invalid = (field: string, hintId?: string) =>
+		markRefusal(refusal, field, ownMessage(field) ?? 'source-error', hintId);
 </script>
 
 <!-- What each Git host calls the token the access section asks for. -->
@@ -153,8 +151,7 @@ scrolled to; saving a new source leads to it. -->
 				type="url"
 				required
 				value={values.gitUrl}
-				aria-describedby="git-url-hint"
-				{...invalid('gitUrl')}
+				{...invalid('gitUrl', 'git-url-hint')}
 			/>
 			<p class="hint" id="git-url-hint">{m.field_git_url_hint()}</p>
 		</div>

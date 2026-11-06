@@ -6,7 +6,7 @@
 	import { enhance } from '$app/forms';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
-	import { submitWithToast } from '#lib/forms.js';
+	import { markRefusal, submitWithToast } from '#lib/forms.js';
 	import { showToast } from '#lib/toasts.svelte.js';
 	import { m } from '#lib/paraglide/messages.js';
 	import type { PageProps } from './$types';
@@ -14,8 +14,7 @@
 	let { data, form }: PageProps = $props();
 
 	// Each refusal but the lockout concerns one field; it points to the message.
-	const marked = (field: string) =>
-		form?.field === field ? { 'aria-invalid': true, 'aria-describedby': 'password-error' } : {};
+	const marked = (field: string) => markRefusal(form, field, 'password-error');
 
 	// Back from linking at the provider: the outcome comes in the address, shown once. A refusal
 	// stays on the page until the next action, not in the address.

@@ -11,7 +11,7 @@
 	import DataTable from '#lib/components/DataTable.svelte';
 	import TabNav from '#lib/components/TabNav.svelte';
 	import TextField from '#lib/components/TextField.svelte';
-	import { submitWithToast, type Refusal } from '#lib/forms.js';
+	import { markRefusal, submitWithToast, type Refusal } from '#lib/forms.js';
 	import { m } from '#lib/paraglide/messages.js';
 	import type { PageProps } from './$types';
 
@@ -317,9 +317,7 @@
 					required
 					autocomplete="off"
 					value={inviteEmail}
-					{...inviteRefusal?.field === 'email'
-						? { 'aria-invalid': true, 'aria-describedby': 'invite-error' }
-						: {}}
+					{...markRefusal(inviteRefusal, 'email', 'invite-error')}
 				/>
 			</form>
 		{/key}

@@ -2,6 +2,7 @@
 	import FormError from '#lib/components/FormError.svelte';
 	import PageHead from '#lib/components/PageHead.svelte';
 	import TextField from '#lib/components/TextField.svelte';
+	import { markRefusal } from '#lib/forms.js';
 	import { m } from '#lib/paraglide/messages.js';
 	import type { PageProps } from './$types';
 
@@ -9,13 +10,9 @@
 
 	// Each refusal concerns one field of one of the two forms: it is marked and points to the message.
 	const marked = (field: string) =>
-		!form?.import && form?.field === field
-			? { 'aria-invalid': true, 'aria-describedby': 'setup-error' }
-			: {};
+		markRefusal(form?.import ? undefined : form, field, 'setup-error');
 	const importMarked = (field: string) =>
-		form?.import && form.field === field
-			? { 'aria-invalid': true, 'aria-describedby': 'import-error' }
-			: {};
+		markRefusal(form?.import ? form : undefined, field, 'import-error');
 </script>
 
 <PageHead title={m.setup_title({ name: data.instanceTitle })} namesInstance

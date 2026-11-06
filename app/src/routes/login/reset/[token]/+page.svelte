@@ -3,6 +3,7 @@
 	import FormError from '#lib/components/FormError.svelte';
 	import PageHead from '#lib/components/PageHead.svelte';
 	import TextField from '#lib/components/TextField.svelte';
+	import { markRefusal } from '#lib/forms.js';
 	import { m } from '#lib/paraglide/messages.js';
 	import type { PageProps } from './$types';
 
@@ -32,9 +33,7 @@
 			required
 			minlength={data.minPasswordLength}
 			autocomplete="new-password"
-			{...form?.field === 'password'
-				? { 'aria-invalid': true, 'aria-describedby': 'reset-error' }
-				: {}}
+			{...markRefusal(form, 'password', 'reset-error')}
 		/>
 		<button class="primary">{m.reset_submit()}</button>
 	</form>

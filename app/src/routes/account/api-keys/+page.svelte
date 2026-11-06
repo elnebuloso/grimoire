@@ -19,7 +19,7 @@
 	import { m } from '#lib/paraglide/messages.js';
 	import { getLocale } from '#lib/paraglide/runtime.js';
 	import { formatDate } from '#lib/time-zone.js';
-	import { submitWithToast, type Refusal } from '#lib/forms.js';
+	import { markRefusal, submitWithToast, type Refusal } from '#lib/forms.js';
 	import { connectCommand } from '#lib/connect-command.js';
 	import type { PageProps } from './$types';
 
@@ -35,8 +35,6 @@
 	const NEW_KEY = { name: '', allSources: true, sources: [] as string[], validUntil: '' };
 
 	// Every refusal names one field: it is marked and points to the message.
-	const marked = (refusal: Refusal | undefined, errorId: string, field: string) =>
-		refusal?.field === field ? { 'aria-invalid': true, 'aria-describedby': errorId } : {};
 
 	// Each opening starts a fresh form: what was typed or picked before is gone.
 	let opened = $state(0);
@@ -118,7 +116,7 @@
 			value="selected"
 			checked={!access.allSources}
 			label={m.apikeys_scope_selected()}
-			{...marked(refusal, errorId, 'scope')}
+			{...markRefusal(refusal, 'scope', errorId)}
 		/>
 		<div class="sources">
 			<SourcePicker
@@ -134,7 +132,7 @@
 		type="date"
 		min={data.today}
 		value={access.validUntil}
-		{...marked(refusal, errorId, 'validUntil')}
+		{...markRefusal(refusal, 'validUntil', errorId)}
 	/>
 {/snippet}
 
@@ -249,7 +247,7 @@
 					required
 					value={createValues.name}
 					mono
-					{...marked(createRefusal, 'create-error', 'name')}
+					{...markRefusal(createRefusal, 'name', 'create-error')}
 				/>
 				{@render accessFields(createValues, createRefusal, 'create-error')}
 			</form>

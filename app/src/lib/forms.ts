@@ -17,6 +17,20 @@ export interface Refusal {
 	field?: string;
 }
 
+/**
+ * The attributes of a field: marked when the refusal is about it and pointing to the refusal's
+ * message, read before the field's own hint.
+ */
+export function markRefusal(
+	refusal: { field?: string } | null | undefined,
+	field: string,
+	errorId: string,
+	hintId?: string
+) {
+	if (refusal?.field !== field) return hintId ? { 'aria-describedby': hintId } : {};
+	return { 'aria-invalid': true, 'aria-describedby': hintId ? `${errorId} ${hintId}` : errorId };
+}
+
 /** A refusal with the rest of what the action sent back, such as the values to fill in again. */
 export type RefusalData = Refusal & Record<string, unknown>;
 

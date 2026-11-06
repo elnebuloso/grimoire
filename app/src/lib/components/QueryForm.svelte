@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { markRefusal } from '#lib/forms.js';
 	import { m } from '#lib/paraglide/messages.js';
 	import type { QueryFormState } from '#lib/server/query-form.js';
 	import FormError from './FormError.svelte';
@@ -8,8 +9,7 @@
 	let { values, refusal, answer }: QueryFormState = $props();
 
 	// The two refusals each concern one field; the field points to the message that explains it.
-	const marked = (field: string) =>
-		refusal?.field === field ? { 'aria-invalid': true, 'aria-describedby': 'query-error' } : {};
+	const marked = (field: string) => markRefusal(refusal, field, 'query-error');
 
 	let answerHeading = $state<HTMLHeadingElement>();
 	let form = $state<HTMLFormElement>();

@@ -4,6 +4,7 @@
 	import ProviderButtons from '#lib/components/ProviderButtons.svelte';
 	import PageHead from '#lib/components/PageHead.svelte';
 	import TextField from '#lib/components/TextField.svelte';
+	import { markRefusal } from '#lib/forms.js';
 	import { m } from '#lib/paraglide/messages.js';
 	import type { PageProps } from './$types';
 
@@ -36,9 +37,7 @@
 			required
 			minlength={data.minPasswordLength}
 			autocomplete="new-password"
-			{...form?.field === 'password'
-				? { 'aria-invalid': true, 'aria-describedby': 'invite-error' }
-				: {}}
+			{...markRefusal(form, 'password', 'invite-error')}
 		/>
 		<button class="primary">{m.invite_submit()}</button>
 	</form>
