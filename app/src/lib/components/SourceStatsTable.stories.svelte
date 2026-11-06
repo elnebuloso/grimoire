@@ -157,7 +157,8 @@
 >
 	{#snippet template(args)}
 		<SourceStatsTable {...args}>
-			{#snippet name(source)}<a href={resolve('/manage/sources/[id]', { id: String(source.id) })}
+			{#snippet name(source)}<a
+					href={resolve('/manage/sources/[id]/[[tab=tab]]', { id: String(source.id) })}
 					>{source.slug}</a
 				>{/snippet}
 		</SourceStatsTable>

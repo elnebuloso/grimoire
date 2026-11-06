@@ -38,11 +38,17 @@ function sourceFor(params: { id: string }): SourceSettings | undefined {
 
 export const load: PageServerLoad = ({ params, url }) => {
 	const source = sourceFor(params);
+	// A new source has its settings only.
+	if (!source && params.tab) error(404);
 	const schedule = source?.schedule ?? SYNC_SCHEDULE;
 	const previewFile = url.searchParams.get('preview');
+	// A preview link from before the sub pages: the preview lives on Pages now.
+	if (source && previewFile !== null && !params.tab)
+		redirect(303, `${url.pathname}/pages${url.search}`);
 	const { syncsPaused } = readSettings(database());
 	return {
 		source,
+		tab: params.tab ?? 'status',
 		status: source && sourceStatus(database(), source.id),
 		syncPending: source !== undefined && syncPending(source.id),
 		preview:
@@ -135,7 +141,8 @@ export const actions = {
 		// waiting for a new commit; a forced sync of a large source holds every other one for minutes.
 		if (syncsAutomatically(db, form))
 			requestSyncInBackground(result.id, { force: changes.reindex });
-		redirect(303, `/manage/sources/${result.id}`);
+		// A new source opens on its status; saved settings stay in view.
+		redirect(303, `/manage/sources/${result.id}${source ? '/settings' : ''}`);
 	},
 	test: async ({ request, params }) => {
 		// Only the remote, not `sourceProblem`: access can be tested before the source is named.
@@ -155,7 +162,7 @@ export const actions = {
 		const source = sourceFor(params);
 		if (!source) error(404);
 		// Not awaited: the sync waits for every one queued before it, longer than a reverse proxy
-		// keeps a request open. The page shows that it is pending, and its outcome in the status.
+		// keeps a request open. The page shows that it is pending, and its outcome once it ends.
 		requestSyncInBackground(source.id, { force: true });
 		// Back to the page by GET, so reloading it for the outcome does not queue another sync.
 		redirect(303, url.pathname);

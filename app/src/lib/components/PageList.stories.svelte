@@ -21,7 +21,7 @@
 		await expect(canvas.getAllByRole('listitem')).toHaveLength(3);
 		await expect(canvas.getByRole('link', { name: 'runbooks/rollback.md' })).toHaveAttribute(
 			'href',
-			'/manage/sources/1?preview=runbooks%2Frollback.md'
+			'/manage/sources/1/pages?preview=runbooks%2Frollback.md'
 		);
 	}}
 />

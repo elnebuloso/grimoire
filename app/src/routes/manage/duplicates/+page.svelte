@@ -31,10 +31,11 @@
 									: m.duplicates_kind_overlap()}
 							</td>
 							<td>
-								<a href={resolve('/manage/sources/[id]', { id: String(pair.first.id) })}
+								<a href={resolve('/manage/sources/[id]/[[tab=tab]]', { id: String(pair.first.id) })}
 									><code>{pair.first.slug}</code></a
 								>,
-								<a href={resolve('/manage/sources/[id]', { id: String(pair.second.id) })}
+								<a
+									href={resolve('/manage/sources/[id]/[[tab=tab]]', { id: String(pair.second.id) })}
 									><code>{pair.second.slug}</code></a
 								>
 							</td>

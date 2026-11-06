@@ -19,8 +19,8 @@ characters.
 ## Logging in
 
 - A login ends after 60 minutes without a page view or form submit, and 12 hours after you logged
-  in whatever you do. A page reloading on its own, such as a source page waiting for its sync,
-  does not keep it alive. Log in again and you land on the page you asked for; what you typed into
+  in whatever you do. A page refreshing on its own, such as a source waiting for its sync, does
+  not keep it alive. Log in again and you land on the page you asked for; what you typed into
   a form before the login ended is lost.
 - A client address may fail at most 10 times in any 15 minutes; beyond that every login from it
   gets `Too many failed logins. Try again later.`, also with the right password. Wait 15 minutes.
@@ -72,7 +72,9 @@ sessions are logged out; the browser you changed it in stays logged in.
 Only admins add, change, sync, rename and delete sources; users read them and create their own API
 keys (see [Your account and API keys](users.md)).
 
-`Management > Content > Sources` lists every source and starts **New source**. The numbers beside
+`Management > Content > Sources` lists every source and starts **New source**. A source opens on
+its **Status**; **Pages**, **History** and **Settings** are tabs beside it, and **Delete source**
+sits under **Danger zone** on **Settings**. The numbers beside
 the sidebar entries count what needs you: sources with a sync error, dead links, duplicate pairs
 and invitations not yet accepted.
 
@@ -167,7 +169,7 @@ by the same rule as saving a source:
 
 ### Changing a slug
 
-`Change the slug`, at the bottom of a source page.
+`Change the slug`, under **Danger zone** on the **Settings** tab of a source.
 
 !!! warning "Breaks references"
     Every ID below the slug changes at once. IDs agents have kept and URLs such as
@@ -186,7 +188,7 @@ page and under **Needs attention** in `Management > Overview`.
 | `the Git server refused the username and token: wrong, expired or revoked, or without access to this repository` | Create a new token (see [Access tokens per Git host](#access-tokens-per-git-host)) and enter it. |
 | `the Git server asks for a username and token: the repository is private, or there is none at this URL` | Enter a username and token, or correct the Git URL. |
 | `branch "main" not found in https://…` | Correct **Branch**. |
-| `the Git server redirects this URL elsewhere (HTTP 301): …` | Run **Test connection** on the source page: it names the URL to enter where it can. Otherwise copy the clone URL from the **Clone** button of the repository. |
+| `the Git server redirects this URL elsewhere (HTTP 301): …` | Run **Test connection** on the **Settings** tab of the source: it names the URL to enter where it can. Otherwise copy the clone URL from the **Clone** button of the repository. |
 | `The server may not connect to <host>. If it is your organisation's Git server, ask the person running grimoire to add it to GIT_ALLOWED_HOSTS.` | The address is an IP address, uses another port than 443, or leads into an internal network, or the instance runs behind a proxy. Ask the operator to allow the host (see [Git servers](docker.md#git-servers)). |
 | `source path "docs" does not exist in the repository` | Correct **Path in the repository**. |
 | `no page could be indexed, …` | Every page was skipped, so the previous index stays; the message ends with the last reason. Ask the authors to fix what the message names (see [Writing documentation](writing.md#sync-warnings)). |
@@ -210,21 +212,23 @@ shows as error. Warnings about single pages and includes are for the authors; th
 - A check missed while grimoire was stopped runs once when it starts again.
 - While a source syncs, agents get answers from its previous index.
 
-**Sync now** queues a sync even when the branch has not moved, behind the syncs queued before it.
+**Sync now**, at the top of every tab of a source, queues a sync even when the branch has not moved,
+behind the syncs queued before it. The source shows `syncing…` until it ends, and a message tells
+whether it succeeded.
 
 **Paused** on a source stops polling for it, for example while its repository moves or its token
 is replaced; index, schedule and settings stay. `Management > System > Settings > Pause all syncs` does the
 same for every source without changing them: a source paused on its own stays paused when you
 untick it. A sync already running finishes. **Sync now** works in both cases.
 
-**Sync history** on the source page collapses repeats, unchanged at the same commit or failing with
+The **History** tab of a source collapses repeats, unchanged at the same commit or failing with
 the same error, into one line with the first and last time, so it shows since when a source fails.
 It keeps the newest 100 lines.
 
 ## Checking what agents get
 
 - `Management > Quality > Dead links` lists links that lead nowhere, by source; authors fix them in Git.
-- Every page of a source links to a preview: the page exactly as `read` returns it, split into
+- On the **Pages** tab of a source, every page links to a preview: the page exactly as `read` returns it, split into
   snippets with ID and estimated tokens. Use it to find sections that came out too large, too small
   or under a misleading title.
 - **Try a query** on the start page answers exactly like the agent operation `query`, with a line

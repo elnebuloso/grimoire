@@ -76,6 +76,16 @@ async function openSources(page: Page) {
 	await expect(page).toHaveURL('/manage/sources');
 }
 
+/** The sync state in the head of a source page while a sync runs. */
+const syncing = (page: Page) => page.getByRole('main').getByText('syncing…', { exact: true });
+
+async function sourceTab(page: Page, name: string) {
+	await page.getByRole('navigation', { name: 'Source' }).getByRole('link', { name }).click();
+	await expect(
+		page.getByRole('navigation', { name: 'Source' }).getByRole('link', { name })
+	).toHaveAttribute('aria-current', 'page');
+}
+
 const area = (page: Page, name: string) =>
 	page.getByRole('navigation', { name: 'Areas' }).getByRole('link', { name });
 
@@ -274,6 +284,7 @@ test('creates a source and never shows its token', async ({ page }) => {
 	await page.getByRole('button', { name: 'Create source' }).click();
 
 	await expect(page.getByRole('heading', { name: 'Source Auth Service' })).toBeVisible();
+	await sourceTab(page, 'Settings');
 	await expect(page.getByLabel('Short description')).toHaveValue('Login and billing');
 	await expect(page.getByLabel('Git URL')).toHaveValue(GIT_URL);
 	await expect(page.getByLabel('Access token')).toHaveValue('');
@@ -292,16 +303,18 @@ test('syncs a source now and shows why it failed', async ({ page }) => {
 	await page.getByRole('link', { name: 'Auth Service', exact: true }).click();
 	// The sync saving started may still run: "Sync now" would join it, and it read the old commit.
 	await expect(page.getByRole('heading', { name: 'Source Auth Service' })).toBeVisible();
-	await expect(notice(page)).toHaveCount(0, { timeout: 15_000 });
+	await expect(syncing(page)).toHaveCount(0, { timeout: 15_000 });
 
 	await page.getByRole('button', { name: 'Sync now' }).click();
 
-	// The sync runs after the answer; the page refreshes by itself until its outcome shows.
-	await expect(notice(page)).toContainText('A sync is queued or running.');
-	await expect(page.getByRole('alert')).toContainText('source path "docs" does not exist', {
-		timeout: 15_000
-	});
-	await expect(notice(page)).toHaveCount(0);
+	// The sync runs after the answer; the page refreshes by itself until its outcome shows, also
+	// on another sub page.
+	await expect(syncing(page)).toBeVisible();
+	await sourceTab(page, 'History');
+	await expect(toasts(page)).toContainText('Sync of Auth Service failed.', { timeout: 15_000 });
+	await expect(syncing(page)).toHaveCount(0);
+	await sourceTab(page, 'Status');
+	await expect(page.getByRole('alert')).toContainText('source path "docs" does not exist');
 	expect(await page.content()).not.toContain(TOKEN);
 
 	await page.goto('/manage');
@@ -316,6 +329,7 @@ test('keeps a tested token that is not saved yet when syncing now', async ({ pag
 	await asAdmin(page);
 	await openSources(page);
 	await page.getByRole('link', { name: 'Auth Service', exact: true }).click();
+	await sourceTab(page, 'Settings');
 	await page.getByLabel('Access token').fill(rotated);
 	await page.getByRole('button', { name: 'Test connection' }).click();
 	// The token is accepted: only the path the repository lost is refused.
@@ -325,9 +339,8 @@ test('keeps a tested token that is not saved yet when syncing now', async ({ pag
 
 	await page.getByRole('button', { name: 'Sync now' }).click();
 
-	const pending = notice(page).filter({ hasText: 'A sync is queued or running.' });
-	await expect(pending).toBeVisible();
-	await expect(pending).toHaveCount(0, { timeout: 15_000 });
+	await expect(syncing(page)).toBeVisible();
+	await expect(syncing(page)).toHaveCount(0, { timeout: 15_000 });
 	await expect(page.getByLabel('Access token (entered; leave empty to keep it)')).toBeVisible();
 	expect(await page.content()).not.toContain(rotated);
 });
@@ -401,6 +414,7 @@ test('imports the export on the setup page of an empty instance with another key
 		.getByRole('link', { name: /^Sources/ })
 		.click();
 	await page.getByRole('link', { name: 'Auth Service', exact: true }).click();
+	await sourceTab(page, 'Settings');
 	await expect(page.getByText('stored; leave empty to keep it')).toBeVisible();
 	// The stored token decrypts under this instance's key: the connection test sends it, and only
 	// the path the repository lost is refused.
@@ -435,6 +449,7 @@ test('links the documentation of a source only once its URL is set', async ({ pa
 	await page.getByRole('link', { name: 'Auth Service', exact: true }).click();
 	await expect(page.getByRole('link', { name: 'Documentation', exact: true })).toHaveCount(0);
 
+	await sourceTab(page, 'Settings');
 	await page.getByLabel('Documentation site').fill(docsUrl);
 	await page.getByRole('button', { name: 'Save' }).click();
 

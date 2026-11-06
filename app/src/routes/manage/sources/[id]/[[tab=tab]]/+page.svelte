@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { refreshAll } from '$app/navigation';
+	import { goto, refreshAll } from '$app/navigation';
 	import CircleCheck from '@lucide/svelte/icons/circle-check';
 	import { resolve } from '$app/paths';
 	import ChoiceField from '#lib/components/ChoiceField.svelte';
@@ -14,10 +14,12 @@
 	import PageHead from '#lib/components/PageHead.svelte';
 	import PageList from '#lib/components/PageList.svelte';
 	import TableScroll from '#lib/components/TableScroll.svelte';
+	import TabNav from '#lib/components/TabNav.svelte';
 	import TextAreaField from '#lib/components/TextAreaField.svelte';
 	import TextField from '#lib/components/TextField.svelte';
 	import { m } from '#lib/paraglide/messages.js';
 	import { submitWithToast, type SubmitResult } from '#lib/forms.js';
+	import { showToast } from '#lib/toasts.svelte.js';
 	import { MAX_NAME_LENGTH, MAX_SLUG_LENGTH } from '#lib/slug.js';
 	import { NEW_SOURCE_FIELDS, toSourceFields } from '#lib/source-fields.js';
 	import type { PageProps } from './$types';
@@ -35,19 +37,72 @@
 
 	let newSlug = $state('');
 
-	// Polls for the end of a queued sync, then reloads the page once to show its outcome. The poll
-	// does not keep an idle session alive; a page reload would.
+	// Polls for the end of a queued sync, then refreshes the page data once and reports the outcome.
+	// The poll does not keep an idle session alive; a page reload would. Every sub page shares this
+	// component, so the poll goes on when the tab changes.
 	const PENDING_REFRESH_MS = 2000;
 	$effect(() => {
 		if (!data.syncPending || !data.source) return;
-		const url = resolve('/manage/sources/[id]/sync-pending', { id: String(data.source.id) });
+		const id = data.source.id;
+		const url = resolve('/manage/sources/[id]/sync-pending', { id: String(id) });
 		const timer = setInterval(async () => {
 			const response = await fetch(url);
-			// An ended session answers with the login page, not JSON: the reload then leads there.
+			// An ended session answers with the login page, not JSON: the refresh then leads there.
 			const { pending } = await response.json().catch(() => ({ pending: false }));
-			if (!pending) refreshAll();
+			if (pending) return;
+			clearInterval(timer);
+			await refreshAll();
+			if (data.source?.id !== id) return;
+			const name = data.source.name;
+			if (data.status?.error) showToast(m.source_sync_failed({ name }));
+			else showToast(m.source_sync_done({ name }));
 		}, PENDING_REFRESH_MS);
 		return () => clearInterval(timer);
+	});
+
+	// Links from before the sub pages pointed at sections of one page.
+	$effect(() => {
+		if (data.source && data.tab === 'status' && location.hash === '#settings') {
+			goto(
+				resolve('/manage/sources/[id]/[[tab=tab]]', {
+					id: String(data.source.id),
+					tab: 'settings'
+				}),
+				{
+					replace: true
+				}
+			);
+		}
+	});
+
+	const tabHref = (tab?: 'pages' | 'history' | 'settings') =>
+		resolve('/manage/sources/[id]/[[tab=tab]]', { id: String(data.source!.id), tab });
+	const tabs = $derived(
+		data.source
+			? [
+					{ href: tabHref(), label: m.source_status(), current: data.tab === 'status' },
+					{ href: tabHref('pages'), label: m.pages(), current: data.tab === 'pages' },
+					{
+						href: tabHref('history'),
+						label: m.source_tab_history(),
+						current: data.tab === 'history'
+					},
+					{
+						href: tabHref('settings'),
+						label: m.source_settings(),
+						current: data.tab === 'settings'
+					}
+				]
+			: []
+	);
+
+	// One word for the state of the source, the most pressing first.
+	const badge = $derived.by(() => {
+		if (data.syncPending) return { word: m.source_syncing(), tone: 'running' };
+		if (data.status?.error) return { word: m.source_history_failed(), tone: 'error' };
+		if (data.source?.paused) return { word: m.state_paused(), tone: 'muted' };
+		if (!data.status?.lastSyncedAt) return { word: m.not_synced(), tone: 'muted' };
+		return { word: m.source_history_synced(), tone: 'ok' };
 	});
 
 	const values = $derived(
@@ -59,15 +114,47 @@
 	);
 </script>
 
-<PageHead
-	title={data.source ? m.source_title({ name: data.source.name }) : m.source_new()}
-	documentTitle={data.preview ? m.source_preview_title({ file: data.preview.file }) : undefined}
-	back={{ href: resolve('/manage/sources'), label: m.all_sources_link() }}
->
-	{#if data.source?.docsUrl}
-		<p><a href={data.source.docsUrl} rel="external">{m.source_docs_link()}</a></p>
-	{/if}
-</PageHead>
+{#if data.source}
+	<div class="head">
+		<PageHead
+			title={m.source_title({ name: data.source.name })}
+			documentTitle={data.preview ? m.source_preview_title({ file: data.preview.file }) : undefined}
+			back={{ href: resolve('/manage/sources'), label: m.all_sources_link() }}
+		>
+			<p class="facts">
+				<code>{data.source.slug}</code>
+				<span
+					>{data.source.visibility === 'public'
+						? m.visibility_public()
+						: m.visibility_internal()}</span
+				>
+				<span class="badge {badge.tone}" aria-live="polite">{badge.word}</span>
+				{#if data.source.docsUrl}
+					<a href={data.source.docsUrl} rel="external">{m.source_docs_link()}</a>
+				{/if}
+			</p>
+		</PageHead>
+		<!-- Only the page data reloads: the settings form keeps what was entered, a tested token
+		included, which following the redirect would drop. -->
+		<form
+			method="post"
+			action="?/sync"
+			use:enhance={submitWithToast({
+				success: () => m.source_sync_started({ name: data.source!.name })
+			})}
+		>
+			<button class="primary" disabled={data.syncPending} aria-busy={data.syncPending}
+				>{m.source_sync_now()}</button
+			>
+		</form>
+	</div>
+	<TabNav label={m.source_tabs()} {tabs} />
+{:else}
+	<PageHead
+		title={m.source_new()}
+		back={{ href: resolve('/manage/sources'), label: m.all_sources_link() }}
+	/>
+{/if}
 
 {#snippet settings()}
 	<section class="sheet" aria-labelledby="settings">
@@ -237,28 +324,9 @@
 {/snippet}
 
 {#if data.source && data.status}
-	<div class="split">
+	{#if data.tab === 'status'}
 		<section class="sheet" aria-labelledby="status">
-			<div class="sheet-head">
-				<h2 id="status">{m.source_status()}</h2>
-				<!-- Only the page data reloads: the settings form keeps what was entered, a tested token
-				included, which following the redirect would drop. -->
-				<form
-					method="post"
-					action="?/sync"
-					use:enhance={submitWithToast({
-						success: () => m.source_sync_started({ name: data.source!.name })
-					})}
-				>
-					<button class="primary">{m.source_sync_now()}</button>
-				</form>
-			</div>
-			{#if data.syncPending}
-				<p class="notice" role="status">
-					{m.source_sync_pending()}
-					<noscript>{m.source_sync_pending_reload()}</noscript>
-				</p>
-			{/if}
+			<h2 id="status">{m.source_status()}</h2>
 			{#snippet lastCheck()}
 				{#if data.status?.lastCheckedAt}
 					<DateTime value={data.status.lastCheckedAt} timeZone={data.timeZone} />
@@ -317,103 +385,100 @@
 					<DeadLinkList links={data.status.deadLinks} />
 				</div>
 			{/if}
-			<div class="part">
-				<h3>{m.source_history()}</h3>
-				{#if data.status.history.length === 0}
-					<p class="muted">{m.source_history_none()}</p>
-				{:else}
-					<TableScroll label={m.source_history()}>
-						<table>
-							<thead>
-								<tr>
-									<th scope="col">{m.source_history_when()}</th>
-									<th scope="col">{m.source_history_outcome()}</th>
-									<th scope="col">{m.source_commit()}</th>
-									<th scope="col" class="error">{m.source_error()}</th>
-								</tr>
-							</thead>
-							<tbody>
-								{#each data.status.history as run, index (index)}
-									<tr>
-										<td class="when">
-											{#if run.runs > 1}
-												<span><DateTime value={run.startedAt} timeZone={data.timeZone} /> –</span>
-												<span><DateTime value={run.finishedAt} timeZone={data.timeZone} /></span>
-												<span class="runs">({m.source_history_runs({ runs: run.runs })})</span>
-											{:else}
-												<DateTime value={run.finishedAt} timeZone={data.timeZone} />
-											{/if}
-										</td>
-										<td>
-											<span class={run.outcome}
-												>{run.outcome === 'synced'
-													? m.source_history_synced()
-													: run.outcome === 'unchanged'
-														? m.source_history_unchanged()
-														: m.source_history_failed()}</span
-											>
-										</td>
-										<td
-											>{#if run.commit}<code title={run.commit}>{run.commit.slice(0, 12)}</code
-												>{/if}</td
-										>
-										<td class="error">{run.error ?? ''}</td>
-									</tr>
-									{#if run.error}
-										<tr class="error-below">
-											<td colspan="3"><p>{run.error}</p></td>
-										</tr>
-									{/if}
-								{/each}
-							</tbody>
-						</table>
-					</TableScroll>
-				{/if}
-			</div>
-			{#if data.status.pages.length > 0}
-				<div class="part">
-					<h3>{m.pages()}</h3>
-					<PageList pages={data.status.pages} sourceId={data.source.id} />
-				</div>
-			{/if}
+		</section>
+	{:else if data.tab === 'pages'}
+		<section class="sheet" aria-labelledby="pages">
 			{#if data.preview}
-				<div class="part">
-					<h3>{m.source_preview_title({ file: data.preview.file })}</h3>
-					{#if data.preview.snippets?.length === 0}
-						<p class="notice warn">{m.source_preview_no_snippets({ name: data.instanceTitle })}</p>
-					{:else if data.preview.snippets}
-						<p>
-							{m.source_preview_intro_before()} <code>read</code>
-							{m.source_preview_intro_after()}
-						</p>
-						<ol class="snippets">
-							{#each data.preview.snippets as snippet, index (index)}
-								<li>
-									<h4>{snippet.titlePath.join(' › ')}</h4>
-									<p class="hint">
-										<code>{snippet.id}</code> – {m.source_preview_snippet_tokens({
-											tokens: snippet.tokens
-										})}
-									</p>
-									<pre>{snippet.markdown}</pre>
-								</li>
-							{/each}
-						</ol>
-					{:else}
-						<p class="notice warn">{m.source_preview_missing({ file: data.preview.file })}</p>
-					{/if}
-				</div>
+				<a class="back" href={tabHref('pages')}>{m.source_all_pages()}</a>
+				<h2 id="pages">{m.source_preview_title({ file: data.preview.file })}</h2>
+				{#if data.preview.snippets?.length === 0}
+					<p class="notice warn">{m.source_preview_no_snippets({ name: data.instanceTitle })}</p>
+				{:else if data.preview.snippets}
+					<p>
+						{m.source_preview_intro_before()} <code>read</code>
+						{m.source_preview_intro_after()}
+					</p>
+					<ol class="snippets">
+						{#each data.preview.snippets as snippet, index (index)}
+							<li>
+								<h3>{snippet.titlePath.join(' › ')}</h3>
+								<p class="hint">
+									<code>{snippet.id}</code> – {m.source_preview_snippet_tokens({
+										tokens: snippet.tokens
+									})}
+								</p>
+								<pre>{snippet.markdown}</pre>
+							</li>
+						{/each}
+					</ol>
+				{:else}
+					<p class="notice warn">{m.source_preview_missing({ file: data.preview.file })}</p>
+				{/if}
+			{:else}
+				<h2 id="pages">{m.pages()}</h2>
+				{#if data.status.pages.length === 0}
+					<p class="muted">{m.source_pages_none()}</p>
+				{:else}
+					<PageList pages={data.status.pages} sourceId={data.source.id} />
+				{/if}
 			{/if}
 		</section>
-
+	{:else if data.tab === 'history'}
+		<section class="sheet" aria-labelledby="history">
+			<h2 id="history">{m.source_history()}</h2>
+			{#if data.status.history.length === 0}
+				<p class="muted">{m.source_history_none()}</p>
+			{:else}
+				<TableScroll label={m.source_history()}>
+					<table>
+						<thead>
+							<tr>
+								<th scope="col">{m.source_history_when()}</th>
+								<th scope="col">{m.source_history_outcome()}</th>
+								<th scope="col">{m.source_commit()}</th>
+								<th scope="col" class="error">{m.source_error()}</th>
+							</tr>
+						</thead>
+						<tbody>
+							{#each data.status.history as run, index (index)}
+								<tr>
+									<td class="when">
+										{#if run.runs > 1}
+											<span><DateTime value={run.startedAt} timeZone={data.timeZone} /> –</span>
+											<span><DateTime value={run.finishedAt} timeZone={data.timeZone} /></span>
+											<span class="runs">({m.source_history_runs({ runs: run.runs })})</span>
+										{:else}
+											<DateTime value={run.finishedAt} timeZone={data.timeZone} />
+										{/if}
+									</td>
+									<td>
+										<span class={run.outcome}
+											>{run.outcome === 'synced'
+												? m.source_history_synced()
+												: run.outcome === 'unchanged'
+													? m.source_history_unchanged()
+													: m.source_history_failed()}</span
+										>
+									</td>
+									<td
+										>{#if run.commit}<code title={run.commit}>{run.commit.slice(0, 12)}</code
+											>{/if}</td
+									>
+									<td class="error">{run.error ?? ''}</td>
+								</tr>
+							{/each}
+						</tbody>
+					</table>
+				</TableScroll>
+			{/if}
+		</section>
+	{:else}
 		<div class="settings">{@render settings()}</div>
-
-		<!-- Rare and breaking: after the status on wide screens, so the column of Settings stays the
-		only tall one beside it; after Settings when the columns stack. -->
-		<div class="danger">
+		<section class="danger" aria-labelledby="danger">
+			<h2 id="danger">{m.source_danger_zone()}</h2>
 			<section class="sheet" aria-labelledby="slug">
 				<h2 id="slug">{m.slug_change_heading()}</h2>
-				<p class="muted">{m.slug_change_source_effects({ slug: data.source.slug })}</p>
+				<p class="muted">{m.slug_change_source_effects_short()}</p>
 				<ConfirmAction
 					action="?/slug"
 					label={m.slug_change_submit()}
@@ -436,7 +501,6 @@
 					/>
 				</ConfirmAction>
 			</section>
-
 			<section class="sheet" aria-labelledby="delete">
 				<h2 id="delete">{m.delete()}</h2>
 				<ConfirmAction
@@ -452,8 +516,8 @@
 					success={m.source_deleted({ name: data.source.name })}
 				/>
 			</section>
-		</div>
-	</div>
+		</section>
+	{/if}
 {:else}
 	<div class="new">{@render settings()}</div>
 {/if}
@@ -468,40 +532,64 @@
 		flex: none;
 		color: var(--ok);
 	}
-	.split,
-	.danger {
-		display: grid;
+	.head {
+		display: flex;
+		align-items: end;
+		justify-content: space-between;
 		gap: var(--s5);
-		align-items: start;
-		min-width: 0;
 	}
-	@media (min-width: 64rem) {
-		.split {
-			grid-template-columns: minmax(0, 1fr) 25rem;
-			/* The second row takes what Settings is taller than the status, so the danger area
-			follows the status directly. */
-			grid-template-rows: auto 1fr;
-			grid-template-areas:
-				'status settings'
-				'danger settings';
-		}
-		.split > .sheet {
-			grid-area: status;
-		}
-		.settings {
-			grid-area: settings;
-		}
-		.danger {
-			grid-area: danger;
-		}
+	.facts {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: var(--s2) var(--s4);
 	}
-	/* The width of a single form: in the wide column the text would run past a readable line and
-	the slug fields far past any slug. */
-	.danger :global(form) {
-		max-width: 30rem;
+	.badge {
+		padding: 0 var(--s2);
+		border-radius: 999px;
+		background: var(--well);
+		font-size: 13px;
+		font-weight: 500;
 	}
+	.badge.ok {
+		color: var(--ok);
+	}
+	.badge.error {
+		color: var(--err);
+	}
+	.badge.running {
+		color: var(--accent);
+	}
+	.badge.muted {
+		color: var(--ink-2);
+	}
+	.back {
+		justify-self: start;
+		font-size: 14px;
+	}
+	.settings,
 	.new {
 		max-width: 52rem;
+	}
+	/* Rare and breaking: set apart below the settings, each action in a sheet of its own. */
+	.danger {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		align-items: start;
+		gap: var(--s5);
+		max-width: 52rem;
+		padding-top: var(--s5);
+		border-top: 1px solid var(--line);
+	}
+	.danger > h2 {
+		grid-column: 1 / -1;
+		color: var(--err);
+	}
+	.sheet:has(.snippets),
+	.sheet[aria-labelledby='pages'],
+	.sheet[aria-labelledby='status'] {
+		display: grid;
+		gap: var(--s4);
 	}
 	.part {
 		display: grid;
@@ -512,14 +600,10 @@
 	}
 	.fields {
 		display: grid;
+		grid-template-columns: 1fr 1fr;
 		gap: var(--s4);
 	}
-	/* Two columns only where there is room: on the new-source page, not in the side column. */
-	@media (min-width: 48rem) {
-		.new .fields {
-			grid-template-columns: 1fr 1fr;
-		}
-	}
+
 	.git-url,
 	.token,
 	.field-with-error {
@@ -559,31 +643,6 @@
 	.runs {
 		color: var(--ink-2);
 	}
-	/* On a phone the Error column lies past the scroll edge, so the cause of a failed run would be
-	out of sight: it moves under the outcome instead. */
-	.error-below {
-		display: none;
-	}
-	@media (max-width: 48rem) {
-		.error-below {
-			display: table-row;
-		}
-		/* No rule above it: the run and its cause read as one entry. */
-		.error-below td {
-			padding-top: 0;
-			border-top: 0;
-			color: var(--ink-2);
-			font-size: 13px;
-		}
-		/* The table may be wider than the screen; the cause wraps within what is visible: the page
-		padding, the sheet padding and the cell padding, 5rem in all. */
-		.error-below p {
-			max-width: calc(100vw - 5rem);
-		}
-		.error {
-			display: none;
-		}
-	}
 	td:has(code[title]),
 	.synced,
 	.unchanged,
@@ -612,7 +671,7 @@
 		gap: var(--s2);
 		counter-increment: snippet;
 	}
-	.snippets h4::before {
+	.snippets h3::before {
 		content: counter(snippet) '  ';
 		color: var(--ink-2);
 		font-family: var(--mono);

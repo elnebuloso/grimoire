@@ -17,7 +17,7 @@
 		{#each data.groups as group (group.sourceId)}
 			<section class="sheet" aria-labelledby="source-{group.sourceId}">
 				<h2 id="source-{group.sourceId}">
-					<a href={resolve('/manage/sources/[id]', { id: String(group.sourceId) })}
+					<a href={resolve('/manage/sources/[id]/[[tab=tab]]', { id: String(group.sourceId) })}
 						><code>{group.source}</code></a
 					>
 				</h2>

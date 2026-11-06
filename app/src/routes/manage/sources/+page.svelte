@@ -14,7 +14,7 @@
 <section class="sheet flush" aria-labelledby="sources">
 	<div class="sheet-head">
 		<h2 id="sources">{m.all_sources_link()}</h2>
-		<a class="button primary" href={resolve('/manage/sources/[id]', { id: 'new' })}
+		<a class="button primary" href={resolve('/manage/sources/[id]/[[tab=tab]]', { id: 'new' })}
 			>{m.source_new()}</a
 		>
 	</div>
@@ -23,7 +23,9 @@
 	{:else}
 		<SourceStatsTable sources={data.sources} timeZone={data.timeZone}>
 			{#snippet name(source)}
-				<a href={resolve('/manage/sources/[id]', { id: String(source.id) })}>{source.name}</a>
+				<a href={resolve('/manage/sources/[id]/[[tab=tab]]', { id: String(source.id) })}
+					>{source.name}</a
+				>
 			{/snippet}
 			{#snippet deadLinks(source)}
 				{#if source.deadLinks > 0}

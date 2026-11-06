@@ -3,7 +3,7 @@ import type { DatabaseSync } from 'node:sqlite';
 import { isHttpError, isRedirect } from '@sveltejs/kit';
 import { openDatabase } from '#lib/server/db/schema.js';
 import { saveSettings } from '#lib/server/settings.js';
-import * as sourcePage from './[id]/+page.server';
+import * as sourcePage from './[id]/[[tab=tab]]/+page.server';
 import type { AccessResult } from '#lib/server/admin/source-access.js';
 
 let db: DatabaseSync;
@@ -68,11 +68,12 @@ function syncNow(id: string) {
 	} as never);
 }
 
-function loadSource(id: string, search = '') {
+function loadSource(id: string, search = '', tab?: string) {
+	const path = `/manage/sources/${id}${tab ? `/${tab}` : ''}`;
 	return sourcePage.load({
-		params: { id },
+		params: { id, tab },
 		locals: { user: ADMIN },
-		url: new URL(`https://grimoire.example/manage/sources/${id}${search}`)
+		url: new URL(`https://grimoire.example${path}${search}`)
 	} as never);
 }
 
@@ -189,7 +190,9 @@ describe('source page', () => {
 	it('resumes a paused source when saved without the checkbox and checks it for a new commit', async () => {
 		await thrown(() => saveSource('new', { ...SOURCE, paused: 'on' }));
 
-		await thrown(() => saveSource('1', SOURCE));
+		const saved = await thrown(() => saveSource('1', SOURCE));
+		// Saved settings stay in view.
+		expect(isRedirect(saved) && saved.location).toBe('/manage/sources/1/settings');
 
 		expect(loadSource('1')).toMatchObject({ source: { paused: false } });
 		expect(requestSyncInBackground).toHaveBeenCalledExactlyOnceWith(1, { force: false });
@@ -422,7 +425,11 @@ describe('source page', () => {
 			VALUES (?, 0, '["Deploy"]', 'Run make deploy.', 4)`
 		).run(page);
 
-		const data = loadSource('1', '?preview=deploy.md');
+		// A link from before the sub pages leads to the preview on Pages.
+		const old = await thrown(() => loadSource('1', '?preview=deploy.md'));
+		expect(isRedirect(old) && old.location).toBe('/manage/sources/1/pages?preview=deploy.md');
+
+		const data = loadSource('1', '?preview=deploy.md', 'pages');
 
 		expect(data).toMatchObject({
 			status: { totals: { pages: 1, snippets: 1, tokens: 4 } },

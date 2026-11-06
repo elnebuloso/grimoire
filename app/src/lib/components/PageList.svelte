@@ -41,8 +41,9 @@
 			{#each shown as page (page.file)}
 				<li>
 					<a
-						href="{resolve('/manage/sources/[id]', {
-							id: String(sourceId)
+						href="{resolve('/manage/sources/[id]/[[tab=tab]]', {
+							id: String(sourceId),
+							tab: 'pages'
 						})}?preview={encodeURIComponent(page.file)}">{page.file}</a
 					>
 					–

@@ -21,9 +21,12 @@
 		unknown: m.admin_fix_unknown
 	};
 
-	// Where on the source page a problem is fixed: its settings, or its status for what it reports.
-	function section(problem: Problem): string {
-		return problem.kind === 'error' || problem.kind === 'paused' ? 'settings' : 'status';
+	// Where a problem is fixed: the settings of the source, or its status for what it reports.
+	function fixAt(problem: Problem): string {
+		const id = String(problem.sourceId);
+		return problem.kind === 'error' || problem.kind === 'paused'
+			? resolve('/manage/sources/[id]/[[tab=tab]]', { id, tab: 'settings' })
+			: resolve('/manage/sources/[id]/[[tab=tab]]', { id });
 	}
 </script>
 
@@ -55,11 +58,8 @@
 			<ul class="attention">
 				{#each data.attention as item (`${item.sourceId}-${item.kind}`)}
 					<li class:error={item.kind === 'error'}>
-						<a
-							href="{resolve('/manage/sources/[id]', { id: String(item.sourceId) })}#{section(
-								item
-							)}">{item.source}</a
-						>
+						<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- resolved in `fixAt` -->
+						<a href={fixAt(item)}>{item.source}</a>
 						{#if item.kind === 'error'}
 							– {m.admin_sync_error({ error: item.error })}
 							<p class="fix">{FIX[item.errorKind]()}</p>
