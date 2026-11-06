@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { DatabaseSync } from 'node:sqlite';
 import { openDatabase } from '../db/schema';
+import { createUser } from './test-user';
 
 type Auth = typeof import('./auth');
 
@@ -184,7 +185,7 @@ describe('login', () => {
 	});
 
 	it('keeps the failures of a client when it logs in to another account', async () => {
-		await auth.createUser(db, { email: 'editor@example.com', password: PASSWORD, roles: [] });
+		await createUser(db, { email: 'editor@example.com', password: PASSWORD, roles: [] });
 		const fail = () =>
 			auth.login(db, 'attacker', { email: 'admin@example.com', password: 'nope' }, NOW);
 		for (let attempt = 0; attempt < 9; attempt++) await fail();
@@ -201,7 +202,7 @@ describe('login', () => {
 	});
 
 	it('keeps the failures of a client when it confirms its current password', async () => {
-		await auth.createUser(db, { email: 'editor@example.com', password: PASSWORD, roles: [] });
+		await createUser(db, { email: 'editor@example.com', password: PASSWORD, roles: [] });
 		const own = await auth.login(
 			db,
 			'editor-pc',
@@ -371,7 +372,7 @@ describe('several users', () => {
 
 	beforeEach(async () => {
 		await setUp();
-		await auth.createUser(db, {
+		await createUser(db, {
 			email: 'editor@example.com',
 			password: EDITOR_PASSWORD,
 			roles: []
@@ -403,7 +404,7 @@ describe('several users', () => {
 
 	it('refuses a second user with the same email address, whatever its letter case', async () => {
 		await expect(
-			auth.createUser(db, { email: ' Editor@Example.com', password: PASSWORD, roles: ['admin'] })
+			createUser(db, { email: ' Editor@Example.com', password: PASSWORD, roles: ['admin'] })
 		).rejects.toThrow(/UNIQUE/);
 	});
 
@@ -675,7 +676,7 @@ describe('grantAdmin', () => {
 	});
 
 	it('makes an account an admin beside the others, and reports an existing admin', async () => {
-		await auth.createUser(db, { email: 'reader@example.com', password: PASSWORD, roles: [] });
+		await createUser(db, { email: 'reader@example.com', password: PASSWORD, roles: [] });
 		const session = sessionOf(
 			await auth.login(db, 'client', { email: 'reader@example.com', password: PASSWORD })
 		);
@@ -765,7 +766,7 @@ describe('scripts/grant-admin.ts', () => {
 
 describe('an account without a password', () => {
 	it('refuses a password change as with a wrong current password', async () => {
-		await auth.createUser(db, { email: 'reader@example.com', password: PASSWORD, roles: [] });
+		await createUser(db, { email: 'reader@example.com', password: PASSWORD, roles: [] });
 		const session = sessionOf(
 			await auth.login(db, 'client', { email: 'reader@example.com', password: PASSWORD })
 		);

@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
 import type { DatabaseSync } from 'node:sqlite';
 import { openDatabase } from '../db/schema';
+import { createUser } from './test-user';
 
 type Auth = typeof import('./auth');
 type Reset = typeof import('./password-reset');
@@ -27,7 +28,7 @@ beforeEach(async () => {
 	auth = await import('./auth');
 	reset = await import('./password-reset');
 	db = openDatabase(':memory:');
-	await auth.createUser(db, { email: EMAIL, password: PASSWORD, roles: ['admin'] });
+	await createUser(db, { email: EMAIL, password: PASSWORD, roles: ['admin'] });
 });
 
 function tokenFor(email = EMAIL, client = 'client', at = NOW): string {

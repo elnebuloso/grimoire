@@ -234,10 +234,9 @@ function dailyRequests(
 }
 
 /**
- * Deletes a key, only one of `ownerId` when given; nothing caches keys, so the next request with
- * it is rejected.
+ * Deletes the key, of `ownerId` only when given; false when there was no such key. Nothing caches
+ * keys, so the next request with it is rejected.
  */
-/** Deletes the key, of `ownerId` only when given; false when there was no such key. */
 export function revokeApiKey(db: DatabaseSync, id: number, ownerId?: number): boolean {
 	const { changes } = db
 		.prepare('DELETE FROM api_keys WHERE id = :id AND (:owner IS NULL OR owner_id = :owner)')

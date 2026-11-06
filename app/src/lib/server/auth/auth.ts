@@ -147,16 +147,6 @@ function adminExists(db: DatabaseSync): boolean {
 	return db.prepare("SELECT 1 FROM user_roles WHERE role = 'admin'").get() !== undefined;
 }
 
-/** Creates a user with the given roles; the email address must be free. Returns the new id. */
-export async function createUser(
-	db: DatabaseSync,
-	form: { email: string; password: string; roles: Role[] }
-): Promise<number> {
-	// Hashed before the transaction: other requests share the connection while it is awaited.
-	const passwordHash = await hashPassword(form.password);
-	return inTransaction(db, () => insertUser(db, form.email, passwordHash, form.roles));
-}
-
 /**
  * Stores a user with an already hashed password, or none for an account that logs in through an
  * identity provider; callers check the address and run it in a transaction.

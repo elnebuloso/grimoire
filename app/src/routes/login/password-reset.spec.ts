@@ -3,6 +3,7 @@ import type { DatabaseSync } from 'node:sqlite';
 import { isHttpError } from '@sveltejs/kit';
 import { openDatabase } from '#lib/server/db/schema.js';
 import type { Mailer } from '#lib/server/mail/index.js';
+import { createUser } from '#lib/server/auth/test-user.js';
 
 let db: DatabaseSync;
 let mail: Mailer | undefined;
@@ -69,7 +70,7 @@ beforeEach(async () => {
 	send.mockClear();
 	mail = { send, link: (path) => `https://grimoire.example.com${path}` };
 	pages = await load();
-	await pages.auth.createUser(db, { email: EMAIL, password: PASSWORD, roles: ['admin'] });
+	await createUser(db, { email: EMAIL, password: PASSWORD, roles: ['admin'] });
 });
 
 describe('without SMTP', () => {

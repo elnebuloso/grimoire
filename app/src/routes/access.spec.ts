@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
 import type { DatabaseSync } from 'node:sqlite';
 import { isHttpError, isRedirect } from '@sveltejs/kit';
 import { openDatabase } from '#lib/server/db/schema.js';
+import { createUser } from '#lib/server/auth/test-user.js';
 
 let db: DatabaseSync;
 let logged: () => string[];
@@ -157,7 +158,7 @@ describe('setup action', () => {
 describe('header', () => {
 	it('links each user only to the pages they may open', async () => {
 		const adminSession = await setUpAdmin();
-		await admin.auth.createUser(db, { email: 'editor@example.com', password: PASSWORD, roles: [] });
+		await createUser(db, { email: 'editor@example.com', password: PASSWORD, roles: [] });
 		const login = await admin.auth.login(db, 'editor-pc', {
 			email: 'editor@example.com',
 			password: PASSWORD
@@ -208,7 +209,7 @@ describe('login action', () => {
 	});
 
 	it('sends a user without the role admin to the start page', async () => {
-		await admin.auth.createUser(db, { email: 'editor@example.com', password: PASSWORD, roles: [] });
+		await createUser(db, { email: 'editor@example.com', password: PASSWORD, roles: [] });
 		const result = await thrown(() =>
 			admin.login({
 				request: formRequest('/login', { email: 'editor@example.com', password: PASSWORD }),
@@ -331,7 +332,7 @@ describe('admin access guard', () => {
 
 	async function editorSession() {
 		await setUpAdmin();
-		await admin.auth.createUser(db, { email: 'editor@example.com', password: PASSWORD, roles: [] });
+		await createUser(db, { email: 'editor@example.com', password: PASSWORD, roles: [] });
 		const login = await admin.auth.login(db, 'editor-pc', {
 			email: 'editor@example.com',
 			password: PASSWORD

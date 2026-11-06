@@ -3,7 +3,7 @@ import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { expect, test, type Cookie, type Page } from '@playwright/test';
-import { createUser } from '../../lib/server/auth/auth.ts';
+import { createUser } from '../../lib/server/auth/test-user.ts';
 import { readExport } from '../../lib/server/instance-export.ts';
 
 const EMAIL = 'admin@example.com';
