@@ -55,6 +55,9 @@ Measured on 2026-11-05 after 1.8.0. Every spec, story and e2e file also passes o
 
 ## Specs
 
+- A spec that needs a browser (DOM, `location`, form elements) is named `*.svelte.spec.ts`; it
+  runs in Chromium in the project `browser` (`make test TEST=--project=browser`), not in `server`.
+
 - A spec that mocks `$app/env/private` needs what the modules behind the route read:
   `GIT_ALLOWED_HOSTS: []` for the Git check, `OIDC_PROVIDERS: ''` and `BASE_URL: ''` for login,
   invite and account routes. A missing one fails with

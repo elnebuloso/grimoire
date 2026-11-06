@@ -42,6 +42,20 @@ export default defineConfig({
 				}
 			},
 			{
+				// Code that needs a browser: the DOM, `location`, form elements.
+				extends: './vite.config.ts',
+				test: {
+					name: 'browser',
+					include: ['src/**/*.svelte.{test,spec}.{js,ts}'],
+					browser: {
+						enabled: true,
+						headless: true,
+						provider: playwright(),
+						instances: [{ browser: 'chromium' }]
+					}
+				}
+			},
+			{
 				// Every story renders in a browser as a test, and its `play` function runs.
 				extends: true,
 				plugins: [storybookTest({ configDir: join(import.meta.dirname, '.storybook') })],
