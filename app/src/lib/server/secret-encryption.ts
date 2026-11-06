@@ -55,7 +55,9 @@ export function encryptSecret(secret: string, key: Buffer): string {
 export function decryptSecret(stored: string, key: Buffer): string {
 	const data = Buffer.from(stored, 'base64');
 	try {
-		const decipher = createDecipheriv(ALGORITHM, key, data.subarray(0, IV_BYTES));
+		const decipher = createDecipheriv(ALGORITHM, key, data.subarray(0, IV_BYTES), {
+			authTagLength: TAG_BYTES
+		});
 		decipher.setAuthTag(data.subarray(IV_BYTES, IV_BYTES + TAG_BYTES));
 		return Buffer.concat([
 			decipher.update(data.subarray(IV_BYTES + TAG_BYTES)),

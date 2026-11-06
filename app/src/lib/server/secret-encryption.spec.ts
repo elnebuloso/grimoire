@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { createCipheriv } from 'node:crypto';
 import { decryptSecret, deriveKeys, encryptSecret, parseEncryptionKey } from './secret-encryption';
 
 const key = Buffer.alloc(32, 1);
@@ -30,6 +31,15 @@ describe('secret encryption', () => {
 		expect(() => decryptSecret(data.toString('base64'), key)).toThrow(
 			'cannot be decrypted with the current key'
 		);
+	});
+
+	it('refuses a value with a short authentication tag, even one that is valid', () => {
+		const iv = Buffer.alloc(12, 3);
+		const cipher = createCipheriv('aes-256-gcm', key, iv, { authTagLength: 4 });
+		cipher.final();
+		const forged = Buffer.concat([iv, cipher.getAuthTag()]).toString('base64');
+
+		expect(() => decryptSecret(forged, key)).toThrow('cannot be decrypted with the current key');
 	});
 
 	it('refuses a value too short to hold IV and tag', () => {
