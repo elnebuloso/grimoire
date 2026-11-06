@@ -184,11 +184,11 @@ describe('login', () => {
 		expect(wrongUser).toEqual(wrongPassword);
 	});
 
-	it('keeps the failures of a client when it logs in to another account', async () => {
+	it('keeps the failures of a client for an account when it logs in to another one', async () => {
 		await createUser(db, { email: 'editor@example.com', password: PASSWORD, roles: [] });
 		const fail = () =>
 			auth.login(db, 'attacker', { email: 'admin@example.com', password: 'nope' }, NOW);
-		for (let attempt = 0; attempt < 9; attempt++) await fail();
+		for (let attempt = 0; attempt < 4; attempt++) await fail();
 		const own = await auth.login(
 			db,
 			'attacker',
@@ -201,7 +201,7 @@ describe('login', () => {
 		expect(await fail()).toEqual({ error: 'blocked' });
 	});
 
-	it('keeps the failures of a client when it confirms its current password', async () => {
+	it('keeps the failures of a client for an account when it confirms its current password', async () => {
 		await createUser(db, { email: 'editor@example.com', password: PASSWORD, roles: [] });
 		const own = await auth.login(
 			db,
@@ -212,7 +212,7 @@ describe('login', () => {
 		if (!('session' in own)) throw new Error(own.error);
 		const fail = () =>
 			auth.login(db, 'attacker', { email: 'admin@example.com', password: 'nope' }, NOW);
-		for (let attempt = 0; attempt < 9; attempt++) await fail();
+		for (let attempt = 0; attempt < 4; attempt++) await fail();
 		const confirmed = await auth.checkCurrentPassword(db, 'attacker', own.session, PASSWORD, NOW);
 		expect('userId' in confirmed).toBe(true);
 		expect(await fail()).toEqual({ error: 'wrong-credentials' });
@@ -220,36 +220,40 @@ describe('login', () => {
 		expect(await fail()).toEqual({ error: 'blocked' });
 	});
 
-	it('blocks a client for 15 minutes after 10 failures, others stay free', async () => {
-		for (let attempt = 0; attempt < 10; attempt++) {
-			await auth.login(db, 'attacker', { email: 'admin@example.com', password: 'nope' }, NOW);
+	it('blocks an account for a client for 15 minutes after 5 failures, others stay free', async () => {
+		await createUser(db, { email: 'editor@example.com', password: PASSWORD, roles: [] });
+		for (let attempt = 0; attempt < 5; attempt++) {
+			await auth.login(db, 'office', { email: 'admin@example.com', password: 'nope' }, NOW);
 		}
 		const later = new Date(NOW.getTime() + 14 * 60_000);
 		const afterBlock = new Date(NOW.getTime() + 15 * 60_000 + 1);
+		const logsIn = async (client: string, email: string, at: Date) =>
+			'session' in (await auth.login(db, client, { email, password: PASSWORD }, at));
 
 		expect(
-			await auth.login(db, 'attacker', { email: 'admin@example.com', password: PASSWORD }, later)
-		).toEqual({
-			error: 'blocked'
-		});
+			await auth.login(db, 'office', { email: 'admin@example.com', password: PASSWORD }, later)
+		).toEqual({ error: 'blocked' });
+		expect(await logsIn('office', 'editor@example.com', later)).toBe(true);
+		expect(await logsIn('admin-pc', 'admin@example.com', later)).toBe(true);
+		expect(await logsIn('office', 'admin@example.com', afterBlock)).toBe(true);
+	});
+
+	it('blocks a client for 15 minutes after 50 failures across accounts', async () => {
+		for (let attempt = 0; attempt < 50; attempt++) {
+			await auth.login(
+				db,
+				'office',
+				{ email: `typo${attempt}@example.com`, password: 'nope' },
+				NOW
+			);
+		}
+
 		expect(
-			'session' in
-				(await auth.login(
-					db,
-					'admin-pc',
-					{ email: 'admin@example.com', password: PASSWORD },
-					later
-				))
-		).toBe(true);
+			await auth.login(db, 'office', { email: 'admin@example.com', password: PASSWORD }, NOW)
+		).toEqual({ error: 'blocked' });
 		expect(
-			'session' in
-				(await auth.login(
-					db,
-					'attacker',
-					{ email: 'admin@example.com', password: PASSWORD },
-					afterBlock
-				))
-		).toBe(true);
+			await auth.login(db, 'admin-pc', { email: 'admin@example.com', password: PASSWORD }, NOW)
+		).toHaveProperty('session');
 	});
 
 	it('blocks a client that sends its attempts in parallel just as well', async () => {
@@ -261,7 +265,7 @@ describe('login', () => {
 
 		expect(
 			results.filter((result) => 'error' in result && result.error === 'blocked')
-		).toHaveLength(2);
+		).toHaveLength(7);
 	});
 
 	it('refuses logins of any client while too many password hashes wait', async () => {
@@ -286,10 +290,10 @@ describe('login', () => {
 	it('counts failures from zero again after 15 quiet minutes', async () => {
 		const fail = (at: Date) =>
 			auth.login(db, 'typo', { email: 'admin@example.com', password: 'nope' }, at);
-		for (let attempt = 0; attempt < 9; attempt++) await fail(NOW);
+		for (let attempt = 0; attempt < 4; attempt++) await fail(NOW);
 		const quiet = new Date(NOW.getTime() + 15 * 60_000);
 
-		for (let attempt = 0; attempt < 9; attempt++) await fail(quiet);
+		for (let attempt = 0; attempt < 4; attempt++) await fail(quiet);
 
 		expect(await fail(quiet)).toEqual({ error: 'wrong-credentials' });
 		expect(await fail(quiet)).toEqual({ error: 'blocked' });
@@ -558,7 +562,7 @@ describe('changePassword', () => {
 	});
 
 	it('changes nothing for a wrong current password and counts it as a failed login', async () => {
-		for (let attempt = 0; attempt < 9; attempt++) {
+		for (let attempt = 0; attempt < 4; attempt++) {
 			expect(
 				await auth.changePassword(
 					db,

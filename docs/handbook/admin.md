@@ -22,9 +22,11 @@ characters.
   in whatever you do. A page refreshing on its own, such as a source waiting for its sync, does
   not keep it alive. Log in again and you land on the page you asked for; what you typed into
   a form before the login ended is lost.
-- A client address may fail at most 10 times in any 15 minutes; beyond that every login from it
-  gets `Too many failed logins. Try again later.`, also with the right password. Wait 15 minutes.
-  A wrong current password under **Change the password** counts as a failed login.
+- A client address may fail at most 5 times in any 15 minutes for one account, and at most 50
+  times for all accounts together; beyond that, logins from it to that account, or to any account,
+  get `Too many failed logins. Try again later.`, also with the right password. Wait 15 minutes.
+  A successful login clears the failures for its own account only. A wrong current password under
+  **Change the password** counts as a failed login.
   IPv6 addresses of one `/64` network count as one client address.
 - The same message appears for everybody while the server is busy checking many logins at once.
   Try again after a moment.

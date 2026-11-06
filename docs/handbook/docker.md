@@ -215,7 +215,8 @@ Pass on the original protocol, client address and `Host` header, and set `PROTOC
 `ADDRESS_HEADER` to the headers the proxy sends. Set them only when the proxy really sends them:
 once `ADDRESS_HEADER` is set, a login, setup, password change or reset request without that header
 fails with `500`. Without `ADDRESS_HEADER`, all
-failed logins count for the proxy's address, and one client's typos lock everybody out.
+failed logins count for the proxy's address: 50 typos of all users within 15 minutes lock everybody
+out.
 
 With `ADDRESS_HEADER` set, only the proxy may reach grimoire's port. Anyone who reaches it directly
 sets the header themselves, counts as a new client on every request and gets past the limits on

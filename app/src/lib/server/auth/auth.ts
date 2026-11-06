@@ -28,8 +28,11 @@ export interface SessionUser {
 // A session ends after an hour without a request, and 12 hours after the login whatever happens.
 const SESSION_IDLE_MINUTES = 60;
 const SESSION_MAX_HOURS = 12;
-// A client that failed this often within the window is refused until the oldest failure leaves it.
-const MAX_FAILED_LOGINS = 10;
+// A client that failed this often within the window is refused until the oldest failure leaves it:
+// for one account, which stops guessing its password, and for all accounts together, which
+// colleagues behind one office address share.
+const MAX_FAILED_LOGINS_PER_ACCOUNT = 5;
+const MAX_FAILED_LOGINS_PER_CLIENT = 50;
 const FAILED_LOGIN_MINUTES = 15;
 
 /**
@@ -63,7 +66,33 @@ export type AuthProblem =
 
 // Kept in memory only: it exists solely to prove access to the server log, so it is never stored.
 let setupTokenValue: string | undefined;
-const failedLogins = createAttemptLimit(MAX_FAILED_LOGINS, FAILED_LOGIN_MINUTES);
+const failedLogins = createAttemptLimit(MAX_FAILED_LOGINS_PER_CLIENT, FAILED_LOGIN_MINUTES);
+const failedAccountLogins = createAttemptLimit(MAX_FAILED_LOGINS_PER_ACCOUNT, FAILED_LOGIN_MINUTES);
+
+const accountKey = (client: string, email: string) =>
+	`${clientKey(client)} ${normalizeEmail(email)}`;
+
+/**
+ * Counts a password check of `client` for `email` as failed before it runs: requests sent in
+ * parallel would otherwise all pass the limit while their hashes run. False when it is refused.
+ */
+function takeAttempt(client: string, email: string, now: Date): boolean {
+	if (pendingHashes >= MAX_PENDING_HASHES) return false;
+	if (!failedAccountLogins.take(accountKey(client, email), now)) return false;
+	if (failedLogins.take(clientKey(client), now)) return true;
+	failedAccountLogins.giveBack(accountKey(client, email));
+	return false;
+}
+
+/**
+ * A password check that matched: its attempt does not count, and the failures of `client` for this
+ * account are forgotten. Those for other accounts stay, so one known password cannot reset the
+ * count against another account.
+ */
+function attemptSucceeded(client: string, email: string) {
+	failedLogins.giveBack(clientKey(client));
+	failedAccountLogins.forget(accountKey(client, email));
+}
 
 function sameText(a: string, b: string): boolean {
 	return timingSafeEqual(Buffer.from(sha256(a)), Buffer.from(sha256(b)));
@@ -227,19 +256,13 @@ export async function login(
 	form: { email: string; password: string },
 	now = new Date()
 ): Promise<{ session: string } | { error: AuthProblem }> {
-	// Counted as failed before the password is checked: requests sent in parallel would otherwise
-	// all pass the limit while their hashes run. A successful login takes back only its own
-	// attempt: forgetting all of them would let a client with one account reset its count against
-	// any other account.
-	if (pendingHashes >= MAX_PENDING_HASHES || !failedLogins.take(clientKey(client), now)) {
-		return { error: 'blocked' };
-	}
+	if (!takeAttempt(client, form.email, now)) return { error: 'blocked' };
 	const user = findUser(db, form.email);
 	// A password is checked even for an unknown address, so the answer time does not tell which.
 	unknownUserHash ??= await hashPassword(randomBytes(16).toString('hex'));
 	const matches = await passwordMatches(form.password, user?.password_hash ?? unknownUserHash);
 	if (!user || !matches) return { error: 'wrong-credentials' };
-	failedLogins.giveBack(clientKey(client));
+	attemptSucceeded(client, form.email);
 	return { session: createSession(db, user.id, now) };
 }
 
@@ -254,17 +277,15 @@ export async function checkCurrentPassword(
 	password: string,
 	now = new Date()
 ): Promise<{ userId: number } | { error: AuthProblem }> {
-	// Counted before the check, for the same reason as in `login`.
-	if (pendingHashes >= MAX_PENDING_HASHES || !failedLogins.take(clientKey(client), now)) {
-		return { error: 'blocked' };
-	}
 	const user = sessionUser(db, session, now);
+	const email = user?.email ?? '';
+	if (!takeAttempt(client, email, now)) return { error: 'blocked' };
 	const stored = user && findUser(db, user.email);
 	// An account without a password has no current one to give; it sets one by a reset.
 	unknownUserHash ??= await hashPassword(randomBytes(16).toString('hex'));
 	const matches = await passwordMatches(password, stored?.password_hash ?? unknownUserHash);
 	if (!stored || !matches) return { error: 'wrong-current-password' };
-	failedLogins.giveBack(clientKey(client));
+	attemptSucceeded(client, email);
 	return { userId: stored.id };
 }
 
