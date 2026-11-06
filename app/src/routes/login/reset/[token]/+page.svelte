@@ -15,8 +15,13 @@
 	<p class="notice" role="status">{m.reset_done()}</p>
 	<p><a href={resolve('/login')}>{m.header_log_in()}</a></p>
 {:else if !data.valid || form?.linkInvalid}
-	<p class="notice alert" role="alert">{m.auth_reset_link_invalid()}</p>
-	<p><a href={resolve('/login/forgot')}>{m.reset_request_new()}</a></p>
+	<p class="notice alert" role="alert">
+		{data.resetByMail ? m.auth_reset_link_invalid() : m.auth_reset_link_invalid_ask_admin()}
+	</p>
+	<p class="ways">
+		{#if data.resetByMail}<a href={resolve('/login/forgot')}>{m.reset_request_new()}</a>{/if}
+		<a href={resolve('/login')}>{m.header_log_in()}</a>
+	</p>
 {:else}
 	<form method="post">
 		<FormError message={form?.error} />
@@ -31,3 +36,11 @@
 		<button class="primary">{m.reset_submit()}</button>
 	</form>
 {/if}
+
+<style>
+	.ways {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--s4);
+	}
+</style>

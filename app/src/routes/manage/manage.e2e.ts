@@ -200,6 +200,9 @@ test('logs in through an identity provider, creating an account only where it ma
 }) => {
 	await page.goto('/account');
 	await expect(page).toHaveURL('/login?next=%2Faccount');
+	await expect(page.getByText('There is no sign-up: an admin invites you.')).toContainText(
+		'Some sign-on providers below also create your account on your first login.'
+	);
 	await logInThrough(page, 'GitLab', 'ada', { email: 'ada@e2e.example', email_verified: true });
 	await expect(page).toHaveURL('/account');
 	await expect(page.getByRole('button', { name: 'ada@e2e.example' })).toBeVisible();
@@ -575,6 +578,11 @@ test('shows the error page in the layout to a user without the role and on a fin
 	expect(forbidden?.status()).toBe(403);
 	expect(forbidden?.headers()['x-robots-tag']).toBe('noindex, nofollow');
 	await expect(page.getByRole('heading', { name: 'You may not open this page.' })).toBeVisible();
+	await expect(page.getByText('This page is for admins only.')).toBeVisible();
+	await expect(page.getByRole('link', { name: 'To your account' })).toHaveAttribute(
+		'href',
+		'/account/api-keys'
+	);
 	await expect(page).toHaveTitle('Access denied – grimoire');
 	await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', 'noindex, nofollow');
 	await expect(page.getByRole('button', { name: editor })).toBeVisible();
@@ -707,6 +715,10 @@ test('accepts an invitation through an identity provider for the invited address
 	await page.context().clearCookies();
 	await page.goto(link);
 	await expect(page.getByRole('alert')).toContainText('This invitation link is not valid');
+	// Only the way out, not the lead of a valid invitation.
+	await expect(page.getByText('Choose a password for your account.')).toHaveCount(0);
+	await page.getByRole('link', { name: 'Log in', exact: true }).click();
+	await expect(page).toHaveURL('/login');
 
 	// The admin sees how the account logs in, and can take the link away.
 	await asAdmin(page);

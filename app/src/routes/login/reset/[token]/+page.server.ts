@@ -3,6 +3,7 @@ import type { Actions, PageServerLoad } from './$types';
 import { database } from '#lib/server/db/index.js';
 import { resetLinkValid, resetPassword } from '#lib/server/admin/password-reset.js';
 import { authMessage } from '#lib/server/admin/auth-messages.js';
+import { mailer } from '#lib/server/mail/index.js';
 
 // A plain form needs no JavaScript; hydrating it would reset what was typed before it finished.
 export const csr = false;
@@ -11,7 +12,11 @@ export const load: PageServerLoad = ({ params, setHeaders }) => {
 	// The token is in the URL; a link to another site must not carry it along. Not `no-referrer`:
 	// with it the browser sends the form with `Origin: null`, which the CSRF check refuses.
 	setHeaders({ 'referrer-policy': 'same-origin' });
-	return { valid: resetLinkValid(database(), params.token) };
+	return {
+		valid: resetLinkValid(database(), params.token),
+		// Without mail a new link comes only from an admin.
+		resetByMail: mailer() !== undefined
+	};
 };
 
 export const actions = {

@@ -92,8 +92,10 @@ describe('without SMTP', () => {
 		const user = db.prepare('SELECT id FROM users').get() as { id: number };
 		const { token } = pages.passwordReset.createPasswordLink(db, user.id)!;
 
+		// Without mail, an invalid link can only point to an admin for a new one.
 		expect(await pages.reset.load(event(`/login/reset/${token}`, undefined, { token }))).toEqual({
-			valid: true
+			valid: true,
+			resetByMail: false
 		});
 		expect(
 			await pages.reset.actions.default(
@@ -117,7 +119,8 @@ describe('with SMTP', () => {
 		expect(
 			await pages.reset.load(event('/login/reset/x', undefined, { token: linkToken() }))
 		).toEqual({
-			valid: true
+			valid: true,
+			resetByMail: true
 		});
 		// Three links an hour reach one address, as for a forgotten password.
 		await sendLink();
@@ -153,7 +156,7 @@ describe('with SMTP', () => {
 		const token = linkToken();
 		const page = event(`/login/reset/${token}`, undefined, { token });
 
-		expect(await pages.reset.load(page)).toEqual({ valid: true });
+		expect(await pages.reset.load(page)).toEqual({ valid: true, resetByMail: true });
 		expect((page as { setHeaders: ReturnType<typeof vi.fn> }).setHeaders).toHaveBeenCalledWith({
 			'referrer-policy': 'same-origin'
 		});
@@ -163,7 +166,8 @@ describe('with SMTP', () => {
 			)
 		).toEqual({ done: true });
 		expect(await pages.reset.load(event(`/login/reset/${token}`, undefined, { token }))).toEqual({
-			valid: false
+			valid: false,
+			resetByMail: true
 		});
 	});
 

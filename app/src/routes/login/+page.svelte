@@ -15,7 +15,12 @@
 	);
 </script>
 
-<PageHead title={m.login_title({ name: data.instanceTitle })} namesInstance />
+<PageHead title={m.login_title({ name: data.instanceTitle })} namesInstance>
+	<p>
+		{m.login_no_signup()}
+		{#if data.providers.length > 0}{m.login_no_signup_providers()}{/if}
+	</p>
+</PageHead>
 
 {#if data.imported && !form?.error}
 	<p class="notice" role="status">{m.login_imported()}</p>

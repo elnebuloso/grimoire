@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import FormError from '#lib/components/FormError.svelte';
 	import ProviderButtons from '#lib/components/ProviderButtons.svelte';
 	import PageHead from '#lib/components/PageHead.svelte';
@@ -12,13 +13,14 @@
 	const MIN_LENGTH = 12;
 </script>
 
-<PageHead title={m.invite_title({ name: data.instanceTitle })} namesInstance
-	><p>{m.invite_intro()}</p></PageHead
->
-
 {#if !data.email || form?.linkInvalid}
+	<PageHead title={m.invite_title({ name: data.instanceTitle })} namesInstance />
 	<p class="notice alert" role="alert">{form?.error ?? m.auth_invite_link_invalid()}</p>
+	<p><a href={resolve('/login')}>{m.header_log_in()}</a></p>
 {:else}
+	<PageHead title={m.invite_title({ name: data.instanceTitle })} namesInstance
+		><p>{m.invite_intro()}</p></PageHead
+	>
 	<form method="post">
 		<FormError message={form?.error} id="invite-error" />
 		<!-- Fixed: the invitation is for this address. It also tells a password manager the login. -->

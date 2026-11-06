@@ -10,7 +10,16 @@
 
 <section class="sheet">
 	<PageHead title={heading} {documentTitle}>
-		<p><a href={resolve('/')}>{m.error_start_page()}</a></p>
+		<!-- A user turned away here wanted something of their own: their account comes first. -->
+		{#if page.status === 403 && page.data.user}
+			<p>{m.error_forbidden_admins()}</p>
+			<p class="ways">
+				<a href={resolve('/account/api-keys')}>{m.error_account()}</a>
+				<a href={resolve('/')}>{m.error_start_page()}</a>
+			</p>
+		{:else}
+			<p><a href={resolve('/')}>{m.error_start_page()}</a></p>
+		{/if}
 	</PageHead>
 </section>
 
@@ -18,5 +27,10 @@
 	section {
 		gap: var(--s5);
 		padding-block: var(--s6);
+	}
+	.ways {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--s4);
 	}
 </style>
