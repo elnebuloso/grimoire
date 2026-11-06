@@ -21,6 +21,8 @@ export interface SourceStats {
 	/** Polling skips the source; only "Sync now" syncs it. */
 	paused: boolean;
 	deadLinks: number;
+	/** Problems the last sync reported without failing, such as an include it could not resolve. */
+	warnings: number;
 }
 
 export function sourceStats(db: DatabaseSync): SourceStats[] {
@@ -39,7 +41,8 @@ export function sourceStats(db: DatabaseSync): SourceStats[] {
 				sources.error IS NOT NULL AS error,
 				sources.paused,
 				(SELECT count(*) FROM links JOIN live_pages AS pages ON pages.id = links.page_id
-					WHERE pages.source_id = sources.id AND links.dead = 1) AS deadLinks
+					WHERE pages.source_id = sources.id AND links.dead = 1) AS deadLinks,
+				json_array_length(sources.warnings) AS warnings
 			FROM sources
 			ORDER BY sources.slug`
 		)

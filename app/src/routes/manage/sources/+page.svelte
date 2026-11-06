@@ -50,6 +50,14 @@
 					{ value: 'internal', label: m.visibility_internal() },
 					{ value: 'public', label: m.visibility_public() }
 				]
+			},
+			{
+				name: 'warnings',
+				label: m.source_warnings(),
+				options: [
+					{ value: 'yes', label: m.source_filter_warnings_yes() },
+					{ value: 'no', label: m.source_filter_warnings_no() }
+				]
 			}
 		]}
 		columns={[

@@ -6,7 +6,9 @@ import { parseGrimoireId } from '../grimoire-id';
 import {
 	dashboard,
 	deadLinks,
+	groupProblems,
 	managementCounts,
+	overlapsOf,
 	previewPage,
 	sourceHealth,
 	sourceStatus
@@ -58,12 +60,18 @@ describe('sourceStatus', () => {
 			lastSyncedAt: null,
 			lastCommit: null,
 			error: null,
+			errorKind: null,
 			warnings: [],
 			pages: [],
 			totals: { pages: 0, snippets: 0, tokens: 0 },
 			deadLinks: [],
 			history: []
 		});
+	});
+
+	it('names the kind of a sync error, so the page can show its fix', () => {
+		db.exec(`UPDATE sources SET error = 'branch "main" not found in the repository' WHERE id = 1`);
+		expect(sourceStatus(db, 1)!).toMatchObject({ errorKind: 'branch' });
 	});
 
 	it('counts pages, snippets and tokens of this source only, and lists its dead links', () => {
@@ -249,36 +257,119 @@ describe('dashboard', () => {
 		});
 	});
 
-	it('lists one item per problem, errors first, then warnings and dead links, then paused and never synced', () => {
+	it('groups one item per problem by kind, the most pressing first, each by name', () => {
+		db.exec(`
+			INSERT INTO sources (id, slug, name, git_url, branch, path, last_synced_at)
+			VALUES (8, 'auth-copy', 'Auth copy', 'https://git.example.com/auth.git', 'main', 'docs',
+				'2026-10-28T10:00:00Z');
+		`);
 		expect(dashboard(db).attention).toEqual([
 			{
-				sourceId: 3,
-				source: 'broken',
-				name: 'Broken',
 				kind: 'error',
-				error: 'git ls-remote failed',
-				errorKind: 'unknown'
+				total: 2,
+				shown: [
+					{
+						sourceId: 3,
+						source: 'broken',
+						name: 'Broken',
+						kind: 'error',
+						error: 'git ls-remote failed',
+						errorKind: 'unknown'
+					},
+					{
+						sourceId: 6,
+						source: 'failing',
+						name: 'Failing',
+						kind: 'error',
+						error: 'source path "docs" does not exist in the repository',
+						errorKind: 'path'
+					}
+				]
 			},
 			{
-				sourceId: 6,
-				source: 'failing',
-				name: 'Failing',
-				kind: 'error',
-				error: 'source path "docs" does not exist in the repository',
-				errorKind: 'path'
+				kind: 'duplicate',
+				total: 1,
+				shown: [
+					{
+						sourceId: 1,
+						source: 'auth',
+						name: 'Auth',
+						kind: 'duplicate',
+						overlap: 'duplicate',
+						other: { sourceId: 8, source: 'auth-copy', name: 'Auth copy' }
+					}
+				]
 			},
-			{ sourceId: 5, source: 'fine', name: 'Fine', kind: 'deadLinks', count: 1 },
 			{
-				sourceId: 4,
-				source: 'noisy',
-				name: 'Noisy',
 				kind: 'warnings',
-				warnings: ['docs/a.md: skipped, bad front matter']
+				total: 1,
+				shown: [
+					{
+						sourceId: 4,
+						source: 'noisy',
+						name: 'Noisy',
+						kind: 'warnings',
+						warnings: ['docs/a.md: skipped, bad front matter']
+					}
+				]
 			},
-			{ sourceId: 1, source: 'auth', name: 'Auth', kind: 'neverSynced' },
-			{ sourceId: 2, source: 'billing', name: 'Billing', kind: 'paused', neverSynced: true },
-			{ sourceId: 7, source: 'held', name: 'Held', kind: 'paused', neverSynced: false }
+			{
+				kind: 'deadLinks',
+				total: 1,
+				shown: [{ sourceId: 5, source: 'fine', name: 'Fine', kind: 'deadLinks', count: 1 }]
+			},
+			{
+				kind: 'paused',
+				total: 2,
+				shown: [
+					{ sourceId: 2, source: 'billing', name: 'Billing', kind: 'paused', neverSynced: true },
+					{ sourceId: 7, source: 'held', name: 'Held', kind: 'paused', neverSynced: false }
+				]
+			},
+			{
+				kind: 'neverSynced',
+				total: 1,
+				shown: [{ sourceId: 1, source: 'auth', name: 'Auth', kind: 'neverSynced' }]
+			}
 		]);
+	});
+
+	it('shows the first five of a kind by name and counts the rest', () => {
+		const names = ['Gamma', 'alpha', 'Zeta', 'Beta', 'Epsilon', 'delta', 'Eta'];
+		const group = groupProblems(
+			names.map((name, index) => ({
+				sourceId: index,
+				source: name.toLowerCase(),
+				name,
+				kind: 'neverSynced'
+			}))
+		);
+		expect(group).toHaveLength(1);
+		expect(group[0].total).toBe(7);
+		expect(group[0].shown.map((problem) => problem.name)).toEqual([
+			'alpha',
+			'Beta',
+			'delta',
+			'Epsilon',
+			'Eta'
+		]);
+	});
+
+	it('names the other source of each pair a source belongs to', () => {
+		db.exec(`
+			INSERT INTO sources (id, slug, name, git_url, branch, path)
+			VALUES (8, 'auth-copy', 'Auth copy', 'https://git.example.com/auth.git', 'release', 'docs'),
+				(9, 'auth-api', 'Auth API', 'https://git.example.com/auth.git', 'main', 'docs/api');
+		`);
+		expect(overlapsOf(db, 1)).toEqual([
+			{ overlap: 'overlap', other: { sourceId: 9, source: 'auth-api', name: 'Auth API' } },
+			{ overlap: 'duplicate', other: { sourceId: 8, source: 'auth-copy', name: 'Auth copy' } }
+		]);
+		expect(overlapsOf(db, 9)).toEqual([
+			{ overlap: 'overlap', other: { sourceId: 1, source: 'auth', name: 'Auth' } },
+			{ overlap: 'overlap', other: { sourceId: 8, source: 'auth-copy', name: 'Auth copy' } }
+		]);
+		expect(overlapsOf(db, 5)).toEqual([]);
 	});
 
 	it('gives the sync state of every source, healthy ones included', () => {

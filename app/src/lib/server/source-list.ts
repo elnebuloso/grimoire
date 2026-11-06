@@ -7,7 +7,8 @@ export const SOURCE_LIST: ListSpec<SourceStats> = {
 	search: (source) => `${source.name} ${source.slug}`,
 	filters: {
 		status: (source) => sourceState(source),
-		visibility: (source) => source.visibility
+		visibility: (source) => source.visibility,
+		warnings: (source) => (source.warnings > 0 ? 'yes' : 'no')
 	},
 	sorts: {
 		name: (source) => source.name,

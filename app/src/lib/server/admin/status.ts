@@ -3,7 +3,7 @@ import { grimoireId } from '../grimoire-id';
 import { readSnippets, renderSnippet } from '../search/query';
 import { sourceStats, type SourceStats } from '../stats';
 import { syncErrorKind, type SyncErrorKind } from '../sync/error-kind';
-import { findOverlaps } from './duplicates';
+import { findOverlaps, type Overlap } from './duplicates';
 import { listSources } from './sources';
 
 export interface PageSummary {
@@ -59,6 +59,8 @@ export interface SourceStatus {
 	lastSyncedAt: string | null;
 	lastCommit: string | null;
 	error: string | null;
+	/** What kind of failure `error` is, so the page can name the fix; null without an error. */
+	errorKind: SyncErrorKind | null;
 	warnings: string[];
 	pages: PageSummary[];
 	totals: { pages: number; snippets: number; tokens: number };
@@ -106,6 +108,7 @@ export function sourceStatus(db: DatabaseSync, sourceId: number): SourceStatus |
 		lastSyncedAt: source.last_synced_at,
 		lastCommit: source.last_commit,
 		error: source.error,
+		errorKind: source.error === null ? null : syncErrorKind(source.error),
 		warnings: JSON.parse(source.warnings) as string[],
 		pages,
 		totals: {
@@ -197,28 +200,55 @@ export function sourceHealth(db: DatabaseSync): SourceHealth[] {
 	}));
 }
 
-/** One problem of one source, as the dashboard lists it under "needs attention". */
-export type Problem = { sourceId: number; source: string; name: string } & (
-	| { kind: 'error'; error: string; errorKind: SyncErrorKind }
-	| { kind: 'warnings'; warnings: string[] }
-	| { kind: 'deadLinks'; count: number }
-	| { kind: 'paused'; neverSynced: boolean }
-	| { kind: 'neverSynced' }
-);
+/** A source as a problem names it. */
+export interface SourceRef {
+	sourceId: number;
+	source: string;
+	name: string;
+}
 
-const SEVERITY: Record<Problem['kind'], number> = {
-	error: 0,
-	warnings: 1,
-	deadLinks: 1,
-	paused: 2,
-	neverSynced: 2
-};
+/** One problem of one source, as the dashboard lists it under "needs attention". */
+export type Problem = SourceRef &
+	(
+		| { kind: 'error'; error: string; errorKind: SyncErrorKind }
+		| { kind: 'duplicate'; overlap: Overlap; other: SourceRef }
+		| { kind: 'warnings'; warnings: string[] }
+		| { kind: 'deadLinks'; count: number }
+		| { kind: 'paused'; neverSynced: boolean }
+		| { kind: 'neverSynced' }
+	);
+
+/** The kinds of problem in the order the dashboard shows their groups, the most pressing first. */
+export const PROBLEM_KINDS: Problem['kind'][] = [
+	'error',
+	'duplicate',
+	'warnings',
+	'deadLinks',
+	'paused',
+	'neverSynced'
+];
+
+/** How many problems of a kind the dashboard shows; the rest is behind "show all". */
+export const SHOWN_PER_GROUP = 5;
+
+/** The problems of one kind: how many there are, and the first of them by name. */
+export interface ProblemGroup {
+	kind: Problem['kind'];
+	total: number;
+	shown: Problem[];
+}
+
+type Named = { id: number; slug: string; name: string };
+type Pair = { kind: Overlap; first: Named; second: Named };
 
 /**
- * The problems of the given sources, most severe first and by source within a severity. A sync
+ * The problems of the given sources, one per source and kind, a pair of duplicates once. A sync
  * error already explains why a source never synced, and so does paused polling.
  */
-export function problems(sources: (SourceHealth & { deadLinks: number })[]): Problem[] {
+export function problems(
+	sources: (SourceHealth & { deadLinks: number })[],
+	pairs: Pair[]
+): Problem[] {
 	const found: Problem[] = [];
 	for (const health of sources) {
 		const of = { sourceId: health.sourceId, source: health.source, name: health.name };
@@ -238,14 +268,32 @@ export function problems(sources: (SourceHealth & { deadLinks: number })[]): Pro
 		else if (health.neverSynced && health.error === null)
 			found.push({ ...of, kind: 'neverSynced' });
 	}
-	// Array.prototype.sort is stable, so the order by source survives within a severity.
-	return found.sort((a, b) => SEVERITY[a.kind] - SEVERITY[b.kind]);
+	for (const { kind, first, second } of pairs) {
+		found.push({ ...sourceRef(first), kind: 'duplicate', overlap: kind, other: sourceRef(second) });
+	}
+	return found;
+}
+
+/** `found` by kind in the order of `PROBLEM_KINDS`, each by source name; empty kinds left out. */
+export function groupProblems(found: Problem[]): ProblemGroup[] {
+	return PROBLEM_KINDS.flatMap((kind) => {
+		const ofKind = found
+			.filter((problem) => problem.kind === kind)
+			.toSorted((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+		return ofKind.length === 0
+			? []
+			: [{ kind, total: ofKind.length, shown: ofKind.slice(0, SHOWN_PER_GROUP) }];
+	});
+}
+
+function sourceRef(source: Named): SourceRef {
+	return { sourceId: source.id, source: source.slug, name: source.name };
 }
 
 export interface Dashboard {
 	totals: Totals;
 	sources: SourceStats[];
-	attention: Problem[];
+	attention: ProblemGroup[];
 }
 
 /** The overview of every source and key for the admins. */
@@ -256,6 +304,10 @@ export function dashboard(db: DatabaseSync): Dashboard {
 	const { apiKeys } = db.prepare('SELECT count(*) AS apiKeys FROM api_keys').get() as {
 		apiKeys: number;
 	};
+	const health = sourceHealth(db).map((health) => ({
+		...health,
+		deadLinks: sources.find((source) => source.id === health.sourceId)?.deadLinks ?? 0
+	}));
 	return {
 		totals: {
 			sources: sources.length,
@@ -266,13 +318,20 @@ export function dashboard(db: DatabaseSync): Dashboard {
 			apiKeys
 		},
 		sources,
-		attention: problems(
-			sourceHealth(db).map((health) => ({
-				...health,
-				deadLinks: sources.find((source) => source.id === health.sourceId)?.deadLinks ?? 0
-			}))
-		)
+		attention: groupProblems(problems(health, findOverlaps(listSources(db))))
 	};
+}
+
+/** The sources that hold the same documentation as the given one, or some of it. */
+export function overlapsOf(
+	db: DatabaseSync,
+	sourceId: number
+): { overlap: Overlap; other: SourceRef }[] {
+	return findOverlaps(listSources(db)).flatMap(({ kind, first, second }) => {
+		if (first.id === sourceId) return [{ overlap: kind, other: sourceRef(second) }];
+		if (second.id === sourceId) return [{ overlap: kind, other: sourceRef(first) }];
+		return [];
+	});
 }
 
 /** What the management navigation counts: only what needs an admin to act. */

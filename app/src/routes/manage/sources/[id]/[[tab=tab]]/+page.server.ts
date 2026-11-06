@@ -25,7 +25,7 @@ import {
 	type SourceSettings,
 	type StoredSource
 } from '#lib/server/admin/sources.js';
-import { previewPage, sourceStatus } from '#lib/server/admin/status.js';
+import { overlapsOf, previewPage, sourceStatus } from '#lib/server/admin/status.js';
 import { readSettings, syncsAutomatically } from '#lib/server/settings.js';
 /** The source of the page; undefined for `/manage/sources/new`. */
 function sourceFor(params: { id: string }): SourceSettings | undefined {
@@ -50,6 +50,7 @@ export const load: PageServerLoad = ({ params, url }) => {
 		source,
 		tab: params.tab ?? 'status',
 		status: source && sourceStatus(database(), source.id),
+		overlaps: source ? overlapsOf(database(), source.id) : [],
 		syncPending: source !== undefined && syncPending(source.id),
 		preview:
 			source && previewFile

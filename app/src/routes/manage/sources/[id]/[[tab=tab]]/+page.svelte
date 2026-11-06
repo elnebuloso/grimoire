@@ -15,6 +15,7 @@
 	import PageHead from '#lib/components/PageHead.svelte';
 	import PageList from '#lib/components/PageList.svelte';
 	import DataTable from '#lib/components/DataTable.svelte';
+	import SourceLabel from '#lib/components/SourceLabel.svelte';
 	import StatusBadge from '#lib/components/StatusBadge.svelte';
 	import TabNav from '#lib/components/TabNav.svelte';
 	import TextAreaField from '#lib/components/TextAreaField.svelte';
@@ -25,6 +26,7 @@
 	import { MAX_NAME_LENGTH, MAX_SLUG_LENGTH } from '#lib/slug.js';
 	import { NEW_SOURCE_FIELDS, toSourceFields } from '#lib/source-fields.js';
 	import { sourceState } from '#lib/source-state.js';
+	import { SYNC_FIX } from '#lib/sync-fix.js';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
@@ -399,6 +401,31 @@
 				<div class="part">
 					<h3>{m.source_error()}</h3>
 					<p class="notice alert" role="alert">{data.status.error}</p>
+					{#if data.status.errorKind}
+						<p class="fix">
+							{SYNC_FIX[data.status.errorKind]()}
+							<a href={tabHref('settings')}>{m.source_fix_in_settings()}</a>
+						</p>
+					{/if}
+				</div>
+			{/if}
+			{#if data.overlaps.length > 0}
+				<div class="part">
+					<h3>{m.duplicates_title()}</h3>
+					<ul class="overlaps">
+						{#each data.overlaps as { overlap, other } (other.sourceId)}
+							<li>
+								{overlap === 'duplicate' ? m.source_duplicate_of() : m.source_overlaps_with()}
+								<SourceLabel
+									name={other.name}
+									slug={other.source}
+									href={resolve('/manage/sources/[id]/[[tab=tab]]', {
+										id: String(other.sourceId)
+									})}
+								/>
+							</li>
+						{/each}
+					</ul>
 				</div>
 			{/if}
 			{#if data.status.warnings.length > 0}
@@ -632,12 +659,17 @@
 		color: var(--ink-2);
 		font-size: 13px;
 	}
-	.warnings {
+	.fix {
+		color: var(--ink-2);
+	}
+	.warnings,
+	.overlaps {
 		display: grid;
 		gap: var(--s2);
 		list-style: none;
 	}
-	.warnings li {
+	.warnings li,
+	.overlaps li {
 		padding-inline-start: var(--s4);
 		border-inline-start: 3px solid var(--warn);
 		overflow-wrap: anywhere;

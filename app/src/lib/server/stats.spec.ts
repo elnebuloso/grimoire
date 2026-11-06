@@ -44,13 +44,15 @@ beforeEach(() => {
 });
 
 describe('sourceStats', () => {
-	it('counts pages, snippets, tokens and dead links per source, with its visibility', () => {
+	it('counts pages, snippets, tokens, dead links and warnings per source, with its visibility', () => {
 		const auth = addSource('auth-docs', '2026-10-28T10:00:00.000Z');
 		const gateway = addSource('gateway-docs', '2026-10-27T08:00:00.000Z');
 		addPage(auth, 'deploy.md', [100, 200], 2);
 		addPage(auth, 'index.md', [50]);
 		addPage(gateway, 'index.md', [10], 1);
-		db.prepare("UPDATE sources SET visibility = 'public' WHERE id = ?").run(gateway);
+		db.prepare(
+			`UPDATE sources SET visibility = 'public', warnings = '["index.md: include shared.md not found"]' WHERE id = ?`
+		).run(gateway);
 
 		expect(sourceStats(db)).toEqual([
 			{
@@ -67,7 +69,8 @@ describe('sourceStats', () => {
 				lastCheck: null,
 				error: false,
 				paused: false,
-				deadLinks: 2
+				deadLinks: 2,
+				warnings: 0
 			},
 			{
 				id: gateway,
@@ -83,7 +86,8 @@ describe('sourceStats', () => {
 				lastCheck: null,
 				error: false,
 				paused: false,
-				deadLinks: 1
+				deadLinks: 1,
+				warnings: 1
 			}
 		]);
 	});
