@@ -121,6 +121,7 @@ describe('deadLinks', () => {
 				sourceId: 1,
 				source: 'auth',
 				name: 'Auth',
+				path: 'docs/',
 				file: 'deploy.md',
 				anchor: 'rollback',
 				target: 'auth/gone'
@@ -129,6 +130,7 @@ describe('deadLinks', () => {
 				sourceId: 2,
 				source: 'billing',
 				name: 'Billing',
+				path: 'docs/',
 				file: 'index.md',
 				anchor: null,
 				target: 'billing/old'
@@ -142,10 +144,11 @@ describe('deadLinks', () => {
 });
 
 describe('sync history', () => {
-	it('lists the runs of the source, newest first', () => {
+	it('lists the runs of the source, newest first, each error with its kind', () => {
 		db.exec(`INSERT INTO sync_runs (source_id, started_at, finished_at, outcome, commit_hash, error, runs)
 			VALUES (1, '2026-10-30T10:00:00.000Z', '2026-10-30T10:01:00.000Z', 'synced', 'abc', NULL, 1),
-				(1, '2026-10-30T10:05:00.000Z', '2026-10-30T11:00:00.000Z', 'failed', NULL, 'denied', 12),
+				(1, '2026-10-30T10:05:00.000Z', '2026-10-30T11:00:00.000Z', 'failed', NULL,
+					'branch "main" not found in https://git.example.com/auth.git', 12),
 				(2, '2026-10-30T10:00:00.000Z', '2026-10-30T10:01:00.000Z', 'synced', 'def', NULL, 1)`);
 
 		expect(sourceStatus(db, 1)!.history).toEqual([
@@ -154,7 +157,8 @@ describe('sync history', () => {
 				finishedAt: '2026-10-30T11:00:00.000Z',
 				outcome: 'failed',
 				commit: null,
-				error: 'denied',
+				error: 'branch "main" not found in https://git.example.com/auth.git',
+				errorKind: 'branch',
 				runs: 12
 			},
 			{
@@ -163,6 +167,7 @@ describe('sync history', () => {
 				outcome: 'synced',
 				commit: 'abc',
 				error: null,
+				errorKind: null,
 				runs: 1
 			}
 		]);

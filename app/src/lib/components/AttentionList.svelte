@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import SourceLabel from './SourceLabel.svelte';
+	import SyncError from './SyncError.svelte';
 	import { m } from '#lib/paraglide/messages.js';
 	import { SYNC_FIX } from '#lib/sync-fix.js';
 	import type { Problem, ProblemGroup } from '#lib/server/admin/status.js';
@@ -50,7 +51,7 @@
 					<li class:error={item.kind === 'error'}>
 						<SourceLabel name={item.name} slug={item.source} href={fixAt(item)} />
 						{#if item.kind === 'error'}
-							– {m.admin_sync_error({ error: item.error })}
+							<p class="error"><SyncError error={item.error} kind={item.errorKind} /></p>
 							<p class="fix">{SYNC_FIX[item.errorKind]()}</p>
 						{:else if item.kind === 'duplicate'}
 							– {item.overlap === 'duplicate'
@@ -130,6 +131,9 @@
 		padding-inline-start: var(--s3);
 		border-inline-start: 1px solid var(--line);
 		color: var(--ink-2);
+	}
+	.error {
+		margin-top: var(--s1);
 	}
 	.fix {
 		margin-top: var(--s1);

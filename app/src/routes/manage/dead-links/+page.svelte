@@ -24,7 +24,7 @@
 						href={resolve('/manage/sources/[id]/[[tab=tab]]', { id: String(group.sourceId) })}
 					/>
 				</h2>
-				<DeadLinkList links={group.links} />
+				<DeadLinkList links={group.links} source={{ id: group.sourceId, path: group.path }} />
 			</section>
 		{/each}
 	</div>

@@ -9,6 +9,7 @@
 <Story
 	name="With and without a section"
 	args={{
+		source: { id: 3, path: 'docs/' },
 		links: [
 			{
 				file: 'auth-service.md',
@@ -21,15 +22,19 @@
 	play={async ({ canvas }) => {
 		const pages = canvas.getAllByRole('list')[0].querySelectorAll(':scope > li');
 		await expect([...pages].map((page) => page.textContent?.replace(/\s+/g, ' ').trim())).toEqual([
-			'auth-service.md#rotating_the_signing_keys → links to auth-service#token-lifetime',
-			'index.md → links to services'
+			'auth-service.md#rotating_the_signing_keys in the repository: docs/auth-service.md → links to auth-service#token-lifetime',
+			'index.md in the repository: docs/index.md → links to services'
 		]);
+		await expect(
+			canvas.getByRole('link', { name: 'auth-service.md#rotating_the_signing_keys' })
+		).toHaveAttribute('href', '/manage/sources/3/pages?preview=auth-service.md');
 	}}
 />
 
 <Story
 	name="Several links from one section"
 	args={{
+		source: { id: 3, path: '' },
 		links: [
 			{ file: 'invoices.md', anchor: 'payment-provider-outages', target: 'invoices#late-fees' },
 			{ file: 'invoices.md', anchor: 'payment-provider-outages', target: 'refunds' },
@@ -49,6 +54,7 @@
 <Story
 	name="A path without a break opportunity"
 	args={{
+		source: { id: 3, path: 'docs' },
 		links: [
 			{
 				file: `runbooks/${'very_long_page_name_'.repeat(20)}.md`,

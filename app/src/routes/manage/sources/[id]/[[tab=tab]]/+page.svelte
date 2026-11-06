@@ -17,6 +17,7 @@
 	import DataTable from '#lib/components/DataTable.svelte';
 	import SourceLabel from '#lib/components/SourceLabel.svelte';
 	import StatusBadge from '#lib/components/StatusBadge.svelte';
+	import SyncError from '#lib/components/SyncError.svelte';
 	import TabNav from '#lib/components/TabNav.svelte';
 	import TextAreaField from '#lib/components/TextAreaField.svelte';
 	import TextField from '#lib/components/TextField.svelte';
@@ -400,7 +401,9 @@
 			{#if data.status.error}
 				<div class="part">
 					<h3>{m.source_error()}</h3>
-					<p class="notice alert" role="alert">{data.status.error}</p>
+					<p class="notice alert" role="alert">
+						<SyncError error={data.status.error} kind={data.status.errorKind} />
+					</p>
 					{#if data.status.errorKind}
 						<p class="fix">
 							{SYNC_FIX[data.status.errorKind]()}
@@ -441,7 +444,10 @@
 			{#if data.status.deadLinks.length > 0}
 				<div class="part">
 					<h3>{m.dead_links()}</h3>
-					<DeadLinkList links={data.status.deadLinks} />
+					<DeadLinkList
+						links={data.status.deadLinks}
+						source={{ id: data.source.id, path: data.source.path }}
+					/>
 				</div>
 			{/if}
 		</section>
@@ -515,7 +521,9 @@
 					<td
 						>{#if run.commit}<code title={run.commit}>{run.commit.slice(0, 12)}</code>{/if}</td
 					>
-					<td>{run.error ?? ''}</td>
+					<td
+						>{#if run.error}<SyncError error={run.error} kind={run.errorKind} />{/if}</td
+					>
 				{/snippet}
 				{#snippet empty()}<p class="muted">{m.source_history_none()}</p>{/snippet}
 			</DataTable>

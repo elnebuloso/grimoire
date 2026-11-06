@@ -12,3 +12,14 @@ export const SYNC_FIX: Record<SyncErrorKind, () => string> = {
 	noPage: m.admin_fix_no_page,
 	unknown: m.admin_fix_unknown
 };
+
+/** What each kind of sync error means, in the reader's language; `unknown` has no summary. */
+export const SYNC_ERROR: Record<Exclude<SyncErrorKind, 'unknown'>, () => string> = {
+	path: m.sync_error_path,
+	branch: m.sync_error_branch,
+	access: m.sync_error_access,
+	unreachable: m.sync_error_unreachable,
+	deadline: m.sync_error_deadline,
+	aborted: m.sync_error_aborted,
+	noPage: m.sync_error_no_page
+};

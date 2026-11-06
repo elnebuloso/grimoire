@@ -29,6 +29,8 @@ export interface SyncHistoryEntry {
 	outcome: 'unchanged' | 'synced' | 'failed';
 	commit: string | null;
 	error: string | null;
+	/** What kind of failure `error` is; null without an error. */
+	errorKind: SyncErrorKind | null;
 	/** How many runs in a row ended like this one. */
 	runs: number;
 }
@@ -37,14 +39,16 @@ export interface DeadLinkInSource extends DeadLink {
 	sourceId: number;
 	source: string;
 	name: string;
+	/** The source's path in the repository. */
+	path: string;
 }
 
 /** The dead links of all sources, or of one, by source and page. */
 export function deadLinks(db: DatabaseSync, sourceId?: number): DeadLinkInSource[] {
 	return db
 		.prepare(
-			`SELECT sources.id AS sourceId, sources.slug AS source, sources.name, pages.file, links.anchor,
-				links.target
+			`SELECT sources.id AS sourceId, sources.slug AS source, sources.name, sources.path, pages.file,
+				links.anchor, links.target
 			FROM links
 			JOIN live_pages AS pages ON pages.id = links.page_id
 			JOIN sources ON sources.id = pages.source_id
@@ -101,7 +105,7 @@ export function sourceStatus(db: DatabaseSync, sourceId: number): SourceStatus |
 				error, runs
 			FROM sync_runs WHERE source_id = ? ORDER BY id DESC`
 		)
-		.all(sourceId) as unknown as SyncHistoryEntry[];
+		.all(sourceId) as unknown as Omit<SyncHistoryEntry, 'errorKind'>[];
 
 	return {
 		lastCheckedAt: source.last_checked_at,
@@ -121,7 +125,10 @@ export function sourceStatus(db: DatabaseSync, sourceId: number): SourceStatus |
 			anchor,
 			target
 		})),
-		history
+		history: history.map((run) => ({
+			...run,
+			errorKind: run.error === null ? null : syncErrorKind(run.error)
+		}))
 	};
 }
 

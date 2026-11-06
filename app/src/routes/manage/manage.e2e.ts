@@ -313,7 +313,8 @@ test('syncs a source now and shows why it failed', async ({ page }) => {
 
 	await page.goto('/manage');
 	const attention = page.getByRole('listitem').filter({ hasText: 'auth-service' });
-	await expect(attention).toContainText('sync error: source path "docs" does not exist');
+	await expect(attention).toContainText('The path does not exist in the repository.');
+	await expect(attention).toContainText('source path "docs" does not exist');
 	await attention.getByRole('link').click();
 	await expect(page.getByRole('heading', { name: 'Source Auth Service' })).toBeVisible();
 });
