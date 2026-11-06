@@ -1,7 +1,8 @@
 import { createCipheriv, createDecipheriv, randomBytes, scrypt } from 'node:crypto';
-import { DatabaseSync } from 'node:sqlite';
+import { DatabaseSync, type SQLInputValue } from 'node:sqlite';
 import { promisify } from 'node:util';
 import { gunzipSync, gzipSync } from 'node:zlib';
+import { migrate, type Migration } from './db/migrate.ts';
 import { decryptSecret } from './secret-encryption.ts';
 
 // The file is one line of JSON naming the format, then the encrypted database, gzipped: without
@@ -25,7 +26,7 @@ export const MIN_PASSPHRASE_LENGTH = 12;
 
 /**
  * Tables whose rows exist nowhere else and travel in an export, with the columns that travel. Every
- * other column holds its schema default in the export.
+ * other column holds its schema default in the export, as in a new row.
  */
 export const EXPORTED_COLUMNS: Record<string, string[]> = {
 	users: ['id', 'email', 'password_hash'],
@@ -105,20 +106,21 @@ const scryptAsync = promisify(scrypt) as (
 ) => Promise<Buffer>;
 
 /**
- * Writes the real state of `db` into an export encrypted with `passphrase`. Git tokens are
- * decrypted with `tokenKey` and stored in plain text inside it; a token that does not decrypt
- * fails the export with the slugs of its sources, so it is fixed before it is carried along.
+ * Writes the real state of `db`, whose schema is that of `migrations`, into an export encrypted
+ * with `passphrase`. Git tokens are decrypted with `tokenKey` and stored in plain text inside it; a
+ * token that does not decrypt fails the export with the slugs of its sources, so it is fixed before
+ * it is carried along.
  */
 export async function writeExport(
 	db: DatabaseSync,
+	migrations: Migration[],
 	tokenKey: Buffer,
 	passphrase: string
 ): Promise<{ file: Buffer } | { error: 'unreadable-tokens'; sources: string[] }> {
-	const content = realStateCopy(db);
+	const content = realStateCopy(db, migrations);
 	try {
 		const unreadable = decryptTokens(content, tokenKey);
 		if (unreadable.length > 0) return { error: 'unreadable-tokens', sources: unreadable };
-		content.exec('VACUUM');
 		return { file: await encrypt(gzipSync(content.serialize()), passphrase) };
 	} finally {
 		content.close();
@@ -156,30 +158,23 @@ export async function readExport(
 	return { db };
 }
 
-// An in-memory copy of the whole database, then emptied: the file itself is never changed, and
-// the plain tokens never reach a disk.
-function realStateCopy(db: DatabaseSync): DatabaseSync {
-	const image = db.serialize();
-	// Bytes 18 and 19 mark a database in WAL mode, which an in-memory database cannot open.
-	image[18] = 1;
-	image[19] = 1;
+// A new in-memory database holding only the exported columns: pages and the index never get copied,
+// the file itself is never changed, and the plain tokens never reach a disk.
+function realStateCopy(db: DatabaseSync, migrations: Migration[]): DatabaseSync {
 	const copy = new DatabaseSync(':memory:');
-	copy.deserialize(image);
-	copy.exec('PRAGMA foreign_keys = OFF');
-	for (const table of EMPTIED_TABLES) copy.exec(`DELETE FROM ${table}`);
-	for (const table of EXPORTED_TABLES) resetToDefaults(copy, table, EXPORTED_COLUMNS[table]);
+	migrate(copy, migrations);
+	for (const table of EXPORTED_TABLES) copyColumns(db, copy, table, EXPORTED_COLUMNS[table]);
 	return copy;
 }
 
-// A column not exported holds what a new row would get, so the first sync after an import starts as
-// for a new source.
-function resetToDefaults(db: DatabaseSync, table: string, exported: string[]) {
-	const columns = db.prepare('SELECT name, dflt_value FROM pragma_table_info(?)').all(table) as {
-		name: string;
-		dflt_value: string | null;
-	}[];
-	for (const { name, dflt_value } of columns) {
-		if (!exported.includes(name)) db.exec(`UPDATE ${table} SET ${name} = ${dflt_value ?? 'NULL'}`);
+function copyColumns(from: DatabaseSync, to: DatabaseSync, table: string, columns: string[]) {
+	const list = columns.join(', ');
+	// Replaces a row the migrations created, such as the settings, with the exported one.
+	const insert = to.prepare(
+		`INSERT OR REPLACE INTO ${table} (${list}) VALUES (${columns.map(() => '?').join(', ')})`
+	);
+	for (const row of from.prepare(`SELECT ${list} FROM ${table}`).iterate()) {
+		insert.run(...columns.map((column) => row[column] as SQLInputValue));
 	}
 }
 

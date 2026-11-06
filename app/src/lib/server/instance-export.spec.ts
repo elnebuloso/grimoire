@@ -1,7 +1,10 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { randomBytes } from 'node:crypto';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import type { DatabaseSync } from 'node:sqlite';
-import { openDatabase } from './db/schema';
+import { migrations, openDatabase } from './db/schema';
 import { deriveKeys, encryptSecret } from './secret-encryption';
 import {
 	EMPTIED_TABLES,
@@ -58,7 +61,7 @@ function count(db: DatabaseSync, table: string): number {
 }
 
 async function exportFile(db: DatabaseSync): Promise<Buffer> {
-	const result = await writeExport(db, tokenKey, PASSPHRASE);
+	const result = await writeExport(db, migrations, tokenKey, PASSPHRASE);
 	if (!('file' in result)) throw new Error(`export failed: ${result.error}`);
 	return result.file;
 }
@@ -143,13 +146,32 @@ describe('writeExport and readExport', () => {
 		});
 	});
 
+	it('exports a database file in WAL mode, rows not yet checkpointed included', async () => {
+		const directory = mkdtempSync(join(tmpdir(), 'grimoire-export-'));
+		const db = openDatabase(join(directory, 'grimoire.db'));
+		try {
+			db.exec("INSERT INTO users (id, email) VALUES (1, 'ada@example.com')");
+			expect(db.prepare('PRAGMA journal_mode').get()).toEqual({ journal_mode: 'wal' });
+
+			const result = await readExport(await exportFile(db), PASSPHRASE);
+			if (!('db' in result)) throw new Error(result.error);
+			expect(rows(result.db, 'users')).toEqual([
+				{ id: 1, email: 'ada@example.com', password_hash: null }
+			]);
+			result.db.close();
+		} finally {
+			db.close();
+			rmSync(directory, { recursive: true, force: true });
+		}
+	});
+
 	it('refuses to export a token that does not decrypt, naming its source', async () => {
 		const db = instance();
 		const otherKey = deriveKeys(randomBytes(32)).sourceTokens;
 		db.prepare('UPDATE sources SET encrypted_token = ? WHERE id = 2').run(
 			encryptSecret('glpat-platform-token', otherKey)
 		);
-		expect(await writeExport(db, tokenKey, PASSPHRASE)).toEqual({
+		expect(await writeExport(db, migrations, tokenKey, PASSPHRASE)).toEqual({
 			error: 'unreadable-tokens',
 			sources: ['platform-docs']
 		});

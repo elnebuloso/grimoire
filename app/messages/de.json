@@ -248,6 +248,7 @@
 	"export_passphrase_too_short": "Die Passphrase braucht mindestens {min} Zeichen.",
 	"export_passphrase_mismatch": "Die beiden Passphrasen sind verschieden.",
 	"export_unreadable_tokens": "Das Zugriffstoken von {sources} lässt sich mit dem Verschlüsselungsschlüssel dieser Instanz nicht lesen. Gib es auf der Seite der Quelle neu ein oder entferne es und exportiere dann erneut.",
+	"export_failed": "Der Export ist fehlgeschlagen. Versuch es noch einmal; schlägt er wieder fehl, nennt das Server-Log den Grund.",
 	"syncs_paused_notice": "Alle Syncs sind pausiert; der automatische Sync prüft keine Quelle.",
 	"source_polling_all_paused": "für alle Quellen in den Einstellungen pausiert; nur „Jetzt synchronisieren“ synchronisiert diese Quelle",
 	"field_docs_url": "Dokumentation Website",

@@ -248,6 +248,7 @@
 	"export_passphrase_too_short": "The passphrase needs at least {min} characters.",
 	"export_passphrase_mismatch": "The two passphrases differ.",
 	"export_unreadable_tokens": "The access token of {sources} cannot be read with the encryption key of this instance. Enter it again or remove it on the page of the source, then export again.",
+	"export_failed": "The export failed. Try again; if it fails again, the server log names the reason.",
 	"syncs_paused_notice": "All syncs are paused; polling checks no source.",
 	"source_polling_all_paused": "paused for all sources in the settings; only \"Sync now\" syncs this source",
 	"field_docs_url": "Documentation site",

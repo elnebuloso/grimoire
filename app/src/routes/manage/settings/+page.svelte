@@ -14,17 +14,20 @@
 	let { data }: PageProps = $props();
 
 	let exporting = $state(false);
+	let exportFailed = $state(false);
 
 	// The answer is either the file, saved through a link of its own, or the way back to this page
-	// with the reason in the address.
+	// with the reason in the address; anything else, a lost connection included, is a failure.
 	async function exportInstance(event: SubmitEvent) {
 		event.preventDefault();
 		const form = event.currentTarget as HTMLFormElement;
 		exporting = true;
+		exportFailed = false;
 		try {
 			const response = await fetch(form.action, { method: 'POST', body: new FormData(form) });
 			const disposition = response.headers.get('content-disposition') ?? '';
 			const fileName = /filename="([^"]+)"/.exec(disposition)?.[1];
+			const refusal = response.redirected && new URL(response.url).searchParams.has('export');
 			if (response.ok && fileName) {
 				const link = document.createElement('a');
 				link.href = URL.createObjectURL(await response.blob());
@@ -34,13 +37,17 @@
 				form.reset();
 				showToast(m.export_downloaded());
 				if (data.exportProblem) await goto(resolve('/manage/settings'), { reset: false });
-			} else {
+			} else if (refusal) {
 				// The refusal comes back as the reason in the address of this page.
 				// eslint-disable-next-line svelte/no-navigation-without-resolve -- this page, resolved, plus its query
 				await goto(`${resolve('/manage/settings')}${new URL(response.url).search}`, {
 					reset: false
 				});
+			} else {
+				exportFailed = true;
 			}
+		} catch {
+			exportFailed = true;
 		} finally {
 			exporting = false;
 		}
@@ -72,7 +79,10 @@
 	<p class="muted">{m.export_lead()}</p>
 	<p class="notice warn">{m.export_warning()}</p>
 	<form method="post" action={resolve('/manage/settings/export')} onsubmit={exportInstance}>
-		<FormError message={data.exportProblem?.message} id="export-error" />
+		<FormError
+			message={exportFailed ? m.export_failed() : data.exportProblem?.message}
+			id="export-error"
+		/>
 		<TextField
 			label={m.export_passphrase({ min: data.minPassphraseLength })}
 			name="passphrase"
@@ -80,8 +90,10 @@
 			required
 			minlength={data.minPassphraseLength}
 			autocomplete="new-password"
-			aria-invalid={data.exportProblem?.aboutPassphrase || undefined}
-			aria-describedby={data.exportProblem?.aboutPassphrase ? 'export-error' : undefined}
+			aria-invalid={(!exportFailed && data.exportProblem?.aboutPassphrase) || undefined}
+			aria-describedby={!exportFailed && data.exportProblem?.aboutPassphrase
+				? 'export-error'
+				: undefined}
 		/>
 		<TextField
 			label={m.export_passphrase_repeat()}

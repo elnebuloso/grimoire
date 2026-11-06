@@ -2,6 +2,7 @@ import { redirect } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { ENCRYPTION_KEY, INSTANCE_TITLE, TZ } from '$app/env/private';
 import { database } from '#lib/server/db/index.js';
+import { migrations } from '#lib/server/db/schema.js';
 import { MIN_PASSPHRASE_LENGTH, writeExport } from '#lib/server/instance-export.js';
 import { log } from '#lib/server/log.js';
 import { dateIn } from '#lib/time-zone.js';
@@ -16,7 +17,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	if (passphrase.length < MIN_PASSPHRASE_LENGTH) refuse('passphrase-too-short');
 	if (passphrase !== String(data.get('repeat') ?? '')) refuse('passphrase-mismatch');
 
-	const result = await writeExport(database(), ENCRYPTION_KEY.sourceTokens, passphrase);
+	const result = await writeExport(database(), migrations, ENCRYPTION_KEY.sourceTokens, passphrase);
 	if ('error' in result) refuse(result.error, result.sources);
 
 	log.info(`instance exported by user ${locals.user!.id}`);
