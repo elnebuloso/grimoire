@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync, realpathSync } from 'node:fs';
+import { readdirSync, readFileSync, realpathSync, statSync } from 'node:fs';
 import { isAbsolute, join, matchesGlob, posix, relative } from 'node:path';
 import { resolveIncludes, type IncludeResult, type UrlContent } from '../parsing/include.ts';
 import { hasGrimoireId } from '../grimoire-id.ts';
@@ -153,29 +153,63 @@ async function withinDeadline(
 
 /** Markdown files below the source path, relative to it, without excluded ones. */
 function listPages(checkout: string, sourcePath: string, exclusions: string[]): string[] {
-	let entries: string[];
-	try {
-		entries = readdirSync(join(checkout, sourcePath), { recursive: true }) as string[];
-	} catch {
+	const root = realpathSync(checkout);
+	const start = realInside(root, join(root, sourcePath));
+	if (start === undefined || !statSync(start).isDirectory()) {
 		throw new SyncFailure('path', `source path "${sourcePath}" does not exist in the repository`);
 	}
-	return entries
-		.filter((file) => file.endsWith('.md') && !file.split('/').includes('.git'))
-		.filter((file) => {
-			const repoPath = posix.join(sourcePath, file);
-			return !exclusions.some((pattern) => matchesGlob(repoPath, pattern));
-		})
+	const files: string[] = [];
+	// A symlinked directory is followed only inside the checkout, and every directory once: a docs
+	// branch could otherwise link to `/` and list the server, or link twice to its own parent and
+	// keep the walk going until the deadline.
+	const visited = new Set([start]);
+	const walk = (directory: string, prefix: string) => {
+		const entries = readdirSync(directory, { withFileTypes: true }).toSorted((a, b) =>
+			a.name < b.name ? -1 : a.name > b.name ? 1 : 0
+		);
+		for (const entry of entries) {
+			if (entry.name === '.git') continue;
+			const path = prefix ? `${prefix}/${entry.name}` : entry.name;
+			const real =
+				entry.isDirectory() || entry.isSymbolicLink()
+					? realInside(root, join(directory, entry.name))
+					: undefined;
+			if (real !== undefined && statSync(real).isDirectory()) {
+				if (visited.has(real)) continue;
+				visited.add(real);
+				walk(real, path);
+			} else if (entry.name.endsWith('.md')) {
+				// A file linking outside is listed still: reading it refuses it with a warning.
+				files.push(path);
+			}
+		}
+	};
+	walk(start, '');
+	return files
+		.filter(
+			(file) => !exclusions.some((pattern) => matchesGlob(posix.join(sourcePath, file), pattern))
+		)
 		.sort();
+}
+
+/** The real path of `path` when it lies inside `root`, symlinks resolved; else undefined. */
+function realInside(root: string, path: string): string | undefined {
+	try {
+		const real = realpathSync(path);
+		const inside = relative(root, real);
+		return inside.startsWith('..') || isAbsolute(inside) ? undefined : real;
+	} catch {
+		return undefined;
+	}
 }
 
 // Anyone who can push to a docs branch could commit a symlink to `/proc/self/environ` or the
 // database; its content would become a snippet every API key holder can read. So a file counts
 // only where it really lies inside the checkout, symlinks within the repository included.
 function readInside(root: string, path: string): string | undefined {
+	const real = realInside(root, join(root, path));
+	if (real === undefined) return undefined;
 	try {
-		const real = realpathSync(join(root, path));
-		const inside = relative(root, real);
-		if (inside.startsWith('..') || isAbsolute(inside)) return undefined;
 		return readFileSync(real, 'utf8');
 	} catch {
 		return undefined;

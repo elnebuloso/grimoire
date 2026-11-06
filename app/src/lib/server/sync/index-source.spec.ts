@@ -217,6 +217,32 @@ describe('indexCheckout with symlinks', () => {
 		expect(index.warnings).toContain('docs/index.md: include "docs/db.md" not found');
 	});
 
+	it('does not list the files of a directory that links outside the checkout', async () => {
+		write({ 'docs/index.md': '# Start\n' });
+		symlinkSync(outside, join(checkout, 'docs/nested'));
+
+		const index = await indexCheckout(noUrls);
+
+		expect(index.pages.map((page) => page.file)).toEqual(['index.md']);
+		expect(index.warnings).toEqual([]);
+	});
+
+	it('lists each directory once when symlinks lead back into it', async () => {
+		write({ 'docs/index.md': '# Start\n' });
+		symlinkSync('.', join(checkout, 'docs/a'));
+		symlinkSync('.', join(checkout, 'docs/b'));
+
+		const index = await indexCheckout(noUrls);
+
+		expect(index.pages.map((page) => page.file)).toEqual(['index.md']);
+	});
+
+	it('refuses a source path that links outside the checkout', async () => {
+		symlinkSync(outside, join(checkout, 'docs'));
+
+		await expect(indexCheckout(noUrls)).rejects.toThrow('does not exist in the repository');
+	});
+
 	it('follows a symlink that stays inside the checkout', async () => {
 		write({
 			'shared/note.md': 'Shared note.\n',
