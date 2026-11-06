@@ -1,6 +1,7 @@
 import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { database } from '#lib/server/db/index.js';
+import { WELCOME_PAGE } from '#lib/server/admin/access.js';
 import { login, SESSION_COOKIE, sessionCookieOptions } from '#lib/server/admin/auth.js';
 import { authMessage } from '#lib/server/admin/auth-messages.js';
 import { acceptInvitation, invitedEmail } from '#lib/server/admin/invitations.js';
@@ -34,7 +35,6 @@ export const actions = {
 		}
 		const result = await login(db, getClientAddress(), { email: accepted.email, password });
 		if ('session' in result) cookies.set(SESSION_COOKIE, result.session, sessionCookieOptions);
-		// An invited user has no role: the management area is closed to them.
-		redirect(303, '/');
+		redirect(303, WELCOME_PAGE);
 	}
 } satisfies Actions;

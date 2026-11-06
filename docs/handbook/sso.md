@@ -12,7 +12,7 @@ Entra ID or Google, next to their password. The login page shows one button per 
 What decides which account a provider login reaches:
 
 - A provider login reaches an existing account only once that account is linked to it. Users link
-  a provider themselves under **Account**, with their password, or by accepting an invitation
+  a provider themselves under **Login and password**, with their password, or by accepting an invitation
   through the provider. An email address the provider reports never links anything: a login whose
   address belongs to an unlinked account is refused.
 - A login that reaches no account creates one only for an address the provider marks as verified,
@@ -22,7 +22,7 @@ What decides which account a provider login reaches:
 - grimoire keeps nothing of the provider's tokens and asks the provider nothing after the login. A
   provider login lasts like a password login: 60 minutes without a request, 12 hours at most.
 - Roles stay in grimoire; groups at the provider grant nothing. Admins make an account admin in
-  `Manage > Users`.
+  `Management > Access > Users`.
 
 ## What a provider must support
 
@@ -134,7 +134,7 @@ Blocking or deleting a user at the provider ends their next provider login, not 
 - their API keys keep working;
 - a password they set keeps working.
 
-When someone leaves, delete their account under `Manage > Users` too. A deleted user whose
+When someone leaves, delete their account under `Management > Access > Users` too. A deleted user whose
 address is in an allowed domain gets a new, empty account at their next provider login; to keep
 them out, block them at the provider or narrow the allowed domains.
 
@@ -144,11 +144,11 @@ A link is the issuer and the user's ID at the provider. When the issuer changes,
 slash, or you register the application anew (Entra gives users a new ID per application), no link
 matches any more:
 
-- users with a password log in with it and link the provider again under **Account**;
-- users without a password set one through a link: by mail under **Account**, or from an admin
-  under `Manage > Users`, **Password link**, which works without mail too.
+- users with a password log in with it and link the provider again under **Login and password**;
+- users without a password set one through a link: by mail under **Login and password**, or from an admin
+  under `Management > Access > Users`, **Password link**, which works without mail too.
 
-`Manage > Users` marks links to a provider that is no longer configured with `(no longer offered
+`Management > Access > Users` marks links to a provider that is no longer configured with `(no longer offered
 here)`; an admin can remove them there.
 
 ## Troubleshooting

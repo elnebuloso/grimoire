@@ -2,7 +2,7 @@ import { error, redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { ENCRYPTION_KEY } from '$app/env/private';
 import { database } from '#lib/server/db/index.js';
-import { homeOf } from '#lib/server/admin/access.js';
+import { homeOf, WELCOME_PAGE } from '#lib/server/admin/access.js';
 import { clientKey, createAttemptLimit } from '#lib/server/admin/attempt-limit.js';
 import { accountExists, type AuthProblem } from '#lib/server/admin/auth.js';
 import {
@@ -105,8 +105,10 @@ export const load: PageServerLoad = async ({ params, url, cookies, getClientAddr
 	}
 
 	let userId: number;
+	let isNewAccount = true;
 	if (decision.action === 'login') {
 		userId = decision.userId;
+		isNewAccount = false;
 	} else if (decision.action === 'accept-invitation') {
 		const accepted = acceptInvitationWithIdentity(db, flow.invite!, decision.identity, now);
 		if ('error' in accepted) {
@@ -126,5 +128,6 @@ export const load: PageServerLoad = async ({ params, url, cookies, getClientAddr
 	const session = createSession(db, userId, now);
 	cookies.set(SESSION_COOKIE, session, sessionCookieOptions);
 	answers.forget(client);
-	return { next: flow.next || homeOf(sessionUser(db, session, now)!) };
+	const home = isNewAccount ? WELCOME_PAGE : homeOf(sessionUser(db, session, now)!);
+	return { next: flow.next || home };
 };

@@ -3,6 +3,8 @@ import { grimoireId } from '../grimoire-id';
 import { readSnippets, renderSnippet } from '../search/query';
 import { sourceStats, type SourceStats } from '../stats';
 import { syncErrorKind, type SyncErrorKind } from '../sync/error-kind';
+import { findOverlaps } from './duplicates';
+import { listSources } from './sources';
 
 export interface PageSummary {
 	/** Path relative to the source path, e.g. `deploy.md`. */
@@ -268,5 +270,23 @@ export function dashboard(db: DatabaseSync): Dashboard {
 				deadLinks: sources.find((source) => source.id === health.sourceId)?.deadLinks ?? 0
 			}))
 		)
+	};
+}
+
+/** What the management navigation counts: only what needs an admin to act. */
+export interface ManagementCounts {
+	failedSources: number;
+	deadLinks: number;
+	duplicates: number;
+	invitations: number;
+}
+
+export function managementCounts(db: DatabaseSync): ManagementCounts {
+	const count = (sql: string) => (db.prepare(sql).get() as { count: number }).count;
+	return {
+		failedSources: count('SELECT count(*) AS count FROM sources WHERE error IS NOT NULL'),
+		deadLinks: deadLinks(db).length,
+		duplicates: findOverlaps(listSources(db)).length,
+		invitations: count('SELECT count(*) AS count FROM invitations')
 	};
 }

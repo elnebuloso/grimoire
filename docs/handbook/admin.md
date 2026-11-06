@@ -28,8 +28,11 @@ characters.
   IPv6 addresses of one `/64` network count as one client address.
 - The same message appears for everybody while the server is busy checking many logins at once.
   Try again after a moment.
-- The interface follows the browser's language, English otherwise, until you pick one with the
-  language switch; the choice is kept in a cookie for 400 days. Sync errors and warnings are always in English.
+- **Language** and **Theme** are in the menu under your address at the top right; before you
+  log in, at the bottom of the page.
+- The interface follows the browser's language, English otherwise, until you pick one under
+  **Language**; the choice is kept in a cookie for 400 days. Sync errors and warnings are always
+  in English.
 - The colours follow the light or dark setting of your system until you pick **Light** or
   **Dark** under **Theme**; the choice is kept in a cookie for 400 days in this browser.
   **System** follows the system again.
@@ -40,7 +43,7 @@ For a login that is accepted and then asked for again, or forms failing with
 
 ## Changing the password
 
-`Manage > Change the password`. The new password needs at least 12 characters. All your other
+**Login and password** in the menu under your address. The new password needs at least 12 characters. All your other
 sessions are logged out; the browser you changed it in stays logged in.
 
 ## Forgot your password?
@@ -68,6 +71,10 @@ sessions are logged out; the browser you changed it in stays logged in.
 
 Only admins add, change, sync, rename and delete sources; users read them and create their own API
 keys (see [Your account and API keys](users.md)).
+
+`Management > Content > Sources` lists every source and starts **New source**. The numbers beside
+the sidebar entries count what needs you: sources with a sync error, dead links, duplicate pairs
+and invitations not yet accepted.
 
 To serve two paths of one repository, add it twice, as two sources, and name each for what it
 holds, such as `Billing API` and `Billing runbooks`. The same repository and path cannot be added a
@@ -148,7 +155,7 @@ as they are is saved without the check, even if it already has a duplicate.
 
 ### Duplicate sources
 
-`Manage > Duplicate sources` lists every pair of sources that hold the same documentation, judged
+`Management > Quality > Duplicate sources` lists every pair of sources that hold the same documentation, judged
 by the same rule as saving a source:
 
 - **Duplicate**: same repository and path, on any branch, created before the check existed. Keep
@@ -172,7 +179,7 @@ The new slug must be free.
 ## Sync errors
 
 A failed sync keeps the index of the last successful one in use and shows its error on the source
-page and under **Needs attention**.
+page and under **Needs attention** in `Management > Overview`.
 
 | Error | Fix |
 |---|---|
@@ -206,7 +213,7 @@ shows as error. Warnings about single pages and includes are for the authors; th
 **Sync now** queues a sync even when the branch has not moved, behind the syncs queued before it.
 
 **Paused** on a source stops polling for it, for example while its repository moves or its token
-is replaced; index, schedule and settings stay. `Manage > Settings > Pause all syncs` does the
+is replaced; index, schedule and settings stay. `Management > System > Settings > Pause all syncs` does the
 same for every source without changing them: a source paused on its own stays paused when you
 untick it. A sync already running finishes. **Sync now** works in both cases.
 
@@ -216,7 +223,7 @@ It keeps the newest 100 lines.
 
 ## Checking what agents get
 
-- `Manage > Dead links` lists links that lead nowhere, by source; authors fix them in Git.
+- `Management > Quality > Dead links` lists links that lead nowhere, by source; authors fix them in Git.
 - Every page of a source links to a preview: the page exactly as `read` returns it, split into
   snippets with ID and estimated tokens. Use it to find sections that came out too large, too small
   or under a misleading title.
@@ -227,7 +234,7 @@ It keeps the newest 100 lines.
 
 ## Queries without results
 
-`Manage > Queries without results` lists questions agents asked with `query` that found nothing,
+`Management > Quality > Queries without results` lists questions agents asked with `query` that found nothing,
 once per set of sources asked for, with how often and when last. Search matches words, not synonyms: such a question
 means the documentation lacks the topic or names it differently. Open a question in
 **Try a query** on the start page to check it again after the docs changed; it searches all
@@ -240,16 +247,16 @@ sources, not only the ones the agent asked for.
 
 ## API keys
 
-Your own keys: `Manage > My API keys`, as for every user (see
+Your own keys: **Account** at the top, as for every user (see
 [API keys](users.md#api-keys)).
 
-`Manage > All API keys` lists every key with its owner, sources, last use and requests per day
+`Management > Access > All API keys` lists every key with its owner, sources, last use and requests per day
 for the last 90 days. **Revoke** stops a key with the next request, whoever owns it; only the owner
 changes its sources or expiry. Revoke keys that leaked or have not been used for a long time.
 
 ## Users
 
-`Manage > Users`.
+`Management > Access > Users`.
 
 ### Inviting
 
@@ -281,7 +288,7 @@ account's address and you never see it; without, it is shown once, to pass on yo
 once, within 24 hours; a new link voids the earlier ones. The current password stays valid until
 the link is used, and using it ends every session of the account. Whoever holds the link can take
 over the account, admins included: pass it on only to its owner. Your own account has no such link;
-change your password under **Account**. Each link is logged with who created it for whom.
+change your password under **Login and password**. Each link is logged with who created it for whom.
 
 ### Roles
 

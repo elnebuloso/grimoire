@@ -21,35 +21,33 @@
 	<p class="notice" role="status">{m.login_imported()}</p>
 {/if}
 
-<section class="sheet">
-	<form method="post">
-		<FormError message={form?.error ?? data.problem} id="login-error" />
-		<TextField
-			label={m.field_email()}
-			name="email"
-			type="email"
-			required
-			autocomplete="username"
-			value={form?.email ?? ''}
-			{...invalid}
-		/>
-		<TextField
-			label={m.field_password()}
-			name="password"
-			type="password"
-			required
-			autocomplete="current-password"
-			{...invalid}
-		/>
-		<button class="primary">{m.header_log_in()}</button>
-	</form>
+<form method="post">
+	<FormError message={form?.error ?? data.problem} id="login-error" />
+	<TextField
+		label={m.field_email()}
+		name="email"
+		type="email"
+		required
+		autocomplete="username"
+		value={form?.email ?? ''}
+		{...invalid}
+	/>
+	<TextField
+		label={m.field_password()}
+		name="password"
+		type="password"
+		required
+		autocomplete="current-password"
+		{...invalid}
+	/>
+	<button class="primary">{m.header_log_in()}</button>
+</form>
 
-	<ProviderButtons providers={data.providers} fields={{ next: data.next }} />
+<ProviderButtons providers={data.providers} fields={{ next: data.next }} />
 
-	{#if data.resetByMail}
-		<p class="forgot"><a href={resolve('/login/forgot')}>{m.login_forgot()}</a></p>
-	{/if}
-</section>
+{#if data.resetByMail}
+	<p class="forgot"><a href={resolve('/login/forgot')}>{m.login_forgot()}</a></p>
+{/if}
 
 <style>
 	.forgot {

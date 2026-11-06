@@ -18,18 +18,16 @@
 	<p class="notice alert" role="alert">{m.auth_reset_link_invalid()}</p>
 	<p><a href={resolve('/login/forgot')}>{m.reset_request_new()}</a></p>
 {:else}
-	<section class="sheet">
-		<form method="post">
-			<FormError message={form?.error} />
-			<TextField
-				label={m.field_new_password()}
-				name="password"
-				type="password"
-				required
-				minlength={12}
-				autocomplete="new-password"
-			/>
-			<button class="primary">{m.reset_submit()}</button>
-		</form>
-	</section>
+	<form method="post">
+		<FormError message={form?.error} />
+		<TextField
+			label={m.field_new_password()}
+			name="password"
+			type="password"
+			required
+			minlength={12}
+			autocomplete="new-password"
+		/>
+		<button class="primary">{m.reset_submit()}</button>
+	</form>
 {/if}

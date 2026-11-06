@@ -10,7 +10,8 @@
 
 The invitation comes by mail, or from the admin directly when the instance sends no mail. Its
 link opens a form with your email address filled in; that address is your login. The password
-needs at least 12 characters. Creating the account logs you in.
+needs at least 12 characters. Creating the account logs you in and opens **My API keys**, where
+the first key connects an agent; later logins open the start page.
 
 The link works once and for 7 days. A newer invitation to the same address replaces it. Logging
 in, changing the password and a forgotten password work as described under
@@ -28,7 +29,8 @@ then log in through that provider.
 
 The login page shows **Log in with …** for each provider the instance offers. A provider logs you
 in to the account it is linked to. Your first login through it creates an account only if an admin
-allowed the domain of your address there; otherwise you need an invitation.
+allowed the domain of your address there; otherwise you need an invitation. A login that creates
+the account opens **My API keys**, unless it started from another page.
 
 Refusals, and what to do:
 
@@ -52,8 +54,8 @@ Refusals, and what to do:
 
 ### Linking a provider to your account
 
-Your address in the header opens **Account**. Under **Identity providers**, enter your password
-and choose **Link …**, then log in at the provider. From then on that provider logs you in to this account, whatever address it reports.
+Open the menu under your address at the top right and choose **Login and password**. Under
+**Identity providers**, enter your password and choose **Link …**, then log in at the provider. From then on that provider logs you in to this account, whatever address it reports.
 One link per provider; a provider account linked to someone else is refused with
 `This account at the identity provider is linked to another account already.`
 
@@ -61,9 +63,9 @@ An account without a password cannot link another provider: set one first.
 
 ### Setting a first password
 
-An account created through an identity provider has no password. Under **Account**, **Send me a
-link** mails a link to your address; it works once, within an hour. Where the instance sends no
-mail, ask an admin for a link instead: it works once, within 24 hours. Setting the password ends
+An account created through an identity provider has no password. Under **Login and password** in
+the menu under your address, **Send me a link** mails a link to your address; it works once,
+within an hour. Where the instance sends no mail, ask an admin for a link instead: it works once, within 24 hours. Setting the password ends
 all your sessions, also the one in the browser you use; log in again with the new password.
 
 **Remove …** removes a link and ends your sessions in other browsers; the one you use stays
@@ -78,9 +80,9 @@ added, ask an admin.
 
 ## API keys
 
-**My API keys** in the header; admins find it under `Manage > My API keys`. A key reads all
-sources, public and internal, including future ones, or a selection of them; public sources need
-no key.
+**Account** at the top opens **My API keys**; the tab **Login and password** beside it holds your
+password and identity providers. A key reads all sources, public and internal, including future
+ones, or a selection of them; public sources need no key.
 
 - The key is shown once, right after **Create key**. A lost key cannot be recovered: revoke it and
   create a new one.

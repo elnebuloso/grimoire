@@ -15,18 +15,16 @@
 	<p><a href={resolve('/login')}>{m.header_log_in()}</a></p>
 {:else}
 	<PageHead title={m.forgot_title()}><p>{m.forgot_intro()}</p></PageHead>
-	<section class="sheet">
-		<form method="post">
-			<FormError message={form?.error} />
-			<TextField
-				label={m.field_email()}
-				name="email"
-				type="email"
-				required
-				autocomplete="username"
-				value={form?.email ?? ''}
-			/>
-			<button class="primary">{m.forgot_submit()}</button>
-		</form>
-	</section>
+	<form method="post">
+		<FormError message={form?.error} />
+		<TextField
+			label={m.field_email()}
+			name="email"
+			type="email"
+			required
+			autocomplete="username"
+			value={form?.email ?? ''}
+		/>
+		<button class="primary">{m.forgot_submit()}</button>
+	</form>
 {/if}

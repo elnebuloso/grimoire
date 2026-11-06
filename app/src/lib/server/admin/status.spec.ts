@@ -3,7 +3,14 @@ import type { DatabaseSync } from 'node:sqlite';
 import { openDatabase } from '../db/schema';
 import { readById } from '../agent/operations';
 import { parseGrimoireId } from '../grimoire-id';
-import { dashboard, deadLinks, previewPage, sourceHealth, sourceStatus } from './status';
+import {
+	dashboard,
+	deadLinks,
+	managementCounts,
+	previewPage,
+	sourceHealth,
+	sourceStatus
+} from './status';
 
 let db: DatabaseSync;
 
@@ -210,6 +217,23 @@ describe('dashboard', () => {
 		insertPage(1, 'index.md', [{ anchor: null, tokens: 5 }]);
 		insertLink(deploy, null, 'fine/gone', true);
 		insertLink(deploy, null, 'fine/index', false);
+	});
+
+	it('counts failed sources, dead links, duplicate pairs and waiting invitations', () => {
+		expect(managementCounts(db)).toEqual({
+			failedSources: 2,
+			deadLinks: 1,
+			duplicates: 0,
+			invitations: 0
+		});
+		db.exec(`
+			INSERT INTO sources (id, slug, name, git_url, branch, path)
+			VALUES (8, 'auth-copy', 'Auth copy', 'https://git.example.com/auth.git', 'main', 'docs/');
+			INSERT INTO users (id, email) VALUES (1, 'admin@example.com');
+			INSERT INTO invitations (email, token_hash, invited_by, sent_at, expires_at)
+			VALUES ('new@example.com', 'hash', 1, '2026-11-01T00:00:00Z', '2026-11-08T00:00:00Z');
+		`);
+		expect(managementCounts(db)).toMatchObject({ duplicates: 1, invitations: 1 });
 	});
 
 	it('adds up the figures of all sources and counts the API keys', () => {

@@ -173,13 +173,11 @@ describe('header', () => {
 
 		expect(header(adminSession)).toEqual({
 			name: 'admin@example.com',
-			mayManage: true,
-			isAdmin: true
+			mayManage: true
 		});
 		expect(header(login.session)).toEqual({
 			name: 'editor@example.com',
-			mayManage: false,
-			isAdmin: false
+			mayManage: false
 		});
 		expect(header()).toBeUndefined();
 	});

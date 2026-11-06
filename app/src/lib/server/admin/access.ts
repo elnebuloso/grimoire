@@ -23,6 +23,9 @@ export function mayOpen(user: SessionUser, pathname: string): boolean {
 	return roles === undefined || hasRoles(user, roles);
 }
 
+/** Where a new account lands on its first login: its API keys, with a welcome. */
+export const WELCOME_PAGE = '/account/api-keys?welcome';
+
 /** Where a user goes after logging in: the management area when they may open it. */
 export function homeOf(user: SessionUser): string {
 	return mayOpen(user, '/manage') ? '/manage' : '/';

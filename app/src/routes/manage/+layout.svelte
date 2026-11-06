@@ -4,80 +4,151 @@
 	import { m } from '#lib/paraglide/messages.js';
 	import type { LayoutProps } from './$types';
 
-	let { children }: LayoutProps = $props();
+	let { children, data }: LayoutProps = $props();
+
+	interface Entry {
+		/** The route that marks the entry; every route below it marks it too, unless `exact`. */
+		route: string;
+		exact?: boolean;
+		href: string;
+		label: string;
+		/** What needs action, shown above zero; `describe` says what the number counts. */
+		count?: number;
+		describe?: (count: number) => string;
+	}
 
 	// Matched by route, not by href: on the server `resolve` gives relative hrefs, which never equal
 	// the pathname, so the current item would only be marked once the page hydrates.
-	const links = $derived([
-		{ route: '/manage', href: resolve('/manage'), label: m.admin_overview() },
+	const groups: { label?: string; entries: Entry[] }[] = $derived([
 		{
-			route: '/manage/missed-queries',
-			href: resolve('/manage/missed-queries'),
-			label: m.missed_title()
+			entries: [
+				{ route: '/manage', exact: true, href: resolve('/manage'), label: m.admin_overview() }
+			]
 		},
-		{ route: '/manage/dead-links', href: resolve('/manage/dead-links'), label: m.dead_links() },
-		...(page.data.user?.isAdmin
-			? [
-					{ route: '/manage/users', href: resolve('/manage/users'), label: m.users_title() },
-					{ route: '/manage/api-keys', href: resolve('/manage/api-keys'), label: m.api_keys_all() },
-					{
-						route: '/manage/duplicates',
-						href: resolve('/manage/duplicates'),
-						label: m.duplicates_title()
-					},
-					{
-						route: '/manage/settings',
-						href: resolve('/manage/settings'),
-						label: m.settings_title()
-					}
-				]
-			: []),
-		{ route: '/account/api-keys', href: resolve('/account/api-keys'), label: m.api_keys_own() },
-		{ route: '/account', href: resolve('/account'), label: m.account_title() }
+		{
+			label: m.manage_group_content(),
+			entries: [
+				{
+					route: '/manage/sources',
+					href: resolve('/manage/sources'),
+					label: m.sources(),
+					count: data.counts.failedSources,
+					describe: (count) => m.manage_count_failed({ count })
+				}
+			]
+		},
+		{
+			label: m.manage_group_quality(),
+			entries: [
+				{
+					route: '/manage/dead-links',
+					href: resolve('/manage/dead-links'),
+					label: m.dead_links(),
+					count: data.counts.deadLinks,
+					describe: (count) => m.manage_count_dead_links({ count })
+				},
+				{
+					route: '/manage/duplicates',
+					href: resolve('/manage/duplicates'),
+					label: m.duplicates_title(),
+					count: data.counts.duplicates,
+					describe: (count) => m.manage_count_pairs({ count })
+				},
+				{
+					route: '/manage/missed-queries',
+					href: resolve('/manage/missed-queries'),
+					label: m.missed_title()
+				}
+			]
+		},
+		{
+			label: m.manage_group_access(),
+			entries: [
+				{
+					route: '/manage/users',
+					href: resolve('/manage/users'),
+					label: m.users_title(),
+					count: data.counts.invitations,
+					describe: (count) => m.manage_count_invitations({ count })
+				},
+				{ route: '/manage/api-keys', href: resolve('/manage/api-keys'), label: m.api_keys_all() }
+			]
+		},
+		{
+			label: m.manage_group_system(),
+			entries: [
+				{ route: '/manage/settings', href: resolve('/manage/settings'), label: m.settings_title() }
+			]
+		}
 	]);
 
-	// Pages reached from the overview rather than from the nav: a source.
-	const OVERVIEW_CHILDREN = ['/manage/sources/[id]'];
-
-	function current(route: string): 'page' | 'true' | undefined {
-		if (page.route.id === route) return 'page';
-		if (route === '/manage' && OVERVIEW_CHILDREN.includes(page.route.id ?? '')) return 'true';
+	function current(entry: Entry): 'page' | 'true' | undefined {
+		const route = page.route.id ?? '';
+		if (route === entry.route) return 'page';
+		if (!entry.exact && route.startsWith(`${entry.route}/`)) return 'true';
 		return undefined;
 	}
 </script>
 
-<nav aria-label={m.manage_nav()}>
-	<ul>
-		{#each links as link (link.href)}
-			<li class:apart={link.route === '/account/api-keys'}>
-				<a href={link.href} aria-current={current(link.route)}>{link.label}</a>
-			</li>
+<div class="area">
+	<nav aria-label={m.manage_nav()}>
+		{#each groups as group, index (index)}
+			{#if group.label}<h2>{group.label}</h2>{/if}
+			<ul>
+				{#each group.entries as entry (entry.route)}
+					<li>
+						<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- resolved in `groups` -->
+						<a href={entry.href} aria-current={current(entry)}>
+							{entry.label}
+							{#if entry.count && entry.describe}
+								<span class="count" aria-hidden="true">{entry.count}</span>
+								<span class="hidden">{entry.describe(entry.count)}</span>
+							{/if}
+						</a>
+					</li>
+				{/each}
+			</ul>
 		{/each}
-	</ul>
-</nav>
+	</nav>
 
-{@render children()}
+	<div class="content">
+		{@render children()}
+	</div>
+</div>
 
 <style>
-	/* The segmented track of the header, larger: the spine of the area. */
-	ul {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 2px;
-		padding: var(--s1);
-		list-style: none;
-		background: var(--well);
-		border-radius: var(--r-sheet);
-		box-shadow: var(--sink);
+	.area {
+		display: grid;
+		grid-template-columns: 13rem minmax(0, 1fr);
+		align-items: start;
+		gap: var(--s6);
 	}
-	.apart {
-		margin-inline-start: auto;
+	nav {
+		position: sticky;
+		top: var(--s4);
+		display: grid;
+		gap: var(--s1);
+	}
+	h2 {
+		margin: var(--s4) 0 0;
+		padding-inline: var(--s3);
+		color: var(--ink-2);
+		font-size: 12px;
+		font-weight: 600;
+		letter-spacing: 0.04em;
+		text-transform: uppercase;
+	}
+	ul {
+		display: grid;
+		gap: 2px;
+		list-style: none;
 	}
 	a {
 		display: flex;
 		align-items: center;
-		min-height: 38px;
-		padding: 0 var(--s4);
+		gap: var(--s2);
+		min-height: 34px;
+		padding: 0 var(--s3);
 		color: var(--ink-2);
 		font-size: 14px;
 		text-decoration: none;
@@ -96,17 +167,30 @@
 		box-shadow: var(--lift-raised);
 		font-weight: 500;
 	}
-	@media (max-width: 40rem) {
-		.apart {
-			margin-inline-start: 0;
-		}
-		a {
-			padding: 0 var(--s3);
-		}
+	.count {
+		margin-inline-start: auto;
+		padding: 0 var(--s2);
+		color: var(--ink);
+		background: var(--well);
+		border-radius: 999px;
+		font-size: 12px;
+		font-weight: 600;
 	}
-	@media (pointer: coarse) {
-		a {
-			min-height: 44px;
-		}
+	/* Read by screen readers in place of the number, which alone would not say what it counts. */
+	.hidden {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip-path: inset(50%);
+		white-space: nowrap;
+	}
+	.content {
+		display: grid;
+		gap: var(--s5);
+		min-width: 0;
+	}
+	.content > :global(*) {
+		min-width: 0;
 	}
 </style>

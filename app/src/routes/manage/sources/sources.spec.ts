@@ -441,11 +441,11 @@ describe('source page', () => {
 			locals: { user: ADMIN }
 		} as never);
 
-	it('deletes the source once its slug is typed, and redirects to the overview', async () => {
+	it('deletes the source once its slug is typed, and redirects to the source list', async () => {
 		await thrown(() => saveSource('new', SOURCE));
 		const result = await thrown(() => deleteSource('auth-service'));
 
-		expect(isRedirect(result) && result.location).toBe('/manage');
+		expect(isRedirect(result) && result.location).toBe('/manage/sources');
 		expect(db.prepare('SELECT count(*) AS n FROM sources').get()).toEqual({ n: 0 });
 	});
 

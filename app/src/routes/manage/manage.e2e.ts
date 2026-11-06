@@ -59,6 +59,26 @@ async function logIn(page: Page, password = PASSWORD, email = EMAIL) {
 // hashes the password, which takes the bulk of a test's time.
 let adminSession: Cookie[] = [];
 
+/** Logs out through the user menu, whoever is logged in. */
+async function logOut(page: Page) {
+	// Until the menu opens, its button is the only one in the header.
+	await page.getByRole('banner').getByRole('button').click();
+	await page.getByRole('button', { name: 'Log out' }).click();
+}
+
+const sidebar = (page: Page) => page.getByRole('navigation', { name: 'Management' });
+
+/** Opens the source list through the sidebar, as an admin does to reach a source. */
+async function openSources(page: Page) {
+	await sidebar(page)
+		.getByRole('link', { name: /^Sources/ })
+		.click();
+	await expect(page).toHaveURL('/manage/sources');
+}
+
+const area = (page: Page, name: string) =>
+	page.getByRole('navigation', { name: 'Areas' }).getByRole('link', { name });
+
 async function asAdmin(page: Page) {
 	await page.context().addCookies(adminSession);
 	await page.goto('/manage');
@@ -120,7 +140,7 @@ test('logs out and back in, and rejects a wrong password', async ({ page }) => {
 	await logIn(page);
 	await expect(page).toHaveURL('/manage');
 
-	await page.getByRole('button', { name: 'Log out' }).click();
+	await logOut(page);
 	await expect(page).toHaveURL('/login');
 	await page.goto('/manage');
 	await expect(page).toHaveURL('/login?next=%2Fmanage');
@@ -150,15 +170,18 @@ test('offers the login action while logged out, and the account and management o
 
 	await logIn(page);
 	await page.goto('/');
-	await expect(page.getByText(`Logged in as ${EMAIL}`)).toBeVisible();
+	await expect(page.getByRole('button', { name: EMAIL })).toBeVisible();
 	await expect(page.getByRole('link', { name: 'Log in' })).toHaveCount(0);
-	await page.getByRole('link', { name: EMAIL, exact: true }).click();
+	await page.getByRole('button', { name: EMAIL }).click();
+	await page.getByRole('link', { name: 'Login and password' }).click();
 	await expect(page).toHaveURL('/account');
-	await page.getByRole('link', { name: 'Manage', exact: true }).click();
+	await area(page, 'Account').click();
+	await expect(page).toHaveURL('/account/api-keys');
+	await area(page, 'Management').click();
 	await expect(page).toHaveURL('/manage');
 
 	await page.goto('/');
-	await page.getByRole('button', { name: 'Log out' }).click();
+	await logOut(page);
 	await page.goto('/');
 	await expect(page.getByRole('link', { name: 'Log in' })).toBeVisible();
 });
@@ -178,8 +201,8 @@ test('logs in through an identity provider, creating an account only where it ma
 	await expect(page).toHaveURL('/login?next=%2Faccount');
 	await logInThrough(page, 'GitLab', 'ada', { email: 'ada@e2e.example', email_verified: true });
 	await expect(page).toHaveURL('/account');
-	await expect(page.getByRole('link', { name: 'ada@e2e.example' })).toBeVisible();
-	await page.getByRole('button', { name: 'Log out' }).click();
+	await expect(page.getByRole('button', { name: 'ada@e2e.example' })).toBeVisible();
+	await logOut(page);
 
 	// The same identity is the same account, whatever address the provider reports by now. It has
 	// no role: it lands on the start page, like every user without one.
@@ -188,9 +211,9 @@ test('logs in through an identity provider, creating an account only where it ma
 		email_verified: true
 	});
 	await expect(page).toHaveURL('/');
-	await expect(page.getByRole('link', { name: 'ada@e2e.example' })).toBeVisible();
-	await expect(page.getByRole('link', { name: 'Manage' })).toHaveCount(0);
-	await page.getByRole('button', { name: 'Log out' }).click();
+	await expect(page.getByRole('button', { name: 'ada@e2e.example' })).toBeVisible();
+	await expect(page.getByRole('link', { name: 'Management' })).toHaveCount(0);
+	await logOut(page);
 
 	// Only a verified address in an allowed domain learns that it has an account here.
 	await logInThrough(page, 'GitLab', 'mallory', { email: EMAIL, email_verified: true });
@@ -212,11 +235,13 @@ test('logs in through an identity provider, creating an account only where it ma
 	await expect(page.getByRole('alert')).toHaveText(
 		'Your account at the identity provider may not log in here. Ask an admin which accounts may.'
 	);
-	await expect(page.getByRole('link', { name: 'Log in' })).toBeVisible();
+	// Still logged out: no user menu in the header.
+	await expect(page.getByRole('banner').getByRole('button')).toHaveCount(0);
 });
 
 test('creates a source and never shows its token', async ({ page }) => {
 	await asAdmin(page);
+	await openSources(page);
 	await page.getByRole('link', { name: 'New source' }).click();
 	// Typed key by key: the slug next to the field follows every keystroke.
 	await page.getByLabel('Name', { exact: true }).pressSequentially('Auth Service');
@@ -255,7 +280,7 @@ test('creates a source and never shows its token', async ({ page }) => {
 	await expect(page.getByText('stored; leave empty to keep it')).toBeVisible();
 	expect(await page.content()).not.toContain(TOKEN);
 
-	await page.goto('/manage');
+	await openSources(page);
 	await expect(page.getByRole('link', { name: 'Auth Service', exact: true })).toBeVisible();
 });
 
@@ -263,6 +288,7 @@ test('syncs a source now and shows why it failed', async ({ page }) => {
 	// The repository loses the directory after the source was saved.
 	pushCommit('remove docs', () => rmSync(join(WORK, 'docs'), { recursive: true }));
 	await asAdmin(page);
+	await openSources(page);
 	await page.getByRole('link', { name: 'Auth Service', exact: true }).click();
 	// The sync saving started may still run: "Sync now" would join it, and it read the old commit.
 	await expect(page.getByRole('heading', { name: 'Source Auth Service' })).toBeVisible();
@@ -288,6 +314,7 @@ test('syncs a source now and shows why it failed', async ({ page }) => {
 test('keeps a tested token that is not saved yet when syncing now', async ({ page }) => {
 	const rotated = 'glpat-rotated-e2e-token';
 	await asAdmin(page);
+	await openSources(page);
 	await page.getByRole('link', { name: 'Auth Service', exact: true }).click();
 	await page.getByLabel('Access token').fill(rotated);
 	await page.getByRole('button', { name: 'Test connection' }).click();
@@ -370,6 +397,9 @@ test('imports the export on the setup page of an empty instance with another key
 	await page.getByLabel('Password').fill(PASSWORD);
 	await page.getByRole('button', { name: 'Log in', exact: true }).click();
 	await expect(page).toHaveURL(`${other}/manage`);
+	await sidebar(page)
+		.getByRole('link', { name: /^Sources/ })
+		.click();
 	await page.getByRole('link', { name: 'Auth Service', exact: true }).click();
 	await expect(page.getByText('stored; leave empty to keep it')).toBeVisible();
 	// The stored token decrypts under this instance's key: the connection test sends it, and only
@@ -401,6 +431,7 @@ test('lists an internal source on the start page only once logged in, without it
 test('links the documentation of a source only once its URL is set', async ({ page }) => {
 	const docsUrl = 'https://docs.e2e.example/auth/';
 	await asAdmin(page);
+	await openSources(page);
 	await page.getByRole('link', { name: 'Auth Service', exact: true }).click();
 	await expect(page.getByRole('link', { name: 'Documentation', exact: true })).toHaveCount(0);
 
@@ -480,6 +511,14 @@ test('leads through the management area with one navigation that marks the curre
 		'aria-current',
 		'page'
 	);
+	// A source belongs to the list it is reached from.
+	await openSources(page);
+	await page.getByRole('link', { name: 'Auth Service', exact: true }).click();
+	await expect(navigation.getByRole('link', { name: /^Sources/ })).toHaveAttribute(
+		'aria-current',
+		'true'
+	);
+	await expect(navigation.getByRole('link', { name: 'My API keys' })).toHaveCount(0);
 
 	// The server already marks it: before hydration, and for a reader without JavaScript.
 	const html = await (await page.request.get('/manage/settings')).text();
@@ -506,6 +545,7 @@ test('names pages in the browser tab from the first response and keeps them out 
 	await expectTitle(page, '/manage/settings', 'Settings – grimoire');
 
 	await page.goto('/manage');
+	await openSources(page);
 	await page.getByRole('link', { name: 'Auth Service', exact: true }).click();
 	await expect(page).toHaveTitle('Source Auth Service – grimoire');
 });
@@ -531,7 +571,7 @@ test('shows the error page in the layout to a user without the role and on a fin
 	await expect(page.getByRole('heading', { name: 'You may not open this page.' })).toBeVisible();
 	await expect(page).toHaveTitle('Access denied – grimoire');
 	await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', 'noindex, nofollow');
-	await expect(page.getByRole('button', { name: 'Log out' })).toBeVisible();
+	await expect(page.getByRole('button', { name: editor })).toBeVisible();
 });
 
 test('creates an API key that works for its source until it is revoked', async ({
@@ -539,7 +579,7 @@ test('creates an API key that works for its source until it is revoked', async (
 	request
 }) => {
 	await asAdmin(page);
-	await page.getByRole('link', { name: 'My API keys' }).click();
+	await area(page, 'Account').click();
 	await page.getByLabel('Name').fill('ci');
 	await page.getByLabel('Only these:').check();
 	await page.getByRole('button', { name: 'Create key' }).click();
@@ -588,16 +628,18 @@ test('invites a user who reads internal sources with their own key, but manages 
 	await expect(page.getByLabel('Email address')).toHaveValue(writer);
 	await page.getByLabel('Password').fill('writer battery horse');
 	await page.getByRole('button', { name: 'Create account' }).click();
-	await expect(page).toHaveURL('/');
+	await expect(page).toHaveURL('/account/api-keys?welcome');
+	await expect(notice(page)).toContainText('Welcome to grimoire.');
 
 	// The admin's source is internal: listed on the start page, but not open to manage.
+	await page.goto('/');
 	await expect(page.getByRole('row', { name: /auth-service/ })).toBeVisible();
-	await expect(page.getByRole('link', { name: 'Manage' })).toHaveCount(0);
+	await expect(page.getByRole('link', { name: 'Management' })).toHaveCount(0);
 	expect((await page.goto('/manage'))?.status()).toBe(403);
 	expect((await page.goto('/manage/sources/new'))?.status()).toBe(403);
 
 	await page.goto('/');
-	await page.getByRole('link', { name: 'My API keys' }).click();
+	await area(page, 'Account').click();
 	await page.getByLabel('Name').fill('writer-laptop');
 	await page.getByRole('button', { name: 'Create key' }).click();
 	const key = await page.locator('output').textContent();
@@ -633,8 +675,8 @@ test('accepts an invitation through an identity provider for the invited address
 	await page.context().clearCookies();
 	await page.goto(link);
 	await logInThrough(page, 'GitLab', 'partner', { email: 'p@elsewhere.example' });
-	await expect(page).toHaveURL('/');
-	await expect(page.getByRole('link', { name: partner })).toBeVisible();
+	await expect(page).toHaveURL('/account/api-keys?welcome');
+	await expect(page.getByRole('button', { name: partner })).toBeVisible();
 
 	await page.context().clearCookies();
 	await page.goto(link);
@@ -691,7 +733,7 @@ test('links a provider to an existing account with its password, and removes it 
 	const elsewhere = await (await browser.newContext()).newPage();
 	await elsewhere.goto('/login');
 	await logInThrough(elsewhere, 'GitLab', 'admin-at-gitlab', {});
-	await expect(elsewhere.getByRole('link', { name: EMAIL })).toBeVisible();
+	await expect(elsewhere.getByRole('button', { name: EMAIL })).toBeVisible();
 
 	await page.getByRole('button', { name: 'Remove GitLab' }).click();
 	await page.getByRole('dialog').getByRole('button', { name: 'Remove GitLab' }).click();
@@ -699,7 +741,8 @@ test('links a provider to an existing account with its password, and removes it 
 		'The link was removed. Your sessions in other browsers have ended; this one stays logged in.'
 	);
 	await elsewhere.reload();
-	await expect(elsewhere.getByRole('link', { name: 'Log in' })).toBeVisible();
+	await expect(elsewhere).toHaveURL(/^[^?]*\/login\?/);
+	await expect(elsewhere.getByRole('banner').getByRole('button')).toHaveCount(0);
 	await elsewhere.context().close();
 });
 
@@ -707,7 +750,8 @@ test('links a provider to an existing account with its password, and removes it 
 test('changes the password and logs in with the new one', async ({ page }) => {
 	const newPassword = 'staple battery horse';
 	await asAdmin(page);
-	await page.getByRole('link', { name: 'Account', exact: true }).click();
+	await page.getByRole('button', { name: EMAIL }).click();
+	await page.getByRole('link', { name: 'Login and password' }).click();
 	await expect(page.getByLabel('Email address')).toHaveValue(EMAIL);
 	await expect(page.getByLabel('Email address')).toHaveAttribute('autocomplete', 'username');
 
@@ -724,7 +768,7 @@ test('changes the password and logs in with the new one', async ({ page }) => {
 	await expect(toasts(page)).toContainText('Password changed.');
 
 	await page.goto('/manage');
-	await page.getByRole('button', { name: 'Log out' }).click();
+	await logOut(page);
 	await logIn(page);
 	await expect(page.getByRole('alert')).toHaveText('Wrong email address or password.');
 	await logIn(page, newPassword);

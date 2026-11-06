@@ -147,6 +147,11 @@
 {/if}
 
 <style>
+	/* Forms of a single column: as wide as one reads, not as wide as the page. */
+	.sheet,
+	.no-password {
+		max-width: 30rem;
+	}
 	.no-password {
 		display: grid;
 		justify-items: start;

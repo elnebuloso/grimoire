@@ -3,7 +3,7 @@ import { database } from '#lib/server/db/index.js';
 import { dashboard } from '#lib/server/admin/status.js';
 import { readSettings } from '#lib/server/settings.js';
 
-export const load: PageServerLoad = () => ({
-	...dashboard(database()),
-	syncsPaused: readSettings(database()).syncsPaused
-});
+export const load: PageServerLoad = () => {
+	const { totals, attention } = dashboard(database());
+	return { totals, attention, syncsPaused: readSettings(database()).syncsPaused };
+};

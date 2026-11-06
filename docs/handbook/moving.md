@@ -51,7 +51,7 @@ an empty volume and its own `ENCRYPTION_KEY`. Import it either on the setup page
 ### On the setup page
 
 1. Take the setup token from the log of the new instance (see [Setup token](docker.md#setup-token)).
-2. Open `/setup` and fill in **Or import an export** with the token, the file and its passphrase.
+2. Open `/setup` and fill in **Move an instance here** with the token, the file and its passphrase.
 3. Log in with an account from the export.
 
 The server accepts uploads up to 512 KB; a larger export is refused with status `413`. Raise

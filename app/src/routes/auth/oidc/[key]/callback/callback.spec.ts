@@ -6,6 +6,7 @@ import { openDatabase } from '#lib/server/db/schema.js';
 import { deriveKeys } from '#lib/server/secret-encryption.js';
 import { ProviderUnavailable, sealFlow, type OidcFlow } from '#lib/server/oidc/flow.js';
 import { createLinkedUser } from '#lib/server/oidc/identities.js';
+import { inviteUser } from '#lib/server/admin/invitations.js';
 import { FLOW_COOKIE } from '#lib/server/oidc/cookie.js';
 import type { OidcProvider } from '#lib/server/oidc/index.js';
 import type { SessionUser } from '#lib/server/admin/auth.js';
@@ -98,6 +99,46 @@ beforeEach(async () => {
 	logged = (await import('#lib/server/capture-log.js')).captureLog().lines;
 	db = openDatabase(':memory:');
 	finishFlow.mockReset();
+});
+
+describe('where a login lands', () => {
+	const WELCOME = '/account/api-keys?welcome';
+
+	it('welcomes an account the login creates at its API keys', async () => {
+		finishFlow.mockResolvedValue({
+			iss: ISSUER,
+			sub: 'ada',
+			email: 'ada@example.com',
+			email_verified: true
+		});
+		expect(await answer('203.0.113.7')).toBe(WELCOME);
+	});
+
+	it('welcomes an account an invitation creates at its API keys', async () => {
+		const admin = createLinkedUser(db, 'admin@example.com', ISSUER, 'admin')!;
+		const invitation = inviteUser(db, 'partner@partner.example', admin);
+		if ('error' in invitation) throw new Error(invitation.error);
+		finishFlow.mockResolvedValue({ iss: ISSUER, sub: 'partner' });
+		const cookies = fakeCookies({ [FLOW_COOKIE]: flowCookie({ invite: invitation.token }) });
+		expect(await answer('203.0.113.7', cookies)).toBe(WELCOME);
+	});
+
+	it('sends a later login of a user without a role to the start page', async () => {
+		createLinkedUser(db, 'ada@example.com', ISSUER, 'ada');
+		finishFlow.mockResolvedValue({ iss: ISSUER, sub: 'ada' });
+		expect(await answer('203.0.113.7')).toBe('/');
+	});
+
+	it('keeps the target the login started from, also on the first login', async () => {
+		finishFlow.mockResolvedValue({
+			iss: ISSUER,
+			sub: 'ada',
+			email: 'ada@example.com',
+			email_verified: true
+		});
+		const cookies = fakeCookies({ [FLOW_COOKIE]: flowCookie({ next: '/sources' }) });
+		expect(await answer('203.0.113.7', cookies)).toBe('/sources');
+	});
 });
 
 describe('the attempt limit of the callback', () => {

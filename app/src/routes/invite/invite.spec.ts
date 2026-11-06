@@ -113,7 +113,7 @@ describe('inviting', () => {
 });
 
 describe('accepting', () => {
-	it('shows the invited address, creates the account, logs it in and opens the start page', async () => {
+	it('shows the invited address, creates the account, logs it in and welcomes it at its API keys', async () => {
 		await inviteForm('writer@example.com');
 		const token = mailedToken();
 		expect(invite.load({ params: { token }, setHeaders: vi.fn() } as never)).toEqual({
@@ -124,7 +124,7 @@ describe('accepting', () => {
 
 		const { run, cookies } = accept(token, PASSWORD);
 		const result = await thrown(run);
-		expect(isRedirect(result) && result.location).toBe('/');
+		expect(isRedirect(result) && result.location).toBe('/account/api-keys?welcome');
 		expect(cookies.set).toHaveBeenCalledWith(
 			'grimoire_session',
 			expect.any(String),

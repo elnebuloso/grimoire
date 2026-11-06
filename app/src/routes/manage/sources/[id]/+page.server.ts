@@ -177,12 +177,12 @@ export const actions = {
 	},
 	delete: async ({ request, params }) => {
 		const source = sourceFor(params);
-		if (!source) redirect(303, '/manage');
+		if (!source) redirect(303, '/manage/sources');
 		// The dialog asks for the slug too; this holds for any client.
 		const confirmation = String((await request.formData()).get('confirmation') ?? '');
 		if (confirmation !== source.slug)
 			return fail(400, { error: m.error_slug_confirmation({ slug: source.slug }) });
 		await deleteSource(database(), source.id);
-		redirect(303, '/manage');
+		redirect(303, '/manage/sources');
 	}
 } satisfies Actions;

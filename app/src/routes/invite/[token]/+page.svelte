@@ -19,29 +19,27 @@
 {#if !data.email || form?.linkInvalid}
 	<p class="notice alert" role="alert">{form?.error ?? m.auth_invite_link_invalid()}</p>
 {:else}
-	<section class="sheet">
-		<form method="post">
-			<FormError message={form?.error} id="invite-error" />
-			<!-- Fixed: the invitation is for this address. It also tells a password manager the login. -->
-			<TextField
-				label={m.field_email()}
-				name="email"
-				type="email"
-				readonly
-				autocomplete="username"
-				value={data.email}
-			/>
-			<TextField
-				label={m.field_new_password()}
-				name="password"
-				type="password"
-				required
-				minlength={MIN_LENGTH}
-				autocomplete="new-password"
-				{...form?.error ? { 'aria-invalid': true, 'aria-describedby': 'invite-error' } : {}}
-			/>
-			<button class="primary">{m.invite_submit()}</button>
-		</form>
-		<ProviderButtons providers={data.providers} fields={{ invite: data.token }} />
-	</section>
+	<form method="post">
+		<FormError message={form?.error} id="invite-error" />
+		<!-- Fixed: the invitation is for this address. It also tells a password manager the login. -->
+		<TextField
+			label={m.field_email()}
+			name="email"
+			type="email"
+			readonly
+			autocomplete="username"
+			value={data.email}
+		/>
+		<TextField
+			label={m.field_new_password()}
+			name="password"
+			type="password"
+			required
+			minlength={MIN_LENGTH}
+			autocomplete="new-password"
+			{...form?.error ? { 'aria-invalid': true, 'aria-describedby': 'invite-error' } : {}}
+		/>
+		<button class="primary">{m.invite_submit()}</button>
+	</form>
+	<ProviderButtons providers={data.providers} fields={{ invite: data.token }} />
 {/if}

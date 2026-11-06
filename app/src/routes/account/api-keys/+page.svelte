@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
+	import { page } from '$app/state';
 	import ChoiceField from '#lib/components/ChoiceField.svelte';
 	import ConfirmAction from '#lib/components/ConfirmAction.svelte';
 	import DateTime from '#lib/components/DateTime.svelte';
@@ -87,6 +88,14 @@
 		<a href="{resolve('/')}#connect">{m.start_connect_heading()}</a>.
 	</p>
 </PageHead>
+
+<!-- Set on the first login of a new account: the key is what it came for. -->
+{#if page.url.searchParams.has('welcome')}
+	<p class="notice" role="status">
+		{m.apikeys_welcome({ name: page.data.instanceTitle })}
+		<a href="#new-key">{m.apikeys_welcome_action()}</a>
+	</p>
+{/if}
 
 <section class="sheet" aria-labelledby="keys">
 	<h2 id="keys">{m.apikeys_list()}</h2>
