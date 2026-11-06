@@ -53,6 +53,9 @@ Facts learned while building grimoire.
 
 - A new or updated dependency is at least two weeks old and pinned to an exact version; security
   fixes are the exception. The same holds for base images, images in examples and GitHub Actions.
+- A GitHub Action is pinned by the commit SHA of its version tag, with the tag as a comment
+  (`actions/checkout@<sha> # v7.0.1`): a tag can be moved. `gh api repos/<owner>/<action>/git/ref/tags/<tag>`
+  gives the SHA; an annotated tag needs one more `git/tags/<sha>` lookup.
 
 ## Trying things by hand
 

@@ -1,9 +1,11 @@
 ---
 id: TASK-334
 title: 'CI: pin GitHub Actions to commit SHAs'
-status: To Do
-assignee: []
+status: In Progress
+assignee:
+  - '@claude'
 created_date: '2026-11-06 22:05'
+updated_date: '2026-11-06 22:40'
 labels:
   - ops
 dependencies: []
@@ -29,7 +31,22 @@ Found by the second whole-repo audit on 2026-11-06 (HEAD 06aada8).
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Every third-party `uses:` in `.github/workflows/` names a full commit SHA with the version as a comment
-- [ ] #2 Each SHA is the commit of the version tag used before
+- [x] #1 Every third-party `uses:` in `.github/workflows/` names a full commit SHA with the version as a comment
+- [x] #2 Each SHA is the commit of the version tag used before
 - [ ] #3 CI runs green with the pinned actions
 <!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. Resolve each version tag in use to its commit SHA with gh api (annotated tags dereferenced) and check the commit exists
+2. Pin every third-party uses: in ci.yml and handbook.yml as <sha> # <tag>
+3. Note the rule in .claude/rules/memory.md
+<!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+- All five tags are lightweight tags; the SHAs were checked with gh api repos/<action>/commits/<sha>.
+- Workflow YAML parses. AC #3 (CI green) can only be checked after the push; the task stays In Progress until then.
+<!-- SECTION:NOTES:END -->
