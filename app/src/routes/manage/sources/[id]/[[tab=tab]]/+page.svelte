@@ -16,6 +16,7 @@
 	import PageList from '#lib/components/PageList.svelte';
 	import DataTable from '#lib/components/DataTable.svelte';
 	import SourceLabel from '#lib/components/SourceLabel.svelte';
+	import ScheduleField from '#lib/components/ScheduleField.svelte';
 	import StatusBadge from '#lib/components/StatusBadge.svelte';
 	import SyncError from '#lib/components/SyncError.svelte';
 	import TabNav from '#lib/components/TabNav.svelte';
@@ -306,11 +307,12 @@
 			>
 		</FormSection>
 		<FormSection title={m.source_section_schedule()}>
-			<TextField
+			<ScheduleField
 				label={m.field_schedule({ schedule: data.globalSchedule })}
 				name="schedule"
 				value={values.schedule}
-				mono
+				globalSchedule={data.globalSchedule}
+				timeZone={data.timeZone}
 			/>
 			{#if data.nextCheck}
 				<p class="hint">
