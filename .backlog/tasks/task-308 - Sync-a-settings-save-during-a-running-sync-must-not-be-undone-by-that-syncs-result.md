@@ -3,9 +3,11 @@ id: TASK-308
 title: >-
   Sync: a settings save during a running sync must not be undone by that sync's
   result
-status: To Do
-assignee: []
+status: Done
+assignee:
+  - '@claude'
 created_date: '2026-11-06 20:51'
+updated_date: '2026-11-06 21:16'
 labels:
   - sync
 dependencies: []
@@ -39,8 +41,30 @@ Found by a whole-repo audit on 2026-11-06 (commit 601c588 plus six local refacto
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 When the index-relevant settings change while a sync of the source runs, that sync's completion leaves `last_commit` empty so the next sync re-indexes
-- [ ] #2 The same holds for `failed_commit` when the running sync fails
-- [ ] #3 A sync whose settings were not changed meanwhile records its commit as before
-- [ ] #4 A spec covers a save between the start and the end of a sync
+- [x] #1 When the index-relevant settings change while a sync of the source runs, that sync's completion leaves `last_commit` empty so the next sync re-indexes
+- [x] #2 The same holds for `failed_commit` when the running sync fails
+- [x] #3 A sync whose settings were not changed meanwhile records its commit as before
+- [x] #4 A spec covers a save between the start and the end of a sync
 <!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. Specs: a save that changes the exclusions while the stand-in indexing runs leaves the next sync indexing again; the same for a failing sync
+2. db/sources.ts: indexSettingsChanged compares git URL, branch, path and exclusions with what the sync started from; forgetIndexedCommit drops last_commit
+3. sync.ts checks after the indexing result arrives on the main thread: drops the commit after success, records no failed commit after failure
+<!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+- The check runs on the main thread after the worker committed: a save before it is caught by the comparison, a save after it drops the commits itself, so no window is left.
+- Chosen over passing the settings into the IndexJob: the worker stays unchanged, and the main process already holds the settings the sync started from.
+- Both specs failed before and pass after; sync-logic.spec.ts, sync.spec.ts and db/sources.spec.ts pass (35 tests). The existing "leave the index alone" spec shows an unchanged save still records the commit.
+<!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+A settings save while a sync of the source runs is no longer undone by that sync: when its result arrives, the main process compares the git URL, branch, path and exclusions with the ones the sync started from and, if they changed, drops the recorded commit (or records no failed commit), so the next sync indexes with the new settings. Two specs in sync-logic.spec.ts cover a succeeding and a failing sync.
+<!-- SECTION:FINAL_SUMMARY:END -->

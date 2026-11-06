@@ -6,6 +6,8 @@ import type { DatabaseSync } from 'node:sqlite';
 import { fileURLToPath } from 'node:url';
 import {
 	clearSyncError,
+	forgetIndexedCommit,
+	indexSettingsChanged,
 	recordCheck,
 	recordSyncError,
 	recordSyncRun,
@@ -112,7 +114,7 @@ async function checkAndSync(
 			return { status: 'failed', error: source.error, kind, commit: latest };
 		}
 
-		return await lanes.sync(async () => {
+		const synced = await lanes.sync(async () => {
 			const checkout = await mkdtemp(join(options.workDirectory ?? tmpdir(), 'grimoire-sync-'));
 			try {
 				await sparseClone(remote, source.branch, source.path, checkout);
@@ -136,11 +138,13 @@ async function checkAndSync(
 				await rm(checkout, { recursive: true, force: true });
 			}
 		});
+		if (indexSettingsChanged(db, source)) forgetIndexedCommit(db, sourceId);
+		return synced;
 	} catch (error) {
 		const message = redact((error as Error).message, remote);
 		const kind = failureKind(error as Error);
-		const repeats = REPEATING_KINDS.has(kind);
-		recordSyncError(db, sourceId, { message, kind }, repeats ? indexingCommit : undefined);
+		const remembered = REPEATING_KINDS.has(kind) && !indexSettingsChanged(db, source);
+		recordSyncError(db, sourceId, { message, kind }, remembered ? indexingCommit : undefined);
 		return { status: 'failed', error: message, kind, commit: indexingCommit };
 	} finally {
 		recordCheck(db, sourceId, checkedAt);

@@ -109,6 +109,29 @@ export function sourceForSync(db: DatabaseSync, sourceId: number): SyncSource {
 	};
 }
 
+/**
+ * Whether what the index depends on changed since `started` was read: a save during a sync drops
+ * the commits so the next sync indexes with the new settings, and the result of the running one,
+ * built with the old settings, must not bring them back. False for a source deleted meanwhile.
+ */
+export function indexSettingsChanged(db: DatabaseSync, started: SyncSource): boolean {
+	const now = db
+		.prepare('SELECT git_url, branch, path, exclusions FROM sources WHERE id = ?')
+		.get(started.id) as Pick<SourceRow, 'git_url' | 'branch' | 'path' | 'exclusions'> | undefined;
+	if (!now) return false;
+	return (
+		now.git_url !== started.gitUrl ||
+		now.branch !== started.branch ||
+		now.path !== started.path ||
+		JSON.stringify(JSON.parse(now.exclusions)) !== JSON.stringify(started.exclusions)
+	);
+}
+
+/** Drops the commit the index was built from, so the next sync indexes again. */
+export function forgetIndexedCommit(db: DatabaseSync, sourceId: number) {
+	db.prepare('UPDATE sources SET last_commit = NULL WHERE id = ?').run(sourceId);
+}
+
 // About 0.15 ms of write lock per snippet: a batch keeps every other writer, the server's
 // requests among them, waiting for well under 100 ms however large the source is.
 const SNIPPETS_PER_BATCH = 500;

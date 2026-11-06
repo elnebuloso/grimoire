@@ -356,6 +356,29 @@ describe('syncSource', () => {
 			expect(await sync()).toMatchObject({ status: 'synced', commit: 'c1' });
 		});
 
+		it('saved while a sync runs are indexed by the next one, not dropped by its result', async () => {
+			indexing.run = (job) => {
+				save({ paused: true, exclusions: 'docs/internal/**' });
+				return indexOnePage(job);
+			};
+			expect(await sync()).toMatchObject({ status: 'synced', commit: 'c1' });
+			indexing.run = indexOnePage;
+
+			expect(await sync()).toMatchObject({ status: 'synced', commit: 'c1' });
+			expect(fork).toHaveBeenCalledTimes(2);
+		});
+
+		it('saved while a failing sync runs retry the commit', async () => {
+			indexing.run = () => {
+				save({ paused: true, exclusions: 'docs/huge/**' });
+				return { error: 'indexing took longer than 10 minutes' };
+			};
+			expect(await sync()).toMatchObject({ status: 'failed', kind: 'deadline' });
+			indexing.run = indexOnePage;
+
+			expect(await sync()).toMatchObject({ status: 'synced', commit: 'c1' });
+		});
+
 		it('leave the index alone when nothing the index depends on changed', async () => {
 			await sync();
 			save({ paused: true, name: 'Auth docs', description: 'How auth works' });
