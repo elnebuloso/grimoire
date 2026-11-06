@@ -10,6 +10,10 @@
 	});
 </script>
 
+<script lang="ts">
+	let reopened = $state(true);
+</script>
+
 <Story
 	name="Level 1"
 	args={{
@@ -65,6 +69,33 @@
 		await expect(args.onconfirm).toHaveBeenCalledOnce();
 	}}
 />
+
+<Story
+	name="Reopened after cancel, empty and locked"
+	play={async ({ canvas }) => {
+		reopened = true;
+		const field = canvas.getByLabelText('Type billing-docs to confirm');
+		await userEvent.type(field, 'billing-docs');
+		await userEvent.click(canvas.getByRole('button', { name: 'Cancel' }));
+		await waitFor(() => expect(canvas.queryByRole('dialog')).toBeNull());
+
+		reopened = true;
+		await waitFor(() => expect(canvas.getByRole('dialog')).toBeVisible());
+		await expect(canvas.getByLabelText('Type billing-docs to confirm')).toHaveValue('');
+		await expect(canvas.getByRole('button', { name: 'Delete source' })).toBeDisabled();
+	}}
+>
+	{#snippet template()}
+		<ConfirmDialog
+			bind:open={reopened}
+			title="Delete the source Billing docs?"
+			consequence="Its index goes with it. This cannot be undone."
+			confirmLabel="Delete source"
+			danger
+			typed={{ value: 'billing-docs', label: 'Type billing-docs to confirm' }}
+		/>
+	{/snippet}
+</Story>
 
 <Story
 	name="Refused"

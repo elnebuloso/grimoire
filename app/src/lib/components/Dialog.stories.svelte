@@ -1,6 +1,6 @@
 <script module lang="ts">
 	import { defineMeta } from '@storybook/addon-svelte-csf';
-	import { expect, waitFor } from 'storybook/test';
+	import { expect, userEvent, waitFor } from 'storybook/test';
 	import Dialog from './Dialog.svelte';
 
 	const { Story } = defineMeta({ title: 'Dialog', component: Dialog });
@@ -34,14 +34,38 @@
 		await waitFor(() => expect(open).toBe(false));
 		open = true;
 		await waitFor(() => expect(canvas.getByRole('dialog')).toBeVisible());
-		// A click on the backdrop lands on the dialog element itself, not on its box.
-		dialog.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+		// Pressed and released on the backdrop, which is the dialog element itself, not its box.
+		await userEvent.pointer({ keys: '[MouseLeft]', target: dialog });
 		await waitFor(() => expect(open).toBe(false));
 	}}
 >
 	{#snippet template()}
 		<Dialog bind:open title="Invite a user">
 			<button>Send invitation</button>
+		</Dialog>
+	{/snippet}
+</Story>
+
+<Story
+	name="Kept when a press inside is released beside the box"
+	play={async ({ canvas }) => {
+		open = true;
+		const dialog = canvas.getByRole('dialog') as HTMLDialogElement;
+		const field = canvas.getByRole('textbox', { name: 'Email address' });
+		await userEvent.type(field, 'anna@example.com');
+		// Selecting the text and letting go over the backdrop: the browser clicks the dialog.
+		await userEvent.pointer([
+			{ keys: '[MouseLeft>]', target: field },
+			{ target: dialog },
+			{ keys: '[/MouseLeft]' }
+		]);
+		await expect(open).toBe(true);
+		await expect(field).toHaveValue('anna@example.com');
+	}}
+>
+	{#snippet template()}
+		<Dialog bind:open title="Invite a user">
+			<label>Email address <input name="email" /></label>
 		</Dialog>
 	{/snippet}
 </Story>

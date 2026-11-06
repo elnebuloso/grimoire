@@ -41,11 +41,14 @@
 	let box = $state<HTMLDivElement>();
 	const locked = $derived(typed !== undefined && typedValue !== typed.value);
 
-	// Every opening starts empty and on the safe choice: cancel, or the field to type into.
+	// Every opening starts empty and on the safe choice: cancel, or the field to type into. The
+	// field stays rendered while closed, so what was typed is cleared in it too.
 	$effect(() => {
 		if (!open) return;
 		typedValue = '';
-		queueMicrotask(() => (typed ? box?.querySelector<HTMLInputElement>('input') : cancel)?.focus());
+		const field = box?.querySelector<HTMLInputElement>('input');
+		if (field) field.value = '';
+		queueMicrotask(() => (typed ? field : cancel)?.focus());
 	});
 </script>
 

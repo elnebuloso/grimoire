@@ -20,6 +20,9 @@
 
 	let dialog = $state<HTMLDialogElement>();
 	const titleId = $props.id();
+	// A press in a field released over the backdrop also clicks the dialog element, the nearest
+	// element both share: only a press that started on the backdrop closes it.
+	let pressedOnBackdrop = false;
 
 	$effect(() => {
 		if (!dialog) return;
@@ -32,9 +35,10 @@
 	bind:this={dialog}
 	aria-labelledby={titleId}
 	onclose={() => (open = false)}
+	onpointerdown={(event) => (pressedOnBackdrop = event.target === dialog)}
 	onclick={(event) => {
 		// Only the backdrop is the dialog element itself; its content is inside the box.
-		if (event.target === dialog) open = false;
+		if (event.target === dialog && pressedOnBackdrop) open = false;
 	}}
 >
 	<div class="box">
