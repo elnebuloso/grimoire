@@ -7,7 +7,7 @@ status: To Do
 assignee:
   - '@claude'
 created_date: '2026-11-06 20:51'
-updated_date: '2026-11-06 21:21'
+updated_date: '2026-11-06 21:43'
 labels:
   - agent-api
 dependencies: []
@@ -47,3 +47,9 @@ Found by a whole-repo audit on 2026-11-06 (commit 601c588 plus six local refacto
 - The premise does not hold: the index is written and deleted in short batches (`SNIPPETS_PER_BATCH = 500`, `PAGES_PER_DELETE = 50`), not in one transaction, so the 5 s busy timeout is never reached and no read answers 500. A bookkeeping write waits at most about 0.3 s, once a minute per key or per missed query.
 - Not implemented: skipping on busy would mean switching the busy timeout of the shared connection around each write, for a rare wait of a few hundred milliseconds. Waiting for a decision whether to close this task without change.
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Closed without change. Measured: while a 20,000-snippet index is written and the old one deleted, a write from another connection waits at most 335 ms, because the index is written in short batches; the 5 s busy timeout is never reached and no read answers 500. Skipping bookkeeping writes on a busy database would mean switching the busy timeout of the shared connection around each write, which costs more than a rare wait of a few hundred milliseconds.
+<!-- SECTION:FINAL_SUMMARY:END -->
