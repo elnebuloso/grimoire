@@ -3,7 +3,10 @@ import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { indexPages } from './index-pages';
+import { createServer, type Server } from 'node:http';
+import type { AddressInfo } from 'node:net';
 import { MAX_URL_INCLUDES, prepareCheckout, type FetchUrl } from './index-source';
+import { fetchInclude } from './url-include';
 
 const URL = 'https://docs.example.com/shared/note.md';
 const source = { path: 'docs/', exclusions: [] };
@@ -16,8 +19,10 @@ function write(files: Record<string, string>) {
 	}
 }
 
-async function indexCheckout(fetchUrl: FetchUrl) {
-	const prepared = await prepareCheckout(checkout, source, async () => {}, fetchUrl);
+async function indexCheckout(fetchUrl: FetchUrl, urlDeadlineMs?: number) {
+	const prepared = await prepareCheckout(checkout, source, async () => {}, fetchUrl, {
+		urlDeadlineMs
+	});
 	return indexPages(prepared);
 }
 
@@ -93,6 +98,66 @@ describe('indexCheckout with URL includes', () => {
 		expect(pageText(index)).toContain('Text.');
 		expect(index.warnings).toEqual([
 			`docs/index.md: include "${URL}" not fetched, https://docs.example.com is not listed in INCLUDE_URL_ALLOW`
+		]);
+	});
+});
+
+describe('indexCheckout with an origin that does not answer', () => {
+	let server: Server;
+	let origin: string;
+
+	beforeEach(async () => {
+		// Takes every request and never answers it.
+		server = createServer(() => {});
+		await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+		origin = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+	});
+
+	afterEach(() => {
+		server.closeAllConnections();
+		server.close();
+	});
+
+	it('waits for its includes once, not once per include, and warns on each', async () => {
+		const includes = Array.from(
+			{ length: 10 },
+			(_, index) => `--8<-- "${origin}/part-${index}.md"`
+		);
+		write({
+			'mkdocs.yml': 'markdown_extensions:\n  - pymdownx.snippets:\n      url_download: true\n',
+			'docs/index.md': `# Start\n\nText.\n\n${includes.join('\n\n')}\n`
+		});
+		const timeoutMs = 300;
+		const started = performance.now();
+
+		const index = await indexCheckout((url) =>
+			fetchInclude(url, [origin], { timeoutMs, maxBytes: 1024 })
+		);
+
+		// One after the other they would take ten times as long.
+		expect(performance.now() - started).toBeLessThan(5 * timeoutMs);
+		expect(pageText(index)).toContain('Text.');
+		expect(index.warnings).toHaveLength(10);
+		expect(index.warnings[0]).toContain('no answer within 0.3 seconds');
+	});
+
+	it('gives the includes of all rounds one deadline, then warns instead of fetching', async () => {
+		write({
+			'mkdocs.yml': 'markdown_extensions:\n  - pymdownx.snippets:\n      url_download: true\n',
+			'docs/index.md': `# Start\n\n--8<-- "${URL}?0"\n`
+		});
+		// Each answer names the next URL, a little later each time.
+		const fetchUrl = vi.fn(async (url: string) => {
+			await new Promise((resolve) => setTimeout(resolve, 100));
+			const next = Number(url.split('?')[1]) + 1;
+			return { content: `Part ${next}.\n\n--8<-- "${URL}?${next}"\n` };
+		});
+
+		const index = await indexCheckout(fetchUrl, 350);
+
+		expect(fetchUrl.mock.calls.length).toBeLessThan(6);
+		expect(index.warnings).toEqual([
+			expect.stringContaining('not fetched, URL includes took longer than 0.35 seconds in one sync')
 		]);
 	});
 });

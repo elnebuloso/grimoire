@@ -84,7 +84,7 @@ page. Fix them in the repository; the next sync clears them.
 | `docs/deploy.md: includes exceed 1000000 characters, "big.md" and every later include not inserted` | A page may pull in at most 1,000,000 characters through includes; include less, or split the page. |
 | `docs/deploy.md: include "https://…" not inserted, URL includes are disabled (url_download in the site config)` | Set `url_download: true` under `pymdownx.snippets`, or include a file from the repository. |
 | `docs/deploy.md: include "https://…" not fetched, https://… is not listed in INCLUDE_URL_ALLOW` | Ask the operator to allow the origin, or include a file from the repository. |
-| `docs/deploy.md: include "https://…" not fetched, …` | The fetch failed: a redirect (not followed), an error status, more than 1 MiB, no answer within 10 seconds, more than 100 URL includes in one sync, or credentials in the URL. |
+| `docs/deploy.md: include "https://…" not fetched, …` | The fetch failed: a redirect (not followed), an error status, more than 1 MiB, no answer within 10 seconds, more than 100 URL includes in one sync, all URL includes of a sync together taking longer than 2 minutes, or credentials in the URL. |
 | `docs/deploy.md: include "notes.md" in the URL include "https://…" is not a URL, not inserted` | A file included by URL may include URLs only. |
 | `docs/run#1.md: "#" in the file name, skipped` | Rename the file: in an ID, `#` starts the anchor. |
 | `docs/link.md: not readable inside the repository, skipped` | The file is a symlink that points outside the repository; replace it with the file. |

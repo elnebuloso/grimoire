@@ -22,6 +22,10 @@ export interface IndexedSource {
 // a sync fetching forever.
 export const MAX_URL_INCLUDES = 100;
 
+// The URL fetches of one sync share this much time, well below the indexing deadline: an origin
+// that hangs costs warnings on its includes, not the whole sync.
+const URL_INCLUDES_DEADLINE_MS = 2 * 60_000;
+
 /** Checks out further directories of the repository so their files can be read. */
 export type FetchDirectories = (directories: string[]) => Promise<void>;
 
@@ -32,14 +36,15 @@ export type FetchUrl = (url: string) => Promise<UrlContent>;
  * Reads every Markdown page of a source from a checkout and resolves its includes, ready for
  * `indexPages`. Include targets outside the source path are fetched with `fetchDirectories`, and
  * URL includes, when the site config allows them, with `fetchUrl`; round by round, until nothing
- * new turns up. At most `MAX_URL_INCLUDES` URLs are fetched; further ones are reported as not
- * fetched.
+ * new turns up, the URLs of a round at once. At most `MAX_URL_INCLUDES` URLs are fetched, all
+ * within `urlDeadlineMs`; further ones are reported as not fetched.
  */
 export async function prepareCheckout(
 	checkout: string,
 	source: IndexedSource,
 	fetchDirectories: FetchDirectories,
-	fetchUrl: FetchUrl
+	fetchUrl: FetchUrl,
+	{ urlDeadlineMs = URL_INCLUDES_DEADLINE_MS }: { urlDeadlineMs?: number } = {}
 ): Promise<PreparedSource & { sourcePath: string }> {
 	const sourcePath = posix.normalize(source.path || '.').replace(/\/$/, '');
 	const root = realpathSync(checkout);
@@ -76,6 +81,10 @@ export async function prepareCheckout(
 			: undefined;
 
 	const fetched = new Set<string>();
+	const urlDeadline = Date.now() + urlDeadlineMs;
+	const lateUrl: UrlContent = {
+		problem: `URL includes took longer than ${urlDeadlineMs / 1000} seconds in one sync`
+	};
 	let included: Map<string, IncludeResult>;
 	for (;;) {
 		included = new Map(
@@ -100,14 +109,18 @@ export async function prepareCheckout(
 		if (missing.size === 0 && pendingUrls.size === 0) break;
 		if (missing.size > 0) await fetchDirectories([...missing]);
 		missing.forEach((directory) => fetched.add(directory));
+		const allowed = [...pendingUrls].slice(0, Math.max(0, MAX_URL_INCLUDES - urls.size));
 		for (const url of pendingUrls) {
-			urls.set(
-				url,
-				urls.size < MAX_URL_INCLUDES
-					? await fetchUrl(url)
-					: { problem: `more than ${MAX_URL_INCLUDES} URL includes in one sync` }
-			);
+			if (!allowed.includes(url)) {
+				urls.set(url, { problem: `more than ${MAX_URL_INCLUDES} URL includes in one sync` });
+			}
 		}
+		const answers = await Promise.all(
+			allowed.map((url) =>
+				Date.now() >= urlDeadline ? lateUrl : withinDeadline(fetchUrl(url), urlDeadline, lateUrl)
+			)
+		);
+		allowed.forEach((url, index) => urls.set(url, answers[index]));
 	}
 
 	const navPositions = new Map<string, number>();
@@ -119,6 +132,23 @@ export async function prepareCheckout(
 		includeWarnings: included.get(file)!.warnings
 	}));
 	return { pages, siteConfig: config, warnings, sourcePath };
+}
+
+/** What `fetch` answers, or `late` once `deadline` (a time in milliseconds) has passed. */
+async function withinDeadline(
+	fetch: Promise<UrlContent>,
+	deadline: number,
+	late: UrlContent
+): Promise<UrlContent> {
+	let timer: ReturnType<typeof setTimeout> | undefined;
+	const expired = new Promise<UrlContent>((resolve) => {
+		timer = setTimeout(() => resolve(late), Math.max(0, deadline - Date.now()));
+	});
+	try {
+		return await Promise.race([fetch, expired]);
+	} finally {
+		clearTimeout(timer);
+	}
 }
 
 /** Markdown files below the source path, relative to it, without excluded ones. */
