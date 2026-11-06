@@ -33,6 +33,10 @@ Facts learned while building grimoire.
 
 ## Runtime
 
+- Inside the image, Node resolves `localhost` to `::1` first; on the dev machine and the CI runners
+  to `127.0.0.1` alone. A test server for both listens on both loopback addresses.
+- `node:sqlite` errors carry `code: 'ERR_SQLITE_ERROR'`; a locked database has `errcode` 5.
+
 - Node 24: `node:sqlite` with FTS5 is built in; `node` loads `.ts` files directly (type
   stripping), which tests use to run code in child processes.
 - What Node loads without a build (`scripts/` and everything they import) uses no TypeScript
@@ -98,6 +102,13 @@ Facts learned while building grimoire.
 - A native `popover` opened through `popovertarget` gives its button no `aria-expanded` attribute
   to assert, and `userEvent.keyboard('{Escape}')` does not close it: check closing and focus in the
   real browser instead.
+- Storybook's `$app/forms` `enhance` never runs the submit function; it dispatches
+  `storybook:enhance` on `window` with the submit event, and its `goto` dispatches `storybook:goto`
+  with goto's arguments. A story listens to these to see what a form posts or a table navigates to.
+- `play` cannot use Storybook's deferred `mount` through the Svelte CSF wrapper
+  (`MountMustBeDestructuredError`): stub timers after mount instead.
+- Stories run twice, in a light and a dark Chromium instance (`vite.config.ts`), so axe checks
+  the contrast of both schemes.
 
 ## Database
 
