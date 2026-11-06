@@ -10,6 +10,7 @@
 	import DateTime from '#lib/components/DateTime.svelte';
 	import DescriptionList from '#lib/components/DescriptionList.svelte';
 	import FormError from '#lib/components/FormError.svelte';
+	import FormSection from '#lib/components/FormSection.svelte';
 	import NameField from '#lib/components/NameField.svelte';
 	import PageHead from '#lib/components/PageHead.svelte';
 	import PageList from '#lib/components/PageList.svelte';
@@ -157,42 +158,45 @@
 {/if}
 
 {#snippet settings()}
-	<section class="sheet" aria-labelledby="settings">
-		{#if data.source}<h2 id="settings">{m.source_settings()}</h2>{/if}
-		<!-- In place: the connection test answers without reloading what was typed and where it
-		was scrolled to; saving still leads to the source as before. -->
-		<form
-			method="post"
-			action="?/save"
-			use:enhance={(input) => {
-				const testing = input.action.search === '?/test';
-				if (!testing && !publicConfirmed && becomesPublic(input.formData)) {
-					pendingSave = { form: input.formElement, submitter: input.submitter };
-					askPublic = true;
-					return input.cancel();
+	<!-- In place: the connection test answers without reloading what was typed and where it was
+	scrolled to; saving still leads to the source as before. -->
+	<form
+		class="source-form"
+		method="post"
+		action="?/save"
+		use:enhance={(input) => {
+			const testing = input.action.search === '?/test';
+			if (!testing && !publicConfirmed && becomesPublic(input.formData)) {
+				pendingSave = { form: input.formElement, submitter: input.submitter };
+				askPublic = true;
+				return input.cancel();
+			}
+			publicConfirmed = false;
+			const isNew = !data.source;
+			const name = String(input.formData.get('name'));
+			if (testing) testPending = true;
+			const submit = submitWithToast({
+				success: () => {
+					if (testing) return undefined;
+					if (isNew) return m.source_created({ name });
+					return data.syncPending ? m.source_saved_sync({ name }) : m.source_saved({ name });
 				}
-				publicConfirmed = false;
-				const isNew = !data.source;
-				const name = String(input.formData.get('name'));
-				if (testing) testPending = true;
-				const submit = submitWithToast({
-					success: () => {
-						if (testing) return undefined;
-						if (isNew) return m.source_created({ name });
-						return data.syncPending ? m.source_saved_sync({ name }) : m.source_saved({ name });
-					}
-				})(input) as SubmitResult;
-				return async (output) => {
-					await submit(output);
-					testPending = false;
-					// The answer carries an entered token back only encrypted; as after a reload, the
-					// page keeps no plain copy of it.
-					const token = input.formElement.elements.namedItem('token');
-					if (token instanceof HTMLInputElement) token.value = '';
-				};
-			}}
-		>
-			<FormError message={form?.error} />
+			})(input) as SubmitResult;
+			return async (output) => {
+				await submit(output);
+				testPending = false;
+				// The answer carries an entered token back only encrypted; as after a reload, the
+				// page keeps no plain copy of it.
+				const token = input.formElement.elements.namedItem('token');
+				if (token instanceof HTMLInputElement) token.value = '';
+			};
+		}}
+	>
+		<!-- Enter in a field submits with the first submit button: saving, not the connection test
+		further down. -->
+		<button class="default-submit" tabindex="-1" aria-hidden="true"></button>
+		<FormError message={form?.error} />
+		<FormSection title={m.source_section_general()}>
 			<div class="fields">
 				{#if data.source}
 					<TextField
@@ -206,18 +210,22 @@
 					<NameField label={m.field_name()} name="name" value={values.name} />
 				{/if}
 				<TextField label={m.field_description()} name="description" value={values.description} />
-				<div class="git-url">
-					<TextField
-						label={m.field_git_url()}
-						name="gitUrl"
-						type="url"
-						required
-						value={values.gitUrl}
-						aria-describedby="git-url-hint"
-					/>
-					<p class="hint" id="git-url-hint">{m.field_git_url_hint()}</p>
-				</div>
-				<TextField label={m.field_docs_url()} name="docsUrl" type="url" value={values.docsUrl} />
+			</div>
+			<TextField label={m.field_docs_url()} name="docsUrl" type="url" value={values.docsUrl} />
+		</FormSection>
+		<FormSection title={m.source_section_repository()} lead={m.source_section_repository_lead()}>
+			<div class="git-url">
+				<TextField
+					label={m.field_git_url()}
+					name="gitUrl"
+					type="url"
+					required
+					value={values.gitUrl}
+					aria-describedby="git-url-hint"
+				/>
+				<p class="hint" id="git-url-hint">{m.field_git_url_hint()}</p>
+			</div>
+			<div class="fields">
 				<TextField label={m.field_branch()} name="branch" required value={values.branch} mono />
 				<div class="field-with-error">
 					<TextField
@@ -231,36 +239,22 @@
 				</div>
 			</div>
 			<TextAreaField label={m.field_exclusions()} name="exclusions" value={values.exclusions} />
-			<TextField
-				label={m.field_schedule({ schedule: data.globalSchedule })}
-				name="schedule"
-				value={values.schedule}
-				mono
-			/>
-			{#if data.nextCheck}
-				<p class="hint">
-					{m.source_next_check()}
-					<DateTime value={data.nextCheck} timeZone={data.timeZone} />
-				</p>
-			{/if}
-			<fieldset>
-				<legend>{m.visibility()}</legend>
-				<ChoiceField
-					type="radio"
-					name="visibility"
-					value="internal"
-					checked={values.visibility === 'internal'}
-					label={m.field_visibility_internal({ name: data.instanceTitle })}
-				/>
-				<ChoiceField
-					type="radio"
-					name="visibility"
-					value="public"
-					checked={values.visibility === 'public'}
-					label={m.field_visibility_public({ name: data.instanceTitle })}
-				/>
-			</fieldset>
-			<ChoiceField name="paused" checked={values.paused} label={m.field_paused()} />
+		</FormSection>
+		<FormSection title={m.source_section_access()} lead={m.source_section_access_lead()}>
+			<table class="hosts">
+				<thead>
+					<tr>
+						<th scope="col">{m.source_token_host()}</th>
+						<th scope="col">{m.source_token_kind()}</th>
+					</tr>
+				</thead>
+				<tbody>
+					<tr><td>GitLab</td><td>{m.source_token_gitlab()} <code>read_repository</code></td></tr>
+					<tr><td>GitHub</td><td>{m.source_token_github()} <code>Contents: read-only</code></td></tr
+					>
+					<tr><td>Forgejo</td><td>{m.source_token_forgejo()}</td></tr>
+				</tbody>
+			</table>
 			<div class="fields">
 				<TextField label={m.field_username()} name="username" value={values.username} />
 				<div class="token">
@@ -296,20 +290,55 @@
 					</p>
 				{/if}
 			{/if}
-			{#if form?.overlap}
-				<p class="notice warn" role="alert">{form.overlap}</p>
-				<ChoiceField name="confirmOverlap" label={m.field_confirm_overlap()} />
+			<!-- `formnovalidate`: the connection can be tested before the source has a name. -->
+			<button
+				class="test"
+				formaction="?/test"
+				formnovalidate
+				disabled={testPending}
+				aria-busy={testPending}>{m.access_test()}</button
+			>
+		</FormSection>
+		<FormSection title={m.source_section_schedule()}>
+			<TextField
+				label={m.field_schedule({ schedule: data.globalSchedule })}
+				name="schedule"
+				value={values.schedule}
+				mono
+			/>
+			{#if data.nextCheck}
+				<p class="hint">
+					{m.source_next_check()}
+					<DateTime value={data.nextCheck} timeZone={data.timeZone} />
+				</p>
 			{/if}
-			<div class="actions">
-				<!-- Saving comes first: Enter submits with the first button of a form. -->
-				<button class="primary">{data.source ? m.save() : m.source_create()}</button>
-				<!-- `formnovalidate`: the connection can be tested before the source has a name. -->
-				<button formaction="?/test" formnovalidate disabled={testPending} aria-busy={testPending}
-					>{m.access_test()}</button
-				>
-			</div>
-		</form>
-	</section>
+			<ChoiceField name="paused" checked={values.paused} label={m.field_paused()} />
+			<fieldset>
+				<legend>{m.visibility()}</legend>
+				<ChoiceField
+					type="radio"
+					name="visibility"
+					value="internal"
+					checked={values.visibility === 'internal'}
+					label={m.field_visibility_internal({ name: data.instanceTitle })}
+				/>
+				<ChoiceField
+					type="radio"
+					name="visibility"
+					value="public"
+					checked={values.visibility === 'public'}
+					label={m.field_visibility_public({ name: data.instanceTitle })}
+				/>
+			</fieldset>
+		</FormSection>
+		{#if form?.overlap}
+			<p class="notice warn" role="alert">{form.overlap}</p>
+			<ChoiceField name="confirmOverlap" label={m.field_confirm_overlap()} />
+		{/if}
+		<div class="actions">
+			<button class="primary">{data.source ? m.save() : m.source_create()}</button>
+		</div>
+	</form>
 	<ConfirmDialog
 		bind:open={askPublic}
 		title={m.source_public_title({ name: values.name || m.source_new() })}
@@ -570,6 +599,20 @@
 	.settings,
 	.new {
 		max-width: 52rem;
+	}
+	.source-form {
+		display: grid;
+		gap: var(--s5);
+	}
+	/* Out of sight and out of reach; it only takes the Enter of the form. */
+	.default-submit {
+		display: none;
+	}
+	.test {
+		justify-self: start;
+	}
+	.hosts {
+		font-size: 13px;
 	}
 	/* Rare and breaking: set apart below the settings, each action in a sheet of its own. */
 	.danger {

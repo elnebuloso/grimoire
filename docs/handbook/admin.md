@@ -83,6 +83,9 @@ holds, such as `Billing API` and `Billing runbooks`. The same repository and pat
 second time, not even on another branch; what counts as the same and the messages are under
 [Documentation that is already registered](#documentation-that-is-already-registered).
 
+The form of a source groups its fields into **General**, **Repository**, **Access** and
+**Schedule and visibility**; **Test connection** sits at the end of **Access**.
+
 | Field | Rule |
 |---|---|
 | **Name** | At most 80 characters. Creating derives the slug from it: lowercase letters, digits and single hyphens, umlauts spelled out (`Prüfung & Abnahme` → `pruefung-abnahme`), at most 40 characters. Renaming keeps the slug. A slug is unique on the instance. |
