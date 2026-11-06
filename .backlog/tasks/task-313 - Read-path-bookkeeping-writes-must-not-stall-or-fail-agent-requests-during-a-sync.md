@@ -4,8 +4,10 @@ title: >-
   Read path: bookkeeping writes must not stall or fail agent requests during a
   sync
 status: To Do
-assignee: []
+assignee:
+  - '@claude'
 created_date: '2026-11-06 20:51'
+updated_date: '2026-11-06 21:21'
 labels:
   - agent-api
 dependencies: []
@@ -37,3 +39,11 @@ Found by a whole-repo audit on 2026-11-06 (commit 601c588 plus six local refacto
 - [ ] #3 A missed query that cannot be recorded because the database is busy does not fail the query
 - [ ] #4 Specs hold the write lock on a second connection and cover both writes
 <!-- AC:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+- Measured 2026-11-06 (scratchpad script, not committed): replacing a 2,000-page / 20,000-snippet index with `replaceSourceIndex` while a second connection loops `BEGIN IMMEDIATE; COMMIT`: longest wait 134 ms for the first index, 335 ms when the second run also deletes the old index; total 6 s.
+- The premise does not hold: the index is written and deleted in short batches (`SNIPPETS_PER_BATCH = 500`, `PAGES_PER_DELETE = 50`), not in one transaction, so the 5 s busy timeout is never reached and no read answers 500. A bookkeeping write waits at most about 0.3 s, once a minute per key or per missed query.
+- Not implemented: skipping on busy would mean switching the busy timeout of the shared connection around each write, for a rare wait of a few hundred milliseconds. Waiting for a decision whether to close this task without change.
+<!-- SECTION:NOTES:END -->
