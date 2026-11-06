@@ -63,7 +63,7 @@
 		gap: 2px;
 		padding: 3px;
 		background: var(--well);
-		border-radius: 10px;
+		border-radius: var(--r-control);
 		box-shadow: var(--sink);
 	}
 	span {
@@ -78,7 +78,7 @@
 		color: var(--ink-2);
 		background: transparent;
 		border: 0;
-		border-radius: 7px;
+		border-radius: var(--r-small);
 		box-shadow: none;
 		font-size: 13px;
 		font-weight: 400;

@@ -3,9 +3,11 @@ id: TASK-292
 title: >-
   Frontend cleanups: unused messages, stale comment, PageList fallback,
   Paraglide strategy, radius tokens
-status: To Do
-assignee: []
+status: Done
+assignee:
+  - '@claude'
 created_date: '2026-11-06 15:59'
+updated_date: '2026-11-06 18:20'
 labels: []
 dependencies: []
 priority: low
@@ -26,9 +28,33 @@ Small leftovers in the web UI:
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 The three unused messages are removed from every message file
-- [ ] #2 The stale comment on the duplicates page is corrected
-- [ ] #3 `PageList` shows its filter without waiting for `onMount`
-- [ ] #4 The Paraglide strategy is defined in one place
-- [ ] #5 The switches and the tab bar use radius tokens only; checked in light and dark
+- [x] #1 The three unused messages are removed from every message file
+- [x] #2 The stale comment on the duplicates page is corrected
+- [x] #3 `PageList` shows its filter without waiting for `onMount`
+- [x] #4 The Paraglide strategy is defined in one place
+- [x] #5 The switches and the tab bar use radius tokens only; checked in light and dark
 <!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. Remove source_sync_pending, source_sync_pending_reload, users_keys_named from en and de
+2. Correct the duplicates page comment
+3. PageList shows its filter from the start
+4. Paraglide options in app/paraglide.config.ts, used by vite.config.ts and the paraglide script (compile API)
+5. Switches and tab bars use --r-control (outer, tabs) and --r-small (inner buttons)
+<!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+- The paraglide script now calls compile() from @inlang/paraglide-js with the shared options; its output matched the CLI's except the source path in the generated README. make lint (which runs it) passes.
+- Radii: 10 px tracks became --r-control (8), 7 px buttons --r-small (6), the 9 px tab items --r-control (8); the 999px pill counts are a shape, not a scale value, and stay. Checked the source page in light and dark.
+- PageList, AreaSwitch, SegmentedSwitch and TabNav stories pass.
+<!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Frontend cleanups: three unused messages removed, the stale duplicates comment corrected, PageList shows its filter without waiting for onMount, the Paraglide compile options live in one file used by the build and the lint step, and the switches and tab bars use radius tokens only. Stories and make lint pass; checked in light and dark.
+<!-- SECTION:FINAL_SUMMARY:END -->

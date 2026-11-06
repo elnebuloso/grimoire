@@ -26,7 +26,7 @@
 		gap: 2px;
 		padding: 3px;
 		background: var(--well);
-		border-radius: 10px;
+		border-radius: var(--r-control);
 		box-shadow: var(--sink);
 	}
 	a {
@@ -35,7 +35,7 @@
 		min-height: 32px;
 		padding: 0 var(--s3);
 		color: var(--ink-2);
-		border-radius: 7px;
+		border-radius: var(--r-small);
 		font-size: 14px;
 		text-decoration: none;
 	}

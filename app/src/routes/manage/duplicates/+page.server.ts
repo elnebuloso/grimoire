@@ -2,7 +2,7 @@ import type { PageServerLoad } from './$types';
 import { database } from '#lib/server/db/index.js';
 import { sourceOverlaps } from '#lib/server/admin/status.js';
 
-// Admins only: the list names private sources of every user.
+// Admins only: the list names every source, internal ones included.
 export const load: PageServerLoad = ({ locals }) => ({
 	pairs: sourceOverlaps(database(), locals).map(({ kind, first, second }) => ({
 		kind,

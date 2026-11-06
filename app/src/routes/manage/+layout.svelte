@@ -152,7 +152,7 @@
 		color: var(--ink-2);
 		font-size: 14px;
 		text-decoration: none;
-		border-radius: 9px;
+		border-radius: var(--r-control);
 		transition:
 			color var(--t),
 			background-color var(--t),
