@@ -5,13 +5,23 @@
 	import RequestsPerDay from '#lib/components/RequestsPerDay.svelte';
 	import DataTable from '#lib/components/DataTable.svelte';
 	import KeyScope from '#lib/components/KeyScope.svelte';
+	import { resolve } from '$app/paths';
 	import { m } from '#lib/paraglide/messages.js';
+	import { getLocale } from '#lib/paraglide/runtime.js';
+	import { formatDate } from '#lib/time-zone.js';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
 </script>
 
 <PageHead title={m.api_keys_all()}><p>{m.apikeys_admin_lead()}</p></PageHead>
+
+{#if data.owner}
+	<p class="notice" role="status">
+		{m.apikeys_owner_filter({ owner: data.owner })}
+		<a href={resolve('/manage/api-keys')}>{m.apikeys_owner_filter_all()}</a>
+	</p>
+{/if}
 
 <section class="sheet flush" aria-label={m.api_keys_all()}>
 	<DataTable
@@ -23,6 +33,7 @@
 			{ label: m.field_name(), sort: 'name' },
 			{ label: m.apikeys_owner() },
 			{ label: m.sources() },
+			{ label: m.apikeys_valid_until_heading(), sort: 'validUntil' },
 			{ label: m.apikeys_last_used_heading(), sort: 'used' },
 			{ label: m.requests_count() },
 			{ label: m.apikeys_revoke() }
@@ -30,12 +41,25 @@
 	>
 		{#snippet row(key)}
 			<th scope="row"><code>{key.name}</code></th>
-			<td>{key.owner ?? m.apikeys_no_owner()}</td>
+			<td>
+				{#if key.owner}
+					<a href="{resolve('/manage/users')}?search={encodeURIComponent(key.owner)}">{key.owner}</a
+					>
+				{:else}{m.apikeys_no_owner()}{/if}
+			</td>
 			<td>
 				<KeyScope
 					allSources={key.sources === 'all'}
 					slugs={key.sources === 'all' ? [] : key.sources}
 				/>
+			</td>
+			<td class:expired={key.expired}>
+				{#if !key.validUntil}
+					{m.apikeys_no_expiry()}
+				{:else}
+					{formatDate(key.validUntil, getLocale())}
+					{#if key.expired}<br />{m.apikeys_expired_short()}{/if}
+				{/if}
 			</td>
 			<td>
 				{#if key.lastUsedAt}<DateTime
@@ -68,5 +92,9 @@
 <style>
 	.action {
 		text-align: end;
+	}
+	.expired {
+		color: var(--err);
+		font-weight: 500;
 	}
 </style>

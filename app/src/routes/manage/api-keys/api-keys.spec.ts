@@ -7,6 +7,7 @@ import * as page from './+page.server';
 let db: DatabaseSync;
 
 vi.mock('#lib/server/db/index.js', () => ({ database: () => db }));
+vi.mock('$app/env/private', () => ({ TZ: 'UTC' }));
 
 beforeEach(() => {
 	db = openDatabase(':memory:');
@@ -35,6 +36,30 @@ describe('all API keys', () => {
 				url: new URL('https://grimoire.example/manage/api-keys?search=writer')
 			} as never)
 		).toMatchObject({ keys: { rows: [{ name: 'laptop' }], total: 1 }, filtered: true });
+	});
+
+	it('filters by the exact owner and tells an expired key', () => {
+		createApiKey(db, 'old', 'all', '2020-01-31', 2);
+		expect(
+			page.load({
+				url: new URL('https://grimoire.example/manage/api-keys?owner=writer@example.com')
+			} as never)
+		).toMatchObject({
+			keys: {
+				rows: [
+					{ name: 'laptop', validUntil: null, expired: false },
+					{ name: 'old', validUntil: '2020-01-31', expired: true }
+				],
+				total: 2
+			},
+			owner: 'writer@example.com',
+			filtered: true
+		});
+		expect(
+			page.load({
+				url: new URL('https://grimoire.example/manage/api-keys?owner=writer')
+			} as never)
+		).toMatchObject({ keys: { total: 0 } });
 	});
 
 	it("revokes another user's key", async () => {

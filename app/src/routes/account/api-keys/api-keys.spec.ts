@@ -8,10 +8,11 @@ import * as page from './+page.server';
 let db: DatabaseSync;
 
 vi.mock('#lib/server/db/index.js', () => ({ database: () => db }));
-vi.mock('$app/env/private', () => ({ TZ: 'UTC' }));
+vi.mock('$app/env/private', () => ({ TZ: 'UTC', BASE_URL: '', INSTANCE_NAME: 'Acme Docs' }));
 
 const WRITER = { id: 1, email: 'writer@example.com', roles: [] };
 const OTHER = { id: 2, email: 'ops@example.com', roles: [] };
+const PAGE_URL = new URL('https://grimoire.example/account/api-keys');
 const CLOCK = { now: new Date('2026-10-30T12:00:00.000Z'), today: '2026-10-30' };
 
 function formRequest(fields: [string, string][]) {
@@ -50,10 +51,18 @@ describe('create', () => {
 
 		expect(result.created.name).toBe('ci');
 		expect(scopeForKey(db, result.created.key, CLOCK)).toEqual({ scope: ['platform-docs'] });
-		const data = page.load({ locals: { user: WRITER } } as never);
+		const data = page.load({
+			locals: { user: WRITER },
+			url: PAGE_URL
+		} as never);
 		expect(data).toMatchObject({
 			keys: [{ name: 'ci', sources: ['platform-docs'] }],
-			sources: ['billing-docs', 'platform-docs']
+			sources: [
+				{ slug: 'billing-docs', name: 'Billing docs' },
+				{ slug: 'platform-docs', name: 'Platform docs' }
+			],
+			origin: 'https://grimoire.example',
+			mcpName: 'acme-docs'
 		});
 		expect(JSON.stringify(data)).not.toContain(result.created.key);
 	});
@@ -76,13 +85,13 @@ describe('create', () => {
 			['scope', 'all'],
 			['validUntil', '2026-10-30']
 		]);
-		expect(page.load({ locals: { user: WRITER } } as never)).toMatchObject({
+		expect(page.load({ locals: { user: WRITER }, url: PAGE_URL } as never)).toMatchObject({
 			keys: [{ name: 'trial', validUntil: '2026-10-30', expired: false, lastUsedAt: null }],
 			today: '2026-10-30'
 		});
 
 		vi.setSystemTime(new Date('2026-10-31T00:00:00.000Z'));
-		expect(page.load({ locals: { user: WRITER } } as never)).toMatchObject({
+		expect(page.load({ locals: { user: WRITER }, url: PAGE_URL } as never)).toMatchObject({
 			keys: [{ expired: true }]
 		});
 	});
@@ -306,11 +315,16 @@ describe('keys of other users', () => {
 			['scope', 'all']
 		]);
 		const [{ id }] = listApiKeys(db);
-		const asOther = { locals: { user: OTHER } };
+		const asOther = { locals: { user: OTHER }, url: PAGE_URL };
 
 		expect(page.load(asOther as never)).toMatchObject({
 			keys: [],
-			sources: ['billing-docs', 'platform-docs']
+			sources: [
+				{ slug: 'billing-docs', name: 'Billing docs' },
+				{ slug: 'platform-docs', name: 'Platform docs' }
+			],
+			origin: 'https://grimoire.example',
+			mcpName: 'acme-docs'
 		});
 		const changed = await thrownStatus(() =>
 			page.actions.update({

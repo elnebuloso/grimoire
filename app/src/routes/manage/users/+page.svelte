@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import { enhance } from '$app/forms';
 	import ConfirmAction from '#lib/components/ConfirmAction.svelte';
 	import DateTime from '#lib/components/DateTime.svelte';
@@ -105,6 +106,10 @@
 			</td>
 			<td>
 				<div class="actions">
+					<a
+						href="{resolve('/manage/api-keys')}?owner={encodeURIComponent(user.email)}"
+						aria-label={m.users_keys_named({ email: user.email })}>{m.users_keys()}</a
+					>
 					{#if isAdmin(user)}
 						<ConfirmAction
 							action="?/demote"
@@ -253,6 +258,7 @@
 	.actions {
 		display: flex;
 		flex-wrap: wrap;
+		align-items: center;
 		gap: var(--s2);
 	}
 	.sign-in {

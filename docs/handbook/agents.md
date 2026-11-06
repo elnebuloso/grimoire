@@ -47,8 +47,9 @@ claude mcp add --transport http --scope user grimoire https://grimoire.example.c
 `--scope user` makes grimoire available in all your projects on this machine; leave it out to add
 it to the current project only.
 
-The start page `/` of the instance shows this command with its address and server name filled in,
-and **Try a query** answers what an agent gets: without logging in from the public sources,
+The start page `/` of the instance shows this command with its address and server name filled in;
+creating a key under **My API keys** shows it with the key filled in as well. On the start page,
+**Try a query** answers what an agent gets: without logging in from the public sources,
 logged in from what an API key of yours reads.
 
 The server sends its instructions on connect: when to search, how to read on, how to change

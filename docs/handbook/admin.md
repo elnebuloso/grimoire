@@ -259,8 +259,9 @@ sources, not only the ones the agent asked for.
 Your own keys: **Account** at the top, as for every user (see
 [API keys](users.md#api-keys)).
 
-`Management > Access > All API keys` lists every key with its owner, sources, last use and requests per day
-for the last 90 days. **Revoke** stops a key with the next request, whoever owns it; only the owner
+`Management > Access > All API keys` lists every key with its owner, sources, expiry, last use and
+requests per day for the last 90 days. The owner's address leads to that account under **Users**;
+**Keys** there lists only that account's keys. **Revoke** stops a key with the next request, whoever owns it; only the owner
 changes its sources or expiry. Revoke keys that leaked or have not been used for a long time.
 
 ## Users

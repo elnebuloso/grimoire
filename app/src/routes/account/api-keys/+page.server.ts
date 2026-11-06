@@ -6,16 +6,17 @@ import {
 	createApiKey,
 	isExpired,
 	listApiKeys,
-	allSlugs,
 	revokeApiKey,
+	sourceChoices,
 	updateApiKey
 } from '#lib/server/api-keys.js';
 import { m } from '#lib/paraglide/messages.js';
 import { dateIn } from '#lib/time-zone.js';
+import { connectTarget } from '#lib/server/connect.js';
 
 // Every user manages their own keys here. The access hook lets
 // only logged-in users onto account pages.
-export const load: PageServerLoad = ({ locals }) => {
+export const load: PageServerLoad = ({ locals, url }) => {
 	const today = dateIn(TZ, new Date());
 	const db = database();
 	return {
@@ -23,8 +24,9 @@ export const load: PageServerLoad = ({ locals }) => {
 			...key,
 			expired: isExpired(key.validUntil, today)
 		})),
-		sources: allSlugs(db),
-		today
+		sources: sourceChoices(db),
+		today,
+		...connectTarget(url)
 	};
 };
 

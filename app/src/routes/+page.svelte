@@ -9,25 +9,15 @@
 	import { m } from '#lib/paraglide/messages.js';
 	import { getLocale } from '#lib/paraglide/runtime.js';
 	import { sourceState } from '#lib/source-state.js';
+	import { connectCommand } from '#lib/connect-command.js';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
 
 	const count = (value: number) => value.toLocaleString(getLocale());
 
-	// One option per line: a phone wraps between them, not inside a flag. A visitor has no key and
-	// reads the public sources without one.
-	const connectCommand = $derived(
-		[
-			'claude mcp add \\',
-			'  --transport http \\',
-			'  --scope user \\',
-			`  ${data.mcpName} \\`,
-			...(data.user
-				? [`  ${data.origin}/mcp \\`, '  --header "Authorization: Bearer <key>"']
-				: [`  ${data.origin}/mcp`])
-		].join('\n')
-	);
+	// A visitor has no key and reads the public sources without one.
+	const command = $derived(connectCommand(data.origin, data.mcpName, data.user ? '<key>' : null));
 </script>
 
 <PageHead title={data.instanceTitle} namesInstance />
@@ -91,8 +81,8 @@
 	<section class="sheet" aria-labelledby="connect">
 		<h2 id="connect">{m.start_connect_heading()}</h2>
 		<p>{m.start_connect_intro()}</p>
-		<pre><code>{connectCommand}</code></pre>
-		<div><CopyButton value={connectCommand} label={m.start_connect_copy()} /></div>
+		<pre><code>{command}</code></pre>
+		<div><CopyButton value={command} label={m.start_connect_copy()} /></div>
 		<p>
 			{m.start_connect_other()}
 			<a href="https://elnebuloso.github.io/grimoire/agents/">{m.start_connect_handbook_link()}</a>

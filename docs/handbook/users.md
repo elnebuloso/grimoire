@@ -84,13 +84,16 @@ added, ask an admin.
 password and identity providers. A key reads all sources, public and internal, including future
 ones, or a selection of them; public sources need no key.
 
-- The key is shown once, right after **Create key**. A lost key cannot be recovered: revoke it and
-  create a new one.
-- **Change** followed by the key's name edits sources and expiry without replacing the key.
+- The key is shown once, in the dialog after **Create key**, together with the `claude mcp add`
+  command that already contains it. Closing the dialog with **Done** hides both for good. A lost
+  key cannot be recovered: revoke it and create a new one.
+- **Only these:** finds sources by name or slug as you type; with many sources it lists the first 8
+  matches, so narrow the search until the one you want appears.
+- **Edit** edits sources and expiry without replacing the key; the name stays.
 - **Valid until** is optional. The key works through that day in the instance's time zone.
 - Each key shows its requests per day for the last 90 days. Counts can lag a minute behind and
   lose that minute when the server restarts.
-- Admins see every key with its owner, sources, last use and requests, and may revoke it.
+- Admins see every key with its owner, sources, expiry, last use and requests, and may revoke it.
 
 Connecting an agent with the key: [Connecting agents](agents.md).
 

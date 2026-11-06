@@ -1,13 +1,18 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
+	import { enhance, type SubmitFunction } from '$app/forms';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
+	import { tick } from 'svelte';
 	import ChoiceField from '#lib/components/ChoiceField.svelte';
 	import ConfirmAction from '#lib/components/ConfirmAction.svelte';
+	import CopyButton from '#lib/components/CopyButton.svelte';
 	import DateTime from '#lib/components/DateTime.svelte';
+	import Dialog from '#lib/components/Dialog.svelte';
+	import EmptyState from '#lib/components/EmptyState.svelte';
 	import KeyScope from '#lib/components/KeyScope.svelte';
 	import PageHead from '#lib/components/PageHead.svelte';
 	import ShownOnce from '#lib/components/ShownOnce.svelte';
+	import SourcePicker from '#lib/components/SourcePicker.svelte';
 	import RequestsPerDay from '#lib/components/RequestsPerDay.svelte';
 	import FormError from '#lib/components/FormError.svelte';
 	import TextField from '#lib/components/TextField.svelte';
@@ -15,19 +20,19 @@
 	import { getLocale } from '#lib/paraglide/runtime.js';
 	import { formatDate } from '#lib/time-zone.js';
 	import { submitWithToast } from '#lib/forms.js';
+	import { connectCommand } from '#lib/connect-command.js';
 	import type { PageProps } from './$types';
 
-	let { data, form }: PageProps = $props();
+	let { data }: PageProps = $props();
 
 	interface Access {
 		allSources: boolean;
 		sources: string[];
 		validUntil: string;
 	}
+	type Key = PageProps['data']['keys'][number];
 
-	const values = $derived(
-		form?.values ?? { name: '', allSources: true, sources: [] as string[], validUntil: '' }
-	);
+	const NEW_KEY = { name: '', allSources: true, sources: [] as string[], validUntil: '' };
 
 	// Every refusal names one field: it is marked, points to the message and takes focus.
 	const SCOPE_ERRORS = [m.apikeys_error_scope(), m.apikeys_error_source_gone()];
@@ -35,11 +40,88 @@
 	const marked = (error: string | undefined, errorId: string, about: string[]) =>
 		error && about.includes(error) ? { 'aria-invalid': true, 'aria-describedby': errorId } : {};
 
-	$effect(() => {
-		if (form?.error || form?.update?.error) {
-			document.querySelector<HTMLElement>('main [aria-invalid="true"]')?.focus();
-		}
-	});
+	async function focusRefusal() {
+		await tick();
+		document.querySelector<HTMLElement>('dialog[open] [aria-invalid="true"]')?.focus();
+	}
+
+	// Each opening starts a fresh form: what was typed or picked before is gone.
+	let opened = $state(0);
+
+	let creating = $state(false);
+	let createValues = $state(NEW_KEY);
+	let createError = $state<string>();
+	let created = $state<{ name: string; key: string }>();
+
+	function openNew() {
+		createValues = NEW_KEY;
+		createError = undefined;
+		created = undefined;
+		opened++;
+		creating = true;
+	}
+
+	let editOpen = $state(false);
+	let editing = $state<Key>();
+	let editValues = $state<Access>(NEW_KEY);
+	let editError = $state<string>();
+
+	function openEdit(key: Key) {
+		editing = key;
+		editValues = {
+			allSources: key.sources === 'all',
+			sources: key.sources === 'all' ? [] : key.sources,
+			validUntil: key.validUntil ?? ''
+		};
+		editError = undefined;
+		opened++;
+		editOpen = true;
+	}
+
+	/** Shows a refusal in the dialog; `onresult` takes the answer of a successful action. */
+	function submitInDialog(
+		toast: (data: Record<string, unknown> | undefined) => string | undefined,
+		refused: (data: Record<string, unknown> | undefined) => void,
+		onresult: (data: Record<string, unknown> | undefined) => void
+	): SubmitFunction {
+		const submit = submitWithToast({
+			success: (result) => (result.type === 'success' ? toast(result.data) : undefined),
+			onfailure: (data) => {
+				refused(data);
+				focusRefusal();
+			}
+		});
+		return (input) => {
+			const done = submit(input);
+			return async (output) => {
+				if (typeof done === 'function') await done(output);
+				if (output.result.type === 'success') onresult(output.result.data);
+			};
+		};
+	}
+
+	const createSubmit = submitInDialog(
+		(answer) => {
+			const name = (answer?.created as { name: string } | undefined)?.name;
+			return name ? m.apikeys_created_toast({ name }) : undefined;
+		},
+		(answer) => {
+			createError = answer?.error as string | undefined;
+			createValues = (answer?.values as typeof NEW_KEY | undefined) ?? createValues;
+		},
+		// The form gives way to the key: nothing is left to send a second time.
+		(answer) => (created = answer?.created as { name: string; key: string })
+	);
+
+	const editSubmit = submitInDialog(
+		() => (editing ? m.apikeys_updated({ name: editing.name }) : undefined),
+		(answer) => {
+			const update = answer?.update as { error: string; values: Access } | undefined;
+			editError = update?.error;
+			editValues = update?.values ?? editValues;
+		},
+		() => (editOpen = false)
+	);
 </script>
 
 {#snippet accessFields(access: Access, error: string | undefined, errorId: string)}
@@ -60,18 +142,13 @@
 			label={m.apikeys_scope_selected()}
 			{...marked(error, errorId, SCOPE_ERRORS)}
 		/>
-		<!-- Named after the option it belongs to: a screen reader would otherwise announce bare slugs. -->
-		<fieldset class="sources" aria-label={m.apikeys_scope_selected_sources()}>
-			{#each data.sources as source (source)}
-				<ChoiceField
-					name="sources"
-					value={source}
-					checked={access.sources.includes(source)}
-					label={source}
-					mono
-				/>
-			{/each}
-		</fieldset>
+		<div class="sources">
+			<SourcePicker
+				sources={data.sources}
+				selected={access.sources}
+				label={m.apikeys_scope_selected_sources()}
+			/>
+		</div>
 	</fieldset>
 	<TextField
 		label={m.apikeys_valid_until()}
@@ -94,14 +171,23 @@
 {#if page.url.searchParams.has('welcome')}
 	<p class="notice" role="status">
 		{m.apikeys_welcome({ name: page.data.instanceTitle })}
-		<a href="#new-key">{m.apikeys_welcome_action()}</a>
+		<button type="button" aria-haspopup="dialog" onclick={openNew}
+			>{m.apikeys_welcome_action()}</button
+		>
 	</p>
 {/if}
 
 <section class="sheet" aria-labelledby="keys">
-	<h2 id="keys">{m.apikeys_list()}</h2>
+	<div class="sheet-head">
+		<h2 id="keys">{m.apikeys_list()}</h2>
+		{#if data.keys.length > 0}
+			<button type="button" class="primary" aria-haspopup="dialog" onclick={openNew}
+				>{m.apikeys_new()}</button
+			>
+		{/if}
+	</div>
 	{#if data.keys.length === 0}
-		<p class="muted">{m.apikeys_none()}</p>
+		<EmptyState text={m.apikeys_none()} action={{ label: m.apikeys_new(), onclick: openNew }} />
 	{:else}
 		<!-- role="list": WebKit drops the list role of a list without bullets. -->
 		<ul class="keys" role="list">
@@ -141,85 +227,86 @@
 							</p>
 							<RequestsPerDay days={key.requests} />
 						</div>
-						<ConfirmAction
-							action="?/revoke"
-							title={m.apikeys_revoke_title({ name: key.name })}
-							consequence={m.apikeys_revoke_consequence()}
-							danger
-							label={m.apikeys_revoke()}
-							buttonLabel={m.apikeys_revoke_named({ name: key.name })}
-							success={m.apikeys_revoked({ name: key.name })}
-						>
-							<input type="hidden" name="id" value={key.id} />
-						</ConfirmAction>
+						<div class="key-actions">
+							<button
+								type="button"
+								aria-haspopup="dialog"
+								aria-label={m.apikeys_edit_named({ name: key.name })}
+								onclick={() => openEdit(key)}>{m.apikeys_edit()}</button
+							>
+							<ConfirmAction
+								action="?/revoke"
+								title={m.apikeys_revoke_title({ name: key.name })}
+								consequence={m.apikeys_revoke_consequence()}
+								danger
+								label={m.apikeys_revoke()}
+								buttonLabel={m.apikeys_revoke_named({ name: key.name })}
+								success={m.apikeys_revoked({ name: key.name })}
+							>
+								<input type="hidden" name="id" value={key.id} />
+							</ConfirmAction>
+						</div>
 					</div>
-					<details open={form?.update?.id === key.id}>
-						<summary>{m.apikeys_change_named({ name: key.name })}</summary>
-						<form
-							class="inset"
-							method="post"
-							action="?/update"
-							use:enhance={submitWithToast({
-								success: () => m.apikeys_updated({ name: key.name })
-							})}
-						>
-							<FormError
-								message={form?.update?.id === key.id ? form.update.error : undefined}
-								id="update-error-{key.id}"
-							/>
-							<input type="hidden" name="id" value={key.id} />
-							{@render accessFields(
-								form?.update?.id === key.id
-									? form.update.values
-									: {
-											allSources: key.sources === 'all',
-											sources: key.sources === 'all' ? [] : key.sources,
-											validUntil: key.validUntil ?? ''
-										},
-								form?.update?.id === key.id ? form.update.error : undefined,
-								`update-error-${key.id}`
-							)}
-							<button>{m.apikeys_change_submit()}</button>
-						</form>
-					</details>
 				</li>
 			{/each}
 		</ul>
 	{/if}
 </section>
 
-<section class="sheet new" aria-labelledby="new-key">
-	<h2 id="new-key">{m.apikeys_new()}</h2>
-	{#if form?.created}
-		<p class="notice">{m.apikeys_created({ name: form.created.name })}</p>
-		<ShownOnce value={form.created.key} copyLabel={m.apikeys_copy()} />
+<Dialog bind:open={creating} title={m.apikeys_new()}>
+	{#if created}
+		<p class="notice" role="status">{m.apikeys_created({ name: created.name })}</p>
+		<ShownOnce value={created.key} copyLabel={m.apikeys_copy()} />
+		<p>{m.apikeys_connect_intro()}</p>
+		{@const command = connectCommand(data.origin, data.mcpName, created.key)}
+		<pre><code>{command}</code></pre>
+		<div><CopyButton value={command} label={m.start_connect_copy()} /></div>
+	{:else}
+		{#key opened}
+			<form id="create-key" method="post" action="?/create" use:enhance={createSubmit}>
+				<FormError message={createError} id="create-error" />
+				<TextField
+					label={m.field_name()}
+					name="name"
+					required
+					value={createValues.name}
+					mono
+					{...marked(createError, 'create-error', [m.apikeys_error_name()])}
+				/>
+				{@render accessFields(createValues, createError, 'create-error')}
+			</form>
+		{/key}
 	{/if}
-	<!-- Built anew for each created key: resetting would leave none of the scope options picked. -->
-	{#key form?.created}
-		<form
-			method="post"
-			action="?/create"
-			use:enhance={submitWithToast({
-				success: (result) =>
-					result.type === 'success' && result.data?.created
-						? m.apikeys_created_toast({ name: String(result.data.created.name) })
-						: undefined
-			})}
-		>
-			<FormError message={form?.error} id="create-error" />
-			<TextField
-				label={m.field_name()}
-				name="name"
-				required
-				value={values.name}
-				mono
-				{...marked(form?.error, 'create-error', [m.apikeys_error_name()])}
-			/>
-			{@render accessFields(values, form?.error, 'create-error')}
-			<button class="primary">{m.apikeys_submit()}</button>
-		</form>
-	{/key}
-</section>
+	{#snippet actions()}
+		{#if created}
+			<button type="button" class="primary" onclick={() => (creating = false)}
+				>{m.apikeys_done()}</button
+			>
+		{:else}
+			<button type="button" onclick={() => (creating = false)}>{m.dialog_cancel()}</button>
+			<button class="primary" form="create-key">{m.apikeys_submit()}</button>
+		{/if}
+	{/snippet}
+</Dialog>
+
+<Dialog
+	bind:open={editOpen}
+	title={editing ? m.apikeys_edit_title({ name: editing.name }) : m.apikeys_edit()}
+>
+	{#if editing}
+		{#key opened}
+			<form id="edit-key" method="post" action="?/update" use:enhance={editSubmit}>
+				<FormError message={editError} id="edit-error" />
+				<input type="hidden" name="id" value={editing.id} />
+				{@render accessFields(editValues, editError, 'edit-error')}
+			</form>
+		{/key}
+	{/if}
+	{#snippet actions()}
+		<button type="button" onclick={() => (editOpen = false)}>{m.dialog_cancel()}</button>
+		<button class="primary" form="edit-key">{m.apikeys_change_submit()}</button>
+	{/snippet}
+</Dialog>
 
 <style>
 	fieldset {
@@ -227,9 +314,6 @@
 		gap: var(--s2);
 	}
 	.sources {
-		display: flex;
-		flex-wrap: wrap;
-		gap: var(--s2) var(--s5);
 		padding-inline-start: 30px;
 	}
 	.keys {
@@ -277,19 +361,16 @@
 		color: var(--err);
 		font-weight: 500;
 	}
-	details[open] > summary {
-		margin-bottom: var(--s3);
+	.key-actions {
+		display: flex;
+		gap: var(--s2);
 	}
-	.inset {
-		padding: var(--s4);
-		background: var(--well);
-		border-radius: var(--r-control);
-		box-shadow: var(--sink);
+	form {
+		display: grid;
+		gap: var(--s4);
 	}
-	.inset :global(input:not([type='checkbox'], [type='radio'], :focus-visible)) {
-		background: var(--sheet);
-	}
-	.new {
-		max-width: 40rem;
+	pre {
+		margin: 0;
+		overflow-x: auto;
 	}
 </style>

@@ -1,13 +1,11 @@
 import type { PageServerLoad } from './$types';
-import { INSTANCE_NAME } from '$app/env/private';
-import { slugify } from '#lib/slug.js';
 import { database } from '#lib/server/db/index.js';
 import { answerQueryForm } from '#lib/server/query-form.js';
 import { sourceStats } from '#lib/server/stats.js';
 import { SOURCE_LIST } from '#lib/server/source-list.js';
 import { listPage, readListParams } from '#lib/list.js';
 import { allSlugs } from '#lib/server/api-keys.js';
-import { publicOrigin } from '#lib/server/public-origin.js';
+import { connectTarget } from '#lib/server/connect.js';
 
 export const load: PageServerLoad = ({ url, locals }) => {
 	const db = database();
@@ -22,8 +20,6 @@ export const load: PageServerLoad = ({ url, locals }) => {
 		filtered: params.search !== '' || Object.keys(params.filters).length > 0,
 		// Everything listed, the same as an API key of the user reads; for a visitor the public sources.
 		query: sources.length > 0 ? answerQueryForm(db, url, readable ?? 'public') : undefined,
-		origin: publicOrigin(url),
-		// The server name in the `claude mcp add` example: one word the CLI takes as it is.
-		mcpName: slugify(INSTANCE_NAME) || 'grimoire'
+		...connectTarget(url)
 	};
 };

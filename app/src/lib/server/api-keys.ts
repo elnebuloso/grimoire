@@ -243,6 +243,14 @@ export function revokeApiKey(db: DatabaseSync, id: number, ownerId?: number) {
 }
 
 /** The slugs of every source: what any user, and any key, may read. */
+/** Every source a key can be scoped to, by name, as the source picker offers them. */
+export function sourceChoices(db: DatabaseSync): { slug: string; name: string }[] {
+	return db.prepare('SELECT slug, name FROM sources ORDER BY name, slug').all() as {
+		slug: string;
+		name: string;
+	}[];
+}
+
 export function allSlugs(db: DatabaseSync): string[] {
 	const rows = db.prepare('SELECT slug FROM sources ORDER BY slug').all() as { slug: string }[];
 	return rows.map((row) => row.slug);

@@ -596,28 +596,48 @@ test('creates an API key that works for its source until it is revoked', async (
 	await asAdmin(page);
 	await area(page, 'Account').click();
 	await expect(page).toHaveURL('/account/api-keys');
-	await page.getByLabel('Name').fill('ci');
-	await page.getByLabel('Only these:').check();
-	await page.getByRole('button', { name: 'Create key' }).click();
-	await expect(page.getByRole('alert')).toHaveText('Choose all sources or at least one.');
-	await expect(page.getByLabel('Only these:').last()).toBeFocused();
+	await page.getByRole('button', { name: 'New key' }).click();
+	const dialog = page.getByRole('dialog');
+	await dialog.getByRole('textbox', { name: 'Name' }).fill('ci');
+	await dialog.getByLabel('Only these:').check();
+	await dialog.getByRole('button', { name: 'Create key' }).click();
+	await expect(dialog.getByRole('alert')).toHaveText('Choose all sources or at least one.');
+	await expect(dialog.getByLabel('Only these:')).toBeFocused();
 
-	await page.getByLabel('auth-service').last().check();
-	await page.getByRole('button', { name: 'Create key' }).click();
+	await dialog.getByRole('searchbox').fill('auth');
+	await dialog.getByRole('checkbox', { name: /auth-service/ }).check();
+	await dialog.getByRole('button', { name: 'Create key' }).click();
 
-	const key = await page.locator('output').textContent();
+	// The result replaces the form: nothing is left to create the key a second time.
+	const key = await dialog.locator('output').textContent();
 	expect(key).toMatch(/^grimoire_/);
+	await expect(dialog.locator('pre')).toContainText(`--header "Authorization: Bearer ${key}"`);
+	await expect(dialog.getByRole('button', { name: 'Create key' })).toHaveCount(0);
+	await dialog.getByRole('button', { name: 'Done' }).click();
 	const sources = () => request.get('/sources', { headers: { Authorization: `Bearer ${key}` } });
 	expect(await (await sources()).text()).toBe('- auth-service: Login and billing');
 
 	await page.goto('/manage/api-keys');
-	await expect(page.getByRole('row', { name: /ci/ })).toContainText(EMAIL);
+	await expect(page.getByRole('row', { name: /ci/ })).toContainText('no end');
+	await page.getByRole('link', { name: EMAIL }).click();
+	await expect(page).toHaveURL(`/manage/users?search=${encodeURIComponent(EMAIL)}`);
+	await page.getByRole('link', { name: `Keys of ${EMAIL}` }).click();
+	await expect(page.getByRole('status').filter({ hasText: `Keys of ${EMAIL}.` })).toBeVisible();
+	await expect(page.getByRole('row', { name: /ci/ })).toBeVisible();
+
 	await page.goto('/account/api-keys');
 	expect(await page.content()).not.toContain(key!);
 	const keyEntry = page
 		.getByRole('listitem')
 		.filter({ has: page.getByText('ci', { exact: true }) });
 	await expect(keyEntry).toContainText('auth-service');
+
+	await page.getByRole('button', { name: 'Edit ci' }).click();
+	await dialog.getByLabel('All sources, including future ones').check();
+	await dialog.getByRole('button', { name: 'Save changes' }).click();
+	await expect(toasts(page)).toContainText('ci changed.');
+	await expect(dialog).toBeHidden();
+	await expect(keyEntry).toContainText('all sources');
 
 	await page.getByRole('button', { name: 'Revoke ci' }).click();
 	await page.getByRole('dialog').getByRole('button', { name: 'Revoke' }).click();
@@ -657,9 +677,10 @@ test('invites a user who reads internal sources with their own key, but manages 
 	await page.goto('/');
 	await area(page, 'Account').click();
 	await expect(page).toHaveURL('/account/api-keys');
-	await page.getByLabel('Name').fill('writer-laptop');
-	await page.getByRole('button', { name: 'Create key' }).click();
-	const key = await page.locator('output').textContent();
+	await page.getByRole('button', { name: 'New key' }).click();
+	await page.getByRole('dialog').getByRole('textbox', { name: 'Name' }).fill('writer-laptop');
+	await page.getByRole('dialog').getByRole('button', { name: 'Create key' }).click();
+	const key = await page.getByRole('dialog').locator('output').textContent();
 	const sources = await page.request.get('/sources', {
 		headers: { Authorization: `Bearer ${key}` }
 	});
