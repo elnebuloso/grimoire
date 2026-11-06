@@ -33,6 +33,7 @@ export function preprocessPage(source: string): PreprocessedPage {
 	// MkDocs reads pages as `utf-8-sig`: a byte order mark would hide the frontmatter.
 	const { metadata, body } = splitFrontmatter(source.replace(/^\uFEFF/, ''));
 	const tree = parseMarkdown(convertBlocks(body));
+	dropImagesInHeadings(tree);
 	dropImageUrlsAndComments(tree);
 	return { ...metadata, markdown: stringifyMarkdown(tree) };
 }
@@ -124,6 +125,25 @@ function quote(label: string | undefined, content: string): string[] {
 		else lines.unshift(tag, '');
 	}
 	return lines.map((line) => (line === '' ? '>' : `> ${line}`));
+}
+
+// Python-Markdown's toc builds the anchor from a heading's text, and an image's alt text is no
+// text there: kept, it would change the anchor and every link to it. A link left empty goes too.
+function dropImagesInHeadings(tree: Root) {
+	visit(tree, 'heading', (heading) => {
+		visit(heading, (node, index, parent) => {
+			if (!parent || index === undefined) return;
+			if (node.type !== 'image' && node.type !== 'imageReference') return;
+			parent.children.splice(index, 1);
+			return [SKIP, index];
+		});
+		// A link holding only an image is empty once the image is gone.
+		heading.children = heading.children.filter(
+			(child) =>
+				!((child.type === 'link' || child.type === 'linkReference') && child.children.length === 0)
+		);
+		return SKIP;
+	});
 }
 
 function dropImageUrlsAndComments(tree: Root) {

@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { chunkPage } from './chunk';
 import { preprocessPage } from './preprocess';
 
 const mkdocsPage = `---
@@ -195,6 +196,21 @@ Some text with \`code\` and a [link](other.md#section).
 	});
 
 	describe('images and comments', () => {
+		it('drops an image in a heading, which MkDocs leaves out of the anchor', () => {
+			const anchors = (markdown: string) =>
+				chunkPage(preprocessPage(markdown), 'deploy.md').snippets.map((s) => s.anchor);
+
+			expect(anchors(`# Page\n\n## Logo ![alt text](x.png)\n\n${'Text. '.repeat(60)}\n`)).toEqual([
+				'logo'
+			]);
+			expect(
+				anchors(
+					`# Page\n\n## Build [![status](b.svg)](https://ci.example)\n\n${'Text. '.repeat(60)}\n`
+				)
+			).toEqual(['build']);
+			expect(preprocessPage('Text ![alt text](x.png)\n').markdown).toBe('Text alt text\n');
+		});
+
 		it('keeps the alt text of a linked image', () => {
 			expect(preprocessPage('[![Build status](badge.svg)](https://ci.example)\n').markdown).toBe(
 				'[Build status](https://ci.example)\n'
