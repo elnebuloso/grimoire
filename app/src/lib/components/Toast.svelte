@@ -101,11 +101,4 @@
 	.close:hover {
 		color: var(--ink);
 	}
-	@media (max-width: 40rem) {
-		ol {
-			inset-inline: var(--s4);
-			inset-block-end: var(--s4);
-			width: auto;
-		}
-	}
 </style>

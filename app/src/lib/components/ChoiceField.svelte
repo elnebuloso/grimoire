@@ -35,13 +35,4 @@
 		font-family: var(--mono);
 		font-size: var(--fs-4);
 	}
-	@media (pointer: coarse) {
-		label {
-			align-items: center;
-			min-height: 44px;
-		}
-		input {
-			margin-top: 0;
-		}
-	}
 </style>

@@ -80,8 +80,7 @@
 	--fs-5: 14px;
 	--fs-6: 15px;
 	--fs-7: 18px;
-	--fs-8: 23px;
-	--fs-9: 26px;
+	--fs-8: 26px;
 	--s1: 4px;
 	--s2: 8px;
 	--s3: 12px;
@@ -121,7 +120,7 @@ h4 {
 	font-weight: 600;
 }
 h1 {
-	font-size: var(--fs-9);
+	font-size: var(--fs-8);
 	letter-spacing: -0.015em;
 }
 h2 {
@@ -149,11 +148,6 @@ ol {
 /* No word alone on the last line of a paragraph; a phone's narrow measure makes them common. */
 p {
 	text-wrap: pretty;
-}
-@media (max-width: 40rem) {
-	h1 {
-		font-size: var(--fs-8);
-	}
 }
 
 code,
@@ -406,18 +400,6 @@ details > summary:hover {
 	color: var(--accent-hover);
 }
 
-@media (pointer: coarse) {
-	button,
-	a.button,
-	input:not([type='checkbox'], [type='radio'], [type='hidden']),
-	select {
-		min-height: 44px;
-	}
-	details > summary {
-		padding: var(--s3) 0;
-	}
-}
-
 /* Tables */
 
 table {
@@ -507,20 +489,6 @@ td.num {
 /* Inside the region: a flush sheet clips everything past its edges, the focus ring included. */
 .table-scroll:focus-visible {
 	outline-offset: -3px;
-}
-@media (max-width: 40rem) {
-	.sheet {
-		padding: var(--s4);
-	}
-	.sheet.flush > :not(.table-scroll) {
-		padding: var(--s4);
-	}
-	.sheet.flush :is(th, td):first-child {
-		padding-inline-start: var(--s4);
-	}
-	.sheet.flush :is(th, td):last-child {
-		padding-inline-end: var(--s4);
-	}
 }
 
 /* Status, warning and alert: a tinted band with an edge; the word carries the meaning. */
