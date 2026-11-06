@@ -54,12 +54,25 @@ export function compareSources(a: SourceLocation, b: SourceLocation): Overlap | 
 export function findOverlaps<Source extends SourceLocation>(
 	sources: Source[]
 ): { kind: Overlap; first: Source; second: Source }[] {
-	return sources.flatMap((first, index) =>
-		sources.slice(index + 1).flatMap((second) => {
-			const kind = compareSources(first, second);
-			return kind ? [{ kind, first, second }] : [];
-		})
-	);
+	// Only sources of one repository can overlap: pairs are compared within those groups, not
+	// across hundreds of sources.
+	const byRepository = new Map<string, number[]>();
+	sources.forEach((source, index) => {
+		const key = repositoryKey(source.gitUrl);
+		byRepository.set(key, [...(byRepository.get(key) ?? []), index]);
+	});
+	const pairs: { kind: Overlap; first: number; second: number }[] = [];
+	for (const indices of byRepository.values()) {
+		indices.forEach((first, position) => {
+			for (const second of indices.slice(position + 1)) {
+				const kind = compareSources(sources[first], sources[second]);
+				if (kind) pairs.push({ kind, first, second });
+			}
+		});
+	}
+	return pairs
+		.toSorted((a, b) => a.first - b.first || a.second - b.second)
+		.map(({ kind, first, second }) => ({ kind, first: sources[first], second: sources[second] }));
 }
 
 function contains(outer: string, inner: string): boolean {

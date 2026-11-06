@@ -74,8 +74,24 @@ export interface SourceStatus {
 	history: SyncHistoryEntry[];
 }
 
-/** The sync state of a source; undefined when there is no such source. */
-export function sourceStatus(db: DatabaseSync, sourceId: number): SourceStatus | undefined {
+/** The parts of a source's state that cost a query each; a page asks for those it shows. */
+export interface StatusParts {
+	pages: boolean;
+	history: boolean;
+	deadLinks: boolean;
+}
+
+const ALL_PARTS: StatusParts = { pages: true, history: true, deadLinks: true };
+
+/**
+ * The sync state of a source, with the `parts` asked for (empty lists for the others); undefined
+ * when there is no such source.
+ */
+export function sourceStatus(
+	db: DatabaseSync,
+	sourceId: number,
+	parts: StatusParts = ALL_PARTS
+): SourceStatus | undefined {
 	const source = db
 		.prepare(
 			`SELECT last_checked_at, last_synced_at, last_commit, error, error_kind, warnings
@@ -92,22 +108,26 @@ export function sourceStatus(db: DatabaseSync, sourceId: number): SourceStatus |
 		  }
 		| undefined;
 	if (!source) return undefined;
-	const pages = db
-		.prepare(
-			`SELECT pages.file, pages.title, count(snippets.id) AS snippets,
+	const pages = !parts.pages
+		? []
+		: (db
+				.prepare(
+					`SELECT pages.file, pages.title, count(snippets.id) AS snippets,
 				coalesce(sum(snippets.tokens), 0) AS tokens
 			FROM live_pages AS pages LEFT JOIN snippets ON snippets.page_id = pages.id
 			WHERE pages.source_id = ?
 			GROUP BY pages.id ORDER BY pages.file`
-		)
-		.all(sourceId) as unknown as PageSummary[];
-	const history = db
-		.prepare(
-			`SELECT started_at AS startedAt, finished_at AS finishedAt, outcome, commit_hash AS 'commit',
+				)
+				.all(sourceId) as unknown as PageSummary[]);
+	const history = !parts.history
+		? []
+		: (db
+				.prepare(
+					`SELECT started_at AS startedAt, finished_at AS finishedAt, outcome, commit_hash AS 'commit',
 				error, error_kind AS errorKind, runs
 			FROM sync_runs WHERE source_id = ? ORDER BY id DESC`
-		)
-		.all(sourceId) as unknown as SyncHistoryEntry[];
+				)
+				.all(sourceId) as unknown as SyncHistoryEntry[]);
 
 	return {
 		lastCheckedAt: source.last_checked_at,
@@ -122,7 +142,7 @@ export function sourceStatus(db: DatabaseSync, sourceId: number): SourceStatus |
 			snippets: pages.reduce((sum, page) => sum + page.snippets, 0),
 			tokens: pages.reduce((sum, page) => sum + page.tokens, 0)
 		},
-		deadLinks: deadLinks(db, sourceId).map(({ file, anchor, target }) => ({
+		deadLinks: (parts.deadLinks ? deadLinks(db, sourceId) : []).map(({ file, anchor, target }) => ({
 			file,
 			anchor,
 			target
@@ -309,21 +329,40 @@ function sourceRef(source: Named): SourceRef {
 
 export interface Dashboard {
 	totals: Totals;
-	sources: SourceStats[];
 	attention: ProblemGroup[];
 }
 
+const overlapsByRequest = new WeakMap<object, ReturnType<typeof findSourceOverlaps>>();
+
+function findSourceOverlaps(db: DatabaseSync) {
+	return findOverlaps(listSources(db));
+}
+
+/**
+ * Every pair of sources that hold the same documentation, or some of it. With `request`, an
+ * object that lives as long as the request such as its `locals`, the layout and the page of one
+ * request compare the sources once.
+ */
+export function sourceOverlaps(db: DatabaseSync, request?: object) {
+	const cached = request && overlapsByRequest.get(request);
+	if (cached) return cached;
+	const pairs = findSourceOverlaps(db);
+	if (request) overlapsByRequest.set(request, pairs);
+	return pairs;
+}
+
 /** The overview of every source and key for the admins. */
-export function dashboard(db: DatabaseSync): Dashboard {
+export function dashboard(db: DatabaseSync, request?: object): Dashboard {
 	const sources = sourceStats(db);
 	const sum = (figure: 'pages' | 'snippets' | 'tokens' | 'deadLinks') =>
 		sources.reduce((total, source) => total + source[figure], 0);
 	const { apiKeys } = db.prepare('SELECT count(*) AS apiKeys FROM api_keys').get() as {
 		apiKeys: number;
 	};
+	const deadLinksOf = new Map(sources.map((source) => [source.id, source.deadLinks]));
 	const health = sourceHealth(db).map((health) => ({
 		...health,
-		deadLinks: sources.find((source) => source.id === health.sourceId)?.deadLinks ?? 0
+		deadLinks: deadLinksOf.get(health.sourceId) ?? 0
 	}));
 	return {
 		totals: {
@@ -334,17 +373,17 @@ export function dashboard(db: DatabaseSync): Dashboard {
 			deadLinks: sum('deadLinks'),
 			apiKeys
 		},
-		sources,
-		attention: groupProblems(problems(health, findOverlaps(listSources(db))))
+		attention: groupProblems(problems(health, sourceOverlaps(db, request)))
 	};
 }
 
 /** The sources that hold the same documentation as the given one, or some of it. */
 export function overlapsOf(
 	db: DatabaseSync,
-	sourceId: number
+	sourceId: number,
+	request?: object
 ): { overlap: Overlap; other: SourceRef }[] {
-	return findOverlaps(listSources(db)).flatMap(({ kind, first, second }) => {
+	return sourceOverlaps(db, request).flatMap(({ kind, first, second }) => {
 		if (first.id === sourceId) return [{ overlap: kind, other: sourceRef(second) }];
 		if (second.id === sourceId) return [{ overlap: kind, other: sourceRef(first) }];
 		return [];
@@ -359,12 +398,15 @@ export interface ManagementCounts {
 	invitations: number;
 }
 
-export function managementCounts(db: DatabaseSync): ManagementCounts {
+export function managementCounts(db: DatabaseSync, request?: object): ManagementCounts {
 	const count = (sql: string) => (db.prepare(sql).get() as { count: number }).count;
 	return {
 		failedSources: count('SELECT count(*) AS count FROM sources WHERE error IS NOT NULL'),
-		deadLinks: deadLinks(db).length,
-		duplicates: findOverlaps(listSources(db)).length,
+		deadLinks: count(
+			`SELECT count(*) AS count FROM links JOIN live_pages AS pages ON pages.id = links.page_id
+			WHERE links.dead = 1`
+		),
+		duplicates: sourceOverlaps(db, request).length,
 		invitations: count('SELECT count(*) AS count FROM invitations')
 	};
 }

@@ -37,7 +37,7 @@ function sourceFor(params: { id: string }): SourceSettings | undefined {
 	return source;
 }
 
-export const load: PageServerLoad = ({ params, url }) => {
+export const load: PageServerLoad = ({ params, url, locals }) => {
 	const source = sourceFor(params);
 	// A new source has its settings only.
 	if (!source && params.tab) error(404);
@@ -47,11 +47,19 @@ export const load: PageServerLoad = ({ params, url }) => {
 	if (source && previewFile !== null && !params.tab)
 		redirect(303, `${url.pathname}/pages${url.search}`);
 	const { syncsPaused } = readSettings(database());
+	const tab = params.tab ?? 'status';
 	return {
 		source,
-		tab: params.tab ?? 'status',
-		status: source && sourceStatus(database(), source.id),
-		overlaps: source ? overlapsOf(database(), source.id) : [],
+		tab,
+		// Only what the tab shows; the head needs the state, which every tab gets.
+		status:
+			source &&
+			sourceStatus(database(), source.id, {
+				pages: tab === 'status' || tab === 'pages',
+				history: tab === 'history',
+				deadLinks: tab === 'status'
+			}),
+		overlaps: source && tab === 'status' ? overlapsOf(database(), source.id, locals) : [],
 		syncPending: source !== undefined && syncPending(source.id),
 		preview:
 			source && previewFile

@@ -425,16 +425,4 @@ describe('dashboard', () => {
 			{ source: 'noisy', neverSynced: false, paused: false, error: false, warnings: 1 }
 		]);
 	});
-
-	it('lists the sources with the figures of the public start page', () => {
-		expect(dashboard(db).sources.map((source) => [source.slug, source.pages])).toEqual([
-			['auth', 1],
-			['billing', 0],
-			['broken', 0],
-			['failing', 0],
-			['fine', 1],
-			['held', 0],
-			['noisy', 0]
-		]);
-	});
 });
