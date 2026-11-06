@@ -28,6 +28,8 @@ Facts learned while building grimoire.
   `param_matcher_missing`.
 - `goto` options: `replace` (not `replaceState`) and `reset: false` (instead of `keepFocus` and
   `noScroll`).
+- On a `csr = false` page `resolve()` writes relative links (`../login`): an e2e test follows the
+  link and checks the URL instead of comparing `href`.
 
 ## Runtime
 
@@ -75,7 +77,21 @@ Facts learned while building grimoire.
   them in others; register `page.on('dialog', …)` in the script to decide, and never click a
   destructive action outside the agent environment.
 - Sources added to the agent database by hand with made-up Git URLs are synced by its scheduler
-  within seconds and end with a sync error; reset afterwards.
+  within seconds and end with a sync error; reset afterwards. `make agent-many-sources` adds 500
+  paused ones, which the scheduler leaves alone; `make agent-reset` removes them.
+- A Playwright click on a button that opens a dialog does nothing before hydration: load the page
+  with `waitUntil: 'networkidle'` first.
+
+## UI
+
+- A `ConfirmAction` inside a popover (`ActionMenu`) keeps its dialog inside the popover: hiding
+  the popover hides the open dialog with it. `ActionMenu` therefore stays open behind the dialog
+  and closes on the dialog's `close`.
+- axe fails a button whose `aria-label` does not contain its visible text
+  (`label-content-name-mismatch`): `buttonLabel` messages start with the visible label, e.g.
+  „Password link for {email}“.
+- `getByLabel('Name')` also matches the `SourcePicker` search; use
+  `getByRole('textbox', { name: 'Name' })`.
 
 ## Storybook
 
