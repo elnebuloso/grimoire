@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import type { Heading } from 'mdast';
 import { assignAnchors, chunkPage, estimateTokens } from './chunk';
-import type { PreprocessedPage } from './preprocess';
+import { preprocessPage, type PreprocessedPage } from './preprocess';
 import { pythonMarkdownSlugify } from './slugs';
 
 /** A paragraph of roughly the given number of tokens. */
@@ -204,6 +204,25 @@ describe('chunkPage', () => {
 			'rollback_3'
 		]);
 		expect(page.snippets[12].titlePath.at(-1)).toBe('Custom title');
+	});
+
+	it('counts a heading inside an admonition as MkDocs does, and keeps its anchor', () => {
+		const page = chunkPage(
+			preprocessPage(
+				[
+					'# Page',
+					`## Example\n\n${text(60)}`,
+					`!!! note "Careful"\n\n    ## Example\n\n    ${text(60)}`,
+					`## Example\n\n${text(60)}`
+				].join('\n\n')
+			),
+			'deploy.md'
+		);
+
+		// Produced by Python-Markdown 3.11 with `toc`, `attr_list` and `admonition`: the heading in
+		// the note is anchored `example_1`, so the next one becomes `example_2`.
+		expect(page.snippets.map((s) => s.anchor)).toEqual(['example', 'example_2']);
+		expect(page.snippets[0].aliases).toContain('example_1');
 	});
 
 	it('moves link definitions into every snippet that references them', () => {

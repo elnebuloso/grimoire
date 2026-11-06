@@ -58,10 +58,13 @@ export function chunkPage(
 	const tree = parseMarkdown(page.markdown);
 	const definitions = takeDefinitions(tree);
 	const nodes = tree.children;
-	const anchors = assignAnchors(
-		nodes.filter((node) => node.type === 'heading'),
-		slugify
-	);
+	// Every heading in document order, those inside an admonition or a list too: MkDocs anchors
+	// and counts them all, though only top-level ones start a snippet.
+	const headings: Heading[] = [];
+	visit(tree, 'heading', (heading) => {
+		headings.push(heading);
+	});
+	const anchors = assignAnchors(headings, slugify);
 
 	const root: Section = { title: 'Overview', aliases: [], nodes: [], children: [] };
 	const stack: { depth: number; section: Section }[] = [{ depth: 0, section: root }];
@@ -70,7 +73,13 @@ export function chunkPage(
 
 	for (const node of nodes) {
 		if (node.type !== 'heading') {
-			stack[stack.length - 1].section.nodes.push(node);
+			const section = stack[stack.length - 1].section;
+			section.nodes.push(node);
+			// A heading nested in the block is no snippet of its own; a link to it lands here.
+			visit(node, 'heading', (heading) => {
+				const anchor = anchors.get(heading);
+				if (anchor) section.aliases.push(anchor);
+			});
 			continue;
 		}
 		if (node.depth === 1 && firstH1 === undefined && stack.length === 1) {

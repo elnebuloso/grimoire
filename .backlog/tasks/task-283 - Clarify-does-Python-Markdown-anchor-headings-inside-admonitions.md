@@ -1,9 +1,11 @@
 ---
 id: TASK-283
 title: 'Clarify: does Python-Markdown anchor headings inside admonitions'
-status: To Do
-assignee: []
+status: Done
+assignee:
+  - '@claude'
 created_date: '2026-11-06 15:58'
+updated_date: '2026-11-06 19:35'
 labels:
   - parsing
 dependencies: []
@@ -24,7 +26,28 @@ If Python-Markdown `toc` anchors headings inside admonitions (believed, not chec
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 The anchors Python-Markdown (with `toc`, `attr_list`, `admonition`) gives a repeated heading inside an admonition are recorded as a row in the `chunk.spec.ts` table
-- [ ] #2 If the site anchors them, `assignAnchors` takes every heading in document order while only top-level ones become sections, and the row passes
+- [x] #1 The anchors Python-Markdown (with `toc`, `attr_list`, `admonition`) gives a repeated heading inside an admonition are recorded as a row in the `chunk.spec.ts` table
+- [x] #2 If the site anchors them, `assignAnchors` takes every heading in document order while only top-level ones become sections, and the row passes
 - [ ] #3 If it does not, the row documents that and nothing else changes
 <!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. Render a repeated heading inside an admonition with Python-Markdown 3.11 (toc, attr_list, admonition) via uvx
+2. Record the result as a chunk.spec row
+3. If anchored: assignAnchors over every heading in document order; only top-level headings become snippets
+<!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+- Python-Markdown 3.11 run (uvx --with markdown==3.11): '## Example', the same inside '!!! note', and again after it give example, example_1, example_2. So the site anchors headings inside admonitions and counts them.
+- chunkPage now collects every heading with visit() for assignAnchors; the anchor of a heading nested in a block becomes an alias of the snippet holding it, so a link to it is no dead link and the ID resolves. The alias part is beyond AC #2 but small; it is what the description names as the damage.
+<!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Python-Markdown anchors headings inside admonitions (checked with 3.11: example, example_1, example_2), so grimoire now counts every heading in document order when it assigns anchors, while only top-level headings start a snippet. A nested heading's anchor is kept as an alias of its snippet, so links to it are not dead. The spec row records the Python-Markdown result; parsing and sync specs pass.
+<!-- SECTION:FINAL_SUMMARY:END -->
