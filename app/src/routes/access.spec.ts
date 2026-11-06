@@ -168,7 +168,8 @@ describe('header', () => {
 			(
 				load({
 					cookies: fakeCookies({}),
-					locals: { user: admin.auth.sessionUser(db, session) }
+					locals: { user: admin.auth.sessionUser(db, session) },
+					depends: () => {}
 				} as never) as {
 					user: unknown;
 				}

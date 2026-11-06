@@ -3,7 +3,8 @@ import { GRIMOIRE_VERSION, INSTANCE_TITLE, TZ } from '$app/env/private';
 import { mayOpen } from '#lib/server/auth/access.js';
 import { isTheme, THEME_COOKIE } from '#lib/theme.js';
 
-export const load: LayoutServerLoad = ({ cookies, locals }) => {
+export const load: LayoutServerLoad = ({ cookies, locals, depends }) => {
+	depends('app:theme');
 	const { user } = locals;
 	const theme = cookies.get(THEME_COOKIE);
 	return {

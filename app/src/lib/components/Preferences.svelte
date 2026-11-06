@@ -1,6 +1,5 @@
 <script lang="ts">
-	// Not `refreshAll`: Storybook's stand-in for `$app/navigation` lacks it.
-	import { invalidateAll } from '$app/navigation';
+	import { invalidate } from '$app/navigation';
 	import SegmentedSwitch from './SegmentedSwitch.svelte';
 	import { m } from '#lib/paraglide/messages.js';
 	import { getLocale, locales } from '#lib/paraglide/runtime.js';
@@ -43,7 +42,8 @@
 		onpick={(picked) => {
 			if (picked === 'system') document.documentElement.removeAttribute('data-theme');
 			else document.documentElement.setAttribute('data-theme', picked);
-			return invalidateAll();
+			// Only the root layout reads the theme; the page's own data stays.
+			return invalidate('app:theme');
 		}}
 	/>
 </div>
