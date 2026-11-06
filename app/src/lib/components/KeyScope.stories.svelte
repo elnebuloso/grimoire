@@ -25,8 +25,9 @@
 <Story
 	name="A few sources"
 	args={{ allSources: false, slugs: ['billing-docs', 'platform-docs'] }}
-	play={async ({ canvas }) => {
+	play={async ({ canvas, canvasElement }) => {
 		await expect(canvas.getByText('billing-docs')).toBeVisible();
+		await expect(canvasElement).toHaveTextContent('billing-docs, platform-docs');
 		await expect(canvas.queryByText(/more/)).toBeNull();
 	}}
 />

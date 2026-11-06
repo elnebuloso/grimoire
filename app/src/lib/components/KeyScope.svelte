@@ -13,9 +13,9 @@
 {:else if slugs.length === 0}
 	<span>{m.apikeys_no_sources()}</span>
 {:else if rest <= 0}
+	<!-- The space as an expression: Svelte trims whitespace at the edges of a block. -->
 	<span
-		>{#each slugs as slug, index (slug)}{#if index > 0},
-			{/if}<code>{slug}</code>{/each}</span
+		>{#each slugs as slug, index (slug)}{index > 0 ? ', ' : ''}<code>{slug}</code>{/each}</span
 	>
 {:else}
 	<details>
