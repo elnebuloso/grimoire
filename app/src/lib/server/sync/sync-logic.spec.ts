@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { fork } from 'node:child_process';
-import { mkdtempSync, readdirSync, rmSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { DatabaseSync } from 'node:sqlite';
@@ -14,7 +14,7 @@ import { indexPages } from './index-pages';
 import type { IndexJob, IndexOutcome } from './index-worker';
 import { createSyncQueue, type SyncLanes } from './queue';
 import { isDue } from './schedule';
-import { syncSource } from './sync';
+import { freshWorkDirectory, syncSource } from './sync';
 
 // The decisions of a sync around Git and the indexing process, with both replaced; sync.spec.ts
 // runs them for real.
@@ -386,6 +386,19 @@ describe('syncSource', () => {
 
 			expect(await sync()).toMatchObject({ status: 'unchanged', commit: 'c1' });
 		});
+	});
+});
+
+describe('freshWorkDirectory', () => {
+	it('empties the directory of its database at start and leaves that of another alone', () => {
+		const own = freshWorkDirectory(join(root, 'grimoire.db'), root);
+		const other = freshWorkDirectory(join(root, 'other.db'), root);
+		mkdirSync(join(own, 'grimoire-sync-left'));
+		mkdirSync(join(other, 'grimoire-sync-running'));
+
+		expect(freshWorkDirectory(join(root, 'grimoire.db'), root)).toBe(own);
+		expect(readdirSync(own)).toEqual([]);
+		expect(readdirSync(other)).toEqual(['grimoire-sync-running']);
 	});
 });
 

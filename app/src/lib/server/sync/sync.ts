@@ -1,7 +1,8 @@
 import { fork } from 'node:child_process';
+import { mkdirSync, rmSync } from 'node:fs';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import type { DatabaseSync } from 'node:sqlite';
 import { fileURLToPath } from 'node:url';
 import {
@@ -14,6 +15,7 @@ import {
 	sourceForSync
 } from '../db/sources';
 import { decryptSecret } from '../secret-encryption';
+import { sha256 } from '../sha256';
 import { ConnectionRefused, type ConnectionPolicy } from './connection-policy';
 import { syncErrorKind } from './error-kind';
 import { SyncFailure, type SyncErrorKind } from './failure';
@@ -163,6 +165,18 @@ function failureKind(error: Error): SyncErrorKind {
 	if (error instanceof ConnectionRefused) return 'forbidden';
 	// Thrown outside grimoire's own code, such as Node's name lookup: only the message tells.
 	return syncErrorKind(error.message);
+}
+
+/**
+ * The directory the syncs of the database at `databasePath` clone into, below `base`, emptied:
+ * a process killed during a sync leaves its clone there. Another database on the same host, such
+ * as the second instance of the e2e tests, has a directory of its own.
+ */
+export function freshWorkDirectory(databasePath: string, base = tmpdir()): string {
+	const directory = join(base, `grimoire-work-${sha256(resolve(databasePath)).slice(0, 12)}`);
+	rmSync(directory, { recursive: true, force: true });
+	mkdirSync(directory, { recursive: true });
+	return directory;
 }
 
 function storedToken(encryptedToken: string | null, key: Buffer): string | undefined {

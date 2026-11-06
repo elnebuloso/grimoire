@@ -4,21 +4,25 @@ import {
 	INDEXING_DEADLINE_MINUTES,
 	SYNC_SCHEDULE,
 	ENCRYPTION_KEY,
+	DATABASE_PATH,
 	TZ
 } from '$app/env/private';
 import { database } from '../db';
 import { listSchedules, recordSyncError } from '../db/sources';
 import { createSyncQueue, startPolling } from './queue';
 import { isDue } from './schedule';
-import { syncSource } from './sync';
+import { freshWorkDirectory, syncSource } from './sync';
 import { log } from '../log';
 import { connectionPolicy, refusedSources } from './connection-policy';
 
 // How late a scheduled check may start at most; listing 200 sources this often costs nothing.
 const TICK_MS = 15_000;
 
+let workDirectory: string | undefined;
+
 const queue = createSyncQueue((sourceId, force, lanes) =>
 	syncSource(database(), sourceId, {
+		workDirectory,
 		key: ENCRYPTION_KEY.sourceTokens,
 		policy: connectionPolicy(GIT_ALLOWED_HOSTS),
 		force,
@@ -39,6 +43,7 @@ export const syncPending = queue.isPending;
 
 /** Checks every source whenever its schedule – its own, or `SYNC_SCHEDULE` – says so. */
 export function startSyncPolling(): () => void {
+	workDirectory = freshWorkDirectory(DATABASE_PATH);
 	return startPolling(queue, dueSources, TICK_MS);
 }
 
