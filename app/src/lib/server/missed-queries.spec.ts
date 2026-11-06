@@ -57,6 +57,14 @@ describe('missed queries', () => {
 		]);
 	});
 
+	it('lists every recorded question, also beyond a few hundred', () => {
+		for (let question = 0; question < 250; question++) {
+			recordMissedQuery(db, { question: `question ${question}`, sources: null }, NOW);
+		}
+
+		expect(listMissedQueries(db)).toHaveLength(250);
+	});
+
 	it('forgets questions older than 30 days', () => {
 		recordMissedQuery(db, { question: 'old', sources: null }, NOW);
 		recordMissedQuery(db, { question: 'recent', sources: null }, daysLater(30));

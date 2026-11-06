@@ -4,7 +4,6 @@ import type { DatabaseSync } from 'node:sqlite';
 const KEEP_DAYS = 30;
 // An agent stuck in a loop must not fill the disk within those days.
 const MAX_ENTRIES = 10_000;
-const MAX_LISTED = 200;
 
 export interface MissedQuery {
 	question: string;
@@ -40,10 +39,9 @@ export function listMissedQueries(db: DatabaseSync): MissedQuery[] {
 			`SELECT question, sources, count(*) AS count, max(asked_at) AS lastAskedAt
 			FROM missed_queries
 			GROUP BY question, sources
-			ORDER BY lastAskedAt DESC
-			LIMIT ?`
+			ORDER BY lastAskedAt DESC`
 		)
-		.all(MAX_LISTED) as unknown as (Omit<MissedQuery, 'sources'> & { sources: string | null })[];
+		.all() as unknown as (Omit<MissedQuery, 'sources'> & { sources: string | null })[];
 	return rows.map((row) => ({
 		...row,
 		sources: row.sources === null ? null : JSON.parse(row.sources)
