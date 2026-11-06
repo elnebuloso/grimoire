@@ -26,6 +26,6 @@ export const POST: RequestHandler = async ({ params, request, cookies, url }) =>
 		provider,
 		cookies,
 		{ next: next ? pathOnThisSite(next, url) : '', invite },
-		'/login?problem=oidc-unavailable'
+		'/login'
 	);
 };

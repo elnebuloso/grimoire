@@ -20,6 +20,7 @@ import {
 	classifyLoginFailure,
 	finishFlow,
 	openFlow,
+	ProviderMisconfigured,
 	ProviderUnavailable,
 	sealLink,
 	unavailableMessage
@@ -68,12 +69,18 @@ export const load: PageServerLoad = async ({ params, url, cookies, getClientAddr
 	} catch (failure) {
 		if (failure instanceof ProviderUnavailable) {
 			log.warn(unavailableMessage(provider.key, failure));
-			return refuse('oidc-unavailable');
+			return refuse(
+				failure instanceof ProviderMisconfigured ? 'oidc-misconfigured' : 'oidc-unavailable'
+			);
 		}
 		const { text, cause } = classifyLoginFailure(failure);
 		const message = `OIDC login through ${provider.key} failed: ${text}`;
-		if (cause === 'configuration') log.warn(message);
-		else log.info(message);
+		// Such as invalid_client: only the operator can fix it, another try will not help.
+		if (cause === 'configuration') {
+			log.warn(message);
+			return refuse('oidc-misconfigured');
+		}
+		log.info(message);
 		return refuse('oidc-failed');
 	}
 

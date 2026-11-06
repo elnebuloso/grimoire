@@ -27,12 +27,7 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
 		String(data.get('current') ?? '')
 	);
 	if ('error' in checked) redirect(303, `/account?problem=${checked.error}`);
-	return redirectToProvider(
-		provider,
-		cookies,
-		{ next: '', link: sha256(session) },
-		'/account?problem=oidc-unavailable'
-	);
+	return redirectToProvider(provider, cookies, { next: '', link: sha256(session) }, '/account');
 };
 
 /**

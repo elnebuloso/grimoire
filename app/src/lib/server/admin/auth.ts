@@ -54,6 +54,7 @@ export type AuthProblem =
 	| 'oidc-no-email'
 	| 'oidc-not-allowed'
 	| 'oidc-unavailable'
+	| 'oidc-misconfigured'
 	| 'oidc-failed'
 	| 'oidc-identity-taken'
 	| 'oidc-blocked'
@@ -216,15 +217,17 @@ export async function setupAdmin(
 	const passwordHash = await hashPassword(form.password);
 	// Checked again: a second submit, a double click say, passed the check above while this one
 	// was hashing.
-	const created = inTransaction(db, () => {
-		if (adminExists(db)) return false;
+	const problem = inTransaction(db, (): { error: AuthProblem } | undefined => {
+		if (adminExists(db)) return { error: 'admin-exists' };
+		// Only after a reopen, when the last admin lost the role: the address may have an account.
+		if (accountExists(db, form.email)) return { error: 'account-exists' };
 		const id = insertUser(db, form.email, passwordHash, ['admin']);
 		// Keys that predate owners need someone to manage them.
 		db.prepare('UPDATE api_keys SET owner_id = ? WHERE owner_id IS NULL').run(id);
-		return true;
+		return undefined;
 	});
 	checkAdminAccount(db);
-	return created ? undefined : { error: 'admin-exists' };
+	return problem;
 }
 
 /**

@@ -463,6 +463,7 @@
 	"auth_oidc_no_email": "Der Anmeldedienst hat keine E-Mail-Adresse geschickt, deshalb kann kein Account angelegt werden. Frag einen Admin nach einer Einladung oder verknüpfe den Anmeldedienst unter Account mit deinem Account.",
 	"auth_oidc_not_allowed": "Für diese Adresse kann kein Account angelegt werden. Hast du hier schon einen Account, melde dich an und verknüpfe den Anmeldedienst unter Account; sonst frag einen Admin nach einer Einladung.",
 	"auth_oidc_unavailable": "Die Anmeldung über den Anmeldedienst ist gerade nicht möglich. Versuch es später noch einmal oder melde dich mit deinem Passwort an.",
+	"auth_oidc_misconfigured": "Die Anmeldung über diesen Anmeldedienst ist nicht richtig eingerichtet; ein neuer Versuch hilft nicht. Sag einem Admin Bescheid und melde dich bis dahin mit deinem Passwort an.",
 	"auth_oidc_failed": "Die Anmeldung beim Anmeldedienst wurde nicht abgeschlossen. Starte sie noch einmal.",
 	"auth_oidc_blocked": "Zu viele Anmeldungen über den Anmeldedienst aus deinem Netz wurden nicht abgeschlossen. Versuche es in ein paar Minuten erneut oder melde dich mit deinem Passwort an.",
 	"auth_oidc_identity_taken": "Dieser Account beim Anmeldedienst ist bereits mit einem anderen Account verknüpft.",

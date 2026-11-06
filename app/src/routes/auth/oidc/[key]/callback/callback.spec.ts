@@ -197,7 +197,7 @@ describe('a callback without a flow', () => {
 });
 
 describe('a code exchange that fails', () => {
-	it('logs a configuration error with its OAuth error at warn', async () => {
+	it('asks to tell an admin about a configuration error, logged at warn', async () => {
 		finishFlow.mockRejectedValue(
 			new client.ResponseBodyError('server responded with an error in the response body', {
 				cause: { error: 'invalid_client' },
@@ -205,7 +205,7 @@ describe('a code exchange that fails', () => {
 			})
 		);
 
-		expect(await answer('203.0.113.11')).toBe('/login?problem=oidc-failed');
+		expect(await answer('203.0.113.11')).toBe('/login?problem=oidc-misconfigured');
 		expect(logged()).toContainEqual(
 			expect.objectContaining({
 				'log.level': 'warn',

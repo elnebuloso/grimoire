@@ -168,16 +168,12 @@ The log names the cause; correct the variable and start again:
 
 ### `Logging in through the identity provider is not possible right now.`
 
-grimoire could not reach the provider, the provider answered with a server error, or
-`OIDC_<KEY>_ISSUER` does not lead to it. The log names which request failed:
+grimoire could not reach the provider, or the provider answered with a server error. The log
+names which request failed:
 
 - `OIDC provider <key> unavailable: discovery failed: <error>`: the container could not reach
   `<ISSUER>/.well-known/openid-configuration` (`TypeError: fetch failed`, `operation timed out`),
   or the provider answered with an HTTP status of 500 or above. Check the network between the two.
-- `OIDC provider <key> misconfigured: discovery failed: <error>; check OIDC_<KEY>_ISSUER`: the
-  address answered, but not with the provider's configuration, such as `(HTTP 404)` for a wrong
-  path, or `discovered metadata issuer does not match the expected issuer` when the issuer stated
-  there differs from `OIDC_<KEY>_ISSUER`. Trying again does not help; fix the variable.
 - `OIDC provider <key> unavailable: token request failed: <error>`: the provider's token endpoint
   did not answer within 10 seconds (`operation timed out`), could not be reached
   (`TypeError: fetch failed`), answered with an HTTP status of 500 or above, or limited the rate
@@ -185,6 +181,19 @@ grimoire could not reach the provider, the provider answered with a server error
   `ClientError: unexpected HTTP response status code (HTTP 502)`.
 
 The next login tries again.
+
+### `Logging in through this identity provider is not set up correctly, and trying again will not help.`
+
+The user is asked to tell an admin. Every login through the provider fails until you fix its
+settings; the log has a warning:
+
+- `OIDC provider <key> misconfigured: discovery failed: <error>; check OIDC_<KEY>_ISSUER`: the
+  address answered, but not with the provider's configuration, such as `(HTTP 404)` for a wrong
+  path, or `discovered metadata issuer does not match the expected issuer` when the issuer stated
+  there differs from `OIDC_<KEY>_ISSUER`. Fix the variable.
+- `OIDC login through <key> failed: invalid_client (HTTP 401): Client authentication failed`, or
+  `unauthorized_client`, or any answer with HTTP 401: a wrong or expired client secret, or a
+  client ID the provider does not know.
 
 ### `The login at the identity provider did not complete.`
 
@@ -199,11 +208,8 @@ the login. The log has `OIDC login through <key> failed: <error>`.
   host, for instance by redirecting the other names to it in the reverse proxy. A browser that
   blocks cookies has the same effect.
 - Otherwise the OAuth error the provider sent, its HTTP status and description, such as
-  `OIDC login through gitlab failed: invalid_client (HTTP 401): Client authentication failed`.
+  `OIDC login through gitlab failed: invalid_grant (HTTP 400)`.
 
-- Logged as a warning: `invalid_client` or `unauthorized_client`, or any answer with HTTP 401 (a
-  wrong or expired client secret, or a client ID the provider does not know). Every login through
-  the provider fails until you fix it.
 - Logged as information: `access_denied` (the user cancelled at the provider), and anything else
   a single user causes, such as a code used twice or too late (`invalid_grant`), even where the
   provider's description mentions the redirection URI. An answer that is not OAuth, such as the

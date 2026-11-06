@@ -20,6 +20,7 @@ const MESSAGES: Record<AuthProblem, () => string> = {
 	'oidc-no-email': () => m.auth_oidc_no_email(),
 	'oidc-not-allowed': () => m.auth_oidc_not_allowed(),
 	'oidc-unavailable': () => m.auth_oidc_unavailable(),
+	'oidc-misconfigured': () => m.auth_oidc_misconfigured(),
 	'oidc-failed': () => m.auth_oidc_failed(),
 	'oidc-identity-taken': () => m.auth_oidc_identity_taken(),
 	'oidc-blocked': () => m.auth_oidc_blocked(),

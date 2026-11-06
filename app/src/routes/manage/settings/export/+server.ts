@@ -5,6 +5,7 @@ import { database } from '#lib/server/db/index.js';
 import { migrations } from '#lib/server/db/schema.js';
 import { MIN_PASSPHRASE_LENGTH, writeExport } from '#lib/server/instance-export.js';
 import { log } from '#lib/server/log.js';
+import { slugify } from '#lib/slug.js';
 import { dateIn } from '#lib/time-zone.js';
 
 /**
@@ -38,8 +39,5 @@ function refuse(problem: string, sources: string[] = []): never {
 
 // Names the instance and the day, so exports of several instances and days stay apart.
 function fileName(now: Date): string {
-	const instance = INSTANCE_TITLE.toLowerCase()
-		.replace(/[^a-z0-9]+/g, '-')
-		.replace(/^-|-$/g, '');
-	return `${instance || 'grimoire'}-${dateIn(TZ, now)}.grimoire-export`;
+	return `${slugify(INSTANCE_TITLE) || 'grimoire'}-${dateIn(TZ, now)}.grimoire-export`;
 }

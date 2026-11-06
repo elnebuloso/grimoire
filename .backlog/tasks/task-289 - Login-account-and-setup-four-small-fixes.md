@@ -1,9 +1,11 @@
 ---
 id: TASK-289
 title: 'Login, account and setup: four small fixes'
-status: To Do
-assignee: []
+status: Done
+assignee:
+  - '@claude'
 created_date: '2026-11-06 15:59'
+updated_date: '2026-11-06 16:54'
 labels:
   - admin
 dependencies: []
@@ -24,8 +26,32 @@ Four small errors around accounts:
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 `/setup` with an existing address answers `account-exists`
-- [ ] #2 A misconfigured provider (including `invalid_client`) shows a message that asks the user to tell an admin
-- [ ] #3 The account page clears `?problem=` once shown
-- [ ] #4 The export file name uses `slugify`
+- [x] #1 `/setup` with an existing address answers `account-exists`
+- [x] #2 A misconfigured provider (including `invalid_client`) shows a message that asks the user to tell an admin
+- [x] #3 The account page clears `?problem=` once shown
+- [x] #4 The export file name uses `slugify`
 <!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. setupAdmin refuses an existing address with account-exists, inside its transaction
+2. New problem oidc-misconfigured: ProviderMisconfigured at start and callback, and a configuration OAuth error (invalid_client) at the token step; message asks to tell an admin
+3. Account page keeps a refusal from ?problem= in page state, removes it from the address, and drops it at the next action
+4. Export file name through slugify
+<!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+- redirectToProvider now takes the page to return to and picks the problem itself (unavailable or misconfigured).
+- New start.spec.ts covers the start endpoint's two refusals; callback.spec expects oidc-misconfigured for invalid_client; auth.spec covers setup with an existing address.
+- Checked by hand: /account?problem=oidc-misconfigured shows the message, the address becomes /account, the next form action removes it.
+- Handbook sso.md: new section for the misconfigured message, with the discovery and invalid_client log lines moved there.
+<!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Four account fixes: /setup after a reopen refuses an existing address with account-exists instead of a 500; a misconfigured provider (bad issuer, invalid_client) now says to tell an admin instead of 'try again later'/'start it again'; the account page shows a ?problem= once and drops it from the address and at the next action; the export file name uses slugify. Specs for each server part, the account page checked in the browser, handbook updated.
+<!-- SECTION:FINAL_SUMMARY:END -->

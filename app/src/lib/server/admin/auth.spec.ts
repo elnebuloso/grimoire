@@ -103,6 +103,20 @@ describe('setup', () => {
 	});
 });
 
+describe('setup after a reopen', () => {
+	it('refuses an address that has an account already', async () => {
+		db.exec("INSERT INTO users (email) VALUES ('writer@example.com')");
+
+		expect(
+			await auth.setupAdmin(db, {
+				token: loggedToken(),
+				email: 'Writer@example.com',
+				password: PASSWORD
+			})
+		).toEqual({ error: 'account-exists' });
+	});
+});
+
 describe('setupAdmin submitted twice at once', () => {
 	it.each([
 		['the same address', 'admin@example.com'],

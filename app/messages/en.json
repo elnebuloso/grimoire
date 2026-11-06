@@ -463,6 +463,7 @@
 	"auth_oidc_no_email": "The identity provider sent no email address, so no account can be created. Ask an admin for an invitation, or link the provider to your account under Account.",
 	"auth_oidc_not_allowed": "No account can be created for this address. If you have an account here already, log in and link the provider under Account; otherwise ask an admin for an invitation.",
 	"auth_oidc_unavailable": "Logging in through the identity provider is not possible right now. Try again later or log in with your password.",
+	"auth_oidc_misconfigured": "Logging in through this identity provider is not set up correctly, and trying again will not help. Tell an admin; until then, log in with your password.",
 	"auth_oidc_failed": "The login at the identity provider did not complete. Start it again.",
 	"auth_oidc_blocked": "Too many logins through the identity provider from your network did not complete. Try again in a few minutes or log in with your password.",
 	"auth_oidc_identity_taken": "This account at the identity provider is linked to another account already.",

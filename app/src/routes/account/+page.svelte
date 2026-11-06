@@ -19,11 +19,17 @@
 	const marked = (message: string) =>
 		form?.error === message ? { 'aria-invalid': true, 'aria-describedby': 'password-error' } : {};
 
-	// Back from linking at the provider: the outcome comes in the address, shown once.
+	// Back from linking at the provider: the outcome comes in the address, shown once. A refusal
+	// stays on the page until the next action, not in the address.
+	let problem = $state<string>();
 	$effect(() => {
-		if (!data.linked) return;
-		showToast(m.account_provider_linked({ provider: data.linked }));
+		if (!data.linked && !data.problem) return;
+		if (data.linked) showToast(m.account_provider_linked({ provider: data.linked }));
+		problem = data.problem;
 		goto(resolve('/account'), { replace: true, reset: false });
+	});
+	$effect(() => {
+		if (form) problem = undefined;
 	});
 
 	let sheet = $state<HTMLElement>();
@@ -96,7 +102,7 @@
 	<section class="sheet" aria-labelledby="providers-title">
 		<h2 id="providers-title">{m.account_providers_title()}</h2>
 		<p class="muted">{m.account_providers_lead()}</p>
-		<FormError message={data.problem} id="providers-error" />
+		<FormError message={problem} id="providers-error" />
 		{#if data.links.length > 0}
 			<ul class="links">
 				{#each data.links as link (link.issuer)}
