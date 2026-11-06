@@ -14,7 +14,6 @@ import {
 
 let db: DatabaseSync;
 
-const ALL = ['billing-docs', 'platform-docs', 'search-docs'];
 const OWNER = 1;
 
 const CLOCK = { now: new Date('2026-10-30T12:00:00.000Z'), today: '2026-10-30' };
@@ -129,7 +128,7 @@ describe('scopeForKey by visibility', () => {
 		);
 		for (const owner of [user, null]) {
 			const { key } = newKey(db, 'laptop', 'all', null, owner);
-			expect(scopeForKey(db, key, CLOCK)!.scope).toEqual(ALL);
+			expect(scopeForKey(db, key, CLOCK)!.scope).toBe('all');
 		}
 	});
 
@@ -142,7 +141,7 @@ describe('scopeForKey', () => {
 	it('gives an all-sources key every source', () => {
 		const { key } = newKey(db, 'ci', 'all');
 
-		expect(scopeForKey(db, key, CLOCK)).toEqual({ scope: ALL });
+		expect(scopeForKey(db, key, CLOCK)).toEqual({ scope: 'all' });
 	});
 
 	it('gives a key with a selection only those sources', () => {
@@ -210,7 +209,7 @@ describe('revokeApiKey', () => {
 		revokeApiKey(db, revoked.id);
 
 		expect(scopeForKey(db, revoked.key, CLOCK)).toBeUndefined();
-		expect(scopeForKey(db, kept.key, CLOCK)).toEqual({ scope: ALL });
+		expect(scopeForKey(db, kept.key, CLOCK)).toEqual({ scope: 'all' });
 		expect(db.prepare('SELECT count(*) AS n FROM api_key_sources').get()).toEqual({ n: 0 });
 	});
 });
@@ -240,7 +239,7 @@ describe('expiry', () => {
 	it('accepts a key through its last valid day and rejects it the day after', () => {
 		const { id, key } = newKey(db, 'trial', 'all', '2026-10-30');
 
-		expect(scopeForKey(db, key, CLOCK)).toEqual({ scope: ALL });
+		expect(scopeForKey(db, key, CLOCK)).toEqual({ scope: 'all' });
 		expect(scopeForKey(db, key, later(86_400, '2026-10-31'))).toBeUndefined();
 		// A rejected request is no use of the key.
 		expect(lastUsed(id)).toBe('2026-10-30T12:00:00.000Z');

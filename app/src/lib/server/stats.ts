@@ -8,7 +8,7 @@ export interface SourceStats {
 	name: string;
 	description: string;
 	visibility: Visibility;
-	/** Where the documentation is published, for public sources only; null otherwise. */
+	/** Where the documentation is published; null when not set. */
 	docsUrl: string | null;
 	pages: number;
 	snippets: number;
@@ -29,7 +29,7 @@ export function sourceStats(db: DatabaseSync): SourceStats[] {
 	const rows = db
 		.prepare(
 			`SELECT sources.id, sources.slug, sources.name, sources.description, sources.visibility,
-				CASE WHEN sources.visibility = 'public' THEN sources.docs_url END AS docsUrl,
+				sources.docs_url AS docsUrl,
 				(SELECT count(*) FROM live_pages AS pages WHERE pages.source_id = sources.id) AS pages,
 				(SELECT count(*) FROM snippets JOIN live_pages AS pages ON pages.id = snippets.page_id
 					WHERE pages.source_id = sources.id) AS snippets,

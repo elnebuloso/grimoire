@@ -3,7 +3,7 @@ import { database } from '#lib/server/db/index.js';
 import { answerQueryForm } from '#lib/server/query-form.js';
 import { sourceStats, type SourceStats } from '#lib/server/stats.js';
 import { listPage, readListParams, type ListSpec } from '#lib/list.js';
-import { allSlugs } from '#lib/server/api-keys.js';
+import { inScope, viewerScope } from '#lib/server/search/query.js';
 import { connectTarget } from '#lib/server/connect.js';
 
 /** What the start page tells anyone about a source: the state of its content, no sync details. */
@@ -29,12 +29,9 @@ const CATALOG: ListSpec<CatalogSource> = {
 
 export const load: PageServerLoad = ({ url, locals }) => {
 	const db = database();
-	// A visitor sees the public sources, a user every one.
-	const readable = locals.user ? allSlugs(db) : undefined;
+	const scope = viewerScope(locals.user ? 'user' : 'visitor');
 	const sources: CatalogSource[] = sourceStats(db)
-		.filter((source) =>
-			readable ? readable.includes(source.slug) : source.visibility === 'public'
-		)
+		.filter((source) => inScope(scope, source))
 		.map(
 			({
 				id,
@@ -53,7 +50,8 @@ export const load: PageServerLoad = ({ url, locals }) => {
 				name,
 				description,
 				visibility,
-				docsUrl,
+				// Named to whoever sees the source only where anyone may read it.
+				docsUrl: inScope(viewerScope('visitor'), { slug, visibility }) ? docsUrl : null,
 				pages,
 				snippets,
 				tokens,
@@ -65,7 +63,7 @@ export const load: PageServerLoad = ({ url, locals }) => {
 		sources: listPage(sources, params, CATALOG),
 		filtered: params.search !== '' || Object.keys(params.filters).length > 0,
 		// Everything listed, the same as an API key of the user reads; for a visitor the public sources.
-		query: sources.length > 0 ? answerQueryForm(db, url, readable ?? 'public') : undefined,
+		query: sources.length > 0 ? answerQueryForm(db, url, scope) : undefined,
 		...connectTarget(url)
 	};
 };

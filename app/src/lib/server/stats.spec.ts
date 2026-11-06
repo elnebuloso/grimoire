@@ -129,19 +129,6 @@ describe('sourceStats', () => {
 		});
 	});
 
-	it('gives the documentation URL of public sources only', () => {
-		const open = addSource('open-docs', null);
-		const closed = addSource('closed-docs', null);
-		const setDocs = db.prepare('UPDATE sources SET docs_url = ?, visibility = ? WHERE id = ?');
-		setDocs.run('https://docs.example.com/open/', 'public', open);
-		setDocs.run('https://docs.internal.example/closed/', 'internal', closed);
-
-		expect(sourceStats(db).map(({ slug, docsUrl }) => ({ slug, docsUrl }))).toEqual([
-			{ slug: 'closed-docs', docsUrl: null },
-			{ slug: 'open-docs', docsUrl: 'https://docs.example.com/open/' }
-		]);
-	});
-
 	it('returns no detail of a source', () => {
 		addSource('auth-docs', null, 'fatal: could not read from git.internal.example');
 

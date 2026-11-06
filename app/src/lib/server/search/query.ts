@@ -2,7 +2,7 @@ import { posix } from 'node:path';
 import type { DatabaseSync, SQLInputValue } from 'node:sqlite';
 import { estimateTokens } from '../parsing/chunk';
 import { redactUrl } from '../sync/git';
-import type { SourceScope } from '../api-keys';
+import type { KeyScope, SourceScope } from '../api-keys';
 import { grimoireId, withSlug, type SectionLocation } from '../grimoire-id';
 
 export interface SearchOptions {
@@ -38,6 +38,19 @@ interface SnippetRow extends Omit<SnippetHit, 'titlePath'> {
 	parts: number;
 }
 
+// The read rule, decided here for every page and API: a visitor reads the public sources, a
+// logged-in user every source, an API key what it opens and the public ones.
+
+/** Who reads: a visitor without login or key, a logged-in user, or an API key. */
+export type Viewer = 'visitor' | 'user' | { key: KeyScope };
+
+/** The sources `viewer` may read. */
+export function viewerScope(viewer: Viewer): SourceScope {
+	if (viewer === 'visitor') return 'public';
+	if (viewer === 'user') return 'all';
+	return viewer.key;
+}
+
 /** Matches the rows of `sources` in a scope, bound as `:scope` with `scopeParameter`. */
 export const IN_SCOPE = `(:scope IS NULL OR sources.visibility = 'public'
 	OR sources.slug IN (SELECT value FROM json_each(:scope)))`;
@@ -45,6 +58,21 @@ export const IN_SCOPE = `(:scope IS NULL OR sources.visibility = 'public'
 export function scopeParameter(scope: SourceScope): string | null {
 	if (scope === 'all') return null;
 	return JSON.stringify(scope === 'public' ? [] : scope);
+}
+
+/** `IN_SCOPE` for a source already read. */
+export function inScope(scope: SourceScope, source: { slug: string; visibility: string }): boolean {
+	if (scope === 'all' || source.visibility === 'public') return true;
+	return scope !== 'public' && scope.includes(source.slug);
+}
+
+/** Whether `scope` holds any source at all. */
+export function scopeHasSources(db: DatabaseSync, scope: SourceScope): boolean {
+	return (
+		db
+			.prepare(`SELECT 1 FROM sources WHERE ${IN_SCOPE} LIMIT 1`)
+			.get({ scope: scopeParameter(scope) }) !== undefined
+	);
 }
 
 interface SnippetQuery {

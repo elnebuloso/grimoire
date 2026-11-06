@@ -7,6 +7,10 @@ import { splitCode } from '#lib/server/parsing/markdown.js';
 import { preprocessPage } from '#lib/server/parsing/preprocess.js';
 import { listMissedQueries } from '#lib/server/missed-queries.js';
 import type { QueryFormState } from '#lib/server/query-form.js';
+import { listVisibleSources } from '#lib/server/agent/operations.js';
+import { createApiKey, scopeForKey } from '#lib/server/api-keys.js';
+import { inScope } from '#lib/server/search/query.js';
+import { sourceStats } from '#lib/server/stats.js';
 import * as page from './+page.server';
 
 let db: DatabaseSync;
@@ -45,13 +49,60 @@ function load(search: string, userId?: number) {
 	return page.load({ url, locals } as never) as {
 		query?: QueryFormState;
 		mcpName: string;
-		sources: { rows: { slug: string }[] };
+		sources: { rows: { slug: string; docsUrl: string | null }[] };
 	};
 }
 
 beforeEach(() => {
 	db = openDatabase(':memory:');
 	addSourceWithPage('platform-docs', '# Rollback\n\nHow to roll back the platform.', false);
+});
+
+describe('what the start page lists and the agent API reads', () => {
+	const CLOCK = { now: new Date('2026-11-06T12:00:00Z'), today: '2026-11-06' };
+	const agentSlugs = (scope: Parameters<typeof listVisibleSources>[1]) =>
+		listVisibleSources(db, scope)
+			.markdown.split('\n')
+			.map((line) => line.replace(/^- /, '').split(':')[0]);
+	const listed = (userId?: number) =>
+		load('', userId)
+			.sources.rows.map((row) => row.slug)
+			.sort();
+
+	beforeEach(() => {
+		addSourceWithPage('billing-docs', '# Billing\n\nInvoices.', true);
+		addSourceWithPage('search-docs', '# Search\n\nQueries.', false);
+		db.exec("INSERT INTO users (id, email) VALUES (1, 'writer@example.com')");
+	});
+
+	it('agree for a visitor, a user and a key limited to one internal source', () => {
+		expect(listed()).toEqual(agentSlugs('public'));
+
+		const everything = createApiKey(db, 'ci', 'all', null, 1);
+		if ('error' in everything) throw new Error(everything.error);
+		expect(listed(1)).toEqual(agentSlugs(scopeForKey(db, everything.key, CLOCK)!.scope));
+
+		// The start page applies the rule in TypeScript, the agent API in SQL.
+		const limited = createApiKey(db, 'search', ['search-docs'], null, 1);
+		if ('error' in limited) throw new Error(limited.error);
+		const scope = scopeForKey(db, limited.key, CLOCK)!.scope;
+		const readable = sourceStats(db).filter((source) => inScope(scope, source));
+		expect(readable.map((source) => source.slug)).toEqual(agentSlugs(scope));
+		expect(agentSlugs(scope)).toEqual(['billing-docs', 'search-docs']);
+	});
+
+	it('names the documentation site of public sources only, also to a user', () => {
+		const setDocs = db.prepare('UPDATE sources SET docs_url = ? WHERE slug = ?');
+		setDocs.run('https://docs.example.com/billing/', 'billing-docs');
+		setDocs.run('https://docs.internal.example/search/', 'search-docs');
+
+		const docs = load('', 1).sources.rows.map(({ slug, docsUrl }) => ({ slug, docsUrl }));
+		expect(docs).toContainEqual({
+			slug: 'billing-docs',
+			docsUrl: 'https://docs.example.com/billing/'
+		});
+		expect(docs).toContainEqual({ slug: 'search-docs', docsUrl: null });
+	});
 });
 
 describe('start page', () => {

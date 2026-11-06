@@ -242,18 +242,12 @@ export function revokeApiKey(db: DatabaseSync, id: number, ownerId?: number) {
 	if (!db.prepare('SELECT 1 FROM api_keys WHERE id = ?').get(id)) unwrittenFor(db).delete(id);
 }
 
-/** The slugs of every source: what any user, and any key, may read. */
 /** Every source a key can be scoped to, by name, as the source picker offers them. */
 export function sourceChoices(db: DatabaseSync): { slug: string; name: string }[] {
 	return db.prepare('SELECT slug, name FROM sources ORDER BY name, slug').all() as {
 		slug: string;
 		name: string;
 	}[];
-}
-
-export function allSlugs(db: DatabaseSync): string[] {
-	const rows = db.prepare('SELECT slug FROM sources ORDER BY slug').all() as { slug: string }[];
-	return rows.map((row) => row.slug);
 }
 
 /**
@@ -290,7 +284,7 @@ export function scopeForKey(
 		);
 		writeRequests(db, row.id, clock.today);
 	}
-	if (row.all_sources === 1) return { scope: allSlugs(db) };
+	if (row.all_sources === 1) return { scope: 'all' };
 	const slugs = db
 		.prepare(
 			`SELECT sources.slug FROM api_key_sources

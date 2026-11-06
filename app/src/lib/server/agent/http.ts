@@ -4,7 +4,7 @@ import { dateIn } from '#lib/time-zone.js';
 import { scopeForKey, type SourceScope } from '../api-keys';
 import { database } from '../db';
 import { log } from '../log';
-import { parseTokenBudget } from '../search/query';
+import { parseTokenBudget, scopeHasSources, viewerScope } from '../search/query';
 import type { OperationResult, QueryOptions } from './operations';
 
 /** The answer to an unexpected error, on every transport: its message is for the log only. */
@@ -28,17 +28,14 @@ export function scopeForRequest(
 	request: Request
 ): { scope: SourceScope } | undefined {
 	const authorization = request.headers.get('Authorization');
-	if (authorization === null) return hasPublicSource(db) ? { scope: 'public' } : undefined;
+	if (authorization === null) {
+		const scope = viewerScope('visitor');
+		return scopeHasSources(db, scope) ? { scope } : undefined;
+	}
 	const key = authorization.match(/^Bearer (.+)$/i)?.[1];
 	if (!key) return undefined;
 	const now = new Date();
 	return scopeForKey(db, key, { now, today: dateIn(TZ, now) });
-}
-
-function hasPublicSource(db: DatabaseSync): boolean {
-	return (
-		db.prepare("SELECT 1 FROM sources WHERE visibility = 'public' LIMIT 1").get() !== undefined
-	);
 }
 
 /** The 401 for a request without a valid API key. */

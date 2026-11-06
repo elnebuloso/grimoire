@@ -74,9 +74,7 @@ describe('create', () => {
 			['sources', 'platform-docs']
 		])) as { created: { key: string } };
 
-		expect(scopeForKey(db, result.created.key, CLOCK)).toEqual({
-			scope: ['billing-docs', 'platform-docs']
-		});
+		expect(scopeForKey(db, result.created.key, CLOCK)).toEqual({ scope: 'all' });
 	});
 
 	it('creates a key valid until a date, shown as expired once the date has passed', async () => {
