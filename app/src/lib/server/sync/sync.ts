@@ -148,8 +148,12 @@ async function checkAndSync(
 	} catch (error) {
 		const message = redact((error as Error).message, remote);
 		const kind = failureKind(error as Error);
+		// Once indexing started, the commit is remembered as failed when the failure repeats, and
+		// forgotten when it passes, so an older failure of the same commit no longer holds it back.
 		const remembered = REPEATING_KINDS.has(kind) && !indexSettingsChanged(db, source);
-		recordSyncError(db, sourceId, { message, kind }, remembered ? indexingCommit : undefined);
+		const failedCommit =
+			indexingCommit === undefined ? undefined : remembered ? indexingCommit : null;
+		recordSyncError(db, sourceId, { message, kind }, failedCommit);
 		return { status: 'failed', error: message, kind, commit: indexingCommit };
 	} finally {
 		recordCheck(db, sourceId, checkedAt);

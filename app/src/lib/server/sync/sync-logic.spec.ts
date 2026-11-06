@@ -273,6 +273,30 @@ describe('syncSource', () => {
 		expect(fork).toHaveBeenCalledTimes(2);
 	});
 
+	it('retries a commit at the next check when a forced run failed for a passing reason', async () => {
+		indexing.run = () => ({ error: 'indexing took longer than 10 minutes', kind: 'deadline' });
+		await sync();
+		indexing.run = () => ({
+			error: 'git sparse-checkout failed: Could not resolve host: git.example.com',
+			kind: 'noAddress'
+		});
+		expect(await sync(source, { force: true })).toMatchObject({ kind: 'noAddress' });
+
+		indexing.run = indexOnePage;
+		expect(await sync()).toMatchObject({ status: 'synced', commit: 'c1' });
+	});
+
+	it('keeps a failed commit when the check fails before indexing', async () => {
+		indexing.run = () => ({ error: 'indexing took longer than 10 minutes', kind: 'deadline' });
+		await sync();
+		vi.mocked(remoteCommit).mockRejectedValueOnce(new Error('git ls-remote failed: timeout'));
+		await sync();
+
+		expect(rows('SELECT failed_commit FROM sources WHERE id = ?', source)).toEqual([
+			{ failed_commit: 'c1' }
+		]);
+	});
+
 	it('remembers the commit it cloned as failed, not the one the check saw', async () => {
 		vi.mocked(remoteCommit).mockResolvedValue('c1');
 		vi.mocked(headCommit).mockResolvedValue('c2');

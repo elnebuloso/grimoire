@@ -300,14 +300,15 @@ function batches<T>(items: T[], weight: (item: T) => number, max: number): T[][]
 }
 
 /**
- * Stores why a sync failed; the index of the last successful sync stays as it is. With
- * `failedCommit`, indexing that commit failed, and it is not indexed again unless forced.
+ * Stores why a sync failed; the index of the last successful sync stays as it is. A commit given
+ * as `failedCommit` is not indexed again unless forced.
  */
 export function recordSyncError(
 	db: DatabaseSync,
 	sourceId: number,
 	error: { message: string; kind: SyncErrorKind },
-	failedCommit?: string
+	/** The commit to remember as failed; null forgets the remembered one, undefined keeps it. */
+	failedCommit?: string | null
 ) {
 	if (failedCommit === undefined) {
 		db.prepare('UPDATE sources SET error = ?, error_kind = ? WHERE id = ?').run(
