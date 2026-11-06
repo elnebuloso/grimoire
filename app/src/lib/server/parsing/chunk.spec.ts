@@ -225,6 +225,22 @@ describe('chunkPage', () => {
 		expect(page.snippets[0].aliases).toContain('example_1');
 	});
 
+	it('reads custom ids as attr_list does: any characters, and only after a space', () => {
+		const page = chunk(
+			[
+				'## Über uns {#über}',
+				'## Release notes {#v1.2}',
+				'## Map{key}',
+				'## Plain {: #with-colon }'
+			]
+				.map((heading) => `${heading}\n\n${text(60)}`)
+				.join('\n\n')
+		);
+
+		// Python-Markdown 3.7 with `toc` and `attr_list` gives these ids.
+		expect(page.snippets.map((s) => s.anchor)).toEqual(['über', 'v1.2', 'mapkey', 'with-colon']);
+	});
+
 	it('moves link definitions into every snippet that references them', () => {
 		const page = chunk(
 			`# Page\n\n## A\n\nSee [docs][rb] and [again][RB]. ${text(80)}\n\n## B\n\n${text(80)}\n\n## C\n\n[docs][rb] ${text(80)}\n\n[rb]: https://example.com/docs\n[unused]: https://example.com/unused\n`

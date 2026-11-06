@@ -155,10 +155,11 @@ function takeAttributeListId(heading: Heading): string | undefined {
 	if (!text.endsWith('}')) return undefined;
 	const inner = text.slice(0, -1);
 	const open = inner.indexOf('{', inner.lastIndexOf('}') + 1);
-	if (open === -1) return undefined;
+	// attr_list reads braces as attributes only after a space: `Map{key}` is heading text.
+	if (open < 1 || inner[open - 1] !== ' ') return undefined;
 	const attributes = inner.slice(open + 1);
 	last.value = last.value.slice(0, open).trimEnd();
-	return /#([\w-]+)/.exec(attributes)?.[1];
+	return /#([^\s}]+)/.exec(attributes)?.[1];
 }
 
 function mergeSmallSections(section: Section) {
