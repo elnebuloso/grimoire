@@ -128,6 +128,12 @@ function conflictAnswer(
 	return undefined;
 }
 
+// What a save is based on, without the outcome of the last sync, which a sync may change at any
+// time.
+function settingsOf(stored: StoredSource | undefined): string {
+	return JSON.stringify(stored && { ...stored, error: undefined }) ?? '';
+}
+
 export const actions = {
 	save: async ({ request, params }) => {
 		const source = sourceFor(params);
@@ -145,8 +151,17 @@ export const actions = {
 		const unreachable =
 			changes.access || changes.location ? await accessProblem(stored, form) : undefined;
 		if (unreachable) return fail(400, { ...unreachable, values });
-		// The Git server may take seconds; another save may have added the same documentation
-		// meanwhile. No await follows, so nothing changes between this check and the write.
+		// The Git server may take seconds; another save may have changed this source, taken its name
+		// or added the same documentation meanwhile. No await follows, so nothing changes between
+		// these checks and the write.
+		const current = storedSource(db, source?.id);
+		// Deleted in another tab.
+		if (source && !current) error(404);
+		if (settingsOf(current) !== settingsOf(stored)) {
+			return fail(400, { error: m.error_source_changed(), values });
+		}
+		const lateProblem = sourceProblem(db, source?.id, stored, form);
+		if (lateProblem) return fail(400, { ...lateProblem, values });
 		const late = conflictAnswer(sourceConflict(db, source?.id, stored, form), confirmed);
 		if (late) return fail(400, { ...late, values });
 

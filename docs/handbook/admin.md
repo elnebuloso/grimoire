@@ -134,6 +134,7 @@ can take up to a minute.
 | `The Git server redirects this URL elsewhere (HTTP 301). …` | The target is on another host, or could not be asked. Copy the clone URL from the **Clone** button of the repository, usually ending in `.git`. |
 | `The stored access token cannot be decrypted with the current key. Enter the token again or remove it.` | Enter the token again, or tick **Remove the stored token**. |
 | `The server may not connect to <host>. If it is your organisation's Git server, ask the person running grimoire to add it to GIT_ALLOWED_HOSTS.` | The address is an IP address, uses another port than 443, or leads into an internal network, or the instance runs behind a proxy. Ask the operator to allow the host (see [Git servers](docker.md#git-servers)). |
+| `Someone else changed this source while it was being saved. Reload the page and save again.` | Another admin saved the source while grimoire asked its Git server. Nothing was saved: reload, check their change, and enter yours again. |
 
 ### After saving
 

@@ -566,6 +566,49 @@ describe('duplicate sources', () => {
 		expect(isRedirect(saved)).toBe(true);
 	});
 
+	it('refuses a save when another one changed the source while the Git server was asked', async () => {
+		await thrown(() => saveSource('new', SOURCE));
+		checkAccess.mockImplementationOnce(async () => {
+			db.exec(`UPDATE sources SET git_url = 'https://github.com/platform/auth.git',
+				encrypted_token = 'sealed-for-github' WHERE id = 1`);
+			return { message: 'Reachable: branch main is at commit abc.' };
+		});
+
+		expect(await saveSource('1', { ...SOURCE, branch: 'release', token: '' })).toMatchObject({
+			status: 400,
+			data: { error: expect.stringContaining('changed') }
+		});
+		expect(db.prepare('SELECT git_url AS gitUrl, branch FROM sources WHERE id = 1').get()).toEqual({
+			gitUrl: 'https://github.com/platform/auth.git',
+			branch: 'main'
+		});
+	});
+
+	it('saves when only the outcome of a sync changed while the Git server was asked', async () => {
+		await thrown(() => saveSource('new', SOURCE));
+		checkAccess.mockImplementationOnce(async () => {
+			db.exec(`UPDATE sources SET error = 'git ls-remote failed: timeout' WHERE id = 1`);
+			return { message: 'Reachable: branch main is at commit abc.' };
+		});
+
+		expect(await saveSource('1', { ...SOURCE, branch: 'release', token: '' })).toEqual({
+			saved: true,
+			reindexing: true
+		});
+	});
+
+	it('refuses a second new source with the same name created while the Git server was asked', async () => {
+		db.exec('DELETE FROM sources');
+		checkAccess.mockImplementationOnce(async () => {
+			db.exec(`INSERT INTO sources (slug, name, git_url, branch, path)
+				VALUES ('auth-service', 'Auth Service', 'https://gitlab.example.com/other/repo.git', 'main', 'guides')`);
+			return { message: 'Reachable: branch main is at commit abc.' };
+		});
+
+		expect(await saveSource('new', SOURCE)).toMatchObject({ status: 400, data: { field: 'name' } });
+		expect(sourceCount()).toBe(1);
+	});
+
 	it('refuses a duplicate another save created while the Git server was asked', async () => {
 		db.exec('DELETE FROM sources');
 		checkAccess.mockImplementationOnce(async () => {
