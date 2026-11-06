@@ -7,6 +7,7 @@ import { clientKey, createAttemptLimit } from '#lib/server/admin/attempt-limit.j
 import { accountExists, type AuthProblem } from '#lib/server/admin/auth.js';
 import {
 	createSession,
+	deleteSessionByHash,
 	SESSION_COOKIE,
 	sessionCookieOptions,
 	sessionUser
@@ -133,6 +134,7 @@ export const load: PageServerLoad = async ({ params, url, cookies, getClientAddr
 		log.info(`OIDC provider ${provider.key} created an account`);
 		userId = created;
 	}
+	if (flow.replaces) deleteSessionByHash(db, flow.replaces);
 	const session = createSession(db, userId, now);
 	cookies.set(SESSION_COOKIE, session, sessionCookieOptions);
 	answers.forget(client);

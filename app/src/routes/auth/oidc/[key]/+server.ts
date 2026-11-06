@@ -1,7 +1,8 @@
 import { error, redirect } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { database } from '#lib/server/db/index.js';
-import { deleteSession, SESSION_COOKIE, sessionCookieOptions } from '#lib/server/admin/auth.js';
+import { SESSION_COOKIE } from '#lib/server/admin/auth.js';
+import { sha256 } from '#lib/server/sha256.js';
 import { invitedEmail } from '#lib/server/admin/invitations.js';
 import { providerByKey } from '#lib/server/oidc/index.js';
 import { redirectToProvider } from '#lib/server/oidc/start.js';
@@ -16,16 +17,17 @@ export const POST: RequestHandler = async ({ params, request, cookies, url }) =>
 	const invite = String(data.get('invite') ?? '') || undefined;
 	if (invite && !invitedEmail(database(), invite))
 		redirect(303, '/login?problem=invite-link-invalid');
-	// Whoever logs in through a provider becomes whoever the provider says, not the user before.
+	// Whoever logs in through a provider becomes whoever the provider says, not the user before:
+	// the session of this browser ends, but only once that login succeeded, not on a cancel.
 	const session = cookies.get(SESSION_COOKIE);
-	if (session) {
-		deleteSession(database(), session);
-		cookies.delete(SESSION_COOKIE, sessionCookieOptions);
-	}
 	return redirectToProvider(
 		provider,
 		cookies,
-		{ next: next ? pathOnThisSite(next, url) : '', invite },
+		{
+			next: next ? pathOnThisSite(next, url) : '',
+			invite,
+			replaces: session ? sha256(session) : undefined
+		},
 		'/login'
 	);
 };

@@ -20,6 +20,8 @@ export interface OidcFlow {
 	invite?: string;
 	/** The hash of the session that links the identity to its user, instead of logging in. */
 	link?: string;
+	/** The hash of the session the login replaces, ended once the login succeeds. */
+	replaces?: string;
 	expiresAt: string;
 }
 
@@ -74,7 +76,7 @@ async function configurationOf(provider: OidcProvider, now: Date): Promise<clien
 /** Starts a login at `provider`: the URL to send the browser to, and the flow to keep meanwhile. */
 export async function startFlow(
 	provider: OidcProvider,
-	{ next, invite, link }: Pick<OidcFlow, 'next' | 'invite' | 'link'>,
+	{ next, invite, link, replaces }: Pick<OidcFlow, 'next' | 'invite' | 'link' | 'replaces'>,
 	now = new Date()
 ): Promise<{ url: URL; flow: OidcFlow }> {
 	const config = await configurationOf(provider, now);
@@ -86,6 +88,7 @@ export async function startFlow(
 		next,
 		invite,
 		link,
+		replaces,
 		expiresAt: new Date(now.getTime() + FLOW_MINUTES * 60_000).toISOString()
 	};
 	const url = client.buildAuthorizationUrl(config, {

@@ -9,7 +9,8 @@ import { createLinkedUser } from '#lib/server/oidc/identities.js';
 import { inviteUser } from '#lib/server/admin/invitations.js';
 import { FLOW_COOKIE } from '#lib/server/oidc/cookie.js';
 import type { OidcProvider } from '#lib/server/oidc/index.js';
-import type { SessionUser } from '#lib/server/admin/auth.js';
+import { createSession, type SessionUser } from '#lib/server/admin/auth.js';
+import { sha256 } from '#lib/server/sha256.js';
 
 const KEYS = deriveKeys(Buffer.alloc(32, 7));
 const ISSUER = 'https://gitlab.example.com';
@@ -234,6 +235,38 @@ describe('a code exchange that fails', () => {
 		finishFlow.mockRejectedValue(new ProviderUnavailable('token request failed: TypeError'));
 
 		expect(await answer('203.0.113.11')).toBe('/login?problem=oidc-unavailable');
+	});
+});
+
+describe('a login while another session is open in the browser', () => {
+	function sessionCookie() {
+		createLinkedUser(db, 'grace@example.com', ISSUER, 'grace');
+		const previous = createSession(db, 1, new Date());
+		const cookies = fakeCookies({ [FLOW_COOKIE]: flowCookie({ replaces: sha256(previous) }) });
+		const open = () =>
+			db.prepare('SELECT count(*) AS n FROM sessions WHERE token_hash = ?').get(sha256(previous));
+		return { cookies, open };
+	}
+
+	it('ends that session once the login succeeds', async () => {
+		const { cookies, open } = sessionCookie();
+		createLinkedUser(db, 'ada@example.com', ISSUER, 'ada');
+		finishFlow.mockResolvedValue({ iss: ISSUER, sub: 'ada' });
+
+		await answer('203.0.113.14', cookies);
+		expect(open()).toEqual({ n: 0 });
+	});
+
+	it('keeps it when the login is cancelled at the provider', async () => {
+		const { cookies, open } = sessionCookie();
+		finishFlow.mockRejectedValue(
+			new client.AuthorizationResponseError('authorization response error', {
+				cause: new URLSearchParams({ error: 'access_denied' })
+			})
+		);
+
+		await answer('203.0.113.14', cookies);
+		expect(open()).toEqual({ n: 1 });
 	});
 });
 

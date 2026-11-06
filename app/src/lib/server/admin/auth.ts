@@ -382,7 +382,12 @@ export function endSessions(db: DatabaseSync, userId: number, keepSession?: stri
 }
 
 export function deleteSession(db: DatabaseSync, token: string) {
-	db.prepare('DELETE FROM sessions WHERE token_hash = ?').run(sha256(token));
+	deleteSessionByHash(db, sha256(token));
+}
+
+/** Ends the session whose token hashes to `hash`, as a flow remembers it. */
+export function deleteSessionByHash(db: DatabaseSync, hash: string) {
+	db.prepare('DELETE FROM sessions WHERE token_hash = ?').run(hash);
 }
 
 export type GrantResult = 'granted' | 'already-admin' | 'unknown-account';

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { isRedirect } from '@sveltejs/kit';
 import { ProviderMisconfigured, ProviderUnavailable } from '#lib/server/oidc/flow.js';
+import { sha256 } from '#lib/server/sha256.js';
 
 const startFlow = vi.fn();
 
@@ -19,7 +20,9 @@ vi.mock('#lib/server/oidc/flow.js', async (original) => ({
 	startFlow: (...args: unknown[]) => startFlow(...args)
 }));
 
-async function start(): Promise<string> {
+async function start(
+	cookies: unknown = { get: () => undefined, set: vi.fn(), delete: vi.fn() }
+): Promise<string> {
 	const { POST } = await import('./+server');
 	try {
 		await POST({
@@ -28,7 +31,7 @@ async function start(): Promise<string> {
 				method: 'POST',
 				body: new URLSearchParams()
 			}),
-			cookies: { get: () => undefined, set: vi.fn(), delete: vi.fn() },
+			cookies,
 			url: new URL('https://grimoire.example/auth/oidc/gitlab')
 		} as never);
 	} catch (thrown) {
@@ -47,5 +50,20 @@ describe('starting a login at a provider that cannot be used', () => {
 	it('asks to tell an admin when its settings are wrong', async () => {
 		startFlow.mockRejectedValue(new ProviderMisconfigured('discovery failed: issuer mismatch'));
 		expect(await start()).toBe('/login?problem=oidc-misconfigured');
+	});
+});
+
+describe('starting a login while logged in', () => {
+	it('keeps the session and hands its hash to the flow, to end it once the login succeeds', async () => {
+		startFlow.mockRejectedValue(new ProviderUnavailable('discovery failed: HTTP 503'));
+		const cookies = { get: () => 'current-session', set: vi.fn(), delete: vi.fn() };
+
+		await start(cookies as never);
+
+		expect(cookies.delete).not.toHaveBeenCalled();
+		expect(startFlow).toHaveBeenCalledWith(
+			expect.anything(),
+			expect.objectContaining({ replaces: sha256('current-session') })
+		);
 	});
 });

@@ -18,7 +18,7 @@ import {
 export async function redirectToProvider(
 	provider: OidcProvider,
 	cookies: Cookies,
-	options: Pick<OidcFlow, 'next' | 'invite' | 'link'>,
+	options: Pick<OidcFlow, 'next' | 'invite' | 'link' | 'replaces'>,
 	page: string
 ): Promise<never> {
 	let started;
