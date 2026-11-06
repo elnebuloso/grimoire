@@ -1,4 +1,4 @@
-.PHONY: help setup dev mail-catcher idp-mock build test e2e storybook lint format image image-smoke admin-grant handbook agent-start agent-stop agent-reset
+.PHONY: help setup dev mail-catcher idp-mock build test e2e storybook lint format image image-smoke admin-grant handbook agent-start agent-stop agent-reset agent-many-sources
 
 help: ## List all targets
 	@grep -E '^[a-z0-9-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "} {printf "  %-12s %s\n", $$1, $$2}'
@@ -64,3 +64,6 @@ agent-stop: ## Stop the agent environment
 
 agent-reset: ## Reset the agent environment's database to the fixture data
 	scripts/agent-env.sh reset
+
+agent-many-sources: ## Add 500 paused made-up sources to the agent environment; agent-reset removes them
+	scripts/agent-env.sh many-sources

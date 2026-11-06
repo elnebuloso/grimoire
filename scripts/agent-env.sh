@@ -96,12 +96,17 @@ reset() {
 	node "$ROOT/scripts/agent-seed.ts" "$DIR/grimoire.db"
 }
 
+many_sources() {
+	node "$ROOT/scripts/agent-many-sources.ts" "$DIR/grimoire.db"
+}
+
 case "${1:-}" in
 	start) start ;;
 	stop) stop ;;
 	reset) reset ;;
+	many-sources) many_sources ;;
 	*)
-		echo "usage: $0 start|stop|reset"
+		echo "usage: $0 start|stop|reset|many-sources"
 		exit 1
 		;;
 esac
