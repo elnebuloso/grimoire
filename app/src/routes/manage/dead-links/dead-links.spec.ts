@@ -45,6 +45,24 @@ describe('dead links page', () => {
 			['billing-docs', ['billing-docs/z']],
 			['platform-auth', ['platform-auth/x', 'platform-auth/y']]
 		]);
-		expect(Object.keys(groups[0]).sort()).toEqual(['links', 'name', 'path', 'source', 'sourceId']);
+		expect(Object.keys(groups[0]).sort()).toEqual([
+			'links',
+			'name',
+			'path',
+			'source',
+			'sourceId',
+			'total'
+		]);
+	});
+
+	it('lists at most 20 dead links of a source and counts the rest', () => {
+		for (let link = 0; link < 25; link++)
+			addDeadLink(1, `page-${link}.md`, `platform-auth/gone-${link}`);
+
+		const { groups } = page.load({ locals: { user: ADMIN } } as never) as {
+			groups: { links: unknown[]; total: number }[];
+		};
+		expect(groups[0].links).toHaveLength(20);
+		expect(groups[0].total).toBe(25);
 	});
 });

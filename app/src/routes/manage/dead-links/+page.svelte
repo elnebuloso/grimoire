@@ -25,6 +25,13 @@
 					/>
 				</h2>
 				<DeadLinkList links={group.links} source={{ id: group.sourceId, path: group.path }} />
+				{#if group.total > group.links.length}
+					<p>
+						<a href={resolve('/manage/sources/[id]/[[tab=tab]]', { id: String(group.sourceId) })}
+							>{m.dead_links_more({ count: group.total - group.links.length })}</a
+						>
+					</p>
+				{/if}
 			</section>
 		{/each}
 	</div>

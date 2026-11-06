@@ -318,6 +318,7 @@
 	"dead_link_to": "verlinkt auf",
 	"dead_link_in_repository": "im Repository",
 	"dead_links_none": "Keine Quelle hat einen toten Link.",
+	"dead_links_more": "{count} weitere im Status der Quelle",
 	"copy_done": "Kopiert.",
 	"copy_failed": "Kopieren ging nicht. Markiere den Text und kopiere ihn von Hand.",
 	"apikeys_copy": "Key kopieren",
