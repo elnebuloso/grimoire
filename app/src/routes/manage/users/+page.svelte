@@ -13,6 +13,7 @@
 	import TextField from '#lib/components/TextField.svelte';
 	import { markRefusal, submitWithToast, type Refusal } from '#lib/forms.js';
 	import { m } from '#lib/paraglide/messages.js';
+	import { wholeList } from '#lib/list.js';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
@@ -235,7 +236,7 @@
 		{/if}
 		<DataTable
 			label={m.invitations_pending()}
-			list={{ rows: data.invitations, total: data.invitations.length, page: 1, pageCount: 1 }}
+			list={wholeList(data.invitations)}
 			key={(invitation) => invitation.id}
 			columns={[
 				{ label: m.field_email() },

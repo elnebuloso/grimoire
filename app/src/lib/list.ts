@@ -33,6 +33,11 @@ export interface ListPage<Row> {
 	sort?: { key: string; descending: boolean };
 }
 
+/** All of `rows` on one page, for a list that is neither searched nor paged. */
+export function wholeList<Row>(rows: Row[]): ListPage<Row> {
+	return { rows, total: rows.length, page: 1, pageCount: 1 };
+}
+
 /** Reads the state of a list from `url`, ignoring values the list does not know. */
 export function readListParams<Row>(url: URL, spec: ListSpec<Row>): ListParams {
 	const sortParam = url.searchParams.get('sort') || spec.defaultSort || '';

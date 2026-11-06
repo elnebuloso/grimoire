@@ -4,6 +4,7 @@
 	import DataTable from '#lib/components/DataTable.svelte';
 	import SourceLabel from '#lib/components/SourceLabel.svelte';
 	import { m } from '#lib/paraglide/messages.js';
+	import { wholeList } from '#lib/list.js';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -14,7 +15,7 @@
 <section class="sheet flush" aria-label={m.duplicates_title()}>
 	<DataTable
 		label={m.duplicates_title()}
-		list={{ rows: data.pairs, total: data.pairs.length, page: 1, pageCount: 1 }}
+		list={wholeList(data.pairs)}
 		key={(pair) => `${pair.first.id}-${pair.second.id}`}
 		columns={[{ label: m.duplicates_kind() }, { label: m.sources() }]}
 	>

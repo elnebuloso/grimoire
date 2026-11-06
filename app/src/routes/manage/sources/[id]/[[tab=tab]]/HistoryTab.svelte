@@ -4,6 +4,7 @@
 	import StatusBadge from '#lib/components/StatusBadge.svelte';
 	import SyncError from '#lib/components/SyncError.svelte';
 	import { m } from '#lib/paraglide/messages.js';
+	import { wholeList } from '#lib/list.js';
 	import type { PageData } from './$types';
 
 	/** The sync runs of a saved source, the latest first. */
@@ -14,12 +15,7 @@
 	<h2 id="history">{m.source_history()}</h2>
 	<DataTable
 		label={m.source_history()}
-		list={{
-			rows: data.status.history,
-			total: data.status.history.length,
-			page: 1,
-			pageCount: 1
-		}}
+		list={wholeList(data.status.history)}
 		key={(run) => run.finishedAt}
 		columns={[
 			{ label: m.source_history_when() },
