@@ -121,10 +121,15 @@ export async function writeExport(
 	try {
 		const unreadable = decryptTokens(content, tokenKey);
 		if (unreadable.length > 0) return { error: 'unreadable-tokens', sources: unreadable };
-		return { file: await encrypt(gzipSync(content.serialize()), passphrase) };
+		return { file: await sealExport(content, passphrase) };
 	} finally {
 		content.close();
 	}
+}
+
+/** The file of an export holding `content` as it is, encrypted with `passphrase`. */
+export async function sealExport(content: DatabaseSync, passphrase: string): Promise<Buffer> {
+	return encrypt(gzipSync(content.serialize()), passphrase);
 }
 
 /**

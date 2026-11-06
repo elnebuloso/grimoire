@@ -1,8 +1,16 @@
 import type { DatabaseSync, SQLInputValue } from 'node:sqlite';
 import { migrate, type Migration } from './db/migrate.ts';
 import { inTransaction } from './db/transaction.ts';
-import { EXPORTED_TABLES, readExport, type ExportProblem } from './instance-export.ts';
+import {
+	EXPORTED_COLUMNS,
+	EXPORTED_TABLES,
+	readExport,
+	type ExportProblem
+} from './instance-export.ts';
 import { encryptSecret } from './secret-encryption.ts';
+
+// grimoire writes exports from this schema version on; a database below it was never one.
+const FIRST_EXPORTED_SCHEMA = 4;
 
 export type ImportProblem =
 	| ExportProblem
@@ -30,6 +38,7 @@ export async function importExport(
 	const content = read.db;
 	try {
 		const version = content.prepare('PRAGMA user_version').get()!.user_version as number;
+		if (version < FIRST_EXPORTED_SCHEMA) return { error: 'not-an-export' };
 		if (version > migrations.length) return { error: 'newer-schema' };
 		migrate(content, migrations);
 		return inTransaction(db, () => {
@@ -39,9 +48,17 @@ export async function importExport(
 			for (const table of EXPORTED_TABLES) copyRows(content, db, table, tokenKey);
 			return { users: count(db, 'users'), sources: count(db, 'sources') };
 		});
+	} catch (error) {
+		// It decrypted, so it was sealed with the passphrase, but it is no database of this schema.
+		if (isSqliteError(error)) return { error: 'not-an-export' };
+		throw error;
 	} finally {
 		content.close();
 	}
+}
+
+function isSqliteError(error: unknown): boolean {
+	return (error as { code?: unknown })?.code === 'ERR_SQLITE_ERROR';
 }
 
 function isEmpty(db: DatabaseSync): boolean {
@@ -52,10 +69,14 @@ function count(db: DatabaseSync, table: string): number {
 	return db.prepare(`SELECT count(*) AS n FROM ${table}`).get()!.n as number;
 }
 
+// Only the columns an export carries: whatever else the file holds stays behind.
 function copyRows(from: DatabaseSync, to: DatabaseSync, table: string, tokenKey: Buffer) {
-	const rows = from.prepare(`SELECT * FROM ${table}`).all() as Record<string, SQLInputValue>[];
+	const columns = EXPORTED_COLUMNS[table];
+	const rows = from.prepare(`SELECT ${columns.join(', ')} FROM ${table}`).all() as Record<
+		string,
+		SQLInputValue
+	>[];
 	if (rows.length === 0) return;
-	const columns = Object.keys(rows[0]);
 	const insert = to.prepare(
 		`INSERT INTO ${table} (${columns.join(', ')}) VALUES (${columns.map(() => '?').join(', ')})`
 	);

@@ -6,6 +6,7 @@ import { login } from './admin/auth';
 import { scopeForKey } from './api-keys';
 import { migrate } from './db/migrate';
 import { migrations, openDatabase } from './db/schema';
+import { sealExport } from './instance-export';
 import { importExport } from './instance-import';
 import { decryptSecret, deriveKeys } from './secret-encryption';
 
@@ -119,5 +120,40 @@ describe('importExport', () => {
 		});
 		expect(rows(db, 'SELECT * FROM users')).toEqual([]);
 		expect(rows(db, 'SELECT syncs_paused FROM settings')).toEqual([{ syncs_paused: 0 }]);
+	});
+
+	it('copies only the exported columns of a file that carries more', async () => {
+		const content = new DatabaseSync(':memory:');
+		migrate(content, migrations);
+		content.exec(`INSERT INTO users (id, email) VALUES (1, 'ada@example.com');
+			INSERT INTO sources (id, slug, name, git_url, branch, path, error, last_commit)
+			VALUES (1, 'docs', 'Docs', 'https://git.example.com/docs.git', 'main', 'docs', 'timeout', 'abc123')`);
+		const file = await sealExport(content, PASSPHRASE);
+		const db = openDatabase(':memory:');
+
+		expect(await importExport(db, file, PASSPHRASE, migrations, tokenKey)).toEqual({
+			users: 1,
+			sources: 1
+		});
+		expect(rows(db, 'SELECT error, last_commit FROM sources')).toEqual([
+			{ error: null, last_commit: null }
+		]);
+	});
+
+	it('refuses a file that decrypts but holds another schema, and writes nothing', async () => {
+		const content = new DatabaseSync(':memory:');
+		migrate(content, migrations);
+		content.exec('ALTER TABLE users DROP COLUMN password_hash');
+		const foreign = new DatabaseSync(':memory:');
+		foreign.exec('CREATE TABLE notes (text TEXT)');
+		const db = openDatabase(':memory:');
+
+		for (const other of [content, foreign]) {
+			const file = await sealExport(other, PASSPHRASE);
+			expect(await importExport(db, file, PASSPHRASE, migrations, tokenKey)).toEqual({
+				error: 'not-an-export'
+			});
+		}
+		expect(rows(db, 'SELECT * FROM users')).toEqual([]);
 	});
 });
