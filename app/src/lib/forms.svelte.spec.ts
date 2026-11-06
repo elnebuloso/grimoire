@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { ActionResult } from '@sveltejs/kit';
+import type { ActionResult } from '$app/forms';
 import { invalidateAll } from '$app/navigation';
 import { submitWithToast } from './forms';
 import { toasts } from './toasts.svelte';
@@ -61,7 +61,12 @@ describe('submitWithToast', () => {
 		const onsuccess = vi.fn();
 		const { element, update } = await submit(
 			{ success: () => 'Saved.', onsuccess },
-			{ type: 'failure', status: 400, data: { error: 'Enter an email address.', field: 'email' } }
+			{
+				type: 'failure',
+				status: 400,
+				location: '/manage/users',
+				data: { error: 'Enter an email address.', field: 'email' }
+			}
 		);
 
 		expect(update).toHaveBeenCalledWith({ reset: false, navigate: false });
@@ -74,7 +79,12 @@ describe('submitWithToast', () => {
 		const onfailure = vi.fn();
 		const { element, update } = await submit(
 			{ onfailure },
-			{ type: 'failure', status: 400, data: { error: 'Choose a source.', field: 'name' } }
+			{
+				type: 'failure',
+				status: 400,
+				location: '/account/api-keys',
+				data: { error: 'Choose a source.', field: 'name' }
+			}
 		);
 
 		expect(onfailure).toHaveBeenCalledWith({ error: 'Choose a source.', field: 'name' });
@@ -85,7 +95,7 @@ describe('submitWithToast', () => {
 	it('lets the page show an error answer, without a toast', async () => {
 		const { button, update } = await submit(
 			{ success: () => 'Saved.' },
-			{ type: 'error', status: 500, error: new Error('database is locked') }
+			{ type: 'error', status: 500, error: { message: 'database is locked' } as App.Error }
 		);
 
 		expect(update).toHaveBeenCalledWith({ reset: false, navigate: false });
