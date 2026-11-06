@@ -1,9 +1,11 @@
 ---
 id: TASK-326
 title: 'Lists: an inherited name as sort parameter must not crash the page'
-status: To Do
-assignee: []
+status: Done
+assignee:
+  - '@claude'
 created_date: '2026-11-06 22:05'
+updated_date: '2026-11-06 22:10'
 labels:
   - admin
   - search
@@ -28,7 +30,27 @@ Found by the second whole-repo audit on 2026-11-06 (HEAD 06aada8).
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 `sort=__proto__`, `sort=valueOf` and `sort=-constructor` fall back to the default sort like any unknown key
-- [ ] #2 Known sort keys work as before
-- [ ] #3 A spec in `list.spec.ts` covers inherited names
+- [x] #1 `sort=__proto__`, `sort=valueOf` and `sort=-constructor` fall back to the default sort like any unknown key
+- [x] #2 Known sort keys work as before
+- [x] #3 A spec in `list.spec.ts` covers inherited names
 <!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. Spec: __proto__, valueOf, -constructor and hasOwnProperty fall back to the default sort
+2. readListParams checks the key with Object.hasOwn
+<!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+- The spec failed before and passes after; list.spec.ts, page.spec.ts and sources.spec.ts pass (52 tests).
+- No other `in` check on a user-given key found in src.
+<!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+readListParams now accepts a sort key only when the list defines it itself (Object.hasOwn), so ?sort=__proto__ or ?sort=valueOf fall back to the default sort instead of answering 500 on the start page and every management list. Covered by a spec in list.spec.ts.
+<!-- SECTION:FINAL_SUMMARY:END -->

@@ -53,6 +53,12 @@ describe('readListParams', () => {
 		expect(params('page=0').page).toBe(1);
 	});
 
+	it('falls back on a sort that names what every object inherits', () => {
+		for (const sort of ['__proto__', 'valueOf', '-constructor', 'hasOwnProperty']) {
+			expect(params(`sort=${sort}`)).toMatchObject({ sort: 'name', descending: false });
+		}
+	});
+
 	it('takes the default sort of the list, descending where it says so', () => {
 		const spec = { ...SPEC, defaultSort: '-checked' };
 		const url = (query: string) => new URL(`https://grimoire.example/x?${query}`);

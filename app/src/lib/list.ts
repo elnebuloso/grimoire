@@ -43,7 +43,7 @@ export function readListParams<Row>(url: URL, spec: ListSpec<Row>): ListParams {
 	const sortParam = url.searchParams.get('sort') || spec.defaultSort || '';
 	const descending = sortParam.startsWith('-');
 	const sortKey = descending ? sortParam.slice(1) : sortParam;
-	const known = sortKey in spec.sorts;
+	const known = Object.hasOwn(spec.sorts, sortKey);
 	const filters: Record<string, string> = {};
 	for (const name of Object.keys(spec.filters ?? {})) {
 		const value = url.searchParams.get(name);
