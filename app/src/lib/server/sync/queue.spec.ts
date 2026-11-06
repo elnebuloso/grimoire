@@ -106,6 +106,30 @@ describe('createSyncQueue', () => {
 		]);
 	});
 
+	it('queues one more forced sync behind a running forced one, and no more than one', async () => {
+		const fake = fakeSync();
+		const queue = createSyncQueue(fake.run);
+		const running = queue.request(1, { force: true });
+		await flush();
+		expect(fake.started).toEqual([[1, true]]);
+
+		// A commit pushed after the running sync checked the branch needs a run of its own.
+		const again = queue.request(1, { force: true });
+		expect(again).not.toBe(running);
+		expect(queue.request(1, { force: true })).toBe(again);
+		expect(queue.request(1)).toBe(again);
+		await flush();
+		expect(fake.started).toEqual([[1, true]]);
+
+		await fake.finishAll();
+		await Promise.all([running, again]);
+		expect(fake.started).toEqual([
+			[1, true],
+			[1, true]
+		]);
+		expect(queue.isPending(1)).toBe(false);
+	});
+
 	it('tells whether a sync of a source is queued or running', async () => {
 		const done = gate();
 		const queue = createSyncQueue(async () => {

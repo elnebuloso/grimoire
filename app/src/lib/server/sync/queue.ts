@@ -18,6 +18,7 @@ export type RunSync = (sourceId: number, force: boolean, lanes: SyncLanes) => Pr
 interface Job {
 	promise: Promise<SyncResult>;
 	force: boolean;
+	started: () => boolean;
 }
 
 // Enough to check 200 sources well within a polling interval without flooding a Git server.
@@ -32,17 +33,24 @@ export function createSyncQueue(run: RunSync, { parallelChecks = PARALLEL_CHECKS
 	const pending = new Map<number, Job>();
 
 	/**
-	 * Queues a sync of one source. While one is pending, its result is shared – unless this
-	 * request forces a sync and the pending one does not, so "sync now" is never swallowed;
-	 * the forced sync then starts after it.
+	 * Queues a sync of one source. While one is waiting, its result is shared – unless this request
+	 * forces a sync and the waiting one does not, so "sync now" is never swallowed. A running sync
+	 * is shared only with unforced requests: a forced one queues the next run, since the running
+	 * one may have checked the branch before the commit the admin wants. The new run starts after
+	 * the one before it, so no source has more than one run waiting.
 	 */
 	function request(sourceId: number, { force = false } = {}): Promise<SyncResult> {
-		const waiting = pending.get(sourceId);
-		if (waiting && (waiting.force || !force)) return waiting.promise;
+		const pendingJob = pending.get(sourceId);
+		if (pendingJob && !force) return pendingJob.promise;
+		if (pendingJob && pendingJob.force && !pendingJob.started()) return pendingJob.promise;
 
-		const previous = waiting ? waiting.promise.catch(() => undefined) : Promise.resolve();
-		const promise = previous.then(() => run(sourceId, force, lanes));
-		const job = { promise, force };
+		const previous = pendingJob ? pendingJob.promise.catch(() => undefined) : Promise.resolve();
+		let started = false;
+		const promise = previous.then(() => {
+			started = true;
+			return run(sourceId, force, lanes);
+		});
+		const job: Job = { promise, force, started: () => started };
 		pending.set(sourceId, job);
 		promise
 			.finally(() => {
