@@ -70,12 +70,13 @@ const PAGE_ROUTES = new Set(
 // path, so `/m%61nage` runs the `/manage` page while its raw pathname matches no guarded prefix.
 // A path without a route has nothing to guard and ends in a 404.
 export const handleAccess: Handle = async ({ event, resolve }) => {
-	if (event.route.id === null) return resolve(event);
 	const db = database();
 	const session = event.cookies.get(SESSION_COOKIE);
+	// Read once, for every request: also a page that does not exist shows who is logged in.
 	event.locals.user = sessionUser(db, session);
+	if (event.route.id === null) return resolve(event);
 	if (event.locals.user && !BACKGROUND_ROUTES.has(event.route.id)) touchSession(db, session);
-	const target = accessRedirect(db, event.route.id, session);
+	const target = accessRedirect(db, event.route.id, event.locals.user);
 	if (target === 'not-found' || target === 'forbidden') {
 		const status = target === 'not-found' ? 404 : 403;
 		// Thrown here, SvelteKit answers with its bare fallback page; thrown by a page's load, it

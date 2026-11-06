@@ -166,7 +166,10 @@ describe('header', () => {
 		const { load } = await import('./+layout.server');
 		const header = (session?: string) =>
 			(
-				load({ cookies: fakeCookies(session ? { grimoire_session: session } : {}) } as never) as {
+				load({
+					cookies: fakeCookies({}),
+					locals: { user: admin.auth.sessionUser(db, session) }
+				} as never) as {
 					user: unknown;
 				}
 			).user;
@@ -335,6 +338,14 @@ describe('admin access guard', () => {
 		if (!('session' in login)) throw new Error(login.error);
 		return login.session;
 	}
+
+	it('knows the user also on a page that does not exist, for the header of the error page', async () => {
+		const session = await editorSession();
+		const { event, run } = request('/no-such-page', session, null);
+
+		expect(await run()).toBe(served);
+		expect(event.locals.user).toMatchObject({ email: 'editor@example.com' });
+	});
 
 	it('sends every admin page to the setup while there is no admin', async () => {
 		const result = await thrown(request('/manage').run);

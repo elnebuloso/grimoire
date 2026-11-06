@@ -392,18 +392,34 @@ describe('several users', () => {
 			await auth.login(db, 'b', { email: 'editor@example.com', password: EDITOR_PASSWORD })
 		);
 
-		expect(access.accessRedirect(db, '/manage', editor)).toBe('forbidden');
-		expect(access.accessRedirect(db, '/manage/sources/[id]', editor)).toBe('forbidden');
-		expect(access.accessRedirect(db, '/manage/dead-links', editor)).toBe('forbidden');
-		expect(access.accessRedirect(db, '/manage/missed-queries', editor)).toBe('forbidden');
-		expect(access.accessRedirect(db, '/manage/settings', editor)).toBe('forbidden');
-		expect(access.accessRedirect(db, '/manage/users', editor)).toBe('forbidden');
-		expect(access.accessRedirect(db, '/manage/duplicates', editor)).toBe('forbidden');
-		expect(access.accessRedirect(db, '/manage/api-keys', editor)).toBe('forbidden');
-		expect(access.accessRedirect(db, '/logout', editor)).toBeUndefined();
-		expect(access.accessRedirect(db, '/login', editor)).toBe('/');
-		expect(access.accessRedirect(db, '/account', editor)).toBeUndefined();
-		expect(access.accessRedirect(db, '/account/api-keys', editor)).toBeUndefined();
+		expect(access.accessRedirect(db, '/manage', auth.sessionUser(db, editor))).toBe('forbidden');
+		expect(access.accessRedirect(db, '/manage/sources/[id]', auth.sessionUser(db, editor))).toBe(
+			'forbidden'
+		);
+		expect(access.accessRedirect(db, '/manage/dead-links', auth.sessionUser(db, editor))).toBe(
+			'forbidden'
+		);
+		expect(access.accessRedirect(db, '/manage/missed-queries', auth.sessionUser(db, editor))).toBe(
+			'forbidden'
+		);
+		expect(access.accessRedirect(db, '/manage/settings', auth.sessionUser(db, editor))).toBe(
+			'forbidden'
+		);
+		expect(access.accessRedirect(db, '/manage/users', auth.sessionUser(db, editor))).toBe(
+			'forbidden'
+		);
+		expect(access.accessRedirect(db, '/manage/duplicates', auth.sessionUser(db, editor))).toBe(
+			'forbidden'
+		);
+		expect(access.accessRedirect(db, '/manage/api-keys', auth.sessionUser(db, editor))).toBe(
+			'forbidden'
+		);
+		expect(access.accessRedirect(db, '/logout', auth.sessionUser(db, editor))).toBeUndefined();
+		expect(access.accessRedirect(db, '/login', auth.sessionUser(db, editor))).toBe('/');
+		expect(access.accessRedirect(db, '/account', auth.sessionUser(db, editor))).toBeUndefined();
+		expect(
+			access.accessRedirect(db, '/account/api-keys', auth.sessionUser(db, editor))
+		).toBeUndefined();
 	});
 
 	it('sends each user home to what they may open', async () => {
@@ -551,13 +567,13 @@ describe('accessRedirect', () => {
 			await auth.login(db, 'client', { email: 'admin@example.com', password: PASSWORD })
 		);
 
-		expect(access.accessRedirect(db, '/setup', session)).toBe('not-found');
+		expect(access.accessRedirect(db, '/setup', auth.sessionUser(db, session))).toBe('not-found');
 		expect(access.accessRedirect(db, '/manage', undefined)).toBe('/login');
-		expect(access.accessRedirect(db, '/logout', 'forged')).toBe('/login');
+		expect(access.accessRedirect(db, '/logout', auth.sessionUser(db, 'forged'))).toBe('/login');
 		expect(access.accessRedirect(db, '/account', undefined)).toBe('/login');
 		expect(access.accessRedirect(db, '/login', undefined)).toBeUndefined();
-		expect(access.accessRedirect(db, '/manage', session)).toBeUndefined();
-		expect(access.accessRedirect(db, '/login', session)).toBe('/manage');
+		expect(access.accessRedirect(db, '/manage', auth.sessionUser(db, session))).toBeUndefined();
+		expect(access.accessRedirect(db, '/login', auth.sessionUser(db, session))).toBe('/manage');
 	});
 
 	it('serves the reset of a forgotten password without a session', async () => {
@@ -574,8 +590,12 @@ describe('accessRedirect', () => {
 			await auth.login(db, 'client', { email: 'admin@example.com', password: PASSWORD })
 		);
 
-		expect(access.accessRedirect(db, '/login/reset/[token]', session)).toBeUndefined();
-		expect(access.accessRedirect(db, '/login/forgot', session)).toBe('/manage');
+		expect(
+			access.accessRedirect(db, '/login/reset/[token]', auth.sessionUser(db, session))
+		).toBeUndefined();
+		expect(access.accessRedirect(db, '/login/forgot', auth.sessionUser(db, session))).toBe(
+			'/manage'
+		);
 	});
 });
 
