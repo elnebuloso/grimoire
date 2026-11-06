@@ -65,7 +65,15 @@ export default defineConfig({
 						enabled: true,
 						headless: true,
 						provider: playwright(),
-						instances: [{ browser: 'chromium' }]
+						// Once in each scheme: axe checks the contrast of the light and the dark tokens.
+						instances: [
+							{ browser: 'chromium', name: 'light' },
+							{
+								browser: 'chromium',
+								name: 'dark',
+								provider: playwright({ contextOptions: { colorScheme: 'dark' } })
+							}
+						]
 					}
 				}
 			}

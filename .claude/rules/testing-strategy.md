@@ -13,7 +13,7 @@ Measured in the agent's shell (4 cores):
 | `make lint` (prettier and eslint, then svelte-check) | 74 s |
 | `make test`, all 74 specs and 20 story files | 84 s |
 | `make test TEST=--project=server` | 54 s; `sync.spec.ts` is the slowest file, 20 s on its own |
-| `make test TEST=--project=storybook` | 30 s |
+| `make test TEST=--project=storybook` | 80 s: every story twice, in a light and a dark browser |
 | `make test TEST=<one spec file>` | 9–10 s |
 | `make test TEST="<one spec file> -t '<test name>'"` | 9 s |
 | `make test TEST=<one *.stories.svelte>` | 13–20 s |
