@@ -64,7 +64,10 @@
 
 		await userEvent.click(canvas.getByRole('button', { name: 'Cancel' }));
 		await waitFor(() => expect(canvas.queryByRole('dialog')).toBeNull());
-		await expect(canvas.queryByRole('button', { name: 'Delete ada@example.com' })).toBeNull();
+		// The menu closes on the dialog's close event, which may come a frame later.
+		await waitFor(() =>
+			expect(canvas.queryByRole('button', { name: 'Delete ada@example.com' })).toBeNull()
+		);
 	}}
 >
 	{#snippet template(args)}<ActionMenu label={args.label}>{@render actions()}</ActionMenu>{/snippet}
