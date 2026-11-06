@@ -75,9 +75,7 @@ describe('acceptInvitation', () => {
 		const { token } = invite();
 		expect(invitedEmail(db, token, NOW)).toBe('writer@example.com');
 
-		expect(await acceptInvitation(db, token, PASSWORD, NOW)).toEqual({
-			email: 'writer@example.com'
-		});
+		expect(await acceptInvitation(db, token, PASSWORD, NOW)).toEqual({ userId: 2 });
 		expect(users()).toEqual([
 			{ email: 'admin@example.com', roles: 1 },
 			{ email: 'writer@example.com', roles: 0 }
@@ -122,7 +120,7 @@ describe('acceptInvitation', () => {
 			acceptInvitation(db, token, PASSWORD, NOW),
 			acceptInvitation(db, token, PASSWORD, NOW)
 		]);
-		expect(results).toContainEqual({ email: 'writer@example.com' });
+		expect(results).toContainEqual({ userId: 2 });
 		expect(results).toContainEqual({ error: 'invite-link-invalid' });
 		expect(users()).toHaveLength(2);
 	});

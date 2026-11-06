@@ -3,6 +3,7 @@ import type { DatabaseSync } from 'node:sqlite';
 import { isRedirect } from '@sveltejs/kit';
 import { openDatabase } from '#lib/server/db/schema.js';
 import type { Mailer } from '#lib/server/mail/index.js';
+import { login } from '#lib/server/admin/auth.js';
 import { listInvitations } from '#lib/server/admin/invitations.js';
 import * as users from '../manage/users/+page.server';
 import * as invite from './[token]/+page.server';
@@ -136,6 +137,22 @@ describe('accepting', () => {
 			expect.anything()
 		);
 		expect(listInvitations(db)).toEqual([]);
+	});
+
+	it('logs the new account in from a client the failed-login limit blocks', async () => {
+		for (let attempt = 0; attempt < 20; attempt++) {
+			await login(db, 'client', { email: 'nobody@example.com', password: 'wrong password' });
+		}
+		await inviteForm('writer@example.com');
+
+		const { run, cookies } = accept(mailedToken(), PASSWORD);
+		await thrown(run);
+
+		expect(cookies.set).toHaveBeenCalledWith(
+			'grimoire_session',
+			expect.any(String),
+			expect.anything()
+		);
 	});
 
 	it('keeps the link for a password that is too short, and refuses a used one', async () => {

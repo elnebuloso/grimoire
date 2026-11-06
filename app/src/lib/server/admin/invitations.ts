@@ -119,7 +119,7 @@ export async function acceptInvitation(
 	token: string,
 	password: string,
 	now = new Date()
-): Promise<{ email: string } | { error: AuthProblem }> {
+): Promise<{ userId: number } | { error: AuthProblem }> {
 	if (!invitedEmail(db, token, now)) return { error: 'invite-link-invalid' };
 	if (password.length < MIN_PASSWORD_LENGTH) return { error: 'password-too-short' };
 	// Hashed before the transaction: other requests share the connection while it is awaited.
@@ -131,8 +131,7 @@ export async function acceptInvitation(
 			.get(sha256(token), now.toISOString()) as { email: string } | undefined;
 		if (!used) return { error: 'invite-link-invalid' as const };
 		if (accountExists(db, used.email)) return { error: 'account-exists' as const };
-		insertUser(db, used.email, passwordHash, []);
-		return { email: used.email };
+		return { userId: insertUser(db, used.email, passwordHash, []) };
 	});
 }
 

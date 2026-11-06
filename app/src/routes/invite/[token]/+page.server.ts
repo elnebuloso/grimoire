@@ -2,7 +2,7 @@ import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { database } from '#lib/server/db/index.js';
 import { WELCOME_PAGE } from '#lib/server/admin/access.js';
-import { login, SESSION_COOKIE, sessionCookieOptions } from '#lib/server/admin/auth.js';
+import { createSession, SESSION_COOKIE, sessionCookieOptions } from '#lib/server/admin/auth.js';
 import { authMessage } from '#lib/server/admin/auth-messages.js';
 import { acceptInvitation, invitedEmail } from '#lib/server/admin/invitations.js';
 import { oidcProviders } from '#lib/server/oidc/index.js';
@@ -23,7 +23,7 @@ export const load: PageServerLoad = ({ params, setHeaders }) => {
 };
 
 export const actions = {
-	default: async ({ request, params, cookies, getClientAddress }) => {
+	default: async ({ request, params, cookies }) => {
 		const password = String((await request.formData()).get('password') ?? '');
 		const db = database();
 		const accepted = await acceptInvitation(db, params.token, password);
@@ -33,8 +33,11 @@ export const actions = {
 				linkInvalid: accepted.error !== 'password-too-short'
 			});
 		}
-		const result = await login(db, getClientAddress(), { email: accepted.email, password });
-		if ('session' in result) cookies.set(SESSION_COOKIE, result.session, sessionCookieOptions);
+		cookies.set(
+			SESSION_COOKIE,
+			createSession(db, accepted.userId, new Date()),
+			sessionCookieOptions
+		);
 		redirect(303, WELCOME_PAGE);
 	}
 } satisfies Actions;
