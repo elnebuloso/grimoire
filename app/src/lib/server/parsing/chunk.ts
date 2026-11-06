@@ -1,4 +1,4 @@
-import type { Definition, Heading, Root, RootContent } from 'mdast';
+import type { Definition, FootnoteDefinition, Heading, Root, RootContent } from 'mdast';
 import { toString } from 'mdast-util-to-string';
 import { visit, SKIP } from 'unist-util-visit';
 import { parseMarkdown, stringifyMarkdown } from './markdown.ts';
@@ -175,24 +175,37 @@ function mergeSmallSections(section: Section) {
 	section.children = kept;
 }
 
-// Definitions usually sit at the end of a page, far from the sections that use them, and a
-// snippet is delivered alone: each one gets its own copy of the definitions it references.
-function takeDefinitions(tree: Root): Map<string, Definition> {
-	const definitions = new Map<string, Definition>();
-	visit(tree, 'definition', (node, index, parent) => {
-		if (!definitions.has(node.identifier)) definitions.set(node.identifier, node);
+// Definitions and footnotes usually sit at the end of a page, far from the sections that use them,
+// and a snippet is delivered alone: each one gets its own copy of the ones it references. Keyed by
+// type and identifier: a footnote `[^1]` and a link definition `[1]` are different things.
+type Definitions = Map<string, Definition | FootnoteDefinition>;
+
+function takeDefinitions(tree: Root): Definitions {
+	const definitions: Definitions = new Map();
+	visit(tree, (node, index, parent) => {
+		if (node.type !== 'definition' && node.type !== 'footnoteDefinition') return;
+		const key = `${node.type}:${node.identifier}`;
+		if (!definitions.has(key)) definitions.set(key, node);
 		parent!.children.splice(index!, 1);
 		return [SKIP, index!];
 	});
 	return definitions;
 }
 
-function definitionsUsedBy(nodes: RootContent[], definitions: Map<string, Definition>) {
-	const used = new Map<string, Definition>();
+function definitionsUsedBy(nodes: RootContent[], definitions: Definitions) {
+	const used: Definitions = new Map();
 	for (const node of nodes) {
-		visit(node, 'linkReference', (reference) => {
-			const definition = definitions.get(reference.identifier);
-			if (definition) used.set(reference.identifier, definition);
+		visit(node, (reference) => {
+			const type =
+				reference.type === 'linkReference'
+					? 'definition'
+					: reference.type === 'footnoteReference'
+						? 'footnoteDefinition'
+						: undefined;
+			if (!type) return;
+			const key = `${type}:${(reference as { identifier: string }).identifier}`;
+			const definition = definitions.get(key);
+			if (definition) used.set(key, definition);
 		});
 	}
 	return [...used.values()];
@@ -202,7 +215,7 @@ function collectSnippets(
 	section: Section,
 	titlePath: string[],
 	file: string,
-	definitions: Map<string, Definition>,
+	definitions: Definitions,
 	out: Snippet[],
 	anchorsAbove: string[] = []
 ) {

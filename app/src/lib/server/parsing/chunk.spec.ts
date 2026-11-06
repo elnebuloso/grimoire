@@ -238,4 +238,13 @@ describe('chunkPage', () => {
 		expect(definitionsOf('b')).toEqual([]);
 		expect(definitionsOf('c')).toEqual(['[rb]: https://example.com/docs']);
 	});
+
+	it('moves footnotes into every snippet that references them', () => {
+		const page = chunk(
+			`# Page\n\n## Limits\n\nUploads stop at 10 MB[^1]. ${text(80)}\n\n## Other\n\n${text(80)}\n\n[^1]: Larger files are rejected with HTTP 413.\n`
+		);
+		const contentOf = (anchor: string) => page.snippets.find((s) => s.anchor === anchor)!.content;
+		expect(contentOf('limits')).toContain('[^1]: Larger files are rejected with HTTP 413.');
+		expect(contentOf('other')).not.toContain('413');
+	});
 });
