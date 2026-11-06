@@ -1,9 +1,11 @@
 ---
 id: TASK-344
 title: 'Login limit: a refused attempt must not leave an entry in the per-account map'
-status: To Do
-assignee: []
+status: Done
+assignee:
+  - '@claude'
 created_date: '2026-11-06 23:46'
+updated_date: '2026-11-06 23:52'
 labels:
   - admin
 dependencies: []
@@ -29,8 +31,29 @@ Found by the third whole-repo audit on 2026-11-07 (HEAD 4a72798).
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 A login refused by the client limit adds no entry to the per-account map
-- [ ] #2 A login refused by the account limit does not count against the client limit
-- [ ] #3 The per-account key uses at most 320 characters of the email
-- [ ] #4 The existing login-limit specs in `auth.spec.ts` still pass, and a spec covers many refused logins with different emails leaving the map size unchanged
+- [x] #1 A login refused by the client limit adds no entry to the per-account map
+- [x] #2 A login refused by the account limit does not count against the client limit
+- [x] #3 The per-account key uses at most 320 characters of the email
+- [x] #4 The existing login-limit specs in `auth.spec.ts` still pass, and a spec covers many refused logins with different emails leaving the map size unchanged
 <!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. attempt-limit.ts: giveBack deletes a key whose list became empty; `size` tells how many keys are kept (for specs)
+2. auth.ts takeAttempt takes the client limit first and gives the client attempt back when the account limit refuses; accountKey uses at most 320 characters of the email
+3. Specs: attempt-limit drops a given-back key; 200 blocked logins with 10 KB emails leave the number of kept keys unchanged (auth.spec wraps createAttemptLimit to see the limits); emails sharing 320 characters count as one account
+<!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+- The auth spec fails with the deletion in giveBack removed (checked) and passes with it; the old order alone also left keys.
+- auth, attempt-limit, password-reset, login, account, OIDC and access specs pass (145 tests).
+<!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+A login the client limit refuses no longer leaves an entry in the per-account map: the client limit is taken first, a refused account attempt gives the client attempt back, giveBack drops keys that became empty, and the key uses at most 320 characters of the email. A blocked client sending logins with endless long emails can no longer grow the server's memory. Specs cover the kept keys after 200 blocked logins, the empty-key cleanup and the 320-character key.
+<!-- SECTION:FINAL_SUMMARY:END -->

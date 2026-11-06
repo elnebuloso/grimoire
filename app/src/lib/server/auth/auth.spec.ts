@@ -14,6 +14,20 @@ let access: typeof import('./access');
 let db: DatabaseSync;
 let logged: () => string[];
 
+// Every attempt limit the fresh auth module creates, to see how many keys they keep.
+const limits = vi.hoisted(() => [] as { size: number }[]);
+vi.mock('./attempt-limit', async (original) => {
+	const real = await original<typeof import('./attempt-limit')>();
+	return {
+		...real,
+		createAttemptLimit: (...args: Parameters<typeof real.createAttemptLimit>) => {
+			const limit = real.createAttemptLimit(...args);
+			limits.push(limit);
+			return limit;
+		}
+	};
+});
+
 const PASSWORD = 'correct horse battery';
 const NOW = new Date('2026-10-28T12:00:00Z');
 
@@ -254,6 +268,41 @@ describe('login', () => {
 		expect(
 			await auth.login(db, 'admin-pc', { email: 'admin@example.com', password: PASSWORD }, NOW)
 		).toHaveProperty('session');
+	});
+
+	it('keeps no key for logins the client limit refuses, whatever email they name', async () => {
+		limits.length = 0;
+		auth = await (vi.resetModules(), import('./auth'));
+		for (let attempt = 0; attempt < 50; attempt++) {
+			await auth.login(
+				db,
+				'office',
+				{ email: `typo${attempt}@example.com`, password: 'nope' },
+				NOW
+			);
+		}
+		const keys = () => limits.reduce((sum, limit) => sum + limit.size, 0);
+		const before = keys();
+
+		for (let attempt = 0; attempt < 200; attempt++) {
+			const email = `${'x'.repeat(10_000)}${attempt}@example.com`;
+			expect(await auth.login(db, 'office', { email, password: 'nope' }, NOW)).toEqual({
+				error: 'blocked'
+			});
+		}
+
+		expect(keys()).toBe(before);
+	});
+
+	it('counts emails by their first 320 characters', async () => {
+		const prefix = 'x'.repeat(320);
+		for (let attempt = 0; attempt < 5; attempt++) {
+			await auth.login(db, 'office', { email: `${prefix}${attempt}`, password: 'nope' }, NOW);
+		}
+
+		expect(await auth.login(db, 'office', { email: `${prefix}9`, password: 'nope' }, NOW)).toEqual({
+			error: 'blocked'
+		});
 	});
 
 	it('blocks a client that sends its attempts in parallel just as well', async () => {

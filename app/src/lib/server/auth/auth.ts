@@ -69,8 +69,9 @@ let setupTokenValue: string | undefined;
 const failedLogins = createAttemptLimit(MAX_FAILED_LOGINS_PER_CLIENT, FAILED_LOGIN_MINUTES);
 const failedAccountLogins = createAttemptLimit(MAX_FAILED_LOGINS_PER_ACCOUNT, FAILED_LOGIN_MINUTES);
 
+// An address has at most 320 characters; a longer email must not make a larger key.
 const accountKey = (client: string, email: string) =>
-	`${clientKey(client)} ${normalizeEmail(email)}`;
+	`${clientKey(client)} ${normalizeEmail(email).slice(0, 320)}`;
 
 /**
  * Counts a password check of `client` for `email` as failed before it runs: requests sent in
@@ -78,9 +79,10 @@ const accountKey = (client: string, email: string) =>
  */
 function takeAttempt(client: string, email: string, now: Date): boolean {
 	if (pendingHashes >= MAX_PENDING_HASHES) return false;
-	if (!failedAccountLogins.take(accountKey(client, email), now)) return false;
-	if (failedLogins.take(clientKey(client), now)) return true;
-	failedAccountLogins.giveBack(accountKey(client, email));
+	// The client first: a client it refuses must not leave a key for every email it names.
+	if (!failedLogins.take(clientKey(client), now)) return false;
+	if (failedAccountLogins.take(accountKey(client, email), now)) return true;
+	failedLogins.giveBack(clientKey(client));
 	return false;
 }
 

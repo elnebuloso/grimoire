@@ -25,11 +25,18 @@ export function createAttemptLimit(max: number, windowMinutes: number) {
 		},
 		/** Takes back the latest attempt of `key`, such as a request whose mail never went out. */
 		giveBack(key: string) {
-			attempts.get(key)?.pop();
+			const times = attempts.get(key);
+			times?.pop();
+			// An empty entry would stay until every key before it expired.
+			if (times?.length === 0) attempts.delete(key);
 		},
 		/** Forgets the attempts of `key`. */
 		forget(key: string) {
 			attempts.delete(key);
+		},
+		/** How many keys have attempts in memory. */
+		get size() {
+			return attempts.size;
 		}
 	};
 }

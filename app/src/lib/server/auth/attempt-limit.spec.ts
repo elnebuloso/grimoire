@@ -15,6 +15,16 @@ describe('createAttemptLimit', () => {
 		expect(limit.take('203.0.113.7', minutes(15.6))).toBe(false);
 	});
 
+	it('drops a key whose only attempt was given back', () => {
+		const limit = createAttemptLimit(2, 15);
+		limit.take('a', new Date('2026-10-28T12:00:00Z'));
+		limit.take('b', new Date('2026-10-28T12:00:00Z'));
+
+		limit.giveBack('b');
+
+		expect(limit.size).toBe(1);
+	});
+
 	it('keeps the attempts of a key that is still in its window while older keys expire', () => {
 		const limit = createAttemptLimit(2, 15);
 		limit.take('203.0.113.7', minutes(0));
