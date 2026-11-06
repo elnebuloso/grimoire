@@ -8,7 +8,7 @@
 
 <Story
 	name="All sources"
-	args={{ allSources: true, slugs: [] }}
+	args={{ sources: 'all' }}
 	play={async ({ canvas }) => {
 		await expect(canvas.getByText('all sources')).toBeVisible();
 	}}
@@ -16,7 +16,7 @@
 
 <Story
 	name="No source left"
-	args={{ allSources: false, slugs: [] }}
+	args={{ sources: [] }}
 	play={async ({ canvas }) => {
 		await expect(canvas.getByText('no sources')).toBeVisible();
 	}}
@@ -24,7 +24,7 @@
 
 <Story
 	name="A few sources"
-	args={{ allSources: false, slugs: ['billing-docs', 'platform-docs'] }}
+	args={{ sources: ['billing-docs', 'platform-docs'] }}
 	play={async ({ canvas, canvasElement }) => {
 		await expect(canvas.getByText('billing-docs')).toBeVisible();
 		await expect(canvasElement).toHaveTextContent('billing-docs, platform-docs');
@@ -35,8 +35,7 @@
 <Story
 	name="Many sources, shortened"
 	args={{
-		allSources: false,
-		slugs: ['auth', 'billing-docs', 'cli', 'deploy', 'events', 'platform-docs']
+		sources: ['auth', 'billing-docs', 'cli', 'deploy', 'events', 'platform-docs']
 	}}
 	play={async ({ canvas }) => {
 		const summary = canvas.getByText(/and 3 more/);

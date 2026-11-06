@@ -173,10 +173,7 @@
 						<div class="facts">
 							<strong>{key.name}</strong>
 							<p>
-								<KeyScope
-									allSources={key.sources === 'all'}
-									slugs={key.sources === 'all' ? [] : key.sources}
-								/>
+								<KeyScope sources={key.sources} />
 							</p>
 							<p class="meta">
 								<span

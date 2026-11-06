@@ -2,13 +2,14 @@
 	import { m } from '#lib/paraglide/messages.js';
 
 	/** The sources a key reads: all of them, or the first few by slug and the rest on request. */
-	let { allSources, slugs }: { allSources: boolean; slugs: string[] } = $props();
+	let { sources }: { sources: 'all' | string[] } = $props();
 
 	const SHOWN = 3;
+	const slugs = $derived(sources === 'all' ? [] : sources);
 	const rest = $derived(slugs.length - SHOWN);
 </script>
 
-{#if allSources}
+{#if sources === 'all'}
 	<span>{m.apikeys_all_sources()}</span>
 {:else if slugs.length === 0}
 	<span>{m.apikeys_no_sources()}</span>

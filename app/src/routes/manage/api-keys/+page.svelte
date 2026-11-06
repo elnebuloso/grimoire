@@ -48,10 +48,7 @@
 				{:else}{m.apikeys_no_owner()}{/if}
 			</td>
 			<td>
-				<KeyScope
-					allSources={key.sources === 'all'}
-					slugs={key.sources === 'all' ? [] : key.sources}
-				/>
+				<KeyScope sources={key.sources} />
 			</td>
 			<td class:expired={key.expired}>
 				{#if !key.validUntil}
