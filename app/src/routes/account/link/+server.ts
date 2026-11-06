@@ -2,7 +2,7 @@ import { error, redirect } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { ENCRYPTION_KEY } from '$app/env/private';
 import { database } from '#lib/server/db/index.js';
-import { checkCurrentPassword, SESSION_COOKIE } from '#lib/server/admin/auth.js';
+import { checkCurrentPassword, SESSION_COOKIE } from '#lib/server/auth/auth.js';
 import { sha256 } from '#lib/server/sha256.js';
 import { log } from '#lib/server/log.js';
 import { providerByKey } from '#lib/server/oidc/index.js';

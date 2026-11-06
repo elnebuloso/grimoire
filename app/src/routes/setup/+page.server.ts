@@ -11,8 +11,8 @@ import {
 	setupAdmin,
 	SESSION_COOKIE,
 	sessionCookieOptions
-} from '#lib/server/admin/auth.js';
-import { authMessage, authRefusal } from '#lib/server/admin/auth-messages.js';
+} from '#lib/server/auth/auth.js';
+import { authMessage, authRefusal } from '#lib/server/auth/auth-messages.js';
 import { importExport, type ImportProblem } from '#lib/server/instance-import.js';
 import { log } from '#lib/server/log.js';
 import { connectionPolicy, refusedSources } from '#lib/server/sync/connection-policy.js';

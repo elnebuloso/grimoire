@@ -1,6 +1,6 @@
 import type { DatabaseSync } from 'node:sqlite';
 import { inTransaction } from '../db/transaction.ts';
-import { accountExists, endSessions, hasPassword, insertUser } from '../admin/auth.ts';
+import { accountExists, endSessions, hasPassword, insertUser } from '../auth/auth.ts';
 
 /** The user `subject` at `issuer` is linked to; undefined for none. */
 export function linkedUser(db: DatabaseSync, issuer: string, subject: string): number | undefined {

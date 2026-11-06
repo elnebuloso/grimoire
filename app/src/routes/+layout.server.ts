@@ -1,6 +1,6 @@
 import type { LayoutServerLoad } from './$types';
 import { GRIMOIRE_VERSION, INSTANCE_TITLE, TZ } from '$app/env/private';
-import { mayOpen } from '#lib/server/admin/access.js';
+import { mayOpen } from '#lib/server/auth/access.js';
 import { isTheme, THEME_COOKIE } from '#lib/theme.js';
 
 export const load: LayoutServerLoad = ({ cookies, locals }) => {

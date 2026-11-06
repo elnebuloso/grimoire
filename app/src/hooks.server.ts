@@ -11,13 +11,13 @@ import { configureLog, log, routeConsoleToLog } from '#lib/server/log.js';
 import { logRefusedSources, startSyncPolling } from '#lib/server/sync/index.js';
 import { mailer } from '#lib/server/mail/index.js';
 import { checkOidcProviders } from '#lib/server/oidc/index.js';
-import { accessRedirect } from '#lib/server/admin/access.js';
+import { accessRedirect } from '#lib/server/auth/access.js';
 import {
 	checkAdminAccount,
 	SESSION_COOKIE,
 	sessionUser,
 	touchSession
-} from '#lib/server/admin/auth.js';
+} from '#lib/server/auth/auth.js';
 import { THEME_COOKIE, themeAttribute } from '#lib/theme.js';
 import { getTextDirection } from '#lib/paraglide/runtime.js';
 import { paraglideMiddleware } from '#lib/paraglide/server.js';

@@ -4,7 +4,7 @@ import { isHttpError } from '@sveltejs/kit';
 import { openDatabase } from '#lib/server/db/schema.js';
 import { invitedEmail, inviteUser, listInvitations } from '#lib/server/admin/invitations.js';
 import { listUsers } from '#lib/server/admin/users.js';
-import { resetLinkValid } from '#lib/server/admin/password-reset.js';
+import { resetLinkValid } from '#lib/server/auth/password-reset.js';
 import * as page from './+page.server';
 
 let db: DatabaseSync;

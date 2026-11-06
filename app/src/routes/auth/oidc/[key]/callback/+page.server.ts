@@ -2,16 +2,16 @@ import { error, redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { ENCRYPTION_KEY } from '$app/env/private';
 import { database } from '#lib/server/db/index.js';
-import { homeOf, WELCOME_PAGE } from '#lib/server/admin/access.js';
-import { clientKey, createAttemptLimit } from '#lib/server/admin/attempt-limit.js';
-import { accountExists, type AuthProblem } from '#lib/server/admin/auth.js';
+import { homeOf, WELCOME_PAGE } from '#lib/server/auth/access.js';
+import { clientKey, createAttemptLimit } from '#lib/server/auth/attempt-limit.js';
+import { accountExists, type AuthProblem } from '#lib/server/auth/auth.js';
 import {
 	createSession,
 	deleteSessionByHash,
 	SESSION_COOKIE,
 	sessionCookieOptions,
 	sessionUser
-} from '#lib/server/admin/auth.js';
+} from '#lib/server/auth/auth.js';
 import { log } from '#lib/server/log.js';
 import { providerByKey } from '#lib/server/oidc/index.js';
 import { acceptInvitationWithIdentity } from '#lib/server/admin/invitations.js';

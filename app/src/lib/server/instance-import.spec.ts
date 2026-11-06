@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { randomBytes } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
-import { login } from './admin/auth';
+import { login } from './auth/auth';
 import { scopeForKey } from './api-keys';
 import { migrate } from './db/migrate';
 import { migrations, openDatabase } from './db/schema';

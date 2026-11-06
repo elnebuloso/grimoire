@@ -1,14 +1,9 @@
 import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { database } from '#lib/server/db/index.js';
-import { homeOf } from '#lib/server/admin/access.js';
-import {
-	login,
-	SESSION_COOKIE,
-	sessionCookieOptions,
-	sessionUser
-} from '#lib/server/admin/auth.js';
-import { authMessage, isAuthProblem } from '#lib/server/admin/auth-messages.js';
+import { homeOf } from '#lib/server/auth/access.js';
+import { login, SESSION_COOKIE, sessionCookieOptions, sessionUser } from '#lib/server/auth/auth.js';
+import { authMessage, isAuthProblem } from '#lib/server/auth/auth-messages.js';
 import { oidcProviders } from '#lib/server/oidc/index.js';
 import { mailer } from '#lib/server/mail/index.js';
 import { pathOnThisSite } from '#lib/server/path-on-this-site.js';

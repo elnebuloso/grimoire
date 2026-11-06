@@ -24,8 +24,8 @@ const PASSWORD = 'correct horse battery';
 async function load() {
 	vi.resetModules();
 	return {
-		auth: await import('#lib/server/admin/auth.js'),
-		passwordReset: await import('#lib/server/admin/password-reset.js'),
+		auth: await import('#lib/server/auth/auth.js'),
+		passwordReset: await import('#lib/server/auth/password-reset.js'),
 		login: await import('./+page.server'),
 		forgot: await import('./forgot/+page.server'),
 		reset: await import('./reset/[token]/+page.server'),

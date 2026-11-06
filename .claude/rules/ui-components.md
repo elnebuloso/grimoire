@@ -75,4 +75,4 @@ they don't define isn't used.
 - **A new language is data, not code:** `app/messages/<locale>.json` with every key, and the locale
   in `locales` of `app/project.inlang/settings.json`. The switch in the header lists it on its own.
 - **Code that plain Node loads returns codes, not texts.** The messages are not available there
-  (e.g. `app/src/lib/server/admin/auth.ts`, used by `scripts/`); the route translates the code.
+  (e.g. `app/src/lib/server/auth/auth.ts`, used by `scripts/`); the route translates the code.

@@ -1,7 +1,7 @@
 import { error, redirect } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { database } from '#lib/server/db/index.js';
-import { SESSION_COOKIE } from '#lib/server/admin/auth.js';
+import { SESSION_COOKIE } from '#lib/server/auth/auth.js';
 import { sha256 } from '#lib/server/sha256.js';
 import { invitedEmail } from '#lib/server/admin/invitations.js';
 import { providerByKey } from '#lib/server/oidc/index.js';

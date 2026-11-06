@@ -2,8 +2,8 @@ import { error, fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { INSTANCE_TITLE } from '$app/env/private';
 import { database } from '#lib/server/db/index.js';
-import { authMessage } from '#lib/server/admin/auth-messages.js';
-import { SESSION_COOKIE } from '#lib/server/admin/auth.js';
+import { authMessage } from '#lib/server/auth/auth-messages.js';
+import { SESSION_COOKIE } from '#lib/server/auth/auth.js';
 import {
 	inviteUser,
 	listInvitations,
@@ -13,7 +13,7 @@ import {
 } from '#lib/server/admin/invitations.js';
 import { deleteUser, listUsers, setAdmin, type UserRefusal } from '#lib/server/admin/users.js';
 import { mailer } from '#lib/server/mail/index.js';
-import { createPasswordLink } from '#lib/server/admin/password-reset.js';
+import { createPasswordLink } from '#lib/server/auth/password-reset.js';
 import { log } from '#lib/server/log.js';
 import { describeLinks } from '#lib/server/oidc/index.js';
 import { removeIdentity } from '#lib/server/oidc/identities.js';

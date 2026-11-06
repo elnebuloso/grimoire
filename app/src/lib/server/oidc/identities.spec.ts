@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import type { DatabaseSync } from 'node:sqlite';
 import { openDatabase } from '../db/schema';
-import { createSession, sessionUser } from '../admin/auth';
-import { createPasswordLink } from '../admin/password-reset';
+import { createSession, sessionUser } from '../auth/auth';
+import { createPasswordLink } from '../auth/password-reset';
 import { linkedIssuers, linkIdentity, removeIdentity, unlinkIdentity } from './identities';
 
 const GITLAB = 'https://gitlab.example.com';

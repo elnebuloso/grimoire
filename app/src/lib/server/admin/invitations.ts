@@ -10,7 +10,7 @@ import {
 	MIN_PASSWORD_LENGTH,
 	normalizeEmail,
 	type AuthProblem
-} from './auth.ts';
+} from '../auth/auth.ts';
 import { sha256 } from '../sha256.ts';
 
 // Long enough to reach someone back from a week away; anyone holding the mail can use the link,

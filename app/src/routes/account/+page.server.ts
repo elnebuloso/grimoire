@@ -1,6 +1,6 @@
 import { error, fail } from '@sveltejs/kit';
 import { INSTANCE_TITLE } from '$app/env/private';
-import { requestPasswordReset } from '#lib/server/admin/password-reset.js';
+import { requestPasswordReset } from '#lib/server/auth/password-reset.js';
 import { m } from '#lib/paraglide/messages.js';
 import type { Actions, PageServerLoad } from './$types';
 import { database } from '#lib/server/db/index.js';
@@ -9,9 +9,9 @@ import {
 	hasPassword,
 	MIN_PASSWORD_LENGTH,
 	SESSION_COOKIE
-} from '#lib/server/admin/auth.js';
+} from '#lib/server/auth/auth.js';
 import { mailer } from '#lib/server/mail/index.js';
-import { authMessage, authRefusal, isAuthProblem } from '#lib/server/admin/auth-messages.js';
+import { authMessage, authRefusal, isAuthProblem } from '#lib/server/auth/auth-messages.js';
 import { describeLinks, oidcProviders, providerByKey } from '#lib/server/oidc/index.js';
 import { linkedIssuers, unlinkIdentity } from '#lib/server/oidc/identities.js';
 

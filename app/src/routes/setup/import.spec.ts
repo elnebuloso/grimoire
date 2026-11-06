@@ -40,7 +40,7 @@ beforeEach(async () => {
 	db = openDatabase(':memory:');
 	vi.resetModules();
 	const logged = (await import('#lib/server/capture-log.js')).captureLog().messages;
-	const auth = await import('#lib/server/admin/auth.js');
+	const auth = await import('#lib/server/auth/auth.js');
 	importAction = (await import('./+page.server')).actions.import as never;
 	auth.checkAdminAccount(db);
 	token = logged()

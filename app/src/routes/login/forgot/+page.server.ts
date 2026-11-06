@@ -2,8 +2,8 @@ import { error, fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { INSTANCE_TITLE } from '$app/env/private';
 import { database } from '#lib/server/db/index.js';
-import { requestPasswordReset } from '#lib/server/admin/password-reset.js';
-import { authMessage } from '#lib/server/admin/auth-messages.js';
+import { requestPasswordReset } from '#lib/server/auth/password-reset.js';
+import { authMessage } from '#lib/server/auth/auth-messages.js';
 import { mailer } from '#lib/server/mail/index.js';
 import { m } from '#lib/paraglide/messages.js';
 

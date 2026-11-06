@@ -3,7 +3,7 @@ import type { DatabaseSync } from 'node:sqlite';
 import { isRedirect } from '@sveltejs/kit';
 import { openDatabase } from '#lib/server/db/schema.js';
 import type { Mailer } from '#lib/server/mail/index.js';
-import { login } from '#lib/server/admin/auth.js';
+import { login } from '#lib/server/auth/auth.js';
 import { listInvitations } from '#lib/server/admin/invitations.js';
 import * as users from '../manage/users/+page.server';
 import * as invite from './[token]/+page.server';

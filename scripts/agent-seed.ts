@@ -8,7 +8,7 @@ import { DatabaseSync } from 'node:sqlite';
 // Plain node runs this, without Vite: no `import.meta.glob`, so the migrations are read here, and
 // an imported `.ts` file needs its extension and may import npm packages and `node:` modules, but
 // nothing that needs Vite (`#lib`, `$app`).
-import { hashPassword } from '../app/src/lib/server/admin/auth.ts';
+import { hashPassword } from '../app/src/lib/server/auth/auth.ts';
 import { applyMigration, checkSequence } from '../app/src/lib/server/db/migrate.ts';
 import { sha256 } from '../app/src/lib/server/sha256.ts';
 

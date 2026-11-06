@@ -1,14 +1,14 @@
 import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { database } from '#lib/server/db/index.js';
-import { WELCOME_PAGE } from '#lib/server/admin/access.js';
+import { WELCOME_PAGE } from '#lib/server/auth/access.js';
 import {
 	createSession,
 	MIN_PASSWORD_LENGTH,
 	SESSION_COOKIE,
 	sessionCookieOptions
-} from '#lib/server/admin/auth.js';
-import { authRefusal } from '#lib/server/admin/auth-messages.js';
+} from '#lib/server/auth/auth.js';
+import { authRefusal } from '#lib/server/auth/auth-messages.js';
 import { acceptInvitation, invitedEmail } from '#lib/server/admin/invitations.js';
 import { oidcProviders } from '#lib/server/oidc/index.js';
 

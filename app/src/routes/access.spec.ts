@@ -64,7 +64,7 @@ async function load() {
 	// The fresh auth module logs through the fresh log module.
 	logged = (await import('#lib/server/capture-log.js')).captureLog().messages;
 	return {
-		auth: await import('#lib/server/admin/auth.js'),
+		auth: await import('#lib/server/auth/auth.js'),
 		setup: (await import('./setup/+page.server')).actions.create,
 		login: (await import('./login/+page.server')).actions.default,
 		logout: (await import('./logout/+server')).POST,

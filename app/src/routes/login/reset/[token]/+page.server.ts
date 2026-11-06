@@ -1,9 +1,9 @@
 import { fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { database } from '#lib/server/db/index.js';
-import { resetLinkValid, resetPassword } from '#lib/server/admin/password-reset.js';
-import { authRefusal } from '#lib/server/admin/auth-messages.js';
-import { MIN_PASSWORD_LENGTH } from '#lib/server/admin/auth.js';
+import { resetLinkValid, resetPassword } from '#lib/server/auth/password-reset.js';
+import { authRefusal } from '#lib/server/auth/auth-messages.js';
+import { MIN_PASSWORD_LENGTH } from '#lib/server/auth/auth.js';
 import { mailer } from '#lib/server/mail/index.js';
 
 // A plain form needs no JavaScript; hydrating it would reset what was typed before it finished.

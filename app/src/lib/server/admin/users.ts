@@ -1,6 +1,6 @@
 import type { DatabaseSync } from 'node:sqlite';
 import { inTransaction } from '../db/transaction.ts';
-import type { Role } from './auth.ts';
+import type { Role } from '../auth/auth.ts';
 
 export interface UserSummary {
 	id: number;

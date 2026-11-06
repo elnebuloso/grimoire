@@ -1,4 +1,4 @@
-import { looksLikeEmail, normalizeEmail, type AuthProblem } from '../admin/auth.ts';
+import { looksLikeEmail, normalizeEmail, type AuthProblem } from '../auth/auth.ts';
 import type { OidcProvider } from './config.ts';
 import type { OidcFlow } from './flow.ts';
 

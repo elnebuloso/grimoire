@@ -9,7 +9,7 @@ import { createLinkedUser } from '#lib/server/oidc/identities.js';
 import { inviteUser } from '#lib/server/admin/invitations.js';
 import { FLOW_COOKIE } from '#lib/server/oidc/cookie.js';
 import type { OidcProvider } from '#lib/server/oidc/index.js';
-import { createSession, type SessionUser } from '#lib/server/admin/auth.js';
+import { createSession, type SessionUser } from '#lib/server/auth/auth.js';
 import { sha256 } from '#lib/server/sha256.js';
 
 const KEYS = deriveKeys(Buffer.alloc(32, 7));

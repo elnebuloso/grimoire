@@ -11,7 +11,7 @@ import {
 	hashPassword,
 	MIN_PASSWORD_LENGTH,
 	type GrantResult
-} from '../app/src/lib/server/admin/auth.ts';
+} from '../app/src/lib/server/auth/auth.ts';
 import { isDatabaseBusy, readHidden } from './prompt.ts';
 
 const [email, option] = process.argv.slice(2);
