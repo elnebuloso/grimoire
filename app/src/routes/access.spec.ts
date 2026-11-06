@@ -477,11 +477,38 @@ describe('admin access guard', () => {
 describe('handleError', () => {
 	const event = {
 		request: new Request('https://grimoire.example/manage/sources/1', { method: 'POST' }),
-		url: new URL('https://grimoire.example/manage/sources/1')
+		url: new URL('https://grimoire.example/manage/sources/1'),
+		route: { id: '/manage/sources/[id]/[[tab=tab]]' }
 	};
 
 	it('logs an unexpected error with its stack in one line', async () => {
 		admin.hooks.handleError({ error: new TypeError('no route'), event, kind: 'unknown' } as never);
+
+		expect(logged()).toEqual(['POST /manage/sources/[id]/[[tab=tab]] failed']);
+	});
+
+	it('logs the route, not a token in the address', async () => {
+		const reset = {
+			request: new Request('https://grimoire.example/login/reset/AbC123secret', { method: 'POST' }),
+			url: new URL('https://grimoire.example/login/reset/AbC123secret'),
+			route: { id: '/login/reset/[token]' }
+		};
+		admin.hooks.handleError({
+			error: new Error('database is locked'),
+			event: reset,
+			kind: 'unknown'
+		} as never);
+
+		expect(logged()).toEqual(['POST /login/reset/[token] failed']);
+	});
+
+	it('logs the address of a request no route matched', async () => {
+		const unmatched = { ...event, route: { id: null } };
+		admin.hooks.handleError({
+			error: new Error('boom'),
+			event: unmatched,
+			kind: 'unknown'
+		} as never);
 
 		expect(logged()).toEqual(['POST /manage/sources/1 failed']);
 	});

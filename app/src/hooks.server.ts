@@ -45,7 +45,9 @@ export const init: ServerInit = () => {
 // Replaces SvelteKit's default, which logs only unexpected errors; 404s and the like stay quiet.
 export const handleError: HandleServerError = ({ error, event, kind }) => {
 	if (kind !== 'unknown') return;
-	log.error({ err: error }, `${event.request.method} ${event.url.pathname} failed`);
+	// The route, not the address: reset and invitation links carry their token in the path.
+	const path = event.route.id ?? event.url.pathname;
+	log.error({ err: error }, `${event.request.method} ${path} failed`);
 };
 
 // grimoire is an internal tool: nothing it serves belongs in a search index, neither the pages nor

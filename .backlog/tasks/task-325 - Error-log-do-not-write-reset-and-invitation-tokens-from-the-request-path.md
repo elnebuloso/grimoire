@@ -1,9 +1,11 @@
 ---
 id: TASK-325
 title: 'Error log: do not write reset and invitation tokens from the request path'
-status: To Do
-assignee: []
+status: Done
+assignee:
+  - '@claude'
 created_date: '2026-11-06 22:05'
+updated_date: '2026-11-06 22:09'
 labels:
   - admin
   - ops
@@ -30,7 +32,27 @@ Found by the second whole-repo audit on 2026-11-06 (HEAD 06aada8).
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 An unexpected error on `/login/reset/<token>` or `/invite/<token>` is logged without the token
-- [ ] #2 Errors on other routes are still logged with method and route
-- [ ] #3 A spec covers an error on the reset route and asserts the logged line
+- [x] #1 An unexpected error on `/login/reset/<token>` or `/invite/<token>` is logged without the token
+- [x] #2 Errors on other routes are still logged with method and route
+- [x] #3 A spec covers an error on the reset route and asserts the logged line
 <!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. Specs: handleError logs the route ID; for /login/reset/<token> the token is not in the line; without a matched route the address is logged
+2. hooks.server.ts logs event.route.id ?? event.url.pathname
+<!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+- The two route specs failed before and pass after; access.spec.ts passes (27 tests).
+- The agent routes (http.ts, mcp.ts) keep logging their path: /mcp, /query, /sources/…, /p/… carry no secrets.
+<!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Unexpected server errors are now logged with the route pattern (e.g. POST /login/reset/[token] failed) instead of the address, so reset and invitation tokens no longer reach the log; requests no route matched still log their address. Specs in access.spec.ts cover the reset route, a normal route and an unmatched request.
+<!-- SECTION:FINAL_SUMMARY:END -->
