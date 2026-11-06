@@ -11,14 +11,12 @@
 
 	/** The state of a saved source: its sync, problems, overlaps, warnings and dead links. */
 	let {
-		data,
-		settingsHref
+		data
 	}: {
 		data: PageData & {
 			source: NonNullable<PageData['source']>;
 			status: NonNullable<PageData['status']>;
 		};
-		settingsHref: string;
 	} = $props();
 </script>
 
@@ -70,7 +68,12 @@
 			{#if data.status.errorKind}
 				<p class="fix">
 					{SYNC_FIX[data.status.errorKind]()}
-					<a href={settingsHref}>{m.source_fix_in_settings()}</a>
+					<a
+						href={resolve('/manage/sources/[id]/[[tab=tab]]', {
+							id: String(data.source.id),
+							tab: 'settings'
+						})}>{m.source_fix_in_settings()}</a
+					>
 				</p>
 			{/if}
 		</div>

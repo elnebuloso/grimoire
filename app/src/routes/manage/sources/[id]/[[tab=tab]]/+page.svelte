@@ -145,9 +145,9 @@
 	{@const source = data.source}
 	{@const status = data.status}
 	{#if data.tab === 'status'}
-		<StatusTab data={{ ...data, source, status }} settingsHref={tabHref('settings')} />
+		<StatusTab data={{ ...data, source, status }} />
 	{:else if data.tab === 'pages'}
-		<PagesTab data={{ ...data, source, status }} pagesHref={tabHref('pages')} />
+		<PagesTab data={{ ...data, source, status }} />
 	{:else if data.tab === 'history'}
 		<HistoryTab data={{ ...data, status }} />
 	{:else}

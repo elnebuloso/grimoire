@@ -1,24 +1,29 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import PageList from '#lib/components/PageList.svelte';
 	import { m } from '#lib/paraglide/messages.js';
 	import type { PageData } from './$types';
 
 	/** The pages of a saved source, or the preview of one of them as agents read it. */
 	let {
-		data,
-		pagesHref
+		data
 	}: {
 		data: PageData & {
 			source: NonNullable<PageData['source']>;
 			status: NonNullable<PageData['status']>;
 		};
-		pagesHref: string;
 	} = $props();
 </script>
 
 <section class="sheet" aria-labelledby="pages">
 	{#if data.preview}
-		<a class="back" href={pagesHref}>{m.source_all_pages()}</a>
+		<a
+			class="back"
+			href={resolve('/manage/sources/[id]/[[tab=tab]]', {
+				id: String(data.source.id),
+				tab: 'pages'
+			})}>{m.source_all_pages()}</a
+		>
 		<h2 id="pages">{m.source_preview_title({ file: data.preview.file })}</h2>
 		{#if data.preview.snippets?.length === 0}
 			<p class="notice warn">{m.source_preview_no_snippets({ name: data.instanceTitle })}</p>

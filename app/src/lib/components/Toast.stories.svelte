@@ -67,7 +67,7 @@
 	play={async ({ args, canvas }) => {
 		// The timer started at mount runs in real time but not within the story; the ones after it
 		// wait in `pending` until the story lets them run, so no hover races a clock.
-		const pending = new Map<number, () => void>();
+		const pending: Record<number, () => void> = {};
 		let nextId = 1_000_000;
 		const realSet = window.setTimeout;
 		const realClear = window.clearTimeout;
@@ -77,27 +77,28 @@
 			...rest: unknown[]
 		) => {
 			if (delay !== args.duration) return realSet(run, delay, ...rest);
-			pending.set(++nextId, run);
+			pending[++nextId] = run;
 			return nextId;
 		}) as typeof setTimeout);
 		const clear = spyOn(window, 'clearTimeout').mockImplementation((id) => {
-			if (!pending.delete(id as number)) realClear(id);
+			if ((id as number) in pending) delete pending[id as number];
+			else realClear(id);
 		});
 		const elapse = () => {
-			const due = [...pending.values()];
-			pending.clear();
+			const due = Object.values(pending);
+			for (const id of Object.keys(pending)) delete pending[Number(id)];
 			due.forEach((run) => run());
 		};
 		try {
 			const item = canvas.getByRole('listitem');
 			await userEvent.hover(item);
 			await expect(clear).toHaveBeenCalled();
-			await expect(pending.size).toBe(0);
+			await expect(Object.keys(pending)).toHaveLength(0);
 			elapse();
 			await expect(args.ondismiss).not.toHaveBeenCalled();
 
 			await userEvent.unhover(item);
-			await expect(pending.size).toBe(1);
+			await expect(Object.keys(pending)).toHaveLength(1);
 			elapse();
 			await expect(args.ondismiss).toHaveBeenCalledWith(1);
 		} finally {
