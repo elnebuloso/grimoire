@@ -1,6 +1,14 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach, vi } from 'vitest';
 import { execFileSync } from 'node:child_process';
-import { cpSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import {
+	cpSync,
+	mkdirSync,
+	mkdtempSync,
+	readdirSync,
+	readFileSync,
+	rmSync,
+	writeFileSync
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import type { DatabaseSync } from 'node:sqlite';
@@ -234,6 +242,45 @@ describe('syncSource', () => {
 		expect(
 			await syncSource(db, source, { key, policy: LOCAL, workDirectory: work, lanes, force: true })
 		).toMatchObject({ status: 'synced', pages: 2 });
+	});
+
+	it('stops the processes the indexing process started when it outlasts the deadline', async () => {
+		// A stand-in for the indexing process that starts a child, as it starts git, and never answers.
+		const script = join(root, 'hanging-worker.mjs');
+		const pidFile = join(root, 'child.pid');
+		writeFileSync(
+			script,
+			`import { spawn } from 'node:child_process';
+			import { writeFileSync } from 'node:fs';
+			process.once('message', () => {
+				const child = spawn('sleep', ['60'], { stdio: 'ignore' });
+				writeFileSync(${JSON.stringify(pidFile)}, String(child.pid));
+			});`
+		);
+		const running = (pid: number) => {
+			try {
+				process.kill(pid, 0);
+				return true;
+			} catch {
+				return false;
+			}
+		};
+
+		const result = await syncSource(db, source, {
+			key,
+			policy: LOCAL,
+			workDirectory: work,
+			indexingDeadlineMs: 2000,
+			indexingScript: script
+		});
+		const pid = Number(readFileSync(pidFile, 'utf8'));
+		try {
+			expect(result).toMatchObject({ status: 'failed', kind: 'deadline' });
+			await vi.waitFor(() => expect(running(pid)).toBe(false), { timeout: 5000 });
+			expect(readdirSync(work)).toEqual([]);
+		} finally {
+			if (running(pid)) process.kill(pid, 'SIGKILL');
+		}
 	});
 
 	// A process near its heap limit collects garbage over and over before it dies: about 10 s on its

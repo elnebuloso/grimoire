@@ -40,6 +40,8 @@ export interface SyncOptions {
 	indexingDeadlineMs?: number;
 	/** Heap limit of the indexing process in MiB; by default Node sizes it to the machine. */
 	indexingHeapMb?: number;
+	/** The script of the indexing process; tests put a stand-in there. */
+	indexingScript?: string;
 }
 
 // A large real source takes about a minute. Without a deadline, content that keeps the indexing
@@ -131,7 +133,8 @@ async function checkAndSync(
 						commit
 					},
 					options.indexingDeadlineMs ?? INDEXING_DEADLINE_MS,
-					options.indexingHeapMb
+					options.indexingHeapMb,
+					options.indexingScript
 				);
 				return { status: 'synced' as const, commit, ...indexed };
 			} finally {
@@ -184,13 +187,15 @@ function storedToken(encryptedToken: string | null, key: Buffer): string | undef
 function indexInProcess(
 	job: IndexJob,
 	deadlineMs: number,
-	heapMb: number | undefined
-): Promise<{ pages: number; warnings: string[] }> {
+	heapMb: number | undefined,
 	// The script runs from source; `#lib` points at it from the dev server, tests and the build.
-	const script = fileURLToPath(import.meta.resolve('#lib/server/sync/index-worker.ts'));
+	script = fileURLToPath(import.meta.resolve('#lib/server/sync/index-worker.ts'))
+): Promise<{ pages: number; warnings: string[] }> {
 	// Not the server's flags, such as a test runner's loader or an inspector port.
 	const execArgv = heapMb === undefined ? [] : [`--max-old-space-size=${heapMb}`];
-	const child = fork(script, { execArgv });
+	// In a process group of its own, so the deadline also stops the git it started: killing the
+	// process alone would leave git running without its timeout, which lived in the process.
+	const child = fork(script, { execArgv, detached: true });
 	child.send(job);
 	return new Promise((resolve, reject) => {
 		// A killed process holds no lock: SQLite rolls its open transaction back, and the rows it
@@ -199,7 +204,7 @@ function indexInProcess(
 			reject(
 				new SyncFailure('deadline', `indexing took longer than ${formatDuration(deadlineMs)}`)
 			);
-			child.kill('SIGKILL');
+			killGroup(child.pid);
 		}, deadlineMs);
 		child.once('message', (outcome: IndexOutcome) => {
 			if (!('error' in outcome)) resolve(outcome);
@@ -218,6 +223,15 @@ function indexInProcess(
 			);
 		});
 	});
+}
+
+function killGroup(pid: number | undefined) {
+	if (pid === undefined) return;
+	try {
+		process.kill(-pid, 'SIGKILL');
+	} catch {
+		// Gone already: it ended between the deadline and the kill.
+	}
 }
 
 function formatDuration(ms: number): string {
