@@ -447,7 +447,7 @@
 	"field_git_url_hint": "The clone URL of the repository, usually ending in .git.",
 	"account_title": "Account",
 	"account_providers_title": "Identity providers",
-	"account_providers_lead": "Log in through a provider instead of your password. Linking one asks for your password; removing a link ends your sessions in other browsers, this one stays logged in.",
+	"account_providers_lead": "Log in through a provider instead of your password. Linking one asks for your password; linking or removing one ends your sessions in other browsers, this one stays logged in.",
 	"account_provider_linked": "{provider} is linked to your account.",
 	"account_provider_unlinked": "The link was removed. Your sessions in other browsers have ended; this one stays logged in.",
 	"account_provider_unconfigured": "(no longer offered here)",

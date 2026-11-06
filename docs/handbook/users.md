@@ -56,6 +56,7 @@ Refusals, and what to do:
 
 Open the menu under your address at the top right and choose **Login and password**. Under
 **Identity providers**, enter your password and choose **Link …**, then log in at the provider. From then on that provider logs you in to this account, whatever address it reports.
+Linking ends your sessions in other browsers; the one you use stays logged in.
 One link per provider; a provider account linked to someone else is refused with
 `This account at the identity provider is linked to another account already.`
 

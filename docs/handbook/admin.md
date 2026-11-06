@@ -297,7 +297,7 @@ and has an account without the admin role.
 
 **Logs in with** shows whether a user has a password and which identity providers are linked;
 `(no longer offered here)` marks a link to a provider the instance no longer configures.
-**Remove** takes a link away and ends every session of theirs. It also removes the last way the
+**Remove** takes a link away and ends every session of theirs; on your own account, the browser you use stays logged in. It also removes the last way the
 user logs in; the confirmation says so, and only a **Password link** lets them in again. Which providers exist and who gets an account through them is set by the operator
 (see [Single sign-on](sso.md)).
 

@@ -292,14 +292,24 @@ export async function changePassword(
 	if ('error' in checked) return checked;
 	if (form.password.length < MIN_PASSWORD_LENGTH) return { error: 'new-password-too-short' };
 	const passwordHash = await hashPassword(form.password);
-	inTransaction(db, () => {
-		db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(passwordHash, checked.userId);
-		endSessions(db, checked.userId, session);
-		// A reset mail the user did not ask for is a reason to change the password; its link must
-		// not outlive the change.
-		db.prepare('DELETE FROM password_resets WHERE user_id = ?').run(checked.userId);
-	});
+	inTransaction(db, () => setPasswordHash(db, checked.userId, passwordHash, session));
 	return undefined;
+}
+
+/**
+ * Sets the password of the user, ends their sessions except `keepSession`, and voids their reset
+ * links: a reset mail the user did not ask for is a reason to change the password, and its link
+ * must not outlive the change. Runs inside the caller's transaction.
+ */
+export function setPasswordHash(
+	db: DatabaseSync,
+	userId: number,
+	passwordHash: string,
+	keepSession?: string
+) {
+	db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(passwordHash, userId);
+	endSessions(db, userId, keepSession);
+	db.prepare('DELETE FROM password_resets WHERE user_id = ?').run(userId);
 }
 
 export function createSession(db: DatabaseSync, userId: number, now: Date): string {
@@ -388,11 +398,7 @@ export function grantAdmin(db: DatabaseSync, email: string, passwordHash?: strin
 		const { changes } = db
 			.prepare("INSERT INTO user_roles (user_id, role) VALUES (?, 'admin') ON CONFLICT DO NOTHING")
 			.run(user.id);
-		if (passwordHash !== undefined) {
-			db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(passwordHash, user.id);
-			endSessions(db, user.id);
-			db.prepare('DELETE FROM password_resets WHERE user_id = ?').run(user.id);
-		}
+		if (passwordHash !== undefined) setPasswordHash(db, user.id, passwordHash);
 		return changes ? 'granted' : 'already-admin';
 	});
 }

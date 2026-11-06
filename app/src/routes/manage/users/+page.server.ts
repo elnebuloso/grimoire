@@ -3,6 +3,7 @@ import type { Actions, PageServerLoad } from './$types';
 import { INSTANCE_TITLE } from '$app/env/private';
 import { database } from '#lib/server/db/index.js';
 import { authMessage } from '#lib/server/admin/auth-messages.js';
+import { SESSION_COOKIE } from '#lib/server/admin/auth.js';
 import {
 	inviteUser,
 	listInvitations,
@@ -111,9 +112,10 @@ export const actions = {
 		const problem = setAdmin(database(), await idOf(request), false);
 		if (problem) return refused(problem);
 	},
-	unlink: async ({ request }) => {
+	unlink: async ({ request, cookies }) => {
 		const data = await request.formData();
-		removeIdentity(database(), Number(data.get('id')), String(data.get('issuer') ?? ''));
+		const id = Number(data.get('id'));
+		removeIdentity(database(), id, String(data.get('issuer') ?? ''), cookies.get(SESSION_COOKIE));
 	},
 	passwordLink: async ({ request, locals, url }) => {
 		const id = await idOf(request);

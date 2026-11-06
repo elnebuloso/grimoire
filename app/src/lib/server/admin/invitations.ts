@@ -54,7 +54,7 @@ export function inviteUser(
 	const address = normalizeEmail(email);
 	if (!looksLikeEmail(address)) return { error: 'email-invalid' };
 	return inTransaction(db, () => {
-		if (db.prepare('SELECT 1 FROM users WHERE email = ?').get(address)) {
+		if (accountExists(db, address)) {
 			return { error: 'account-exists' as const };
 		}
 		if (db.prepare('SELECT 1 FROM invitations WHERE email = ?').get(address)) {

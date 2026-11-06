@@ -48,7 +48,7 @@ export const GET: RequestHandler = ({ cookies, locals }) => {
 	}
 	const provider = providerByKey(link.provider);
 	if (!provider || provider.issuer !== link.issuer) redirect(303, '/account?problem=oidc-failed');
-	const refused = linkIdentity(database(), locals.user.id, link.issuer, link.subject);
+	const refused = linkIdentity(database(), locals.user.id, link.issuer, link.subject, session);
 	if (refused) redirect(303, `/account?problem=${refused.error}`);
 	log.info(`OIDC provider ${provider.key} linked to an account`);
 	redirect(303, `/account?linked=${provider.key}`);

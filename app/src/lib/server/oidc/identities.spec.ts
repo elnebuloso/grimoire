@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import type { DatabaseSync } from 'node:sqlite';
 import { openDatabase } from '../db/schema';
 import { createSession, sessionUser } from '../admin/auth';
+import { createPasswordLink } from '../admin/password-reset';
 import { linkedIssuers, linkIdentity, removeIdentity, unlinkIdentity } from './identities';
 
 const GITLAB = 'https://gitlab.example.com';
@@ -23,6 +24,35 @@ describe('linkIdentity', () => {
 		expect(linkIdentity(db, 1, GITLAB, '43')).toEqual({ error: 'oidc-identity-taken' });
 		expect(linkedIssuers(db, 1)).toEqual([GITLAB, ENTRA].sort());
 		expect(linkedIssuers(db, 2)).toEqual([]);
+	});
+});
+
+describe('changing the ways in', () => {
+	function resetLinks(userId: number) {
+		return db.prepare('SELECT count(*) AS n FROM password_resets WHERE user_id = ?').get(userId);
+	}
+
+	it('ends the other sessions on a link and keeps the reset links', () => {
+		const current = createSession(db, 1, new Date());
+		const other = createSession(db, 1, new Date());
+		createPasswordLink(db, 1);
+
+		expect(linkIdentity(db, 1, GITLAB, '42', current)).toBeUndefined();
+		expect(sessionUser(db, current)).toBeDefined();
+		expect(sessionUser(db, other)).toBeUndefined();
+		expect(resetLinks(1)).toEqual({ n: 1 });
+	});
+
+	it('keeps the session of an admin who removes a link of their own account', () => {
+		linkIdentity(db, 1, GITLAB, '42');
+		const admin = createSession(db, 1, new Date());
+		const other = createSession(db, 1, new Date());
+		createPasswordLink(db, 1);
+
+		removeIdentity(db, 1, GITLAB, admin);
+		expect(sessionUser(db, admin)).toBeDefined();
+		expect(sessionUser(db, other)).toBeUndefined();
+		expect(resetLinks(1)).toEqual({ n: 1 });
 	});
 });
 

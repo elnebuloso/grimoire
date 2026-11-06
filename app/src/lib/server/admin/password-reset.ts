@@ -5,6 +5,7 @@ import {
 	hashPassword,
 	MIN_PASSWORD_LENGTH,
 	normalizeEmail,
+	setPasswordHash,
 	sha256,
 	type AuthProblem
 } from './auth.ts';
@@ -102,9 +103,7 @@ export async function resetPassword(
 			)
 			.get(sha256(token), now.toISOString()) as { user_id: number } | undefined;
 		if (!used) return { error: 'reset-link-invalid' };
-		db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(passwordHash, used.user_id);
-		db.prepare('DELETE FROM sessions WHERE user_id = ?').run(used.user_id);
-		db.prepare('DELETE FROM password_resets WHERE user_id = ?').run(used.user_id);
+		setPasswordHash(db, used.user_id, passwordHash);
 		return undefined;
 	});
 }

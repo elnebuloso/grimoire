@@ -447,7 +447,7 @@
 	"field_git_url_hint": "Die Clone-URL des Repositorys, meist mit .git am Ende.",
 	"account_title": "Account",
 	"account_providers_title": "Anmeldedienste",
-	"account_providers_lead": "Melde dich über einen Anbieter an statt mit deinem Passwort. Das Verknüpfen fragt nach deinem Passwort; das Entfernen einer Verknüpfung beendet deine Sitzungen in anderen Browsern, diese bleibt angemeldet.",
+	"account_providers_lead": "Melde dich über einen Anmeldedienst an statt mit deinem Passwort. Das Verknüpfen fragt nach deinem Passwort; Verknüpfen und Entfernen beenden deine Sitzungen in anderen Browsern, diese bleibt angemeldet.",
 	"account_provider_linked": "{provider} ist mit deinem Account verknüpft.",
 	"account_provider_unlinked": "Die Verknüpfung wurde entfernt. Deine Sitzungen in anderen Browsern sind beendet; diese bleibt angemeldet.",
 	"account_provider_unconfigured": "(hier nicht mehr angeboten)",

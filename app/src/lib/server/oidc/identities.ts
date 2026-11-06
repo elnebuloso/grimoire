@@ -54,19 +54,30 @@ export function linkedIssuers(db: DatabaseSync, userId: number): string[] {
 	).map((row) => row.issuer);
 }
 
-/** Links the identity to the user; refused when it, or another one at that issuer, is taken. */
+// A change of the ways in ends the user's other sessions, as one of them may be the reason for it.
+// Reset links stay: the password did not change, and a link the user just asked for keeps working.
+
+/**
+ * Links the identity to the user and ends the user's other sessions, except `keepSession`;
+ * refused when it, or another one at that issuer, is taken.
+ */
 export function linkIdentity(
 	db: DatabaseSync,
 	userId: number,
 	issuer: string,
-	subject: string
+	subject: string,
+	keepSession?: string
 ): { error: 'oidc-identity-taken' } | undefined {
-	const result = db
-		.prepare(
-			'INSERT INTO user_identities (user_id, issuer, subject) VALUES (?, ?, ?) ON CONFLICT DO NOTHING'
-		)
-		.run(userId, issuer, subject);
-	return result.changes === 1 ? undefined : { error: 'oidc-identity-taken' };
+	return inTransaction(db, () => {
+		const result = db
+			.prepare(
+				'INSERT INTO user_identities (user_id, issuer, subject) VALUES (?, ?, ?) ON CONFLICT DO NOTHING'
+			)
+			.run(userId, issuer, subject);
+		if (result.changes !== 1) return { error: 'oidc-identity-taken' as const };
+		endSessions(db, userId, keepSession);
+		return undefined;
+	});
 }
 
 /**
@@ -93,11 +104,17 @@ export function unlinkIdentity(
 
 /**
  * Removes a link of the user on an admin's behalf, the last way in too: the admin removes it on
- * purpose, such as after the provider changed. Every session of the user ends.
+ * purpose, such as after the provider changed. The user's sessions end, except `keepSession`: the
+ * admin's own, when they remove a link of their own account.
  */
-export function removeIdentity(db: DatabaseSync, userId: number, issuer: string) {
+export function removeIdentity(
+	db: DatabaseSync,
+	userId: number,
+	issuer: string,
+	keepSession?: string
+) {
 	inTransaction(db, () => {
 		db.prepare('DELETE FROM user_identities WHERE user_id = ? AND issuer = ?').run(userId, issuer);
-		endSessions(db, userId);
+		endSessions(db, userId, keepSession);
 	});
 }
