@@ -520,6 +520,7 @@
 	"password_link_created": "Link to set the password of {email} created.",
 	"password_link_only": "No mail server is set up: send {email} this link yourself. It is shown only now and works once, within 24 hours.",
 	"password_link_mail_failed": "The mail to {email} could not be sent: send this link yourself. It is shown only now and works once, within 24 hours.",
+	"account_password_link_mail_failed": "The mail to {email} could not be sent. Try again later, or ask an admin for a password link.",
 	"password_link_copy": "Copy link",
 	"mail_password_link_subject": "Set your password for {name}",
 	"mail_password_link_text": "An admin of {name} created a link for your account {email} to set its password. Set it within 24 hours with this link:\n\n{url}\n\nThe link works once. If you did not ask for it, tell the admin; your password stays as it is until the link is used.",

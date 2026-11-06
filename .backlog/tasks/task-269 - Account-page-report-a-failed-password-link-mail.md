@@ -1,9 +1,11 @@
 ---
 id: TASK-269
 title: 'Account page: report a failed password-link mail'
-status: To Do
-assignee: []
+status: Done
+assignee:
+  - '@claude'
 created_date: '2026-11-06 15:55'
+updated_date: '2026-11-06 16:26'
 labels:
   - admin
 dependencies: []
@@ -24,6 +26,26 @@ The only spec of this action (`routes/login/password-reset.spec.ts`) uses a `sen
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 When `mail.send` returns `false`, the action answers with `fail(...)` and the page shows that the mail could not be sent, instead of a success toast
-- [ ] #2 A regression spec with `send` resolving `false` fails before the fix and passes after
+- [x] #1 When `mail.send` returns `false`, the action answers with `fail(...)` and the page shows that the mail could not be sent, instead of a success toast
+- [x] #2 A regression spec with `send` resolving `false` fails before the fix and passes after
 <!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. Regression spec with send resolving false (fails first)
+2. passwordLink answers fail(502, { linkError }) when send returns false; the page already shows linkError through FormError like the 429 refusal
+<!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+- The issued link still counts against the 3 links per hour of the address; the message points to an admin instead of retrying. Withdrawing the unsent link is out of the criteria.
+- Shown through the existing FormError of the form (same path as the 429 refusal, submitWithToast updates form on failure); not tried in the browser because the agent environment's mail catcher never refuses.
+<!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+The account page's password link action now fails with a message ('The mail to … could not be sent. Try again later, or ask an admin for a password link.') when the mail is refused, instead of toasting success. Regression spec in password-reset.spec.ts failed before and passes after.
+<!-- SECTION:FINAL_SUMMARY:END -->

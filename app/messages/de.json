@@ -520,6 +520,7 @@
 	"password_link_created": "Link zum Setzen des Passworts von {email} erzeugt.",
 	"password_link_only": "Es ist kein Mailserver eingerichtet: Schick {email} diesen Link selbst. Er wird nur jetzt angezeigt und funktioniert einmal, innerhalb von 24 Stunden.",
 	"password_link_mail_failed": "Die Mail an {email} konnte nicht gesendet werden: Schick diesen Link selbst. Er wird nur jetzt angezeigt und funktioniert einmal, innerhalb von 24 Stunden.",
+	"account_password_link_mail_failed": "Die Mail an {email} konnte nicht gesendet werden. Versuch es später noch einmal oder bitte einen Admin um einen Passwort-Link.",
 	"password_link_copy": "Link kopieren",
 	"mail_password_link_subject": "Setze dein Passwort für {name}",
 	"mail_password_link_text": "Ein Admin von {name} hat für deinen Account {email} einen Link zum Setzen des Passworts erzeugt. Setze es innerhalb von 24 Stunden mit diesem Link:\n\n{url}\n\nDer Link funktioniert einmal. Wenn du ihn nicht angefragt hast, sag dem Admin Bescheid; dein Passwort bleibt, wie es ist, bis der Link benutzt wird.",

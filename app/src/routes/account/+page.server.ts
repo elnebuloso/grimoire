@@ -54,7 +54,7 @@ export const actions = {
 		const link = requestPasswordReset(database(), getClientAddress(), email);
 		// Undefined when this address had its links for the hour: the same answer as blocked.
 		if (!link || 'error' in link) return fail(429, { linkError: authMessage('reset-blocked') });
-		await mail.send({
+		const sent = await mail.send({
 			to: link.to,
 			subject: m.mail_reset_subject({ name: INSTANCE_TITLE }),
 			text: m.mail_reset_text({
@@ -63,6 +63,7 @@ export const actions = {
 				name: INSTANCE_TITLE
 			})
 		});
+		if (!sent) return fail(502, { linkError: m.account_password_link_mail_failed({ email }) });
 		return { linkSent: email };
 	},
 	/** Removes a link of the own account; the other sessions end, since one of them may be the reason. */

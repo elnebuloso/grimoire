@@ -128,6 +128,21 @@ describe('with SMTP', () => {
 		expect(await sendLink()).toMatchObject({ status: 429 });
 	});
 
+	it('tells a logged-in account when its link could not be mailed', async () => {
+		send.mockResolvedValueOnce(false);
+		const user = { id: 1, email: EMAIL, roles: ['admin'] };
+
+		const answer = await pages.account.actions.passwordLink({
+			...(event('/account?/passwordLink', {}) as object),
+			locals: { user }
+		} as never);
+
+		expect(answer).toMatchObject({
+			status: 502,
+			data: { linkError: expect.stringContaining('could not be sent') }
+		});
+	});
+
 	it('links to the reset from the login page', async () => {
 		expect(await pages.login.load(event('/login'))).toMatchObject({
 			resetByMail: true,
