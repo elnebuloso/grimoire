@@ -2,11 +2,13 @@
 // none yet. Runs beside the server as well as before its first start.
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import type { DatabaseSync } from 'node:sqlite';
 // Plain node runs this, without Vite: no `import.meta.glob`, so the migrations are read from their
 // folder, which the image ships with the server's source.
 import { openMigratedDatabase } from '../app/src/lib/server/db/migrate.ts';
 import { importExport, type ImportProblem } from '../app/src/lib/server/instance-import.ts';
 import { parseEncryptionKey } from '../app/src/lib/server/secret-encryption.ts';
+import { isDatabaseBusy, readHidden } from './prompt.ts';
 import {
 	connectionPolicy,
 	parseAllowedHosts,
@@ -44,9 +46,14 @@ if (!process.stdin.isTTY) fail('Run this in a terminal: it asks for the passphra
 const migrations = readdirSync(MIGRATIONS)
 	.sort()
 	.map((name) => ({ name, sql: readFileSync(join(MIGRATIONS, name), 'utf8') }));
-const db = openMigratedDatabase(path, migrations);
+let db: DatabaseSync;
 try {
-	const passphrase = await askHidden('Passphrase of the export: ');
+	db = openMigratedDatabase(path, migrations);
+} catch (error) {
+	failWhenBusy(error);
+}
+try {
+	const passphrase = await readHidden('Passphrase of the export: ');
 	const result = await importExport(db, readFileSync(file), passphrase, migrations, tokenKey);
 	if ('error' in result) fail(`${PROBLEMS[result.error]} Nothing was imported.`);
 	console.log(
@@ -56,40 +63,21 @@ try {
 	for (const { slug, reason } of await refusedSources(db, policy)) {
 		console.log(`Source ${slug} cannot sync: ${reason}`);
 	}
+} catch (error) {
+	failWhenBusy(error);
 } finally {
 	db.close();
+}
+
+// The server keeps running beside this script and may hold the write lock for a moment.
+function failWhenBusy(error: unknown): never {
+	if (!isDatabaseBusy(error)) throw error;
+	fail(
+		'The database stayed locked by a write of the server; nothing was imported. Run this again in a moment.'
+	);
 }
 
 function fail(message: string): never {
 	console.error(message);
 	process.exit(1);
-}
-
-// Reads a line from the terminal without showing it, as a password prompt does.
-function askHidden(question: string): Promise<string> {
-	process.stdout.write(question);
-	process.stdin.setRawMode(true);
-	process.stdin.setEncoding('utf8');
-	process.stdin.resume();
-	return new Promise((resolve) => {
-		let answer = '';
-		const onData = (chunk: string) => {
-			for (const char of chunk) {
-				if (char === '\u0003') {
-					process.stdout.write('\n');
-					process.exit(130);
-				}
-				if (char === '\r' || char === '\n') {
-					process.stdin.setRawMode(false);
-					process.stdin.pause();
-					process.stdin.off('data', onData);
-					process.stdout.write('\n');
-					resolve(answer);
-					return;
-				}
-				answer = char === '\u007f' || char === '\b' ? answer.slice(0, -1) : answer + char;
-			}
-		};
-		process.stdin.on('data', onData);
-	});
 }

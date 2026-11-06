@@ -12,11 +12,7 @@ import {
 	MIN_PASSWORD_LENGTH,
 	type GrantResult
 } from '../app/src/lib/server/admin/auth.ts';
-
-const SQLITE_BUSY = 5;
-
-// What arrived after the line just read: pasted or piped input can bring both lines at once.
-let pending = '';
+import { isDatabaseBusy, readHidden } from './prompt.ts';
 
 const [email, option] = process.argv.slice(2);
 if (!email || (option !== undefined && option !== '--password')) {
@@ -52,7 +48,7 @@ let result: GrantResult;
 try {
 	result = grantAdmin(db, email, passwordHash);
 } catch (error) {
-	if ((error as { errcode?: number }).errcode !== SQLITE_BUSY) throw error;
+	if (!isDatabaseBusy(error)) throw error;
 	console.error('The database stayed locked by a write of the server; nothing was changed.');
 	console.error('Run this again in a moment.');
 	process.exit(1);
@@ -67,39 +63,3 @@ console.log(
 	result === 'granted' ? 'The account is now an admin.' : 'The account already is an admin.'
 );
 if (passwordHash) console.log('Its password was set and its sessions were ended.');
-
-/** Reads a line from the terminal without echoing it. */
-function readHidden(question: string): Promise<string> {
-	process.stdout.write(question);
-	process.stdin.setRawMode(true);
-	process.stdin.setEncoding('utf8');
-	let typed = '';
-	return new Promise((resolve) => {
-		const onData = (chunk: string) => {
-			const characters = [...chunk];
-			for (const [index, character] of characters.entries()) {
-				if (character === '\u0003') process.exit(130);
-				if (character === '\r' || character === '\n') {
-					pending = characters
-						.slice(index + 1)
-						.join('')
-						.replace(/^\n/, '');
-					process.stdin.off('data', onData);
-					process.stdin.setRawMode(false);
-					process.stdin.pause();
-					process.stdout.write('\n');
-					resolve(typed);
-					return;
-				}
-				typed = character === '\u007f' ? typed.slice(0, -1) : typed + character;
-			}
-		};
-		process.stdin.on('data', onData);
-		if (pending) {
-			const earlier = pending;
-			pending = '';
-			onData(earlier);
-		}
-		process.stdin.resume();
-	});
-}

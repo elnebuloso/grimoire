@@ -1,7 +1,7 @@
 // Resets the database of the agent environment to the fixture data: an admin and a user, a key each
-// and sources in every state the admin area shows. The schema is built again from the migrations,
-// which change in place until 1.0. Safe while the server runs: the file is kept and rewritten in
-// one transaction, so the server's connection stays valid.
+// and sources in every state the admin area shows. The schema is built again from the migrations.
+// Safe while the server runs: the file is kept and rewritten in one transaction, so the server's
+// connection stays valid.
 import { mkdirSync, readdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
@@ -9,6 +9,7 @@ import { DatabaseSync } from 'node:sqlite';
 // an imported `.ts` file needs its extension and may import npm packages and `node:` modules, but
 // nothing that needs Vite (`#lib`, `$app`).
 import { hashPassword } from '../app/src/lib/server/admin/auth.ts';
+import { applyMigration, checkSequence } from '../app/src/lib/server/db/migrate.ts';
 import { sha256 } from '../app/src/lib/server/sha256.ts';
 
 const FIXTURE_REPOSITORY = 'https://github.com/elnebuloso/grimoire-fixture-docs';
@@ -20,11 +21,17 @@ if (!path) throw new Error('usage: node scripts/agent-seed.ts <database path>');
 mkdirSync(dirname(path), { recursive: true });
 const db = new DatabaseSync(path, { timeout: 5000 });
 db.exec('PRAGMA journal_mode = WAL');
-const migrations = readdirSync(MIGRATIONS).sort();
+const migrations = readdirSync(MIGRATIONS)
+	.sort()
+	.map((name) => ({ name, sql: readFileSync(join(MIGRATIONS, name), 'utf8') }));
+checkSequence(migrations);
 
 const agentPasswordHash = await hashPassword('agent-password');
 const userPasswordHash = await hashPassword('user-password');
 
+// Off before the transaction, where the pragma has no effect: dropping a table would otherwise
+// delete the rows of every table referencing it.
+db.exec('PRAGMA foreign_keys = OFF');
 db.exec('BEGIN IMMEDIATE');
 try {
 	// Views first, since they read the tables. Indexes, triggers and FTS shadow tables go with
@@ -40,10 +47,8 @@ try {
 	for (const { name, type } of objects) {
 		db.exec(`DROP ${type === 'view' ? 'VIEW' : 'TABLE'} IF EXISTS "${name}"`);
 	}
-	for (const name of migrations) {
-		db.exec(readFileSync(join(MIGRATIONS, name), 'utf8'));
-	}
-	db.exec(`PRAGMA user_version = ${migrations.length}`);
+	// All in this one transaction: `migrate` would open one per migration.
+	migrations.forEach((migration, index) => applyMigration(db, migration, index));
 
 	const agent = db
 		.prepare('INSERT INTO users (email, password_hash) VALUES (?, ?)')

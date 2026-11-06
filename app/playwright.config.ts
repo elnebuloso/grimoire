@@ -74,6 +74,8 @@ const serverEnv = {
 };
 
 export default defineConfig({
+	// A `test.only` left in a file would let CI pass on the one test it runs.
+	forbidOnly: !!process.env.CI,
 	webServer: [
 		// Receives the mails the server sends; tests read them at http://localhost:4825/api/v1.
 		// Ports beside those of `make mail-catcher`, so both can run at once.

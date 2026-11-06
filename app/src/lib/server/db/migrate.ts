@@ -49,12 +49,7 @@ export function migrate(db: DatabaseSync, migrations: Migration[]) {
 		try {
 			inTransaction(db, () => {
 				if (userVersion(db) > index) return;
-				db.exec(migration.sql);
-				const violations = db.prepare('PRAGMA foreign_key_check').all();
-				if (violations.length > 0) {
-					throw new Error(`${violations.length} rows violate foreign keys`);
-				}
-				db.exec(`PRAGMA user_version = ${index + 1}`);
+				applyMigration(db, migration, index);
 			});
 		} catch (error) {
 			throw new Error(`migration ${migration.name} failed: ${(error as Error).message}`, {
@@ -64,7 +59,19 @@ export function migrate(db: DatabaseSync, migrations: Migration[]) {
 	});
 }
 
-function checkSequence(migrations: Migration[]) {
+/**
+ * Applies the migration at `index` to a database at the version before it: its SQL, the foreign
+ * key check, the new version. Runs inside the caller's transaction, with foreign keys off.
+ */
+export function applyMigration(db: DatabaseSync, migration: Migration, index: number) {
+	db.exec(migration.sql);
+	const violations = db.prepare('PRAGMA foreign_key_check').all();
+	if (violations.length > 0) throw new Error(`${violations.length} rows violate foreign keys`);
+	db.exec(`PRAGMA user_version = ${index + 1}`);
+}
+
+/** Throws when the names of `migrations` are not numbered 0001, 0002, … in order. */
+export function checkSequence(migrations: Migration[]) {
 	migrations.forEach((migration, index) => {
 		const expected = `${String(index + 1).padStart(4, '0')}-`;
 		if (!migration.name.startsWith(expected)) {
