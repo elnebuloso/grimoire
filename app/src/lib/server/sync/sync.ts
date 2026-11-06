@@ -215,6 +215,10 @@ function indexInProcess(
 	// process alone would leave git running without its timeout, which lived in the process.
 	const child = fork(script, { execArgv, detached: true });
 	child.send(job);
+	// Its own group no longer gets the signals of the server's, such as Ctrl+C in a terminal: when
+	// the server exits, the group is stopped with it instead of writing on as an orphan.
+	const stopWithServer = () => killGroup(child.pid);
+	process.once('exit', stopWithServer);
 	return new Promise((resolve, reject) => {
 		// A killed process holds no lock: SQLite rolls its open transaction back, and the rows it
 		// already committed belong to a generation that never went live and go with the next sync.
@@ -232,6 +236,7 @@ function indexInProcess(
 		child.once('error', reject);
 		child.once('close', (code, signal) => {
 			clearTimeout(deadline);
+			process.off('exit', stopWithServer);
 			const ending = signal ?? `exit code ${code}`;
 			reject(
 				new SyncFailure(

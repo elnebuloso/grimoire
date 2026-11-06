@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach, vi } 
 import { execFileSync } from 'node:child_process';
 import {
 	cpSync,
+	existsSync,
 	mkdirSync,
 	mkdtempSync,
 	readdirSync,
@@ -244,6 +245,45 @@ describe('syncSource', () => {
 		).toMatchObject({ status: 'synced', pages: 2 });
 	});
 
+	it('stops the indexing process and what it started when the server exits', async () => {
+		const script = join(root, 'hanging-worker.mjs');
+		const pidFile = join(root, 'child.pid');
+		writeFileSync(
+			script,
+			`import { spawn } from 'node:child_process';
+			import { writeFileSync } from 'node:fs';
+			process.once('message', () => {
+				const child = spawn('sleep', ['60'], { stdio: 'ignore' });
+				writeFileSync(${JSON.stringify(pidFile)}, String(child.pid));
+			});`
+		);
+		const running = (pid: number) => {
+			try {
+				process.kill(pid, 0);
+				return true;
+			} catch {
+				return false;
+			}
+		};
+		const result = syncSource(db, source, {
+			key,
+			policy: LOCAL,
+			workDirectory: work,
+			indexingDeadlineMs: 20_000,
+			indexingScript: script
+		});
+		await vi.waitFor(() => expect(existsSync(pidFile)).toBe(true), { timeout: 10_000 });
+		const pid = Number(readFileSync(pidFile, 'utf8'));
+		try {
+			// The listeners of a server process that exits, without ending the test runner.
+			process.emit('exit', 0);
+			await vi.waitFor(() => expect(running(pid)).toBe(false), { timeout: 5000 });
+			expect(await result).toMatchObject({ status: 'failed', kind: 'aborted' });
+		} finally {
+			if (running(pid)) process.kill(pid, 'SIGKILL');
+		}
+	});
+
 	it('stops the processes the indexing process started when it outlasts the deadline', async () => {
 		// A stand-in for the indexing process that starts a child, as it starts git, and never answers.
 		const script = join(root, 'hanging-worker.mjs');
@@ -266,6 +306,8 @@ describe('syncSource', () => {
 			}
 		};
 
+		const exitListeners = process.listenerCount('exit');
+
 		const result = await syncSource(db, source, {
 			key,
 			policy: LOCAL,
@@ -276,6 +318,8 @@ describe('syncSource', () => {
 		const pid = Number(readFileSync(pidFile, 'utf8'));
 		try {
 			expect(result).toMatchObject({ status: 'failed', kind: 'deadline' });
+			// The stop for a server exit goes once the indexing process has ended.
+			await vi.waitFor(() => expect(process.listenerCount('exit')).toBe(exitListeners));
 			await vi.waitFor(() => expect(running(pid)).toBe(false), { timeout: 5000 });
 			expect(readdirSync(work)).toEqual([]);
 		} finally {
