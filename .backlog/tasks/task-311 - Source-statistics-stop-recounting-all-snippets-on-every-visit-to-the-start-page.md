@@ -3,9 +3,11 @@ id: TASK-311
 title: >-
   Source statistics: stop recounting all snippets on every visit to the start
   page
-status: To Do
-assignee: []
+status: Done
+assignee:
+  - '@claude'
 created_date: '2026-11-06 20:51'
+updated_date: '2026-11-06 21:24'
 labels:
   - search
   - admin
@@ -32,8 +34,29 @@ Found by a whole-repo audit on 2026-11-06 (commit 601c588 plus six local refacto
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Loading the start page twice without a sync in between computes the per-source counts only once
-- [ ] #2 After a sync changes a source's index, the next load shows its new counts
-- [ ] #3 Counts shown on `/`, `/manage/sources` and the dashboard stay identical to the current results (existing specs pass)
-- [ ] #4 A spec covers the refresh after a re-index
+- [x] #1 Loading the start page twice without a sync in between computes the per-source counts only once
+- [x] #2 After a sync changes a source's index, the next load shows its new counts
+- [x] #3 Counts shown on `/`, `/manage/sources` and the dashboard stay identical to the current results (existing specs pass)
+- [x] #4 A spec covers the refresh after a re-index
 <!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. Spec: counts stay while rows change without a new index generation, and follow once the generation is raised
+2. sourceStats reads the source rows with index_generation and takes pages, snippets, tokens and dead links from a cache per database and source, counted again only when the generation differs; entries of deleted sources are dropped on each call
+<!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+- links.dead is written only together with a new index (grep: no UPDATE of links), and every new index raises index_generation, so the generation is a complete key.
+- The cache is a WeakMap per DatabaseSync, so specs with their own in-memory databases never share figures.
+- The spec failed before and passes after; the specs of every caller (start page, /manage/sources, dashboard, management routes) pass (86 tests). Not measured again on a large index: the uncached path is the same query as before, the cached path reads only the sources table.
+<!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+The per-source page, snippet, token and dead-link counts of the start page, /manage/sources and the dashboard are now cached per source and index generation, so they are counted again only after a sync wrote a new index instead of on every visit and every list change. The figures shown are unchanged. A spec in stats.spec.ts covers that the counts follow a new generation; the callers' specs pass.
+<!-- SECTION:FINAL_SUMMARY:END -->

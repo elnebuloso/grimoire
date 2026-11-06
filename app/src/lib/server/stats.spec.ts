@@ -129,6 +129,20 @@ describe('sourceStats', () => {
 		});
 	});
 
+	it('counts the index of a source again only once it has a new index', () => {
+		const auth = addSource('auth-docs', '2026-10-28T10:00:00.000Z');
+		addPage(auth, 'deploy.md', [100]);
+		expect(sourceStats(db)[0]).toMatchObject({ pages: 1, tokens: 100 });
+
+		// Rows written without a new index generation, which no sync does: the figures stay.
+		addPage(auth, 'index.md', [50]);
+		expect(sourceStats(db)[0]).toMatchObject({ pages: 1, tokens: 100 });
+
+		db.prepare('UPDATE pages SET generation = 1').run();
+		db.prepare('UPDATE sources SET index_generation = 1 WHERE id = ?').run(auth);
+		expect(sourceStats(db)[0]).toMatchObject({ pages: 2, snippets: 2, tokens: 150 });
+	});
+
 	it('returns no detail of a source', () => {
 		addSource('auth-docs', null, 'fatal: could not read from git.internal.example');
 
