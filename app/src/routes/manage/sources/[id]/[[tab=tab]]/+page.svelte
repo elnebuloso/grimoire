@@ -5,6 +5,7 @@
 	import PageHead from '#lib/components/PageHead.svelte';
 	import SourceSettingsForm from '#lib/components/SourceSettingsForm.svelte';
 	import StatusBadge from '#lib/components/StatusBadge.svelte';
+	import { VISIBILITY_LABEL } from '#lib/visibility-label.js';
 	import TabNav from '#lib/components/TabNav.svelte';
 	import { m } from '#lib/paraglide/messages.js';
 	import { submitWithToast } from '#lib/forms.js';
@@ -108,11 +109,7 @@
 		>
 			<p class="facts">
 				<code>{data.source.slug}</code>
-				<span
-					>{data.source.visibility === 'public'
-						? m.visibility_public()
-						: m.visibility_internal()}</span
-				>
+				<span>{VISIBILITY_LABEL[data.source.visibility]()}</span>
 				<span aria-live="polite"><StatusBadge state={headState} /></span>
 				{#if data.source.docsUrl}
 					<a href={data.source.docsUrl} rel="external">{m.source_docs_link()}</a>

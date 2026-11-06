@@ -1,11 +1,9 @@
-<script lang="ts">
+<script lang="ts" module>
 	import { m } from '#lib/paraglide/messages.js';
 	import type { RunOutcome, SourceState } from '#lib/source-state.js';
 
 	/** The word for the state of a source or the outcome of a sync, the only place that names them. */
-	let { state }: { state: SourceState | RunOutcome } = $props();
-
-	const WORDS: Record<SourceState | RunOutcome, () => string> = {
+	export const WORDS: Record<SourceState | RunOutcome, () => string> = {
 		syncing: m.source_syncing,
 		error: m.source_state_error,
 		paused: m.state_paused,
@@ -14,6 +12,10 @@
 		unchanged: m.source_history_unchanged,
 		failed: m.source_history_failed
 	};
+</script>
+
+<script lang="ts">
+	let { state }: { state: SourceState | RunOutcome } = $props();
 </script>
 
 <span class="badge {state}">{WORDS[state]()}</span>

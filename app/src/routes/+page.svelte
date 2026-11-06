@@ -9,6 +9,7 @@
 	import { m } from '#lib/paraglide/messages.js';
 	import { getLocale } from '#lib/paraglide/runtime.js';
 	import { connectCommand } from '#lib/connect-command.js';
+	import { VISIBILITY_LABEL } from '#lib/visibility-label.js';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -53,7 +54,7 @@
 				</div>
 			</th>
 			{#if data.user}
-				<td>{source.visibility === 'public' ? m.visibility_public() : m.visibility_internal()}</td>
+				<td>{VISIBILITY_LABEL[source.visibility]()}</td>
 			{/if}
 			<td class="num">{count(source.pages)}</td>
 			<td class="num">{count(source.snippets)}</td>

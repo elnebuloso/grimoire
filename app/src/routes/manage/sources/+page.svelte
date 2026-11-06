@@ -5,10 +5,12 @@
 	import EmptyState from '#lib/components/EmptyState.svelte';
 	import PageHead from '#lib/components/PageHead.svelte';
 	import SourceLabel from '#lib/components/SourceLabel.svelte';
-	import StatusBadge from '#lib/components/StatusBadge.svelte';
+	import StatusBadge, { WORDS } from '#lib/components/StatusBadge.svelte';
 	import { m } from '#lib/paraglide/messages.js';
 	import { getLocale } from '#lib/paraglide/runtime.js';
+	import { VISIBILITIES } from '#lib/source-fields.js';
 	import { SOURCE_FILTERS, sourceState } from '#lib/source-state.js';
+	import { VISIBILITY_LABEL } from '#lib/visibility-label.js';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -16,12 +18,6 @@
 	const count = (value: number) => value.toLocaleString(getLocale());
 	const newSource = resolve('/manage/sources/[id]/[[tab=tab]]', { id: 'new' });
 
-	const STATE_LABELS: Record<(typeof SOURCE_FILTERS.status)[number], () => string> = {
-		error: m.source_state_error,
-		paused: m.state_paused,
-		never: m.not_synced,
-		synced: m.source_history_synced
-	};
 	const WARNING_LABELS: Record<(typeof SOURCE_FILTERS.warnings)[number], () => string> = {
 		yes: m.source_filter_warnings_yes,
 		no: m.source_filter_warnings_no
@@ -47,15 +43,12 @@
 			{
 				name: 'status',
 				label: m.source_status(),
-				options: SOURCE_FILTERS.status.map((value) => ({ value, label: STATE_LABELS[value]() }))
+				options: SOURCE_FILTERS.status.map((value) => ({ value, label: WORDS[value]() }))
 			},
 			{
 				name: 'visibility',
 				label: m.visibility(),
-				options: [
-					{ value: 'internal', label: m.visibility_internal() },
-					{ value: 'public', label: m.visibility_public() }
-				]
+				options: VISIBILITIES.map((value) => ({ value, label: VISIBILITY_LABEL[value]() }))
 			},
 			{
 				name: 'warnings',
@@ -85,7 +78,7 @@
 					href={resolve('/manage/sources/[id]/[[tab=tab]]', { id: String(source.id) })}
 				/>
 			</th>
-			<td>{source.visibility === 'public' ? m.visibility_public() : m.visibility_internal()}</td>
+			<td>{VISIBILITY_LABEL[source.visibility]()}</td>
 			<td class="num">{count(source.pages)}</td>
 			<td class="num">{count(source.snippets)}</td>
 			<td class="num">{count(source.tokens)}</td>
