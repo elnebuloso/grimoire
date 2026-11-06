@@ -41,14 +41,12 @@
 	let box = $state<HTMLDivElement>();
 	const locked = $derived(typed !== undefined && typedValue !== typed.value);
 
-	// Every opening starts empty and on the safe choice: cancel, or the field to type into. The
-	// field stays rendered while closed, so what was typed is cleared in it too.
+	// Every opening starts empty, with a new field, and on the safe choice: cancel, or the field to
+	// type into.
 	$effect(() => {
 		if (!open) return;
 		typedValue = '';
-		const field = box?.querySelector<HTMLInputElement>('input');
-		if (field) field.value = '';
-		queueMicrotask(() => (typed ? field : cancel)?.focus());
+		queueMicrotask(() => (typed ? box?.querySelector('input') : cancel)?.focus());
 	});
 </script>
 
@@ -57,15 +55,17 @@
 		<p>{consequence}</p>
 		<FormError message={error} />
 		{#if typed}
-			<TextField
-				label={typed.label}
-				name="confirmation"
-				form={formId}
-				autocomplete="off"
-				mono
-				value=""
-				oninput={(event) => (typedValue = event.currentTarget.value)}
-			/>
+			{#key open}
+				<TextField
+					label={typed.label}
+					name="confirmation"
+					form={formId}
+					autocomplete="off"
+					mono
+					value=""
+					oninput={(event) => (typedValue = event.currentTarget.value)}
+				/>
+			{/key}
 		{/if}
 	</div>
 	{#snippet actions()}
