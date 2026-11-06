@@ -127,5 +127,6 @@ Facts learned while building grimoire.
 
 ## Handbook
 
-- A new page in `docs/handbook/` needs an entry in `nav` in `zensical.toml`; `make handbook`
-  builds with `--strict`.
+- A new page in `docs/handbook/` needs an entry in `nav` in `zensical.toml`. `make handbook`
+  builds with `--strict`, which fails on a broken link but not on a page missing from `nav`
+  (zensical 0.0.70): check `nav` by hand.

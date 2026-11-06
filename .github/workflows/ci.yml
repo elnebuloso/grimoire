@@ -24,6 +24,13 @@ jobs:
           cache-dependency-path: app/package-lock.json
       - run: npm --prefix app ci
       - run: make lint
+      # A broken link fails the strict build here, not only at the Pages deploy after the next
+      # release.
+      - uses: astral-sh/setup-uv@v10.3.0
+        with:
+          # No Python project files here; the Zensical version is pinned in the Makefile.
+          cache-dependency-glob: Makefile
+      - run: make handbook
       # `make test` and `make e2e` download Chromium, not the system libraries it needs.
       - run: npx playwright install-deps chromium
         working-directory: app
