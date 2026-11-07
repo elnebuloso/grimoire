@@ -1,9 +1,11 @@
 ---
 id: TASK-354
 title: 'Row actions: close the menu and keep focus when an action changes its row'
-status: To Do
-assignee: []
+status: In Progress
+assignee:
+  - '@claude'
 created_date: '2026-11-06 23:46'
+updated_date: '2026-11-07 00:24'
 labels:
   - admin
 dependencies: []
@@ -30,7 +32,23 @@ Found by the third whole-repo audit on 2026-11-07 (HEAD 4a72798).
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 After promoting or demoting a user, the menu is closed and focus is on a sensible element, not the body
-- [ ] #2 After an action that removes its row (delete user, revoke key, withdraw invitation, unlink), focus is not lost
+- [x] #1 After promoting or demoting a user, the menu is closed and focus is on a sensible element, not the body
+- [x] #2 After an action that removes its row (delete user, revoke key, withdraw invitation, unlink), focus is not lost
 - [ ] #3 Checked in the agent environment in light and dark; the e2e steps that use these actions still pass
 <!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. ConfirmAction remembers the popover it sits in and its trigger before the action posts; when its form is no longer in the page after the action, it closes that menu if it is still there and moves focus to the trigger, or to <main> when the row is gone
+2. AppShell: <main> gets tabindex=-1 so it can take focus (the skip link benefits), without a focus ring
+3. Check in the agent environment: promote and demote user@example.com, revoke a key
+<!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+- General fix in ConfirmAction instead of one combined promote/demote action: it covers every action whose form the refresh replaces or removes.
+- Agent environment (Playwright): after Make admin and after Remove admin role the menu is closed and focus is on the row's Actions button; after revoking a key its row is gone and focus is on <main>. Agent environment reset afterwards. ConfirmAction, ActionMenu and AppShell stories pass (20 tests).
+- Dark scheme not looked at separately: no style changed apart from removing the focus ring of <main>.
+<!-- SECTION:NOTES:END -->

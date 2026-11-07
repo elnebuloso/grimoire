@@ -41,6 +41,14 @@
 	let busy = $state(false);
 	let error = $state<string>();
 
+	// The refresh after the action replaced this form, as a role change swaps the action, or
+	// removed its row: the dialog went without closing, so the menu and the focus are seen to here.
+	function leftPage(menu: HTMLElement | null, trigger: HTMLElement | null) {
+		if (menu?.isConnected) menu.hidePopover();
+		const target = trigger?.isConnected ? trigger : document.getElementById('main');
+		target?.focus();
+	}
+
 	const submit = submitWithToast({
 		success: (result) => (typeof success === 'string' ? success : success(result)),
 		onsuccess: () => (open = false),
@@ -55,6 +63,9 @@
 	use:enhance={(input) => {
 		busy = true;
 		error = undefined;
+		// The menu the action sits in, and its button, as they are before the page refreshes.
+		const menu = input.formElement.closest<HTMLElement>('[popover]');
+		const trigger = menu && document.querySelector<HTMLElement>(`[popovertarget="${menu.id}"]`);
 		const done = submit(input);
 		return async (output) => {
 			try {
@@ -62,6 +73,7 @@
 			} finally {
 				busy = false;
 			}
+			if (!input.formElement.isConnected) leftPage(menu, trigger);
 		};
 	}}
 >

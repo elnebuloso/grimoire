@@ -45,7 +45,7 @@
 <a class="button skip sr-only-focusable" href="#main">{m.skip_to_content()}</a>
 
 {#if auth}
-	<main id="main" class="auth">
+	<main id="main" class="auth" tabindex="-1">
 		<AuthLayout {instanceTitle} wide={auth === 'wide'}>{@render children()}</AuthLayout>
 	</main>
 {:else}
@@ -64,7 +64,7 @@
 		{/if}
 	</header>
 
-	<main id="main" class:narrow>
+	<main id="main" class:narrow tabindex="-1">
 		{@render children()}
 	</main>
 {/if}
@@ -103,6 +103,10 @@
 </footer>
 
 <style>
+	/* Focused by a script or the skip link to start reading there, not to be typed into. */
+	main:focus {
+		outline: none;
+	}
 	/* Off screen until focused, so keyboard users can pass the header. */
 	.skip:focus {
 		position: absolute;
