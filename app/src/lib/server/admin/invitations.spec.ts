@@ -3,6 +3,7 @@ import type { DatabaseSync } from 'node:sqlite';
 import { openDatabase } from '../db/schema';
 import {
 	acceptInvitation,
+	acceptInvitationWithIdentity,
 	invitedEmail,
 	inviteUser,
 	listInvitations,
@@ -123,6 +124,62 @@ describe('acceptInvitation', () => {
 		expect(results).toContainEqual({ userId: 2 });
 		expect(results).toContainEqual({ error: 'invite-link-invalid' });
 		expect(users()).toHaveLength(2);
+	});
+});
+
+describe('acceptInvitationWithIdentity', () => {
+	const gitlab = { issuer: 'https://gitlab.example.com', subject: 'gitlab-4711' };
+	const identities = () =>
+		db
+			.prepare(
+				`SELECT users.email, user_identities.subject FROM user_identities
+				JOIN users ON users.id = user_identities.user_id`
+			)
+			.all()
+			.map((row) => ({ ...row }));
+
+	it('creates the invited address, linked to the identity, without roles or password', () => {
+		const { token } = invite('Writer@Example.com');
+
+		expect(acceptInvitationWithIdentity(db, token, gitlab, NOW)).toHaveProperty('userId');
+		expect(identities()).toEqual([{ email: 'writer@example.com', subject: 'gitlab-4711' }]);
+		expect(
+			db.prepare("SELECT password_hash FROM users WHERE email = 'writer@example.com'").get()
+		).toEqual({ password_hash: null });
+		expect(users()).toEqual([
+			{ email: 'admin@example.com', roles: 1 },
+			{ email: 'writer@example.com', roles: 0 }
+		]);
+	});
+
+	it('takes a link once', () => {
+		const { token } = invite();
+		acceptInvitationWithIdentity(db, token, gitlab, NOW);
+
+		expect(
+			acceptInvitationWithIdentity(db, token, { ...gitlab, subject: 'gitlab-other' }, NOW)
+		).toEqual({ error: 'invite-link-invalid' });
+	});
+
+	it('refuses an identity linked to another account and keeps the link usable', () => {
+		const first = invite('first@example.com');
+		acceptInvitationWithIdentity(db, first.token, gitlab, NOW);
+		const second = invite('second@example.com');
+
+		expect(acceptInvitationWithIdentity(db, second.token, gitlab, NOW)).toEqual({
+			error: 'oidc-identity-taken'
+		});
+		expect(invitedEmail(db, second.token, NOW)).toBe('second@example.com');
+	});
+
+	it('refuses a link that expired while the provider was asked', () => {
+		const { token } = invite('writer@example.com', NOW);
+		const afterSevenDays = new Date(NOW.getTime() + 7 * 86_400_000 + 1);
+
+		expect(acceptInvitationWithIdentity(db, token, gitlab, afterSevenDays)).toEqual({
+			error: 'invite-link-invalid'
+		});
+		expect(identities()).toEqual([]);
 	});
 });
 
