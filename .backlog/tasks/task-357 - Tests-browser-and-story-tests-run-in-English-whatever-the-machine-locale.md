@@ -1,9 +1,11 @@
 ---
 id: TASK-357
 title: 'Tests: browser and story tests run in English whatever the machine locale'
-status: To Do
-assignee: []
+status: Done
+assignee:
+  - '@claude'
 created_date: '2026-11-06 23:47'
+updated_date: '2026-11-07 00:51'
 labels: []
 dependencies: []
 references:
@@ -27,6 +29,25 @@ Found by the third whole-repo audit on 2026-11-07 (HEAD 4a72798).
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 `LANG=de_DE.UTF-8 LANGUAGE=de make test TEST="--project=storybook --project=browser"` passes
-- [ ] #2 The stories still run in both schemes
+- [x] #1 `LANG=de_DE.UTF-8 LANGUAGE=de make test TEST="--project=storybook --project=browser"` passes
+- [x] #2 The stories still run in both schemes
 <!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. Reproduce: Preferences stories under LANG=de_DE.UTF-8 LANGUAGE=de fail on the English names
+2. vite.config.ts: TEST_LOCALE = 'en-US' as contextOptions.locale on the browser provider and both storybook providers (dark keeps colorScheme)
+<!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+- Before: 6 of 6 Preferences stories failed under the German locale. After: `LANG=de_DE.UTF-8 LANGUAGE=de make test TEST="--project=storybook --project=browser"` passes 79 files, 253 tests, both schemes.
+<!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+The browser and Storybook tests now run Chromium with the locale en-US whatever the machine's language, so they no longer fail on a German desktop, where the app answered in German and the English names the tests look for did not match. Checked: the storybook and browser projects pass under LANG=de_DE.UTF-8 in both schemes.
+<!-- SECTION:FINAL_SUMMARY:END -->

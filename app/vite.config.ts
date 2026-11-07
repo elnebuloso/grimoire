@@ -13,6 +13,10 @@ import { playwright } from '@vitest/browser-playwright';
 // same directory would overwrite them.
 const agentDir = process.env.GRIMOIRE_AGENT_DIR;
 
+// Tests look for the English texts; Chromium would otherwise take the machine's language, and the
+// app would answer in German on a German desktop.
+const TEST_LOCALE = 'en-US';
+
 export default defineConfig({
 	cacheDir: agentDir ? `${agentDir}/vite` : undefined,
 	plugins: [
@@ -50,7 +54,7 @@ export default defineConfig({
 					browser: {
 						enabled: true,
 						headless: true,
-						provider: playwright(),
+						provider: playwright({ contextOptions: { locale: TEST_LOCALE } }),
 						instances: [{ browser: 'chromium' }]
 					}
 				}
@@ -64,14 +68,16 @@ export default defineConfig({
 					browser: {
 						enabled: true,
 						headless: true,
-						provider: playwright(),
+						provider: playwright({ contextOptions: { locale: TEST_LOCALE } }),
 						// Once in each scheme: axe checks the contrast of the light and the dark tokens.
 						instances: [
 							{ browser: 'chromium', name: 'light' },
 							{
 								browser: 'chromium',
 								name: 'dark',
-								provider: playwright({ contextOptions: { colorScheme: 'dark' } })
+								provider: playwright({
+									contextOptions: { colorScheme: 'dark', locale: TEST_LOCALE }
+								})
 							}
 						]
 					}
