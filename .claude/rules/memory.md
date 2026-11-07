@@ -78,6 +78,9 @@ Facts learned while building grimoire.
   instead of `head`.
 - The Playwright MCP browser saves screenshots only inside the repository (`.playwright-mcp/`,
   ignored by git), not in the scratchpad.
+- A dev server started before an update can run old server code against a newer indexing
+  worker, which is read from disk at every sync: after a pull that touches `sync/`, restart
+  `make dev` or the agent environment (`make agent-stop && make agent-start`).
 - Close the Playwright MCP browser (`browser_close`) once a check by hand is done: it stays open
   in WSL otherwise, and a hung page blocks every later call until it is closed.
 - The Playwright MCP browser answers native `confirm()` dialogs on its own in some runs and holds
