@@ -65,6 +65,7 @@ export default defineConfig({
 				plugins: [storybookTest({ configDir: join(import.meta.dirname, '.storybook') })],
 				test: {
 					name: 'storybook',
+					setupFiles: ['.storybook/vitest.setup.ts'],
 					browser: {
 						enabled: true,
 						headless: true,
