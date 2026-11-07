@@ -11,11 +11,11 @@ Measured in the agent's shell (4 cores):
 | Run | Time |
 |---|---|
 | `make lint` (prettier and eslint, then svelte-check) | 61 s |
-| `make test`: specs, browser specs and every story in light and dark | 164 s |
-| `make test TEST=--project=server` | 46 s |
+| `make test`: specs, browser specs and every story in light and dark | 200 s |
+| `make test TEST=--project=server` | 70 s |
 | `make test TEST=--project=browser` (`*.svelte.spec.ts`) | 17 s |
 | `make test TEST=--project=storybook` | 80 s: every story twice, in a light and a dark browser |
-| `make test TEST=<one spec file>` | 10–17 s; `sync.spec.ts`, the slowest, 47 s |
+| `make test TEST=<one spec file>` | 10–17 s; `sync.spec.ts`, the slowest, 31 s |
 | `make test TEST="<one spec file> -t '<test name>'"` | 10 s |
 | `make test TEST=<one *.stories.svelte>` | 50 s, both schemes and the browser start included |
 | `make test TEST=--changed` | what the changed files reach: nothing changed 15 s |
@@ -24,10 +24,14 @@ Measured in the agent's shell (4 cores):
 | `make e2e E2E=<one *.e2e.ts>` | 26 s for `theme` or `language`, 85 s for `manage`, the build included |
 | `make format` | 10 s; fixes what the prettier part of `make lint` would report |
 
-Measured on 2026-11-06. Every spec, story and e2e file also passes on its own.
+Measured on 2026-11-06; `make test`, the server project and `sync.spec.ts` again on 2026-11-07.
+Every spec, story and e2e file also passes on its own.
 
 `make test` prints a "JavaScript heap out of memory" crash even when everything passes:
 `sync.spec.ts` runs an indexing child out of memory on purpose. Only the summary at the end counts.
+`make test` runs under `prlimit --core=1`, so that child leaves no core dump: a crash handler set as
+core pattern (WSL's, apport) took about 8 s per dump. Running vitest without the target brings
+those seconds back.
 
 ## Pick the run by the change
 

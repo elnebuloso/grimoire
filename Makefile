@@ -24,8 +24,12 @@ build: ## Build the production server into app/build
 
 # TEST and E2E narrow a run, e.g. TEST=--changed, TEST=src/routes/access.spec.ts,
 # E2E=src/routes/theme.e2e.ts; see .claude/rules/testing-strategy.md.
+# A process that runs out of memory aborts, and a crash handler set as core pattern takes seconds
+# to collect its dump, even with `ulimit -c 0`; a limit of 1 byte makes the kernel skip it.
+NO_CORE_DUMP := $(if $(shell command -v prlimit),prlimit --core=1,)
+
 test: ## Run the unit tests and the component stories once (TEST=… narrows the run)
-	cd app && npx playwright install chromium && npm test -- $(TEST)
+	cd app && npx playwright install chromium && $(NO_CORE_DUMP) npm test -- $(TEST)
 
 e2e: ## Run the browser tests against the production build with a fresh database (E2E=… narrows the run)
 	cd app && npx playwright install chromium && npm run test:e2e -- $(E2E)

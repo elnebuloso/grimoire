@@ -1,9 +1,11 @@
 ---
 id: TASK-355
 title: 'Tests: no core dump for the out-of-memory sync test'
-status: To Do
-assignee: []
+status: In Progress
+assignee:
+  - '@claude'
 created_date: '2026-11-06 23:47'
+updated_date: '2026-11-07 00:47'
 labels:
   - sync
 dependencies: []
@@ -30,7 +32,24 @@ Found by the third whole-repo audit on 2026-11-07 (HEAD 4a72798).
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 The out-of-memory test takes a few seconds on an idle machine and stays well inside its timeout under two parallel server runs
+- [x] #1 The out-of-memory test takes a few seconds on an idle machine and stays well inside its timeout under two parallel server runs
 - [ ] #2 `make test` works on the dev machine and in CI with the change
-- [ ] #3 The timings in `testing-strategy.md` are updated
+- [x] #3 The timings in `testing-strategy.md` are updated
 <!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. Makefile: `make test` runs npm test under `prlimit --core=1` when prlimit exists (NO_CORE_DUMP)
+2. The out-of-memory test drops its own 60 s timeout and uses the file's 30 s
+3. testing-strategy.md: new timings and the reason for prlimit
+<!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+- The out-of-memory test: 16.1 s without prlimit, 3.6 s with it.
+- Two `make test TEST=--project=server` runs in parallel pass with the 30 s timeout (before the change one of them failed this test at 60.8 s).
+- New timings measured: sync.spec.ts 31 s, server project 70 s, full make test 200 s (161 files, 1321 tests); the machine ran slower today than on 2026-11-06.
+- CI uses ubuntu-latest, where prlimit is part of util-linux; whether its core pattern is as slow is not known, the change helps either way. Checked in CI with the push.
+<!-- SECTION:NOTES:END -->
