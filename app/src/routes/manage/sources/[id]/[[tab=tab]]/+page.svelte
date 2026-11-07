@@ -6,6 +6,7 @@
 	import SourceSettingsForm from '#lib/components/SourceSettingsForm.svelte';
 	import StatusBadge from '#lib/components/StatusBadge.svelte';
 	import { VISIBILITY_LABEL } from '#lib/visibility-label.js';
+	import { isWebUrl } from '#lib/source-fields.js';
 	import TabNav from '#lib/components/TabNav.svelte';
 	import { m } from '#lib/paraglide/messages.js';
 	import { submitWithToast } from '#lib/forms.js';
@@ -111,7 +112,7 @@
 				<code>{data.source.slug}</code>
 				<span>{VISIBILITY_LABEL[data.source.visibility]()}</span>
 				<span aria-live="polite"><StatusBadge state={headState} /></span>
-				{#if data.source.docsUrl}
+				{#if isWebUrl(data.source.docsUrl)}
 					<a href={data.source.docsUrl} rel="external">{m.source_docs_link()}</a>
 				{/if}
 			</p>

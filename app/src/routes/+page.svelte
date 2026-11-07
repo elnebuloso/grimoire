@@ -10,6 +10,7 @@
 	import { getLocale } from '#lib/paraglide/runtime.js';
 	import { connectCommand } from '#lib/connect-command.js';
 	import { VISIBILITY_LABEL } from '#lib/visibility-label.js';
+	import { isWebUrl } from '#lib/source-fields.js';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -49,7 +50,8 @@
 							: undefined}
 					/>
 					{#if source.description}<span class="muted">{source.description}</span>{/if}
-					{#if source.docsUrl}<a href={source.docsUrl} rel="external">{m.source_docs_link()}</a
+					{#if isWebUrl(source.docsUrl)}<a href={source.docsUrl} rel="external"
+							>{m.source_docs_link()}</a
 						>{/if}
 				</div>
 			</th>

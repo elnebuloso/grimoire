@@ -88,3 +88,17 @@ export function readSourceFields(data: FormData): SourceFields {
 		username: field('username')
 	};
 }
+
+/**
+ * Whether `url` is a web address to link to. A docs URL is checked on save, but an imported one
+ * arrives as it was stored, and a `javascript:` link would run on a click.
+ */
+export function isWebUrl(url: string | null | undefined): url is string {
+	if (!url) return false;
+	try {
+		const { protocol } = new URL(url);
+		return protocol === 'https:' || protocol === 'http:';
+	} catch {
+		return false;
+	}
+}

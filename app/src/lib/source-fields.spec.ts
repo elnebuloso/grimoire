@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { readSourceFields, toSourceFields } from './source-fields';
+import { isWebUrl, readSourceFields, toSourceFields } from './source-fields';
 
 describe('toSourceFields', () => {
 	const stored = {
@@ -49,5 +49,16 @@ describe('readSourceFields', () => {
 
 	it('reads a missing or unknown level as internal', () => {
 		expect([visibilityOf(), visibilityOf('private')]).toEqual(['internal', 'internal']);
+	});
+});
+
+describe('isWebUrl', () => {
+	it('accepts http and https addresses only', () => {
+		expect(isWebUrl('https://docs.example.com/platform/')).toBe(true);
+		expect(isWebUrl('http://docs.example.com/')).toBe(true);
+		expect(isWebUrl('javascript:alert(1)')).toBe(false);
+		expect(isWebUrl('data:text/html,<script>alert(1)</script>')).toBe(false);
+		expect(isWebUrl('not a url')).toBe(false);
+		expect(isWebUrl(null)).toBe(false);
 	});
 });

@@ -1,9 +1,11 @@
 ---
 id: TASK-359
 title: 'Links: render a source''s docs URL only for http and https'
-status: To Do
-assignee: []
+status: Done
+assignee:
+  - '@claude'
 created_date: '2026-11-06 23:47'
+updated_date: '2026-11-07 01:02'
 labels:
   - admin
 dependencies: []
@@ -30,7 +32,27 @@ Found by the third whole-repo audit on 2026-11-07 (HEAD 4a72798).
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 A source whose docs URL is not http or https shows no docs link
-- [ ] #2 Valid docs URLs are linked as before
-- [ ] #3 A spec covers a `javascript:` value
+- [x] #1 A source whose docs URL is not http or https shows no docs link
+- [x] #2 Valid docs URLs are linked as before
+- [x] #3 A spec covers a `javascript:` value
 <!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. source-fields.ts: isWebUrl accepts only http and https URLs; spec in source-fields.spec.ts
+2. The start page and the source page render the docs link only when isWebUrl holds
+<!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+- Agent environment: with docs_url https://… on billing-docs and javascript:alert(1) on platform-docs (made public), the start page links only the https one; agent environment reset afterwards.
+- source-fields and start page specs pass (16 tests).
+<!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+A source's docs URL is now linked on the start page and the source page only when it is an http or https address, so a `javascript:` value that arrived by an instance import no longer gives readers a link that runs script. Covered by a spec of isWebUrl and checked in the agent environment.
+<!-- SECTION:FINAL_SUMMARY:END -->
