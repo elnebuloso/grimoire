@@ -91,6 +91,9 @@ Facts learned while building grimoire.
 
 ## UI
 
+- In a message of `app/messages/<locale>.json`, `{…}` is a placeholder: a literal `{ }` in the
+  text becomes an input named " ". Name braces in words instead ("curly braces").
+
 - A `ConfirmAction` inside a popover (`ActionMenu`) keeps its dialog inside the popover: hiding
   the popover hides the open dialog with it. `ActionMenu` therefore stays open behind the dialog
   and closes on the dialog's `close`.
