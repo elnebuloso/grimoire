@@ -12,8 +12,8 @@
 - **New handbook page** `docs/handbook/search.md` ("Search and index").
 - **Open in the backlog:** TASK-368, TASK-369, TASK-370, all found by the benchmark. Nothing in
   progress.
-- The CI run of the last push (benchmark, handbook page, tasks) was still running at handover;
-  check it first (`gh run list --branch main --limit 1`). It cuts no release: no `feat`/`fix`.
+- The last push (benchmark, handbook page, tasks) passed CI and cut no release (no `feat`/`fix`).
+  The handbook is deployed only after a release, so `search.md` goes online with the next one.
 
 ## Next
 
