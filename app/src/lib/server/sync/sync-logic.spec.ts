@@ -9,7 +9,8 @@ import { openDatabase } from '../db/schema';
 import { saveSettings } from '../settings';
 import { listSchedules, replaceSourceIndex } from '../db/sources';
 import { encryptSecret } from '../secret-encryption';
-import { headCommit, remoteCommit } from './git';
+import { headCommit, remoteCommit, sparseClone } from './git';
+import { SyncFailure } from './failure';
 import { indexPages } from './index-pages';
 import type { IndexJob, IndexOutcome } from './index-worker';
 import { createSyncQueue, type SyncLanes } from './queue';
@@ -295,6 +296,18 @@ describe('syncSource', () => {
 		expect(rows('SELECT failed_commit FROM sources WHERE id = ?', source)).toEqual([
 			{ failed_commit: 'c1' }
 		]);
+	});
+
+	it('retries a failed commit when a clone failed on the network since', async () => {
+		indexing.run = () => ({ error: 'indexing took longer than 10 minutes', kind: 'deadline' });
+		await sync();
+		vi.mocked(sparseClone).mockRejectedValueOnce(
+			new SyncFailure('unreachable', 'git clone failed: Connection timed out')
+		);
+		expect(await sync(source, { force: true })).toMatchObject({ kind: 'unreachable' });
+
+		indexing.run = indexOnePage;
+		expect(await sync()).toMatchObject({ status: 'synced', commit: 'c1' });
 	});
 
 	it('remembers the commit it cloned as failed, not the one the check saw', async () => {

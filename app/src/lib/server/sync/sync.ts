@@ -113,9 +113,15 @@ async function checkAndSync(
 		}
 		// Indexing the same commit again fails the same way, and a run up to the deadline would
 		// otherwise hold the single sync slot in every interval; a new commit or a forced run retries.
-		if (latest === source.failedCommit && source.error && !options.force) {
-			const kind = source.errorKind ?? syncErrorKind(source.error);
-			return { status: 'failed', error: source.error, kind, commit: latest };
+		// Only while the stored failure is one that repeats: a network error since then passes.
+		const storedKind = source.error ? (source.errorKind ?? syncErrorKind(source.error)) : null;
+		if (
+			latest === source.failedCommit &&
+			storedKind &&
+			REPEATING_KINDS.has(storedKind) &&
+			!options.force
+		) {
+			return { status: 'failed', error: source.error!, kind: storedKind, commit: latest };
 		}
 
 		const synced = await lanes.sync(async () => {
