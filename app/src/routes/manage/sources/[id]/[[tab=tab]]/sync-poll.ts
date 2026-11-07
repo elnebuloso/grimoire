@@ -10,13 +10,21 @@ const POLL_MS = 2000;
  */
 export function pollSyncEnd(sourceId: number, ended: () => void): () => void {
 	const url = resolve('/manage/sources/[id]/sync-pending', { id: String(sourceId) });
-	const timer = setInterval(async () => {
+	let stopped = false;
+	let timer: ReturnType<typeof setTimeout>;
+	// The next question only after the answer: a slow answer would otherwise overlap the next
+	// question, and both could report the end.
+	const ask = async () => {
 		const response = await fetch(url);
 		// An ended session answers with the login page, not JSON: the refresh then leads there.
 		const { pending } = await response.json().catch(() => ({ pending: false }));
-		if (pending) return;
-		clearInterval(timer);
-		ended();
-	}, POLL_MS);
-	return () => clearInterval(timer);
+		if (stopped) return;
+		if (pending) timer = setTimeout(ask, POLL_MS);
+		else ended();
+	};
+	timer = setTimeout(ask, POLL_MS);
+	return () => {
+		stopped = true;
+		clearTimeout(timer);
+	};
 }
