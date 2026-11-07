@@ -1,11 +1,11 @@
 ---
 id: TASK-334
 title: 'CI: pin GitHub Actions to commit SHAs'
-status: In Progress
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-11-06 22:05'
-updated_date: '2026-11-06 22:40'
+updated_date: '2026-11-07 01:33'
 labels:
   - ops
 dependencies: []
@@ -33,7 +33,7 @@ Found by the second whole-repo audit on 2026-11-06 (HEAD 06aada8).
 <!-- AC:BEGIN -->
 - [x] #1 Every third-party `uses:` in `.github/workflows/` names a full commit SHA with the version as a comment
 - [x] #2 Each SHA is the commit of the version tag used before
-- [ ] #3 CI runs green with the pinned actions
+- [x] #3 CI runs green with the pinned actions
 <!-- AC:END -->
 
 ## Implementation Plan
@@ -49,4 +49,12 @@ Found by the second whole-repo audit on 2026-11-06 (HEAD 06aada8).
 <!-- SECTION:NOTES:BEGIN -->
 - All five tags are lightweight tags; the SHAs were checked with gh api repos/<action>/commits/<sha>.
 - Workflow YAML parses. AC #3 (CI green) can only be checked after the push; the task stays In Progress until then.
+
+- CI run 42323923470 on main (push of 2026-11-07) passed with the pinned actions: check, release (v1.10.0) and handbook deploy.
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Every third-party GitHub Action in ci.yml and handbook.yml is pinned by the commit SHA of the version tag used before, with the tag as a comment, so a moved tag can no longer change the code that runs in the release and Pages jobs. The rule is noted in .claude/rules/memory.md. CI passed with the pins, including the v1.10.0 release and the handbook deploy.
+<!-- SECTION:FINAL_SUMMARY:END -->

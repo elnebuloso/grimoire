@@ -1,11 +1,11 @@
 ---
 id: TASK-355
 title: 'Tests: no core dump for the out-of-memory sync test'
-status: In Progress
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-11-06 23:47'
-updated_date: '2026-11-07 00:47'
+updated_date: '2026-11-07 01:33'
 labels:
   - sync
 dependencies: []
@@ -33,7 +33,7 @@ Found by the third whole-repo audit on 2026-11-07 (HEAD 4a72798).
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
 - [x] #1 The out-of-memory test takes a few seconds on an idle machine and stays well inside its timeout under two parallel server runs
-- [ ] #2 `make test` works on the dev machine and in CI with the change
+- [x] #2 `make test` works on the dev machine and in CI with the change
 - [x] #3 The timings in `testing-strategy.md` are updated
 <!-- AC:END -->
 
@@ -52,4 +52,12 @@ Found by the third whole-repo audit on 2026-11-07 (HEAD 4a72798).
 - Two `make test TEST=--project=server` runs in parallel pass with the 30 s timeout (before the change one of them failed this test at 60.8 s).
 - New timings measured: sync.spec.ts 31 s, server project 70 s, full make test 200 s (161 files, 1321 tests); the machine ran slower today than on 2026-11-06.
 - CI uses ubuntu-latest, where prlimit is part of util-linux; whether its core pattern is as slow is not known, the change helps either way. Checked in CI with the push.
+
+- CI run 42323923470 on main passed `make test` under prlimit on ubuntu-latest.
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+`make test` now runs under `prlimit --core=1`, so the indexing child that the out-of-memory test drives out of memory leaves no core dump: the test takes 3.6 s instead of 16 s idle and passes in two parallel server runs with the file's 30 s timeout instead of failing at 60 s. testing-strategy.md has the new timings and the reason. CI passes with it.
+<!-- SECTION:FINAL_SUMMARY:END -->
