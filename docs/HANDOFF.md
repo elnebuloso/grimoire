@@ -77,8 +77,8 @@ All 16 questions without an answer still get hits (OR search): that is TASK-369.
 - **Not re-verified:** the handbook's backup restore command (`docs/handbook/database.md`) with
   the image since it starts through `tini`; a safety check blocked the `rm` inside `sh -c`. It
   worked on the base image before, and `sh -c` runs under `tini` (checked).
-- **The agent environment is running** (dev server, mail catcher, OIDC mock) with fresh fixture
-  data; `make agent-stop` when it is not needed.
+- **The agent environment is stopped.** `make agent-start`, then `make agent-reset` for fresh
+  fixture data.
 
 ## Working with the owner
 
