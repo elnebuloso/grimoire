@@ -1,11 +1,11 @@
 ---
 id: TASK-371
 title: 'Benchmark: add four German documentations, as many as the English ones'
-status: In Progress
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-11-07 10:09'
-updated_date: '2026-11-07 12:13'
+updated_date: '2026-11-07 12:30'
 labels:
   - search
 dependencies: []
@@ -29,7 +29,7 @@ New vendored copies mean a new fixture commit in `documentations.ts` and a new b
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 One or more German documentations are indexed by `make benchmark`, with license and `VENDOR.md` in the fixture repository
+- [x] #1 One or more German documentations are indexed by `make benchmark`, with license and `VENDOR.md` in the fixture repository
 - [x] #2 Each has a question file with German and English questions, expected IDs checked against its `*.index.json`
 - [x] #3 The baseline is updated in one commit with the new fixture commit; `app/benchmark/README.md` lists the new documentations
 - [x] #4 Four German documentations, or as many as can be found with an open license, each with the reason in the notes where one is missing
@@ -54,3 +54,9 @@ Questions: 30 per documentation written by four agents from reading the pages, k
 
 First baseline (rank 1 / within 3 / within 10 / MRR of 26 answerable; unanswerable with hits): kubernetes-de 20/22/22/.806, 4; i-doit-de 10/14/18/.495, 4; fastapi-de 7/16/23/.466, 3; odoo-wiki-de 21/22/24/.834, 4. fastapi-de against the English fastapi (8/15/23/.476) is almost the same with the same questions translated: the German pages are searched as well as the English ones. English baselines unchanged. make benchmark now takes 11 minutes (668 s measured), peak memory per documentation at most 822 MB. AC #1 is checked once the fixture commit is pushed.
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+The benchmark indexes four German documentations next to the four English ones: kubernetes-de, fastapi-de (German pages of the vendored commits), i-doit-de (i-doit Knowledge Base, MkDocs Material) and odoo-wiki-de (Odoo Wiki, Zensical), copied byte for byte into grimoire-fixture-docs at 2ce2c00 with license and VENDOR.md, 30 questions each. First baseline committed; English baselines unchanged; a full run takes 11 minutes. fastapi-de ranks about like the English fastapi with the same questions. Open for the owner: Obsidian-style heading links in the Odoo Wiki (390 dead links).
+<!-- SECTION:FINAL_SUMMARY:END -->
