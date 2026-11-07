@@ -133,7 +133,10 @@ function dropImagesInHeadings(tree: Root) {
 	visit(tree, 'heading', (heading) => {
 		visit(heading, (node, index, parent) => {
 			if (!parent || index === undefined) return;
-			if (node.type !== 'image' && node.type !== 'imageReference') return;
+			// A raw `<img>` too, which a badge of a fixed size usually is.
+			if (node.type === 'html') node.value = node.value.replace(HTML_IMAGE, '');
+			const empty = node.type === 'html' && node.value.trim() === '';
+			if (node.type !== 'image' && node.type !== 'imageReference' && !empty) return;
 			parent.children.splice(index, 1);
 			return [SKIP, index];
 		});

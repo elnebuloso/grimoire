@@ -1,9 +1,11 @@
 ---
 id: TASK-350
 title: 'Headings: an HTML image in a heading must not change its anchor'
-status: To Do
-assignee: []
+status: Done
+assignee:
+  - '@claude'
 created_date: '2026-11-06 23:46'
+updated_date: '2026-11-07 00:11'
 labels:
   - parsing
 dependencies: []
@@ -28,7 +30,26 @@ Found by the third whole-repo audit on 2026-11-07 (HEAD 4a72798).
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 A heading with an HTML `<img>` gets the anchor Python-Markdown gives it
-- [ ] #2 HTML images outside headings are still replaced by their alt text
-- [ ] #3 A spec in `preprocess.spec.ts` covers it
+- [x] #1 A heading with an HTML `<img>` gets the anchor Python-Markdown gives it
+- [x] #2 HTML images outside headings are still replaced by their alt text
+- [x] #3 A spec in `preprocess.spec.ts` covers it
 <!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. Spec checked against Python-Markdown 3.7: `## Build <img … alt="status">` anchors `build`, `## <img … alt="logo"> Release` anchors `release`
+2. dropImagesInHeadings also removes HTML_IMAGE matches from html nodes in the heading and drops a node left empty
+<!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+- Expected anchors produced with Python-Markdown in the audit's scratch venv. The spec failed before (build-status) and passes after; parsing and index-pages specs pass (125 tests).
+<!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Raw HTML `<img>` tags in headings are now removed like Markdown images, so a heading with an HTML badge gets the anchor MkDocs gives it (`build`, not `build-status`) and links to it are no longer dead. HTML images outside headings still become their alt text. Covered by the heading-image spec in preprocess.spec.ts.
+<!-- SECTION:FINAL_SUMMARY:END -->

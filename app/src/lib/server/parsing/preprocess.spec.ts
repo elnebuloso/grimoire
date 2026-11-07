@@ -209,6 +209,14 @@ Some text with \`code\` and a [link](other.md#section).
 				)
 			).toEqual(['build']);
 			expect(preprocessPage('Text ![alt text](x.png)\n').markdown).toBe('Text alt text\n');
+			expect(
+				anchors(
+					`# Page\n\n## Build <img src="https://ci.example.com/badge.svg" alt="status">\n\n${'Text. '.repeat(60)}\n`
+				)
+			).toEqual(['build']);
+			expect(
+				anchors(`# Page\n\n## <img src="x.png" alt="logo"> Release\n\n${'Text. '.repeat(60)}\n`)
+			).toEqual(['release']);
 		});
 
 		it('keeps the alt text of a linked image', () => {
