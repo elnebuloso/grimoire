@@ -16,3 +16,6 @@ bun.lockb
 
 # Prettier formats source code only; Markdown is prose and documentation
 *.md
+
+# Written by make benchmark-update, compared character for character
+/benchmark/baseline/

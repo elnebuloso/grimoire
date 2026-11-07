@@ -1,4 +1,4 @@
-.PHONY: help setup dev mail-catcher idp-mock build test e2e storybook lint format image image-smoke admin-grant handbook agent-start agent-stop agent-reset agent-many-sources
+.PHONY: help setup dev mail-catcher idp-mock build test benchmark benchmark-update e2e storybook lint format image image-smoke admin-grant handbook agent-start agent-stop agent-reset agent-many-sources
 
 help: ## List all targets
 	@grep -E '^[a-z0-9-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "} {printf "  %-12s %s\n", $$1, $$2}'
@@ -30,6 +30,12 @@ NO_CORE_DUMP := $(if $(shell command -v prlimit),prlimit --core=1,)
 
 test: ## Run the unit tests and the component stories once (TEST=… narrows the run)
 	cd app && npx playwright install chromium && $(NO_CORE_DUMP) npm test -- $(TEST)
+
+benchmark: ## Index the four vendored documentations and compare with the baseline in app/benchmark (network on the first run only)
+	cd app && BENCHMARK=1 TZ=UTC LANG=C $(NO_CORE_DUMP) npx vitest --run --project=benchmark
+
+benchmark-update: ## Write the baseline of make benchmark anew, for an intended change
+	cd app && BENCHMARK=1 TZ=UTC LANG=C $(NO_CORE_DUMP) npx vitest --run --project=benchmark --update
 
 e2e: ## Run the browser tests against the production build with a fresh database (E2E=… narrows the run)
 	cd app && npx playwright install chromium && npm run test:e2e -- $(E2E)

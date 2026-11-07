@@ -26,6 +26,7 @@ vite.config.ts.timestamp-*
 /data/
 # Settings, database and generated files of the agent environment
 /.agent/
+/.benchmark/
 # Playwright
 test-results
 # Storybook

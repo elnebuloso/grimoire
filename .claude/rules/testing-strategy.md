@@ -23,6 +23,7 @@ Measured in the agent's shell (4 cores):
 | `make e2e`, production build plus all browser tests | 90 s, of which `manage.e2e.ts` takes most |
 | `make e2e E2E=<one *.e2e.ts>` | 26 s for `theme` or `language`, 85 s for `manage`, the build included |
 | `make format` | 10 s; fixes what the prettier part of `make lint` would report |
+| `make benchmark` | 270 s, of which Kubernetes (2,519 pages) takes most; up to 880 MB of memory |
 
 Measured on 2026-11-06; `make test`, the server project and `sync.spec.ts` again on 2026-11-07.
 Every spec, story and e2e file also passes on its own.
@@ -57,6 +58,20 @@ those seconds back.
 - **Types:** svelte-check sees the whole project; it runs with `make lint`, at the end. Run alone,
   it may see stale messages: the Paraglide output under `app/src/lib/paraglide` is generated, and
   `make lint` compiles it first.
+
+## Benchmark
+
+`make benchmark` indexes four public documentations (Kubernetes, Material for MkDocs, FastAPI,
+Zensical), copied into `grimoire-fixture-docs/vendor/` at a commit pinned in
+`app/benchmark/documentations.ts`, through the real sync, and compares every snippet ID, the counts,
+dead links and warnings with `app/benchmark/baseline/`. It is not part of `make test` or CI: it
+clones the fixture repository once into `app/.benchmark/` and takes minutes.
+
+- Run it before a release and after a change to parsing, sync or search.
+- A difference fails it with a diff per documentation. An intended one is written with
+  `make benchmark-update` and committed with the change, so the commit shows which IDs moved.
+- New vendored copies mean a new fixture commit in `documentations.ts` and a new baseline, in one
+  commit.
 
 ## Specs
 

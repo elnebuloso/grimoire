@@ -35,6 +35,20 @@ export default defineConfig({
 	test: {
 		expect: { requireAssertions: true },
 		projects: [
+			// Only for `make benchmark`: it needs the fixture repository and takes minutes.
+			...(process.env.BENCHMARK
+				? [
+						{
+							extends: './vite.config.ts',
+							test: {
+								name: 'benchmark',
+								include: ['benchmark/**/*.spec.ts'],
+								testTimeout: 30 * 60_000,
+								hookTimeout: 10 * 60_000
+							}
+						}
+					]
+				: []),
 			{
 				extends: './vite.config.ts',
 				test: {
