@@ -35,7 +35,7 @@ benchmark: ## Index the four vendored documentations and compare with the baseli
 	cd app && BENCHMARK=1 TZ=UTC LANG=C $(NO_CORE_DUMP) npx vitest --run --project=benchmark
 
 benchmark-update: ## Write the baseline of make benchmark anew, for an intended change
-	cd app && BENCHMARK=1 TZ=UTC LANG=C $(NO_CORE_DUMP) npx vitest --run --project=benchmark --update
+	cd app && BENCHMARK=1 BENCHMARK_UPDATE=1 TZ=UTC LANG=C $(NO_CORE_DUMP) npx vitest --run --project=benchmark --update
 
 e2e: ## Run the browser tests against the production build with a fresh database (E2E=… narrows the run)
 	cd app && npx playwright install chromium && npm run test:e2e -- $(E2E)

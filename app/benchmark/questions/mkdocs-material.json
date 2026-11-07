@@ -1,0 +1,190 @@
+[
+	{
+		"question": "dark mode toggle palette",
+		"kind": "short",
+		"expected": ["mkdocs-material/setup/changing-the-colors#color-palette-toggle"],
+		"note": "Shows the theme.palette list with a toggle per scheme for switching light and dark mode."
+	},
+	{
+		"question": "code annotations",
+		"kind": "short",
+		"expected": [
+			"mkdocs-material/reference/code-blocks#code-annotations",
+			"mkdocs-material/reference/code-blocks#adding-annotations"
+		],
+		"note": "The first enables content.code.annotate, the second explains how to place annotations in a code block."
+	},
+	{
+		"question": "sticky navigation tabs",
+		"kind": "short",
+		"expected": ["mkdocs-material/setup/setting-up-navigation#sticky-navigation-tabs"],
+		"note": "Feature flag that keeps the navigation tabs visible below the header while scrolling."
+	},
+	{
+		"question": "mermaid sequence diagram",
+		"kind": "short",
+		"expected": ["mkdocs-material/reference/diagrams#using-sequence-diagrams"],
+		"note": "Gives the mermaid code block syntax for a sequence diagram."
+	},
+	{
+		"question": "announcement bar",
+		"kind": "short",
+		"expected": ["mkdocs-material/setup/setting-up-the-header#announcement-bar"],
+		"note": "Explains overriding the announce block to show a bar above the header."
+	},
+	{
+		"question": "keyboard keys shortcut markup",
+		"kind": "short",
+		"expected": ["mkdocs-material/reference/formatting#adding-keyboard-keys"],
+		"note": "Shows the ++ctrl+alt+del++ syntax of the Keys extension."
+	},
+	{
+		"question": "image zoom lightbox",
+		"kind": "short",
+		"expected": ["mkdocs-material/reference/images#lightbox"],
+		"note": "Recommends and configures the glightbox plugin for image zoom."
+	},
+	{
+		"question": "sortable tables",
+		"kind": "short",
+		"expected": ["mkdocs-material/reference/data-tables#sortable-tables"],
+		"note": "Integrates tablesort via additional JavaScript to sort data tables."
+	},
+	{
+		"question": "How can I add a small button to each code block so readers can copy the code to their clipboard?",
+		"kind": "long",
+		"expected": ["mkdocs-material/reference/code-blocks#code-copy-button"],
+		"note": "Enables content.code.copy, which renders a copy-to-clipboard button on code blocks."
+	},
+	{
+		"question": "I would like my readers to be able to switch between different versions of the documentation, like 1.x and 2.x, with some kind of dropdown in the header. Is that possible and what do I need to configure?",
+		"kind": "long",
+		"expected": ["mkdocs-material/setup/setting-up-versioning#versioning"],
+		"note": "Sets extra.version.provider to mike, which renders a version selector in the header."
+	},
+	{
+		"question": "What is the easiest way to have my documentation built and deployed to GitHub Pages automatically every time I push a commit to the main branch?",
+		"kind": "long",
+		"expected": ["mkdocs-material/publishing-your-site#with-github-actions"],
+		"note": "Provides a ready GitHub Actions workflow that deploys on push."
+	},
+	{
+		"question": "Is there some way to show at the bottom of each page the date when that page was last changed, ideally taken from the git history?",
+		"kind": "long",
+		"expected": ["mkdocs-material/setup/adding-a-git-repository#document-dates"],
+		"note": "Sets up the git-revision-date-localized plugin for last update and creation dates."
+	},
+	{
+		"question": "We want to collect some quick feedback from readers, so could I put a little thumbs up or thumbs down question asking whether the page was helpful at the end of every page?",
+		"kind": "long",
+		"expected": ["mkdocs-material/setup/setting-up-site-analytics#was-this-page-helpful"],
+		"note": "Configures the feedback widget shown at the bottom of each page."
+	},
+	{
+		"question": "When a reader picks a tab like Python in one set of content tabs, can all the other tab groups on the site switch to Python as well, so they don't have to click every single one?",
+		"kind": "long",
+		"expected": ["mkdocs-material/reference/content-tabs#linked-content-tabs"],
+		"note": "content.tabs.link links all content tabs so they switch to the same label."
+	},
+	{
+		"question": "Wie füge ich eine Suchleiste hinzu?",
+		"kind": "german",
+		"expected": ["mkdocs-material/setup/setting-up-site-search#built-in-search-plugin"],
+		"note": "The built-in search plugin adds client-side search and is re-added in mkdocs.yml."
+	},
+	{
+		"question": "Wie ändere ich das Logo und das Favicon meiner Seite?",
+		"kind": "german",
+		"expected": [
+			"mkdocs-material/setup/changing-the-logo-and-icons#logo",
+			"mkdocs-material/setup/changing-the-logo-and-icons#favicon"
+		],
+		"note": "One section each for theme.logo and theme.favicon."
+	},
+	{
+		"question": "Wie kann ich mathematische Formeln mit LaTeX darstellen?",
+		"kind": "german",
+		"expected": ["mkdocs-material/reference/math#mathjax", "mkdocs-material/reference/math#katex"],
+		"note": "Both sections configure a library that renders LaTeX formulas; either answers equally well."
+	},
+	{
+		"question": "Wie richte ich einen Cookie-Banner ein, der vor dem Laden von Google Analytics um Zustimmung fragt?",
+		"kind": "german",
+		"expected": ["mkdocs-material/setup/ensuring-data-privacy#cookie-consent"],
+		"note": "Configures the native cookie consent form shown before third-party requests."
+	},
+	{
+		"question": "admonitons collapsible",
+		"kind": "typo",
+		"expected": ["mkdocs-material/reference/admonitions#collapsible-blocks"],
+		"note": "Starting an admonition with ??? renders it as an expandable block."
+	},
+	{
+		"question": "footnote tooltipps inline",
+		"kind": "typo",
+		"expected": ["mkdocs-material/reference/footnotes#footnote-tooltips"],
+		"note": "Enables rendering footnotes as inline tooltips."
+	},
+	{
+		"question": "navigaton breadcrums above title",
+		"kind": "typo",
+		"expected": ["mkdocs-material/setup/setting-up-navigation#navigation-path-breadcrumbs"],
+		"note": "navigation.path renders a breadcrumb navigation above the page title."
+	},
+	{
+		"question": "navigation.tabs",
+		"kind": "error",
+		"expected": ["mkdocs-material/setup/setting-up-navigation#navigation-tabs"],
+		"note": "The section that introduces the navigation.tabs feature flag."
+	},
+	{
+		"question": "theme.palette.scheme slate",
+		"kind": "error",
+		"expected": ["mkdocs-material/setup/changing-the-colors#color-scheme"],
+		"note": "Explains the default and slate values of the color scheme setting."
+	},
+	{
+		"question": "no library called \"cairo-2\" was found",
+		"kind": "error",
+		"expected": [
+			"mkdocs-material/plugins/requirements/image-processing#cairo-library-was-not-found"
+		],
+		"note": "Troubleshooting section that quotes this error and explains the library lookup fix."
+	},
+	{
+		"question": "Which yaml.customTags do I add so VS Code stops flagging the !!python/name lines in mkdocs.yml?",
+		"kind": "code",
+		"expected": ["mkdocs-material/creating-your-site#minimal-configuration"],
+		"note": "The yaml.customTags list appears only in the settings.json code block of the schema validation tip."
+	},
+	{
+		"question": "mermaid-experimental class in custom_fences stopped rendering diagrams",
+		"kind": "code",
+		"expected": ["mkdocs-material/upgrade#pymdownxsuperfences"],
+		"note": "The upgrade note says the -experimental suffix must be removed; mermaid-experimental appears only in its YAML block."
+	},
+	{
+		"question": "How do I configure Astro content collections for a blog?",
+		"kind": "none",
+		"expected": [],
+		"note": "Astro is not covered by this documentation."
+	},
+	{
+		"question": "How do I set up a PostgreSQL connection pool for my API server?",
+		"kind": "none",
+		"expected": [],
+		"note": "Backend databases are outside the scope of a documentation theme."
+	},
+	{
+		"question": "redis cache eviction policy for session storage",
+		"kind": "none",
+		"expected": [],
+		"note": "Redis and server-side sessions are not covered."
+	},
+	{
+		"question": "How do I issue and refresh JWT access tokens in a REST API?",
+		"kind": "none",
+		"expected": [],
+		"note": "Authentication for APIs is not covered by this documentation."
+	}
+]

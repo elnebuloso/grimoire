@@ -1,0 +1,220 @@
+[
+	{
+		"question": "dependency injection yield cleanup",
+		"kind": "short",
+		"expected": [
+			"fastapi/tutorial/dependencies/dependencies-with-yield",
+			"fastapi/tutorial/dependencies/dependencies-with-yield#a-database-dependency-with-yield"
+		],
+		"note": "The page intro explains yield instead of return for exit steps; the database section shows closing the session after the response."
+	},
+	{
+		"question": "CORS middleware",
+		"kind": "short",
+		"expected": ["fastapi/tutorial/cors#use-corsmiddleware"],
+		"note": "Shows how to add CORSMiddleware and lists its arguments."
+	},
+	{
+		"question": "OAuth2 JWT access token",
+		"kind": "short",
+		"expected": [
+			"fastapi/tutorial/security/oauth2-jwt",
+			"fastapi/tutorial/security/oauth2-jwt#handle-jwt-tokens"
+		],
+		"note": "The OAuth2 with JWT page; its token section covers creating and signing the JWT."
+	},
+	{
+		"question": "file upload UploadFile",
+		"kind": "short",
+		"expected": [
+			"fastapi/tutorial/request-files#file-parameters-with-uploadfile",
+			"fastapi/tutorial/request-files#uploadfile"
+		],
+		"note": "Declaring an UploadFile parameter and what the UploadFile object offers."
+	},
+	{
+		"question": "TestClient pytest",
+		"kind": "short",
+		"expected": ["fastapi/tutorial/testing#using-testclient"],
+		"note": "Explains creating a TestClient from the app and writing pytest tests with it."
+	},
+	{
+		"question": "websocket endpoint",
+		"kind": "short",
+		"expected": ["fastapi/advanced/websockets#create-a-websocket"],
+		"note": "Shows declaring a websocket route and receiving and sending messages."
+	},
+	{
+		"question": "serve static files directory",
+		"kind": "short",
+		"expected": ["fastapi/tutorial/static-files#use-staticfiles"],
+		"note": "Mounting a StaticFiles instance on a path."
+	},
+	{
+		"question": "return HTML response",
+		"kind": "short",
+		"expected": ["fastapi/advanced/custom-response#html-response"],
+		"note": "Explains using HTMLResponse as response_class to return HTML."
+	},
+	{
+		"question": "What is the right way to run some code once when my application starts, for example to open a database connection pool, and close it again on shutdown?",
+		"kind": "long",
+		"expected": ["fastapi/advanced/events#lifespan", "fastapi/advanced/events"],
+		"note": "The lifespan parameter with a yield-based context manager runs startup code before and shutdown code after requests; the intro names the connection pool case."
+	},
+	{
+		"question": "My main.py is getting really huge with all the endpoints in it, so how am I supposed to split the API into several files or modules and then put them all together again in the main app?",
+		"kind": "long",
+		"expected": [
+			"fastapi/tutorial/bigger-applications#apirouter",
+			"fastapi/tutorial/bigger-applications#include-the-apirouters-for-users-and-items"
+		],
+		"note": "APIRouter declares path operations in separate modules, include_router puts them into the main app."
+	},
+	{
+		"question": "We run the API behind a reverse proxy that serves it under /api/v1 and strips that prefix before forwarding, and now the docs page and the links are broken, what do I have to configure?",
+		"kind": "long",
+		"expected": [
+			"fastapi/advanced/behind-a-proxy#proxy-with-a-stripped-path-prefix",
+			"fastapi/advanced/behind-a-proxy#providing-the-root-path"
+		],
+		"note": "A proxy with a stripped path prefix needs root_path, set via --root-path."
+	},
+	{
+		"question": "Where should I actually keep configuration like the database URL and secret keys, is there some recommended way to read them from environment variables or from a .env file with validation?",
+		"kind": "long",
+		"expected": [
+			"fastapi/advanced/settings#pydantic-settings",
+			"fastapi/advanced/settings#reading-a-env-file"
+		],
+		"note": "Pydantic Settings reads and validates environment variables, and the .env section shows reading them from a file."
+	},
+	{
+		"question": "I am honestly not sure when I should be writing my path operation functions with async def and when just with a normal def, could you tell me what the rule of thumb is?",
+		"kind": "long",
+		"expected": ["fastapi/async#in-a-hurry"],
+		"note": "The TL;DR says when to use async def (awaitable libraries) and when def (blocking libraries)."
+	},
+	{
+		"question": "When I deploy the app as a Docker container on a Kubernetes cluster, should I start several Uvicorn workers inside each container or rather just one process per container?",
+		"kind": "long",
+		"expected": ["fastapi/deployment/docker#one-process-per-container"],
+		"note": "With replication at the cluster level the docs advise a single Uvicorn process per container, no --workers."
+	},
+	{
+		"question": "Wie validiere ich Query-Parameter, zum Beispiel eine maximale Länge?",
+		"kind": "german",
+		"expected": [
+			"fastapi/tutorial/query-params-str-validations#additional-validation",
+			"fastapi/tutorial/query-params-str-validations#add-query-to-annotated-in-the-q-parameter"
+		],
+		"note": "Additional validation for query parameters with Query inside Annotated, the max_length example."
+	},
+	{
+		"question": "Wie setze ich den HTTP-Statuscode 201 für eine POST-Route?",
+		"kind": "german",
+		"expected": ["fastapi/tutorial/response-status-code"],
+		"note": "The page intro explains the status_code parameter of the path operation decorator."
+	},
+	{
+		"question": "Wie führe ich eine Aufgabe erst nach dem Senden der Antwort aus, etwa eine E-Mail verschicken?",
+		"kind": "german",
+		"expected": [
+			"fastapi/tutorial/background-tasks",
+			"fastapi/tutorial/background-tasks#using-backgroundtasks"
+		],
+		"note": "Background tasks run after returning a response, the intro names email notifications; BackgroundTasks is the parameter to use."
+	},
+	{
+		"question": "Wie lese ich ein Cookie aus dem Request aus?",
+		"kind": "german",
+		"expected": ["fastapi/tutorial/cookie-params#declare-cookie-parameters"],
+		"note": "Declaring Cookie parameters like Query and Path parameters."
+	},
+	{
+		"question": "dependancy overides in tests",
+		"kind": "typo",
+		"expected": [
+			"fastapi/advanced/testing-dependencies#use-the-app-dependency-overrides-attribute",
+			"fastapi/advanced/testing-dependencies#overriding-dependencies-during-testing"
+		],
+		"note": "app.dependency_overrides replaces a dependency during testing."
+	},
+	{
+		"question": "nested pydantic modles in the reqest body",
+		"kind": "typo",
+		"expected": [
+			"fastapi/tutorial/body-nested-models#nested-models",
+			"fastapi/tutorial/body-nested-models#use-the-submodel-as-a-type"
+		],
+		"note": "A model attribute typed as another Pydantic model gives a nested JSON body."
+	},
+	{
+		"question": "midleware that adds a proccess time header to every respone",
+		"kind": "typo",
+		"expected": ["fastapi/tutorial/middleware#before-and-after-the-response"],
+		"note": "The X-Process-Time header example runs code before and after call_next."
+	},
+	{
+		"question": "RequestValidationError custom handler",
+		"kind": "error",
+		"expected": [
+			"fastapi/tutorial/handling-errors#override-request-validation-exceptions",
+			"fastapi/tutorial/handling-errors#use-the-requestvalidationerror-body"
+		],
+		"note": "Overriding the default RequestValidationError handler with @app.exception_handler, and using its body."
+	},
+	{
+		"question": "\"Input should be a valid integer, unable to parse string as an integer\"",
+		"kind": "error",
+		"expected": ["fastapi/tutorial/path-params#data-validation"],
+		"note": "The data validation section shows this error for a non-integer path parameter and explains why."
+	},
+	{
+		"question": "return 404 Not Found with HTTPException when an item does not exist",
+		"kind": "error",
+		"expected": [
+			"fastapi/tutorial/handling-errors#raise-an-httpexception-in-your-code",
+			"fastapi/tutorial/handling-errors#use-httpexception"
+		],
+		"note": "Raising HTTPException with status code 404 for a missing item."
+	},
+	{
+		"question": "Annotated[str | None, Query(max_length=50)]",
+		"kind": "code",
+		"expected": [
+			"fastapi/tutorial/query-params-str-validations#add-query-to-annotated-in-the-q-parameter"
+		],
+		"note": "This section puts Query(max_length=50) inside Annotated and explains the added validation."
+	},
+	{
+		"question": "response_model_exclude_unset=True",
+		"kind": "code",
+		"expected": ["fastapi/tutorial/response-model#use-the-response-model-exclude-unset-parameter"],
+		"note": "The section on the decorator parameter that leaves unset default values out of the response."
+	},
+	{
+		"question": "How do I create and apply Django ORM migrations with makemigrations?",
+		"kind": "none",
+		"expected": [],
+		"note": "The docs mention Django only as an alternative framework, never its ORM or migrations."
+	},
+	{
+		"question": "How do I manage global state in my React app with Redux?",
+		"kind": "none",
+		"expected": [],
+		"note": "The frontend page covers serving a build, not frontend state management."
+	},
+	{
+		"question": "How do I configure Kafka consumer groups and partition rebalancing?",
+		"kind": "none",
+		"expected": [],
+		"note": "Kafka appears nowhere in the documentation."
+	},
+	{
+		"question": "How do I verify the signature of a Stripe webhook event?",
+		"kind": "none",
+		"expected": [],
+		"note": "Stripe and webhook signatures are not covered."
+	}
+]

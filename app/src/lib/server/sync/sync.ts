@@ -52,7 +52,14 @@ const INDEXING_DEADLINE_MS = 10 * 60_000;
 
 export type SyncResult =
 	| { status: 'unchanged'; commit: string }
-	| { status: 'synced'; commit: string; pages: number; warnings: string[] }
+	| {
+			status: 'synced';
+			commit: string;
+			pages: number;
+			warnings: string[];
+			/** The most memory the indexing process held, in KiB. */
+			peakMemoryKb?: number;
+	  }
 	/** `commit` is the one that failed to index; undefined when the sync failed before one was known. */
 	| { status: 'failed'; error: string; kind: SyncErrorKind; commit?: string };
 
@@ -215,7 +222,7 @@ function indexInProcess(
 	heapMb: number | undefined,
 	// The script runs from source; `#lib` points at it from the dev server, tests and the build.
 	script = fileURLToPath(import.meta.resolve('#lib/server/sync/index-worker.ts'))
-): Promise<{ pages: number; warnings: string[] }> {
+): Promise<{ pages: number; warnings: string[]; peakMemoryKb?: number }> {
 	// Not the server's flags, such as a test runner's loader or an inspector port.
 	const execArgv = heapMb === undefined ? [] : [`--max-old-space-size=${heapMb}`];
 	// In a process group of its own, so the deadline also stops the git it started: killing the

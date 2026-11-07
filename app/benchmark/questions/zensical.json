@@ -1,0 +1,191 @@
+[
+	{
+		"question": "site language",
+		"kind": "short",
+		"expected": ["zensical/setup/language#site-language"],
+		"note": "The Site language section sets theme.language for the whole site."
+	},
+	{
+		"question": "content tabs",
+		"kind": "short",
+		"expected": [
+			"zensical/authoring/content-tabs",
+			"zensical/authoring/content-tabs#configuration"
+		],
+		"note": "The page intro explains content tabs and its Configuration section enables them."
+	},
+	{
+		"question": "announcement bar",
+		"kind": "short",
+		"expected": ["zensical/setup/header#announcement-bar"],
+		"note": "The Announcement bar section explains how to add one by overriding the announce block."
+	},
+	{
+		"question": "change favicon",
+		"kind": "short",
+		"expected": ["zensical/setup/logo-and-icons#favicon"],
+		"note": "The Favicon section sets theme.favicon to an image in the docs folder."
+	},
+	{
+		"question": "mermaid diagrams",
+		"kind": "short",
+		"expected": ["zensical/authoring/diagrams", "zensical/authoring/diagrams#configuration"],
+		"note": "The Diagrams page integrates Mermaid.js and its Configuration section enables mermaid code blocks."
+	},
+	{
+		"question": "code copy button",
+		"kind": "short",
+		"expected": ["zensical/authoring/code-blocks#code-copy-button"],
+		"note": "The Code copy button section enables content.code.copy."
+	},
+	{
+		"question": "back to top button",
+		"kind": "short",
+		"expected": ["zensical/setup/navigation#back-to-top-button"],
+		"note": "The Back-to-top button section enables navigation.top."
+	},
+	{
+		"question": "breadcrumbs",
+		"kind": "short",
+		"expected": ["zensical/setup/navigation#navigation-path"],
+		"note": "The Navigation path section, subtitled Breadcrumbs, renders a breadcrumb above the page title."
+	},
+	{
+		"question": "I have my code on GitHub and I would like the documentation to be built and deployed automatically every time somebody pushes to the main branch, how would I go about setting that up?",
+		"kind": "long",
+		"expected": ["zensical/publish-your-site#with-github-actions"],
+		"note": "The with GitHub Actions section gives the workflow that deploys to GitHub Pages on push."
+	},
+	{
+		"question": "On my landing page I don't really want the navigation sidebar on the left or the table of contents on the right to show up at all, is there some way to turn them off just for that one single page?",
+		"kind": "long",
+		"expected": [
+			"zensical/setup/navigation#hide-the-sidebars",
+			"zensical/authoring/frontmatter#hide-page-elements"
+		],
+		"note": "Both sections use the front matter hide property with navigation and toc for a single page."
+	},
+	{
+		"question": "We currently have an existing MkDocs project with a mkdocs.yml and quite a lot of plugins, and I'm wondering whether we have to rewrite all of our configuration in order to start using Zensical or whether we can just keep it as it is?",
+		"kind": "long",
+		"expected": ["zensical/compatibility/mkdocs/migration", "zensical/compatibility/mkdocs/index"],
+		"note": "Both page intros state that Zensical reads the existing mkdocs.yml without changes."
+	},
+	{
+		"question": "I basically just want to tweak a couple of styles here and there, like making some of the headings a bit bigger, so what would be the recommended way to add my own CSS file to the site?",
+		"kind": "long",
+		"expected": ["zensical/customization#additional-css"],
+		"note": "The Additional CSS section places a style sheet in docs and lists it in extra_css."
+	},
+	{
+		"question": "So we renamed and moved a bunch of pages around recently and now the old links from bookmarks and other sites are broken, how can I make the old URLs send people over to the new pages?",
+		"kind": "long",
+		"expected": [
+			"zensical/setup/redirects#redirect-a-page",
+			"zensical/setup/redirects#configuration"
+		],
+		"note": "Redirect a page covers renamed or moved pages, using the redirect_maps example in Configuration."
+	},
+	{
+		"question": "I'm writing a fairly long reference page and I would really like readers to be able to see a little preview of another page when they hover over a link, without actually leaving the page they are on, is that something that is supported?",
+		"kind": "long",
+		"expected": ["zensical/setup/navigation#instant-previews"],
+		"note": "The Instant previews section lets the user preview another page without navigating to it."
+	},
+	{
+		"question": "Wie ändere ich die Farben meiner Seite?",
+		"kind": "german",
+		"expected": ["zensical/setup/colors#primary-color"],
+		"note": "The Primary color section changes the main site color via theme.palette.primary."
+	},
+	{
+		"question": "Wie füge ich eine Fußnote in einen Text ein?",
+		"kind": "german",
+		"expected": ["zensical/authoring/footnotes#adding-footnote-references"],
+		"note": "The Adding footnote references section shows the [^1] reference syntax."
+	},
+	{
+		"question": "Wie schließe ich eine Seite von der Suche aus?",
+		"kind": "german",
+		"expected": ["zensical/setup/search#exclude-a-page"],
+		"note": "The Exclude a page section uses the front matter search.exclude property."
+	},
+	{
+		"question": "Wie installiere ich Zensical mit pip?",
+		"kind": "german",
+		"expected": ["zensical/get-started#install-with-pip"],
+		"note": "The Install with pip section sets up a virtual environment and installs the package."
+	},
+	{
+		"question": "colapsible admonitons",
+		"kind": "typo",
+		"expected": ["zensical/authoring/admonitions#collapsible-blocks"],
+		"note": "The Collapsible blocks section starts an admonition with ??? to make it expandable."
+	},
+	{
+		"question": "how to add line numbres to code blcoks",
+		"kind": "typo",
+		"expected": ["zensical/authoring/code-blocks#add-line-numbers"],
+		"note": "The Add line numbers section uses the linenums option after the language shortcode."
+	},
+	{
+		"question": "change the regualr font to a googel font",
+		"kind": "typo",
+		"expected": ["zensical/setup/fonts#regular-font"],
+		"note": "The Regular font section sets theme.font.text to any Google Font."
+	},
+	{
+		"question": "zensical build stops with \"Aborted because --strict flag is set\"",
+		"kind": "error",
+		"expected": ["zensical/setup/validation#strict-mode"],
+		"note": "The Strict mode section shows this output and explains that strict mode fails the build on any issue."
+	},
+	{
+		"question": "zensical serve --dev-addr 0.0.0.0:8080",
+		"kind": "error",
+		"expected": ["zensical/usage/preview#options", "zensical/setup/basics#dev_addr"],
+		"note": "The serve options list --dev-addr, and the dev_addr setting sets the same address in the configuration."
+	},
+	{
+		"question": "what does the navigation.instant feature do",
+		"kind": "error",
+		"expected": ["zensical/setup/navigation#instant-navigation"],
+		"note": "The Instant navigation section enables the navigation.instant feature flag and explains it."
+	},
+	{
+		"question": "where do I set --md-primary-fg-color for my brand color",
+		"kind": "code",
+		"expected": ["zensical/setup/colors#custom-colors"],
+		"note": "The Custom colors section overrides --md-primary-fg-color in an extra style sheet, a name used only in its CSS block."
+	},
+	{
+		"question": "__md_get(\"__consent\")",
+		"kind": "code",
+		"expected": ["zensical/setup/data-privacy#custom-cookies"],
+		"note": "The Custom cookies section reads the consent result with __md_get(\"__consent\"), which appears only in its JavaScript block."
+	},
+	{
+		"question": "How do I export the whole documentation as a single PDF file?",
+		"kind": "none",
+		"expected": [],
+		"note": "The documentation does not cover PDF export."
+	},
+	{
+		"question": "How can I password-protect the documentation so only logged-in employees can read it?",
+		"kind": "none",
+		"expected": [],
+		"note": "The documentation does not cover access control for a published site."
+	},
+	{
+		"question": "How do I use Algolia DocSearch instead of the built-in search?",
+		"kind": "none",
+		"expected": [],
+		"note": "The search page covers only the built-in client-side search, not Algolia."
+	},
+	{
+		"question": "Can I embed React components with MDX in my pages?",
+		"kind": "none",
+		"expected": [],
+		"note": "Zensical renders Python Markdown; React and MDX are not covered."
+	}
+]

@@ -26,7 +26,13 @@ export interface IndexJob {
 }
 
 export type IndexOutcome =
-	{ pages: number; warnings: string[] } | { error: string; kind?: SyncErrorKind };
+	| {
+			pages: number;
+			warnings: string[];
+			/** The most memory the indexing process held, in KiB, for the benchmark. */
+			peakMemoryKb?: number;
+	  }
+	| { error: string; kind?: SyncErrorKind };
 
 async function index(job: IndexJob): Promise<IndexOutcome> {
 	const prepared = await prepareCheckout(
@@ -48,7 +54,11 @@ async function index(job: IndexJob): Promise<IndexOutcome> {
 	} finally {
 		db.close();
 	}
-	return { pages: index.pages.length, warnings: index.warnings };
+	return {
+		pages: index.pages.length,
+		warnings: index.warnings,
+		peakMemoryKb: process.resourceUsage().maxRSS
+	};
 }
 
 // Without the server nobody waits for the result; stop rather than write on as an orphan.
