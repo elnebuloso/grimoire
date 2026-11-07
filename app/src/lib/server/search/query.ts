@@ -210,6 +210,12 @@ const STOPWORDS = new Set(
 		'a an and are as at be but by can do does for from how i if in into is it its may me must my ' +
 		'no not of on or our should so than that the their then there these this to was we what when ' +
 		'where which who why will with would you your keep get use using ' +
+		// NLTK's English list without the direction words (`down`, `all`, `before`, …), which
+		// carry meaning in technical questions such as "scale down" or "deny all ingress".
+		'about again against am any been because being between both did doing don during each ' +
+		'few further had has have having he her here hers herself him himself his itself just me ' +
+		'most myself nor now once other ours ourselves own s she some such t them themselves ' +
+		'they theirs those through too until very were while whom yours yourself yourselves ' +
 		'aber als am an auch auf aus bei bin bis da das dass dem den der des die du ein eine einen ' +
 		'einem einer es für hat ich im in ist kann man mit muss nach nicht noch oder sich sie sind so ' +
 		'über um und von vom wann was welche wenn wer wie wir wird wo zu zum zur'
