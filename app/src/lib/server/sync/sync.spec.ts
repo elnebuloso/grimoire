@@ -308,16 +308,19 @@ describe('syncSource', () => {
 
 		const exitListeners = process.listenerCount('exit');
 
-		const result = await syncSource(db, source, {
+		// Long enough for the stand-in to start its child even on a busy machine, which the deadline
+		// counts from the fork.
+		const syncing = syncSource(db, source, {
 			key,
 			policy: LOCAL,
 			workDirectory: work,
-			indexingDeadlineMs: 2000,
+			indexingDeadlineMs: 5000,
 			indexingScript: script
 		});
+		await vi.waitFor(() => expect(existsSync(pidFile)).toBe(true), { timeout: 5000 });
 		const pid = Number(readFileSync(pidFile, 'utf8'));
 		try {
-			expect(result).toMatchObject({ status: 'failed', kind: 'deadline' });
+			expect(await syncing).toMatchObject({ status: 'failed', kind: 'deadline' });
 			// The stop for a server exit goes once the indexing process has ended.
 			await vi.waitFor(() => expect(process.listenerCount('exit')).toBe(exitListeners));
 			await vi.waitFor(() => expect(running(pid)).toBe(false), { timeout: 5000 });

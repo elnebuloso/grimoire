@@ -1,9 +1,11 @@
 ---
 id: TASK-362
 title: 'Specs: the deadline spec must not race the stand-in''s pid file'
-status: To Do
-assignee: []
+status: Done
+assignee:
+  - '@claude'
 created_date: '2026-11-06 23:47'
+updated_date: '2026-11-07 00:55'
 labels:
   - sync
 dependencies: []
@@ -28,6 +30,25 @@ Found by the third whole-repo audit on 2026-11-07 (HEAD 4a72798).
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 The spec reads the pid file only once it exists
-- [ ] #2 It passes with two `make test TEST=--project=server` runs in parallel
+- [x] #1 The spec reads the pid file only once it exists
+- [x] #2 It passes with two `make test TEST=--project=server` runs in parallel
 <!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. The deadline spec starts the sync, waits for the stand-in's pid file with vi.waitFor, then awaits the result
+2. Deadline 5 s instead of 2 s, so the stand-in starts its child before the kill even on a busy machine
+<!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+- sync.spec.ts passes; two `make test TEST=--project=server` runs in parallel pass (1068 tests each).
+<!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+The deadline spec of the indexing process now waits for the stand-in's pid file before reading it, with a 5-second deadline instead of 2, so a slow start of the stand-in on a busy machine no longer fails it with ENOENT or leaves a sleep behind. It passes in two parallel server runs.
+<!-- SECTION:FINAL_SUMMARY:END -->
