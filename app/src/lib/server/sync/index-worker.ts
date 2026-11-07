@@ -21,6 +21,8 @@ export interface IndexJob {
 	databasePath: string;
 	sourceId: number;
 	commit: string;
+	/** The server process that waits for the result. */
+	serverPid: number;
 }
 
 export type IndexOutcome =
@@ -34,6 +36,9 @@ async function index(job: IndexJob): Promise<IndexOutcome> {
 		(url) => fetchInclude(url, job.allowedIncludeOrigins)
 	);
 	const index = indexPages(prepared);
+	// A server that died of a signal, such as Ctrl+C, never disconnects in time: indexing runs
+	// without giving the event loop a turn, and an orphan would write while the next server starts.
+	if (process.ppid !== job.serverPid) process.exit(1);
 	// Its own connection: the server's stays free for requests, which keep reading the old index
 	// until this transaction commits.
 	const db = new DatabaseSync(job.databasePath, { timeout: 30_000 });

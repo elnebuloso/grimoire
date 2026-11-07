@@ -138,7 +138,8 @@ async function checkAndSync(
 						allowedIncludeOrigins: options.allowedIncludeOrigins ?? [],
 						databasePath: databasePath(db),
 						sourceId,
-						commit
+						commit,
+						serverPid: process.pid
 					},
 					options.indexingDeadlineMs ?? INDEXING_DEADLINE_MS,
 					options.indexingHeapMb,

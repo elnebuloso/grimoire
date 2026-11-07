@@ -61,7 +61,8 @@ child.send({
 	allowedIncludeOrigins: [],
 	databasePath: process.env.DATABASE_PATH,
 	sourceId: 1,
-	commit: 'smoke'
+	commit: 'smoke',
+	serverPid: process.pid
 });
 const result = await new Promise((resolve, reject) => {
 	child.once('message', resolve);
