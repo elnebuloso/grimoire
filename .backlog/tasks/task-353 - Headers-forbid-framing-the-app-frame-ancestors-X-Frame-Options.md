@@ -1,9 +1,11 @@
 ---
 id: TASK-353
 title: 'Headers: forbid framing the app (frame-ancestors, X-Frame-Options)'
-status: To Do
-assignee: []
+status: In Progress
+assignee:
+  - '@claude'
 created_date: '2026-11-06 23:46'
+updated_date: '2026-11-07 00:05'
 labels:
   - admin
   - ops
@@ -29,7 +31,21 @@ Found by the third whole-repo audit on 2026-11-07 (HEAD 4a72798).
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Every response carries `Content-Security-Policy: frame-ancestors 'none'` and `X-Frame-Options: DENY`
+- [x] #1 Every response carries `Content-Security-Policy: frame-ancestors 'none'` and `X-Frame-Options: DENY`
 - [ ] #2 Pages, agent routes and downloads work as before (e2e passes)
-- [ ] #3 A spec in `access.spec.ts` (next to the robots header spec) covers the headers
+- [x] #3 A spec in `access.spec.ts` (next to the robots header spec) covers the headers
 <!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. The response header hook (renamed handleRobots to handleHeaders) also sets Content-Security-Policy: frame-ancestors 'none' and X-Frame-Options: DENY
+2. Spec in access.spec.ts; check with curl in the agent environment
+<!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+- access.spec.ts passes (27 tests); curl -I on /login and /query in the agent environment shows both headers. AC #2 is checked by the full e2e run before the push.
+- A full script-src policy is not part of this task.
+<!-- SECTION:NOTES:END -->

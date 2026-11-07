@@ -51,9 +51,15 @@ export const handleError: HandleServerError = ({ error, event, kind }) => {
 };
 
 // grimoire is an internal tool: nothing it serves belongs in a search index, neither the pages nor
-// the documentation the agent routes serve as text. The header also reaches what is not HTML.
-export const handleRobots: Handle = ({ event, resolve }) => {
-	event.setHeaders({ 'X-Robots-Tag': 'noindex, nofollow' });
+// the documentation the agent routes serve as text. And no other page may show it in a frame: the
+// session cookie also reaches a frame on a sibling subdomain, which could trick a click on an
+// admin action. The headers also reach what is not HTML.
+export const handleHeaders: Handle = ({ event, resolve }) => {
+	event.setHeaders({
+		'X-Robots-Tag': 'noindex, nofollow',
+		'Content-Security-Policy': "frame-ancestors 'none'",
+		'X-Frame-Options': 'DENY'
+	});
 	return resolve(event);
 };
 
@@ -128,4 +134,4 @@ const handleTheme: Handle = ({ event, resolve }) =>
 			html.replace('%grimoire.theme%', themeAttribute(event.cookies.get(THEME_COOKIE)))
 	});
 
-export const handle = sequence(handleRobots, handleAccess, handleLanguage, handleTheme);
+export const handle = sequence(handleHeaders, handleAccess, handleLanguage, handleTheme);

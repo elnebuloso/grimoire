@@ -520,15 +520,19 @@ describe('handleError', () => {
 	});
 });
 
-describe('handleRobots', () => {
-	it('asks search engines to skip every answer, pages, errors and agent routes alike', async () => {
+describe('handleHeaders', () => {
+	it('asks search engines to skip, and other sites not to frame, every answer', async () => {
 		const setHeaders = vi.fn();
 		const resolve = vi.fn(async () => new Response('served'));
 		const event = { setHeaders };
 
-		await admin.hooks.handleRobots({ event, resolve } as never);
+		await admin.hooks.handleHeaders({ event, resolve } as never);
 
-		expect(setHeaders).toHaveBeenCalledWith({ 'X-Robots-Tag': 'noindex, nofollow' });
+		expect(setHeaders).toHaveBeenCalledWith({
+			'X-Robots-Tag': 'noindex, nofollow',
+			'Content-Security-Policy': "frame-ancestors 'none'",
+			'X-Frame-Options': 'DENY'
+		});
 		expect(resolve).toHaveBeenCalledWith(event);
 	});
 });
