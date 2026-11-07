@@ -255,6 +255,16 @@ describe('chunkPage', () => {
 		expect(definitionsOf('c')).toEqual(['[rb]: https://example.com/docs']);
 	});
 
+	it('brings along what the footnotes of a snippet reference', () => {
+		const page = chunk(
+			`# Page\n\n## Limits\n\nUploads stop at 10 MB[^1]. ${text(80)}\n\n## Other\n\n${text(80)}\n\n[^1]: See [the quota page][quota][^2].\n\n[^2]: Per account.\n\n[quota]: https://docs.example.com/quota\n`
+		);
+		const limits = page.snippets.find((s) => s.anchor === 'limits')!.content;
+		expect(limits).toContain('[quota]: https://docs.example.com/quota');
+		expect(limits).toContain('[^2]: Per account.');
+		expect(page.snippets.find((s) => s.anchor === 'other')!.content).not.toContain('quota');
+	});
+
 	it('moves footnotes into every snippet that references them', () => {
 		const page = chunk(
 			`# Page\n\n## Limits\n\nUploads stop at 10 MB[^1]. ${text(80)}\n\n## Other\n\n${text(80)}\n\n[^1]: Larger files are rejected with HTTP 413.\n`

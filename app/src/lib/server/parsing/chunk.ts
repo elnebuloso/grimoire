@@ -195,7 +195,9 @@ function takeDefinitions(tree: Root): Definitions {
 
 function definitionsUsedBy(nodes: RootContent[], definitions: Definitions) {
 	const used: Definitions = new Map();
-	for (const node of nodes) {
+	// A footnote brought along can reference further definitions, which come along too.
+	const pending: RootContent[] = [...nodes];
+	for (let node = pending.shift(); node; node = pending.shift()) {
 		visit(node, (reference) => {
 			const type =
 				reference.type === 'linkReference'
@@ -206,7 +208,9 @@ function definitionsUsedBy(nodes: RootContent[], definitions: Definitions) {
 			if (!type) return;
 			const key = `${type}:${(reference as { identifier: string }).identifier}`;
 			const definition = definitions.get(key);
-			if (definition) used.set(key, definition);
+			if (!definition || used.has(key)) return;
+			used.set(key, definition);
+			if (definition.type === 'footnoteDefinition') pending.push(definition);
 		});
 	}
 	return [...used.values()];

@@ -1,9 +1,11 @@
 ---
 id: TASK-349
 title: 'Chunking: keep link definitions used inside footnotes'
-status: To Do
-assignee: []
+status: Done
+assignee:
+  - '@claude'
 created_date: '2026-11-06 23:46'
+updated_date: '2026-11-07 00:10'
 labels:
   - parsing
 dependencies: []
@@ -28,7 +30,27 @@ Found by the third whole-repo audit on 2026-11-07 (HEAD 4a72798).
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 A link definition referenced from a footnote is part of every snippet that carries the footnote
-- [ ] #2 A footnote referencing another footnote brings that one along too
-- [ ] #3 A spec in `chunk.spec.ts` covers both
+- [x] #1 A link definition referenced from a footnote is part of every snippet that carries the footnote
+- [x] #2 A footnote referencing another footnote brings that one along too
+- [x] #3 A spec in `chunk.spec.ts` covers both
 <!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. Spec: a footnote of the limits snippet that references a link definition and another footnote brings both along; another snippet gets neither
+2. definitionsUsedBy works through a queue: every footnote definition it adds is visited for further references; each definition once
+<!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+- The spec failed before and passes after; parsing and index-pages specs pass (125 tests).
+- A footnote referencing itself or a cycle of footnotes ends, because a definition is added and visited once.
+<!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Footnotes brought into a snippet now bring along what they reference: link definitions used inside a footnote and further footnotes, each once. A URL written in a footnote no longer disappears from every snippet. Covered by a spec in chunk.spec.ts.
+<!-- SECTION:FINAL_SUMMARY:END -->
