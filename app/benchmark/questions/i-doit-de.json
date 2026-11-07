@@ -1,0 +1,209 @@
+[
+	{
+		"question": "Systemvoraussetzungen PHP-Version MariaDB",
+		"kind": "short",
+		"expected": ["i-doit-de/installation/systemvoraussetzungen#lamp-wamp-stack"],
+		"note": "Lists the supported PHP versions and extensions and recommends Apache 2.4, PHP 8.4 and MariaDB 10.11."
+	},
+	{
+		"question": "essentielle Cronjobs anlegen",
+		"kind": "short",
+		"expected": ["i-doit-de/wartung-und-betrieb/cronjobs-einrichten#essentielle-jobs-anlegen"],
+		"note": "Creates the idoit-jobs script that archives the logbook, cleans up rights, purges unfinished objects and rebuilds the search index."
+	},
+	{
+		"question": "neuen Mandanten anlegen",
+		"kind": "short",
+		"expected": ["i-doit-de/administration/mandantenfaehigkeit#mandanten-anlegen-und-verwalten"],
+		"note": "Explains adding a tenant in the Admin-Center under Tenants and the properties each tenant gets."
+	},
+	{
+		"question": "CSV-Import über die Console",
+		"kind": "short",
+		"expected": [
+			"i-doit-de/daten-konsolidieren/csv-datenimport/index#csv-dateien-uber-die-console-importieren"
+		],
+		"note": "Describes importing CSV files with the console utility and reading the profile IDs with import-csvprofiles."
+	},
+	{
+		"question": "Report automatisch als CSV exportieren",
+		"kind": "short",
+		"expected": ["i-doit-de/auswertungen/report-manager#reports-automatisiert-exportieren"],
+		"note": "Shows the report-export console command with its report ID, path and file type options."
+	},
+	{
+		"question": "Lizenz Token offline aktualisieren",
+		"kind": "short",
+		"expected": [
+			"i-doit-de/wartung-und-betrieb/lizenzierung#wie-andere-oder-aktualisiere-ich-den-i-doit-license-token-offline"
+		],
+		"note": "Steps to copy the offline License from the customer portal and paste it under Licenses in the Admin-Center."
+	},
+	{
+		"question": "Objekte aus Template erzeugen",
+		"kind": "short",
+		"expected": [
+			"i-doit-de/effizientes-dokumentieren/templates#erzeugen-von-objekten-aus-templates"
+		],
+		"note": "Explains creating one or more objects from templates via Objekt(e) anlegen, including counter suffixes."
+	},
+	{
+		"question": "LDAP gelöschte Benutzer archivieren",
+		"kind": "short",
+		"expected": [
+			"i-doit-de/benutzerauthentifizierung-und-verwaltung/ldap-verzeichnis/so-werden-benutzer-und-gruppen-aus-dem-ad-ldap-importiert#deletedusersbehaviour"
+		],
+		"note": "The deletedUsersBehaviour option decides whether persons missing from the directory are archived, deleted or lose their login."
+	},
+	{
+		"question": "Wie mache ich am besten ein komplettes Backup von einem Mandanten, also die Datenbank und auch die hochgeladenen Dateien, am liebsten einfach über die Kommandozeile?",
+		"kind": "long",
+		"expected": [
+			"i-doit-de/wartung-und-betrieb/daten-sichern-und-wiederherstellen/index#backup-uber-die-console-empfohlen",
+			"i-doit-de/wartung-und-betrieb/daten-sichern-und-wiederherstellen/index#export-backup-erstellen"
+		],
+		"note": "system:tenant-export packs a tenant's database and uploaded files into one ZIP; the export section shows the command."
+	},
+	{
+		"question": "Wir synchronisieren unsere Benutzer aus dem Active Directory, aber eine OU mit externen Mitarbeitern soll dabei irgendwie nicht mit importiert werden, wie bekomme ich die ausgeschlossen?",
+		"kind": "long",
+		"expected": [
+			"i-doit-de/benutzerauthentifizierung-und-verwaltung/ldap-verzeichnis/so-werden-benutzer-und-gruppen-aus-dem-ad-ldap-importiert#so-schliet-du-eine-einzelne-ou-aus"
+		],
+		"note": "Explains that an OU cannot be excluded by its path and offers the search OU without recursion, a group or an attribute filter instead."
+	},
+	{
+		"question": "Ich habe ungefähr hundert Server, bei denen ich dieselben Werte eintragen muss, gibt es da eine Möglichkeit, das für alle auf einmal zu machen statt jeden einzeln anzufassen?",
+		"kind": "long",
+		"expected": [
+			"i-doit-de/effizientes-dokumentieren/massenaenderung#andern-von-objektinformationen-mit-einer-anderungsvorlage",
+			"i-doit-de/effizientes-dokumentieren/massenaenderung"
+		],
+		"note": "The mass change applies a change template to many selected objects at once; the page intro introduces the feature."
+	},
+	{
+		"question": "Ich möchte mit einem eigenen Skript auf die i-doit API zugreifen, unter welcher URL erreiche ich die JSON-RPC-Schnittstelle denn eigentlich genau?",
+		"kind": "long",
+		"expected": ["i-doit-de/i-doit-add-ons/api/index#zugriff"],
+		"note": "States that the API is reached by appending src/jsonrpc.php to the base URL of the instance."
+	},
+	{
+		"question": "Wir betreiben i-doit mit Docker Compose und jetzt gibt es eine neue Version, wie aktualisiere ich das denn, ohne dass dabei meine Daten verloren gehen?",
+		"kind": "long",
+		"expected": ["i-doit-de/installation/docker-installation/compose#update"],
+		"note": "Raise the image tag and IDOIT_VERSION, pull and run docker compose up -d; the volumes keep the data and the migration runs at start."
+	},
+	{
+		"question": "Kann ich das i-doit Update eigentlich auch komplett auf der Kommandozeile machen statt in der Weboberfläche, und wie sieht der Befehl dafür ungefähr aus?",
+		"kind": "long",
+		"expected": [
+			"i-doit-de/wartung-und-betrieb/update-einspielen#update-uber-die-konsole-via-consolephp"
+		],
+		"note": "Shows running the update with console.php update, interactively or with all parameters given."
+	},
+	{
+		"question": "What are the default user accounts and passwords after installing i-doit?",
+		"kind": "english",
+		"expected": ["i-doit-de/grundlagen/erstanmeldung#standard-benutzer-und-gruppen"],
+		"note": "The table lists admin, archivar, author, editor, reader and systemapi with their passwords and groups."
+	},
+	{
+		"question": "How long is an object locked while another user edits it, and where can I change that timeout?",
+		"kind": "english",
+		"expected": ["i-doit-de/effizientes-dokumentieren/objektsperre#konfiguration"],
+		"note": "The lock lasts 120 seconds by default and is set under Verwaltung, Benutzereinstellungen, Bearbeitungssperre."
+	},
+	{
+		"question": "How can I lowercase or URL-encode the hostname variable used in the QR code?",
+		"kind": "english",
+		"expected": [
+			"i-doit-de/administration/verwaltung/vordefinierte-inhalte/qr-code#variablen-verandern"
+		],
+		"note": "Lists the modifiers such as lower and encode that are appended to a variable with a vertical bar."
+	},
+	{
+		"question": "How do I turn on two-factor authentication with an authenticator app for my user?",
+		"kind": "english",
+		"expected": ["i-doit-de/benutzerauthentifizierung-und-verwaltung/2fa/index#2fa-aktivieren"],
+		"note": "Steps under Benutzereinstellungen, Passwort und Login to scan the QR code and confirm with the 6-digit code."
+	},
+	{
+		"question": "benutzerdefinirte Kategorie anlgen",
+		"kind": "typo",
+		"expected": ["i-doit-de/grundlagen/benutzerdefinierte-kategorien#konfiguration-der-kategorie"],
+		"note": "Walks through creating a custom category under Verwaltung, Datenstruktur, Benutzerdefinierte Kategorien."
+	},
+	{
+		"question": "Admin-Center Pasword vergesen zurücksetzn",
+		"kind": "typo",
+		"expected": [
+			"i-doit-de/automatisierung-und-integration/cli/befehle-und-optionen#admin-center-password-reset"
+		],
+		"note": "The console command admin-center-password-reset resets the Admin-Center password, with its options and an example."
+	},
+	{
+		"question": "Server im Rak positionieren Höheneinhiten",
+		"kind": "typo",
+		"expected": ["i-doit-de/auswertungen/rack-ansicht#objekte-in-schrank-positionieren"],
+		"note": "Explains the form factor and height units an object needs and assigning its position in the rack via the location category."
+	},
+	{
+		"question": "MySQL-Server has gone away",
+		"kind": "error",
+		"expected": ["i-doit-de/administration/troubleshooting/mysql-server-has-gone-away#losung"],
+		"note": "The fix raises max_allowed_packet in the MySQL/MariaDB configuration and restarts the service."
+	},
+	{
+		"question": "Can't create table (errno: 140 \"Wrong create options\")",
+		"kind": "error",
+		"expected": ["i-doit-de/administration/troubleshooting/cant-create-table#losung"],
+		"note": "Replace ROW_FORMAT=FIXED with ROW_FORMAT=DYNAMIC in the dump, for example with sed, and import it again."
+	},
+	{
+		"question": "rmdir(...): Device or resource busy beim Add-on installieren im Docker-Container",
+		"kind": "error",
+		"expected": [
+			"i-doit-de/installation/docker-installation/compose#add-on-aus-dem-subscription-center-rmdir-device-or-resource-busy"
+		],
+		"note": "Names the tmpfs mount on the app service as the cause and removing it from compose.yaml as the fix."
+	},
+	{
+		"question": "X-RPC-Auth-Session",
+		"kind": "code",
+		"expected": [
+			"i-doit-de/i-doit-add-ons/api/beispiele-zur-nutzung-der-api#idoitlogin",
+			"i-doit-de/i-doit-add-ons/api/methoden/v1/index#idoitlogin"
+		],
+		"note": "Both idoit.login examples show the session header returned by the login and sent with later requests."
+	},
+	{
+		"question": "obj_main.isys_obj__id AS '__id__'",
+		"kind": "code",
+		"expected": ["i-doit-de/auswertungen/report-manager#sql-editor"],
+		"note": "The SQL editor requires selecting the object ID as the first, hidden column with exactly this expression."
+	},
+	{
+		"question": "i-doit mit Helm-Chart auf Kubernetes deployen",
+		"kind": "none",
+		"expected": [],
+		"note": "The documentation covers Docker and manual installations; Helm is never mentioned and Kubernetes appears only as documented object types."
+	},
+	{
+		"question": "Dark Mode für die Weboberfläche einschalten",
+		"kind": "none",
+		"expected": [],
+		"note": "No page mentions a dark mode or a dark colour scheme for the web GUI."
+	},
+	{
+		"question": "Geräte aus Microsoft Intune importieren",
+		"kind": "none",
+		"expected": [],
+		"note": "Imports are documented for CSV, JDisc, h-inventory and LDAP; Intune is never mentioned."
+	},
+	{
+		"question": "Grafana-Dashboard mit i-doit als Datenquelle einrichten",
+		"kind": "none",
+		"expected": [],
+		"note": "Grafana is never mentioned; the monitoring pages cover exporting to and querying monitoring systems, not dashboards fed from i-doit."
+	}
+]

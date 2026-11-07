@@ -1,10 +1,11 @@
 ---
 id: TASK-371
 title: 'Benchmark: add four German documentations, as many as the English ones'
-status: To Do
-assignee: []
+status: In Progress
+assignee:
+  - '@claude'
 created_date: '2026-11-07 10:09'
-updated_date: '2026-11-07 10:14'
+updated_date: '2026-11-07 12:13'
 labels:
   - search
 dependencies: []
@@ -29,9 +30,9 @@ New vendored copies mean a new fixture commit in `documentations.ts` and a new b
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
 - [ ] #1 One or more German documentations are indexed by `make benchmark`, with license and `VENDOR.md` in the fixture repository
-- [ ] #2 Each has a question file with German and English questions, expected IDs checked against its `*.index.json`
-- [ ] #3 The baseline is updated in one commit with the new fixture commit; `app/benchmark/README.md` lists the new documentations
-- [ ] #4 Four German documentations, or as many as can be found with an open license, each with the reason in the notes where one is missing
+- [x] #2 Each has a question file with German and English questions, expected IDs checked against its `*.index.json`
+- [x] #3 The baseline is updated in one commit with the new fixture commit; `app/benchmark/README.md` lists the new documentations
+- [x] #4 Four German documentations, or as many as can be found with an open license, each with the reason in the notes where one is missing
 <!-- AC:END -->
 
 ## Implementation Notes
@@ -45,4 +46,11 @@ Candidates (2026-11-07):
 - Kubernetes `content/de` upstream (kubernetes/website): 147 pages, Hugo; much smaller than the English 2,519, so it fills the Hugo/large slot only in kind, not in size.
 - Material for MkDocs and Zensical have no German translation upstream; the two slots for many MkDocs extensions and Zensical need German-native documentation, still to be found.
 - The current fixture vendors only `en` of FastAPI and Kubernetes.
+
+Chosen 2026-11-07 (owner said go): kubernetes-de (content/de of the vendored commit, 147 pages, Hugo), fastapi-de (docs/de/docs of the vendored commit, 125 pages; upstream has no German mkdocs.yml, so no nav), i-doit-de (i-doit Knowledge Base docs/de, 725 pages, MkDocs Material with many pymdownx extensions, CC BY-SA 4.0), odoo-wiki-de (Mint-System Odoo-Wiki, 930 pages, Zensical, AGPL-3.0). Found by GitHub code search for 'language: de' in mkdocs.yml and 'language = "de"' in zensical.toml, filtered by license and size; Context7 had nothing.
+Fixture: commit 2ce2c00 in grimoire-fixture-docs, copies verified byte for byte against upstream; i-doit's config/de/mkdocs.yml lies at vendor/i-doit/mkdocs.yml (grimoire looks for the config in or above the source path), noted in its VENDOR.md. odoo-wiki-de excludes vendor/odoo-wiki/VENDOR.md, which lies inside its source path: documentations.ts got an optional 'exclusions', inserted like an admin's.
+Index: no sync warnings. odoo-wiki-de has 394 dead links, 390 of them Obsidian-style anchors with the heading text (Settings E-Mail#E-Mail-Vorlagen%20anzeigen) that the upstream build script rewrites; grimoire does not resolve them. Whether grimoire should is a question for the owner, not part of this task.
+Questions: 30 per documentation written by four agents from reading the pages, kinds as the English files with 'english' (English question about German docs) instead of 'german'; all expected IDs checked against the index.
+
+First baseline (rank 1 / within 3 / within 10 / MRR of 26 answerable; unanswerable with hits): kubernetes-de 20/22/22/.806, 4; i-doit-de 10/14/18/.495, 4; fastapi-de 7/16/23/.466, 3; odoo-wiki-de 21/22/24/.834, 4. fastapi-de against the English fastapi (8/15/23/.476) is almost the same with the same questions translated: the German pages are searched as well as the English ones. English baselines unchanged. make benchmark now takes 11 minutes (668 s measured), peak memory per documentation at most 822 MB. AC #1 is checked once the fixture commit is pushed.
 <!-- SECTION:NOTES:END -->

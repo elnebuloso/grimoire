@@ -1,0 +1,208 @@
+[
+	{
+		"question": "Pod Lebenszyklus Phasen",
+		"kind": "short",
+		"expected": ["kubernetes-de/docs/concepts/workloads/pods/pod-lifecycle#pod-phase"],
+		"note": "Lists the phase values Pending, Running, Succeeded, Failed and Unknown with their meaning."
+	},
+	{
+		"question": "Master-Komponenten Steuerungsebene",
+		"kind": "short",
+		"expected": ["kubernetes-de/docs/concepts/overview/components#master-komponenten"],
+		"note": "Explains that the master components form the control plane and make global decisions about the cluster."
+	},
+	{
+		"question": "Node Selbstregistrierung kubelet",
+		"kind": "short",
+		"expected": ["kubernetes-de/docs/concepts/architecture/nodes#selbstregistrierung-von-nodes"],
+		"note": "Describes --register-node and the other kubelet flags used for self-registration with the API server."
+	},
+	{
+		"question": "Horizontal Pod Autoscaler Algorithmus",
+		"kind": "short",
+		"expected": [
+			"kubernetes-de/docs/tasks/run-application/horizontal-pod-autoscale#details-zum-algorithmus"
+		],
+		"note": "Gives the desiredReplicas formula, the tolerance and how unready pods and missing metrics are treated."
+	},
+	{
+		"question": "etcd Events separate Instanz",
+		"kind": "short",
+		"expected": ["kubernetes-de/docs/setup/best-practices/cluster-large#etcd-speicher"],
+		"note": "Recommends storing Event objects in a dedicated etcd instance for large clusters."
+	},
+	{
+		"question": "kubeadm Zertifikatspfade",
+		"kind": "short",
+		"expected": ["kubernetes-de/docs/setup/best-practices/zertifikate#zertifikatspfade"],
+		"note": "The table of recommended key and certificate paths with the flags of each component."
+	},
+	{
+		"question": "Statische Pods kubelet",
+		"kind": "short",
+		"expected": ["kubernetes-de/docs/concepts/workloads/pods/_index#statische-pods"],
+		"note": "Explains that static pods are managed directly by the kubelet on a node, not watched by the API server."
+	},
+	{
+		"question": "Multi-Architektur Images docker manifest",
+		"kind": "short",
+		"expected": [
+			"kubernetes-de/docs/concepts/containers/images#multi-architektur-images-mit-manifesten-bauen"
+		],
+		"note": "Describes building multi-architecture images with docker manifest create, annotate and push."
+	},
+	{
+		"question": "Ich sitze in der Firma hinter einem HTTP-Proxy und minikube kann keine Images herunterladen, wie gebe ich dem Docker-Daemon in der VM denn die Proxy-Einstellungen mit?",
+		"kind": "long",
+		"expected": ["kubernetes-de/docs/setup/minikube#minikube-mit-einem-http-proxy-verwenden"],
+		"note": "Shows passing http_proxy and https_proxy with --docker-env to minikube start and adding the minikube IP to no_proxy."
+	},
+	{
+		"question": "Ist die Verbindung vom API-Server zum Kubelet eigentlich sicher, wenn die Knoten über ein öffentliches Netzwerk laufen, und was kann ich tun, damit das Zertifikat vom Kubelet geprüft wird?",
+		"kind": "long",
+		"expected": [
+			"kubernetes-de/docs/concepts/architecture/control-plane-node-communication#apiserver-zum-kubelet"
+		],
+		"note": "States that the apiserver does not verify the kubelet certificate by default and names --kubelet-certificate-authority or SSH tunnels as remedies."
+	},
+	{
+		"question": "Mein Cluster scheint irgendwie nie einen wirklich stabilen Zustand zu erreichen, ist das ein Problem oder ist das bei Kubernetes ganz normal so?",
+		"kind": "long",
+		"expected": ["kubernetes-de/docs/concepts/architecture/controller#desired-vs-current"],
+		"note": "Explains that a cluster may never reach a stable state and that this does not matter as long as the controllers keep making useful changes."
+	},
+	{
+		"question": "Kann mir jemand sagen, ob Kubernetes eigentlich schon Datenbanken, Message-Busse oder eine CI/CD-Pipeline mitbringt, oder muss ich das alles selbst dazu bauen?",
+		"kind": "long",
+		"expected": [
+			"kubernetes-de/docs/concepts/overview/what-is-kubernetes#was-kubernetes-nicht-ist"
+		],
+		"note": "Lists that Kubernetes neither builds or deploys source code nor provides middleware, databases or caches as built-in services."
+	},
+	{
+		"question": "Ich habe in minikube ein Deployment hello-node angelegt, aber wie mache ich den Container jetzt von außerhalb des Clusters erreichbar?",
+		"kind": "long",
+		"expected": ["kubernetes-de/docs/tutorials/hello-minikube#erstellen-sie-einen-service"],
+		"note": "Exposes the hello-node deployment with kubectl expose --type=LoadBalancer and opens it with minikube service."
+	},
+	{
+		"question": "Unser Autoscaler skaliert ständig hoch und wieder runter, gibt es da irgendeine Einstellung, damit er nach dem Herunterskalieren erst mal eine Weile wartet?",
+		"kind": "long",
+		"expected": [
+			"kubernetes-de/docs/tasks/run-application/horizontal-pod-autoscale#unterstutzung-von-abklingzeitenverzogerungen"
+		],
+		"note": "Describes thrashing and the --horizontal-pod-autoscaler-downscale-stabilization flag with its 5 minute default."
+	},
+	{
+		"question": "Which IAM permissions does the kubelet need to pull images from Amazon ECR?",
+		"kind": "english",
+		"expected": [
+			"kubernetes-de/docs/concepts/containers/images#bei-nutzung-der-amazon-elastic-container-registry"
+		],
+		"note": "Lists the ecr: permissions the kubelet needs to refresh ECR credentials, plus prerequisites and troubleshooting."
+	},
+	{
+		"question": "How can I check whether my pods still use images from the frozen k8s.gcr.io registry?",
+		"kind": "english",
+		"expected": [
+			"kubernetes-de/blog/_posts/2023-02-06-k8s-gcr-io-freeze-announcement#was-geschieht-nun"
+		],
+		"note": "Gives the kubectl get pods jsonpath command that lists every container image the pods use."
+	},
+	{
+		"question": "How do I install kubectl on macOS with Homebrew?",
+		"kind": "english",
+		"expected": [
+			"kubernetes-de/docs/tasks/tools/install-kubectl-macos#mit-homebrew-auf-macos-installieren",
+			"kubernetes-de/docs/tasks/tools/install-kubectl#installation-mit-homebrew-auf-macos"
+		],
+		"note": "Both sections show installing kubectl with brew install and checking the version afterwards."
+	},
+	{
+		"question": "What does the node controller in the cloud controller manager do?",
+		"kind": "english",
+		"expected": ["kubernetes-de/docs/concepts/architecture/cloud-controller#node-controller"],
+		"note": "Lists the node controller's tasks: zone and region labels, instance details, addresses, and deleting nodes removed from the cloud."
+	},
+	{
+		"question": "Zertifkate für Benutzerkonten konfiguriren",
+		"kind": "typo",
+		"expected": [
+			"kubernetes-de/docs/setup/best-practices/zertifikate#zertifikate-fur-benutzerkonten-konfigurieren"
+		],
+		"note": "The table of admin.conf, kubelet.conf and other kubeconfig files with their CN and O, and the kubectl config commands to create them."
+	},
+	{
+		"question": "Hypervisior für minikube instalieren",
+		"kind": "typo",
+		"expected": ["kubernetes-de/docs/tasks/tools/install-minikube#einen-hypervisor-installieren"],
+		"note": "Lists the supported hypervisors per operating system and the --vm-driver=none option."
+	},
+	{
+		"question": "cgroup Version herausfinden auf Linux Knotten",
+		"kind": "typo",
+		"expected": ["kubernetes-de/docs/concepts/architecture/cgroups#cgroup-version-identifizieren"],
+		"note": "Shows stat -fc %T /sys/fs/cgroup/ and that cgroup2fs means v2 and tmpfs means v1."
+	},
+	{
+		"question": "The connection to the server <server-name:port> was refused - did you specify the right host or port?",
+		"kind": "error",
+		"expected": [
+			"kubernetes-de/docs/tasks/tools/install-kubectl#uberprufen-der-kubectl-konfiguration",
+			"kubernetes-de/docs/tasks/tools/included/verify-kubectl"
+		],
+		"note": "Both quote this message, explain that kubectl is not configured or cannot reach a cluster, and suggest kubectl cluster-info dump."
+	},
+	{
+		"question": "CrashLoopBackOff",
+		"kind": "error",
+		"expected": ["kubernetes-de/docs/concepts/workloads/pods/pod-lifecycle#container-restarts"],
+		"note": "Explains the backoff behind CrashLoopBackOff, its typical causes and how to investigate it with kubectl logs and describe."
+	},
+	{
+		"question": "Could not read CA certificate \"/etc/docker/ca.pem\": open /etc/docker/ca.pem: no such file or directory",
+		"kind": "error",
+		"expected": [
+			"kubernetes-de/docs/setup/minikube#lokale-images-durch-erneute-verwendung-des-docker-daemon-ausfuhren"
+		],
+		"note": "Quotes this CentOS 7 error after eval $(minikube docker-env) and shows the fix for DOCKER_CERT_PATH."
+	},
+	{
+		"question": "stopSignal: SIGUSR1",
+		"kind": "code",
+		"expected": [
+			"kubernetes-de/docs/concepts/workloads/pods/pod-lifecycle#definieren-benutzerdefinierter-stop-signale"
+		],
+		"note": "The YAML example sets a custom stop signal under lifecycle with the ContainerStopSignals feature gate."
+	},
+	{
+		"question": "fluentd-kubernetes-daemonset",
+		"kind": "code",
+		"expected": ["kubernetes-de/docs/setup/best-practices/cluster-large#addon-ressourcen"],
+		"note": "The image appears only in the YAML example that sets CPU and memory limits for a logging addon."
+	},
+	{
+		"question": "CronJob Zeitplan Syntax",
+		"kind": "none",
+		"expected": [],
+		"note": "The German documentation has no page on CronJobs or their schedule format."
+	},
+	{
+		"question": "Wie setze ich Pod Security Standards per Namespace-Label durch?",
+		"kind": "none",
+		"expected": [],
+		"note": "Pod Security Standards and Pod Security Admission are not covered anywhere in these pages."
+	},
+	{
+		"question": "StatefulSet volumeClaimTemplates",
+		"kind": "none",
+		"expected": [],
+		"note": "StatefulSet appears only as a glossary term; volumeClaimTemplates are not mentioned."
+	},
+	{
+		"question": "PersistentVolume reclaim policy Retain",
+		"kind": "none",
+		"expected": [],
+		"note": "The persistent volumes page is an empty stub; reclaim policies are not described."
+	}
+]

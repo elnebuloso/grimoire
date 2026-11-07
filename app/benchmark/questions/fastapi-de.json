@@ -1,0 +1,231 @@
+[
+	{
+		"question": "Abhängigkeit mit yield aufräumen",
+		"kind": "short",
+		"expected": [
+			"fastapi-de/tutorial/dependencies/dependencies-with-yield",
+			"fastapi-de/tutorial/dependencies/dependencies-with-yield#a-database-dependency-with-yield"
+		],
+		"note": "The page intro explains yield instead of return for extra steps after finishing; the database section closes the session afterwards."
+	},
+	{
+		"question": "CORS-Middleware",
+		"kind": "short",
+		"expected": ["fastapi-de/tutorial/cors#use-corsmiddleware"],
+		"note": "Shows how to add CORSMiddleware and lists its arguments."
+	},
+	{
+		"question": "OAuth2 JWT-Token",
+		"kind": "short",
+		"expected": [
+			"fastapi-de/tutorial/security/oauth2-jwt",
+			"fastapi-de/tutorial/security/oauth2-jwt#handle-jwt-tokens"
+		],
+		"note": "The OAuth2 with JWT page; its token section covers creating and signing the JWT."
+	},
+	{
+		"question": "Datei-Upload UploadFile",
+		"kind": "short",
+		"expected": [
+			"fastapi-de/tutorial/request-files#file-parameters-with-uploadfile",
+			"fastapi-de/tutorial/request-files#uploadfile"
+		],
+		"note": "Declaring an UploadFile parameter and what the UploadFile object offers."
+	},
+	{
+		"question": "Testen mit TestClient und pytest",
+		"kind": "short",
+		"expected": ["fastapi-de/tutorial/testing#using-testclient"],
+		"note": "Explains creating a TestClient from the app and writing pytest tests with it."
+	},
+	{
+		"question": "WebSocket-Endpunkt erstellen",
+		"kind": "short",
+		"expected": ["fastapi-de/advanced/websockets#create-a-websocket"],
+		"note": "Shows declaring a websocket route and receiving and sending messages."
+	},
+	{
+		"question": "statische Dateien bereitstellen",
+		"kind": "short",
+		"expected": ["fastapi-de/tutorial/static-files#use-staticfiles"],
+		"note": "Mounting a StaticFiles instance on a path."
+	},
+	{
+		"question": "HTML-Response zurückgeben",
+		"kind": "short",
+		"expected": ["fastapi-de/advanced/custom-response#html-response"],
+		"note": "Explains using HTMLResponse as response_class to return HTML."
+	},
+	{
+		"question": "Wie mache ich das richtig, wenn beim Start meiner Anwendung einmalig Code laufen soll, zum Beispiel um einen Pool von Datenbankverbindungen zu öffnen, und der beim Herunterfahren alles wieder schließt?",
+		"kind": "long",
+		"expected": ["fastapi-de/advanced/events#lifespan", "fastapi-de/advanced/events"],
+		"note": "The lifespan parameter with a yield-based context manager runs code before startup and after shutdown; the intro names the database connection pool."
+	},
+	{
+		"question": "Meine main.py wird mit den ganzen Endpunkten echt riesig, wie soll ich die API denn auf mehrere Dateien oder Module aufteilen und am Ende wieder in der Haupt-App zusammenführen?",
+		"kind": "long",
+		"expected": [
+			"fastapi-de/tutorial/bigger-applications#apirouter",
+			"fastapi-de/tutorial/bigger-applications#include-the-apirouters-for-users-and-items",
+			"fastapi-de/tutorial/bigger-applications",
+			"fastapi-de/tutorial/bigger-applications#an-example-file-structure"
+		],
+		"note": "APIRouter declares path operations in separate modules and include_router puts them into the main app; the page intro and the example file structure answer it as well."
+	},
+	{
+		"question": "Wir betreiben die API hinter einem Reverse Proxy, der sie unter /api/v1 ausliefert und das Präfix vor dem Weiterleiten abschneidet, und jetzt sind die Doku-Seite und die Links kaputt, was muss ich da konfigurieren?",
+		"kind": "long",
+		"expected": [
+			"fastapi-de/advanced/behind-a-proxy#proxy-with-a-stripped-path-prefix",
+			"fastapi-de/advanced/behind-a-proxy#providing-the-root-path"
+		],
+		"note": "A proxy with a stripped path prefix needs root_path, set via --root-path."
+	},
+	{
+		"question": "Wo sollte ich eigentlich Konfiguration wie die Datenbank-URL und geheime Schlüssel ablegen, gibt es einen empfohlenen Weg, die aus Umgebungsvariablen oder einer .env-Datei mit Validierung zu lesen?",
+		"kind": "long",
+		"expected": [
+			"fastapi-de/advanced/settings#pydantic-settings",
+			"fastapi-de/advanced/settings#reading-a-env-file"
+		],
+		"note": "Pydantic Settings reads and validates environment variables, and the .env section shows reading them from a file."
+	},
+	{
+		"question": "Ich bin ehrlich gesagt unsicher, wann ich meine Pfadoperation-Funktionen mit async def schreiben soll und wann einfach mit normalem def, gibt es da eine Faustregel?",
+		"kind": "long",
+		"expected": ["fastapi-de/async#in-a-hurry"],
+		"note": "The TL;DR says when to use async def (libraries called with await) and when def (blocking libraries)."
+	},
+	{
+		"question": "Wenn ich die App als Docker-Container in einem Kubernetes-Cluster deploye, sollte ich dann in jedem Container mehrere Uvicorn-Worker starten oder lieber nur einen Prozess pro Container?",
+		"kind": "long",
+		"expected": [
+			"fastapi-de/deployment/docker#one-process-per-container",
+			"fastapi-de/deployment/docker#replication-number-of-processes",
+			"fastapi-de/deployment/docker#containers-with-multiple-processes-and-special-cases"
+		],
+		"note": "With replication at the cluster level the docs advise a single Uvicorn process per container without --workers; the replication and special-cases sections answer it as well."
+	},
+	{
+		"question": "How do I validate query parameters, for example a maximum length?",
+		"kind": "english",
+		"expected": [
+			"fastapi-de/tutorial/query-params-str-validations#additional-validation",
+			"fastapi-de/tutorial/query-params-str-validations#add-query-to-annotated-in-the-q-parameter"
+		],
+		"note": "Additional validation for query parameters with Query inside Annotated, the max_length example."
+	},
+	{
+		"question": "How do I set the HTTP status code 201 for a POST route?",
+		"kind": "english",
+		"expected": [
+			"fastapi-de/tutorial/response-status-code",
+			"fastapi-de/tutorial/path-operation-configuration#response-status-code"
+		],
+		"note": "The page intro explains the status_code parameter of the path operation decorator; the path operation configuration section shows it too."
+	},
+	{
+		"question": "How do I run a task only after the response has been sent, such as sending an email?",
+		"kind": "english",
+		"expected": [
+			"fastapi-de/tutorial/background-tasks",
+			"fastapi-de/tutorial/background-tasks#using-backgroundtasks"
+		],
+		"note": "Background tasks run after returning a response, the intro names email notifications; BackgroundTasks is the parameter to use."
+	},
+	{
+		"question": "How do I read a cookie from the request?",
+		"kind": "english",
+		"expected": ["fastapi-de/tutorial/cookie-params#declare-cookie-parameters"],
+		"note": "Declaring Cookie parameters like Query and Path parameters."
+	},
+	{
+		"question": "Abhängigkieten in Tests überschrieben",
+		"kind": "typo",
+		"expected": [
+			"fastapi-de/advanced/testing-dependencies#use-the-app-dependency-overrides-attribute",
+			"fastapi-de/advanced/testing-dependencies#overriding-dependencies-during-testing"
+		],
+		"note": "app.dependency_overrides replaces a dependency during testing."
+	},
+	{
+		"question": "verschachtelte Pydantic-Modele im Reqeust-Body",
+		"kind": "typo",
+		"expected": [
+			"fastapi-de/tutorial/body-nested-models#nested-models",
+			"fastapi-de/tutorial/body-nested-models#use-the-submodel-as-a-type"
+		],
+		"note": "A model attribute typed as another Pydantic model gives a nested JSON body."
+	},
+	{
+		"question": "Midleware, die jeder Respone einen Header mit der Verarbeitungszeit hinzufügt",
+		"kind": "typo",
+		"expected": ["fastapi-de/tutorial/middleware#before-and-after-the-response"],
+		"note": "The X-Process-Time header example runs code before and after call_next."
+	},
+	{
+		"question": "RequestValidationError eigener Exceptionhandler",
+		"kind": "error",
+		"expected": [
+			"fastapi-de/tutorial/handling-errors#override-request-validation-exceptions",
+			"fastapi-de/tutorial/handling-errors#use-the-requestvalidationerror-body"
+		],
+		"note": "Overriding the default RequestValidationError handler with @app.exception_handler, and using its body."
+	},
+	{
+		"question": "\"Input should be a valid integer, unable to parse string as an integer\"",
+		"kind": "error",
+		"expected": ["fastapi-de/tutorial/path-params#data-validation"],
+		"note": "The data validation section shows this error for a non-integer path parameter and explains why."
+	},
+	{
+		"question": "404 Not Found mit HTTPException zurückgeben, wenn ein Item nicht existiert",
+		"kind": "error",
+		"expected": [
+			"fastapi-de/tutorial/handling-errors#raise-an-httpexception-in-your-code",
+			"fastapi-de/tutorial/handling-errors#use-httpexception"
+		],
+		"note": "Raising HTTPException with status code 404 for a missing item."
+	},
+	{
+		"question": "q: str | None = Query(default=None, max_length=50)",
+		"kind": "code",
+		"expected": [
+			"fastapi-de/tutorial/query-params-str-validations#alternative-old-query-as-the-default-value"
+		],
+		"note": "This code block sits in the section on the older style with Query as the default value and its max_length parameter."
+	},
+	{
+		"question": "response_model_exclude_unset=True",
+		"kind": "code",
+		"expected": [
+			"fastapi-de/tutorial/response-model#use-the-response-model-exclude-unset-parameter"
+		],
+		"note": "The section on the decorator parameter that leaves unset default values out of the response."
+	},
+	{
+		"question": "Wie erstelle und wende ich Django-ORM-Migrationen mit makemigrations an?",
+		"kind": "none",
+		"expected": [],
+		"note": "The docs mention Django only as an alternative framework and as a source of password hashes, never its ORM or migrations."
+	},
+	{
+		"question": "Wie verwalte ich globalen State in meiner React-App mit Redux?",
+		"kind": "none",
+		"expected": [],
+		"note": "The frontend page covers serving a build, not frontend state management; Redux appears nowhere."
+	},
+	{
+		"question": "Wie konfiguriere ich Kafka-Consumer-Groups und das Rebalancing von Partitionen?",
+		"kind": "none",
+		"expected": [],
+		"note": "Kafka appears nowhere in the documentation."
+	},
+	{
+		"question": "Wie prüfe ich die Signatur eines Stripe-Webhook-Events?",
+		"kind": "none",
+		"expected": [],
+		"note": "The webhooks page documents sending webhooks in OpenAPI; Stripe and signature verification are not covered."
+	}
+]

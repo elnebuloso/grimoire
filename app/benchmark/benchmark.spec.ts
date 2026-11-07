@@ -37,8 +37,16 @@ async function indexed(documentation: Documentation) {
 	const directory = mkdtempSync(join(root, `${documentation.name}-`));
 	const db = openDatabase(join(directory, 'grimoire.db'));
 	db.prepare(
-		`INSERT INTO sources (id, slug, name, git_url, branch, path) VALUES (1, ?, ?, ?, ?, ?)`
-	).run(documentation.name, documentation.name, url, FIXTURE_BRANCH, documentation.path);
+		`INSERT INTO sources (id, slug, name, git_url, branch, path, exclusions)
+		VALUES (1, ?, ?, ?, ?, ?, ?)`
+	).run(
+		documentation.name,
+		documentation.name,
+		url,
+		FIXTURE_BRANCH,
+		documentation.path,
+		JSON.stringify(documentation.exclusions ?? [])
+	);
 	const started = performance.now();
 	const result = await syncSource(db, 1, {
 		key: Buffer.alloc(32),

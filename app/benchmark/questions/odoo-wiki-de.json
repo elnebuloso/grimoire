@@ -1,0 +1,193 @@
+[
+	{
+		"question": "Zwei-Faktor-Authentisierung aktivieren",
+		"kind": "short",
+		"expected": ["odoo-wiki-de/Settings Login#2-faktor-authentisierung-aktivieren"],
+		"note": "Explains enabling two-factor authentication under Account > Mein Profil and scanning the QR code with an OTP app."
+	},
+	{
+		"question": "Datenbank Backup Datenbankmanager",
+		"kind": "short",
+		"expected": ["odoo-wiki-de/Database#backup-erstellen"],
+		"note": "Describes creating a ZIP backup in the database manager at /web/database/manager with the Odoo Master Password."
+	},
+	{
+		"question": "Datenbank wiederherstellen This database is a copy",
+		"kind": "short",
+		"expected": ["odoo-wiki-de/Database#datenbank-wiederherstellen"],
+		"note": "Walks through deleting and restoring a database and warns to choose This database is a copy to keep the license key."
+	},
+	{
+		"question": "Mailgun ausgehender Mail-Server",
+		"kind": "short",
+		"expected": ["odoo-wiki-de/Settings E-Mail#ausgehender-mail-server-mailgun-konfigurieren"],
+		"note": "Lists the SMTP server, port and credentials for an outgoing Mailgun server."
+	},
+	{
+		"question": "Catchall-Alias ändern",
+		"kind": "short",
+		"expected": ["odoo-wiki-de/Settings E-Mail#catchall-alias-anpassen"],
+		"note": "Shows changing mail.catchall.alias up to Odoo 16 and the Alias-Domain field from Odoo 17."
+	},
+	{
+		"question": "Inventur durchführen Bestandsbuchung",
+		"kind": "short",
+		"expected": ["odoo-wiki-de/Stock Inventory#inventur-durchfuhren"],
+		"note": "Explains starting the inventory count, filling in Gezählt and posting it with Bestandsbuchung Durchführen."
+	},
+	{
+		"question": "Login mit GitLab OAuth-Provider",
+		"kind": "short",
+		"expected": ["odoo-wiki-de/Auth OIDC#login-mit-gitlab-konfigurieren"],
+		"note": "Creates the GitLab OAuth application and the matching OAuth provider entry in Odoo."
+	},
+	{
+		"question": "Übersetzungen exportieren CSV",
+		"kind": "short",
+		"expected": ["odoo-wiki-de/Settings Translations#ubersetzungen-exportieren"],
+		"note": "Describes exporting a language's translations of an app as a CSV file in developer mode."
+	},
+	{
+		"question": "Hallo, unsere Mitarbeitenden haben am Jahresende noch Ferientage übrig, wie kann ich diese verbleibenden Urlaubsansprüche ins neue Jahr übernehmen?",
+		"kind": "long",
+		"expected": [
+			"odoo-wiki-de/HR Holidays Remaining Leaves#verbleibende-urlaubsanspruche-ubertragen"
+		],
+		"note": "Explains exporting remaining_leaves_hours or remaining_leaves_days and importing them as new allocations for the next year."
+	},
+	{
+		"question": "Wir haben ein Testsystem, auf dem die Meldung erscheint, dass die Datenbank abgelaufen ist. Wie kann ich das Ablaufdatum der Odoo Datenbank denn verlängern?",
+		"kind": "long",
+		"expected": ["odoo-wiki-de/Database#odoo-datenbank-verlangern"],
+		"note": "Shows replacing the system parameter database.expiration_date with a future date on the test system."
+	},
+	{
+		"question": "Ich möchte gerne, dass unsere Odoo Website auf Odoo.sh unter unserer eigenen Domain erreichbar ist, welchen DNS-Eintrag muss ich dafür erstellen?",
+		"kind": "long",
+		"expected": ["odoo-wiki-de/Odoo.sh#eigene-domain-konfigurieren"],
+		"note": "Names the ALIAS or CNAME record pointing to the project's odoo.com host and the Custom domains setting."
+	},
+	{
+		"question": "Wenn ein Mitarbeiter sich seine Überstunden auszahlen lässt, wie muss ich das in den Anwesenheiten eigentlich korrekt erfassen?",
+		"kind": "long",
+		"expected": ["odoo-wiki-de/HR Attendance Overtime#uberstunden-auszahlen"],
+		"note": "Explains deducting paid-out overtime with manual entries under Anwesenheiten > Überstunden, ideally on a weekend or holiday."
+	},
+	{
+		"question": "Unser Client-Secret für die Outlook Anbindung auf Azure ist abgelaufen, wo und wie erstelle ich ein neues und trage es in Odoo ein?",
+		"kind": "long",
+		"expected": ["odoo-wiki-de/Settings OAuth#azure-oauth-app-client-secret-neu-erstellen"],
+		"note": "Walks through creating a new secret in Microsoft Entra ID and overwriting the Client Secret under Outlook Credentials."
+	},
+	{
+		"question": "Die Druckereinstellungen am Computer werden beim Drucken über den PrintNode Client irgendwie gar nicht berücksichtigt, woran kann das liegen?",
+		"kind": "long",
+		"expected": ["odoo-wiki-de/Printnode Base#druckereinstellungen-haben-keinen-effekt"],
+		"note": "The client runs as a service under another user and must be installed as a program instead."
+	},
+	{
+		"question": "How do I send users an invitation to set up two-factor authentication?",
+		"kind": "english",
+		"expected": ["odoo-wiki-de/Settings Login#einladung-zur-2-faktor-authentisierung-verschicken"],
+		"note": "Describes selecting users and choosing the action to invite them to use two-factor authentication."
+	},
+	{
+		"question": "How do I set up public holidays for time off?",
+		"kind": "english",
+		"expected": [
+			"odoo-wiki-de/HR Holidays Public#feiertage-einrichten",
+			"odoo-wiki-de/HR Holidays#gesetzliche-feiertage-festlegen"
+		],
+		"note": "Both sections explain how public holidays are configured for the time off app."
+	},
+	{
+		"question": "How can I verify the DKIM signature of emails sent by Odoo?",
+		"kind": "english",
+		"expected": ["odoo-wiki-de/Settings E-Mail#dkim-signatur-verifizieren"],
+		"note": "Uses the appmaildev DKIM test address as a contact and checks the generated report."
+	},
+	{
+		"question": "How do I change the UUID of a copied database?",
+		"kind": "english",
+		"expected": ["odoo-wiki-de/Database#datenbank-id-andern"],
+		"note": "Generates a UUID with uuidgen and sets it as the system parameter database.uuid."
+	},
+	{
+		"question": "Abwesenheitsart erfasen Einheit Stunden Halbtage",
+		"kind": "typo",
+		"expected": [
+			"odoo-wiki-de/HR Holidays#abwesenheitsart-erfassen",
+			"odoo-wiki-de/HR Holidays#einheit-fur-abwesenheitsart-festlegen"
+		],
+		"note": "Creating a time off type lists the unit field; the unit section explains hours, half days or days on its own."
+	},
+	{
+		"question": "Eingehnde Mails werden nicht verarbietet",
+		"kind": "typo",
+		"expected": ["odoo-wiki-de/Troubleshooting#eingehende-mails-werden-nicht-verarbeitet"],
+		"note": "The cause is a changed mail alias after editing outgoing servers; the fix checks mail.catchall.domain and mail.catchall.alias."
+	},
+	{
+		"question": "Steuerabschlusbuchung erstelen",
+		"kind": "typo",
+		"expected": ["odoo-wiki-de/Accounting Tax#steuerabschlussbuchung-erstellen"],
+		"note": "Explains creating the closing entry for the tax return from the tax report with Abschlussbuchung."
+	},
+	{
+		"question": "External ID not found in the system: base.user_admin",
+		"kind": "error",
+		"expected": ["odoo-wiki-de/Troubleshooting#externe-id-user-admin-nicht-gefunden"],
+		"note": "Explains that the admin user or its external ID was deleted and how to create the external ID again."
+	},
+	{
+		"question": "Bank public keys missing (call HPB first)",
+		"kind": "error",
+		"expected": ["odoo-wiki-de/EBICS banking protocol#bank-public-keys-missing"],
+		"note": "The EBICS download fails until the bank keys are downloaded and verified."
+	},
+	{
+		"question": "wkhtmltopdf Exit with code 1 due to network error: ContentNotFoundError",
+		"kind": "error",
+		"expected": ["odoo-wiki-de/Troubleshooting#berichtsformatierung-in-pdf-nicht-vorhanden"],
+		"note": "wkhtmltopdf cannot load CSS over HTTPS; the fix sets web.base.url with web.base.url.freeze or report.url."
+	},
+	{
+		"question": "getent hosts odoo.example.com",
+		"kind": "code",
+		"expected": [
+			"odoo-wiki-de/Troubleshooting#berichtsformatierung-in-pdf-nicht-vorhanden",
+			"odoo-wiki-de/Troubleshooting#timeout-generierung-pdf"
+		],
+		"note": "Both PDF report problems verify in a code block that the container resolves the Odoo host with getent hosts."
+	},
+	{
+		"question": "_do_unreserve reservation_date",
+		"kind": "code",
+		"expected": ["odoo-wiki-de/Stock Actions#reservierungen-aufheben"],
+		"note": "The server action code unreserves a product's moves with _do_unreserve and resets their reservation_date."
+	},
+	{
+		"question": "DATEV Export der Buchhaltung",
+		"kind": "none",
+		"expected": [],
+		"note": "The wiki has no page or mention of DATEV."
+	},
+	{
+		"question": "Anmeldung über ein LDAP-Verzeichnis einrichten",
+		"kind": "none",
+		"expected": [],
+		"note": "LDAP does not appear anywhere in the wiki; it covers OAuth and OIDC logins only."
+	},
+	{
+		"question": "WooCommerce Shop mit Odoo synchronisieren",
+		"kind": "none",
+		"expected": [],
+		"note": "WooCommerce is not mentioned in any page."
+	},
+	{
+		"question": "Stripe als Zahlungsanbieter einrichten",
+		"kind": "none",
+		"expected": [],
+		"note": "Stripe does not appear in the wiki."
+	}
+]
