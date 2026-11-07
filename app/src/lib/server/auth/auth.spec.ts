@@ -761,7 +761,8 @@ describe('grantAdmin', () => {
 	});
 });
 
-describe('scripts/grant-admin.ts', () => {
+// Each test starts the script as a process of its own, which takes seconds on a busy machine.
+describe('scripts/grant-admin.ts', { timeout: 30_000 }, () => {
 	const script = join(import.meta.dirname, '../../../../../scripts/grant-admin.ts');
 
 	function databaseWithAdmin(): string {

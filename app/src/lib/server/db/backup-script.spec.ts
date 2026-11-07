@@ -1,10 +1,13 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { spawnSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { openDatabase } from './schema';
+
+// Each test starts the script as a process of its own, which takes seconds on a busy machine.
+vi.setConfig({ testTimeout: 30_000 });
 
 const script = join(import.meta.dirname, '../../../../../scripts/backup.ts');
 
