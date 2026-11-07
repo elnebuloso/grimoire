@@ -1,11 +1,11 @@
 ---
 id: TASK-365
 title: 'Benchmark: search quality with a fixed set of questions per documentation'
-status: In Progress
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-11-07 01:44'
-updated_date: '2026-11-07 02:21'
+updated_date: '2026-11-07 03:17'
 labels:
   - search
   - agent-api
@@ -42,8 +42,32 @@ Agreed with the user on 2026-11-07. A page of benchmark results in the handbook 
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Each of the four documentations has a question file with about 30 questions of the kinds listed, expected IDs and notes
-- [ ] #2 `make benchmark` reports hits at 1, 3 and 10, mean reciprocal rank and the unanswerable questions per documentation, and compares them exactly with the baseline
-- [ ] #3 Hits with equal scores come in a stable order; two runs give identical ranks
-- [ ] #4 The user has reviewed the questions and expected IDs (noted in this task) before the baseline is written
+- [x] #1 Each of the four documentations has a question file with about 30 questions of the kinds listed, expected IDs and notes
+- [x] #2 `make benchmark` reports hits at 1, 3 and 10, mean reciprocal rank and the unanswerable questions per documentation, and compares them exactly with the baseline
+- [x] #3 Hits with equal scores come in a stable order; two runs give identical ranks
+- [x] #4 The user has reviewed the questions and expected IDs (noted in this task) before the baseline is written
 <!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. Four agents write about 30 questions per documentation in the listed kinds, the expected IDs taken from reading the docs and checked against the index baseline
+2. benchmark.spec.ts ranks each question with querySources (all hits, no budget cut) and reports rank 1, within 3, within 10, MRR and unanswerable questions with hits, compared exactly with baseline/<name>.search.json
+3. Hits with equal scores are ordered by snippet id (refactor(search) 2d1926a)
+4. Review of the questions the agents marked as judgement calls, then the baseline
+<!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+- 120 questions, per documentation: 8 short, 6 long, 4 German, 3 typo, 3 error/config/command, 2 code-only, 4 without an answer.
+- Review: the user asked me to decide the 15 judgement calls. Added expected sections where they answer the question on their own: Kubernetes configure-pdb#protecting-…, quick-reference#updating-resources; Material setting-up-versioning (page intro); FastAPI bigger-applications (intro) and #an-example-file-structure, docker#replication-number-of-processes and #containers-with-multiple-processes-and-special-cases, path-operation-configuration#response-status-code; Zensical colors#accent-color and #custom-colors. The others were kept as proposed; each change is noted in the question's note.
+- Baseline (answerable 26 each): Kubernetes rank1 8, within3 13, within10 20, MRR 0.449; Material 16/22/25/0.734; FastAPI 8/16/23/0.479; Zensical 13/18/21/0.602. All 16 unanswerable questions get hits (OR search), now TASK-369.
+- Deterministic: identical ranks over the runs with unchanged questions.
+<!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+The benchmark now measures search quality: 120 hand-written questions over the four documentations, each with the section(s) that answer it, ranked by the agent query and compared exactly with a baseline (rank 1, within 3, within 10, mean reciprocal rank, unanswerable questions with hits). Equal scores have a stable order. The first baseline: rank 1 for 8–16 of 26 answerable questions per documentation, MRR 0.45–0.73; every unanswerable question still gets hits. The follow-ups TASK-369 and TASK-370 build on these numbers.
+<!-- SECTION:FINAL_SUMMARY:END -->

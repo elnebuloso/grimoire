@@ -59,8 +59,11 @@
 	{
 		"question": "I would like my readers to be able to switch between different versions of the documentation, like 1.x and 2.x, with some kind of dropdown in the header. Is that possible and what do I need to configure?",
 		"kind": "long",
-		"expected": ["mkdocs-material/setup/setting-up-versioning#versioning"],
-		"note": "Sets extra.version.provider to mike, which renders a version selector in the header."
+		"expected": [
+			"mkdocs-material/setup/setting-up-versioning#versioning",
+			"mkdocs-material/setup/setting-up-versioning"
+		],
+		"note": "Sets extra.version.provider to mike, which renders a version selector in the header. Reviewed 2026-11-07: also counts setup/setting-up-versioning, which answer the question on their own."
 	},
 	{
 		"question": "What is the easiest way to have my documentation built and deployed to GitHub Pages automatically every time I push a commit to the main branch?",

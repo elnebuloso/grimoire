@@ -67,9 +67,11 @@
 		"kind": "long",
 		"expected": [
 			"fastapi/tutorial/bigger-applications#apirouter",
-			"fastapi/tutorial/bigger-applications#include-the-apirouters-for-users-and-items"
+			"fastapi/tutorial/bigger-applications#include-the-apirouters-for-users-and-items",
+			"fastapi/tutorial/bigger-applications",
+			"fastapi/tutorial/bigger-applications#an-example-file-structure"
 		],
-		"note": "APIRouter declares path operations in separate modules, include_router puts them into the main app."
+		"note": "APIRouter declares path operations in separate modules, include_router puts them into the main app. Reviewed 2026-11-07: also counts tutorial/bigger-applications, tutorial/bigger-applications#an-example-file-structure, which answer the question on their own."
 	},
 	{
 		"question": "We run the API behind a reverse proxy that serves it under /api/v1 and strips that prefix before forwarding, and now the docs page and the links are broken, what do I have to configure?",
@@ -98,8 +100,12 @@
 	{
 		"question": "When I deploy the app as a Docker container on a Kubernetes cluster, should I start several Uvicorn workers inside each container or rather just one process per container?",
 		"kind": "long",
-		"expected": ["fastapi/deployment/docker#one-process-per-container"],
-		"note": "With replication at the cluster level the docs advise a single Uvicorn process per container, no --workers."
+		"expected": [
+			"fastapi/deployment/docker#one-process-per-container",
+			"fastapi/deployment/docker#replication-number-of-processes",
+			"fastapi/deployment/docker#containers-with-multiple-processes-and-special-cases"
+		],
+		"note": "With replication at the cluster level the docs advise a single Uvicorn process per container, no --workers. Reviewed 2026-11-07: also counts deployment/docker#replication-number-of-processes, deployment/docker#containers-with-multiple-processes-and-special-cases, which answer the question on their own."
 	},
 	{
 		"question": "Wie validiere ich Query-Parameter, zum Beispiel eine maximale Länge?",
@@ -113,8 +119,11 @@
 	{
 		"question": "Wie setze ich den HTTP-Statuscode 201 für eine POST-Route?",
 		"kind": "german",
-		"expected": ["fastapi/tutorial/response-status-code"],
-		"note": "The page intro explains the status_code parameter of the path operation decorator."
+		"expected": [
+			"fastapi/tutorial/response-status-code",
+			"fastapi/tutorial/path-operation-configuration#response-status-code"
+		],
+		"note": "The page intro explains the status_code parameter of the path operation decorator. Reviewed 2026-11-07: also counts tutorial/path-operation-configuration#response-status-code, which answer the question on their own."
 	},
 	{
 		"question": "Wie führe ich eine Aufgabe erst nach dem Senden der Antwort aus, etwa eine E-Mail verschicken?",

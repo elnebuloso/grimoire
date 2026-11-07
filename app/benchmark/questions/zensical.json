@@ -95,8 +95,12 @@
 	{
 		"question": "Wie ändere ich die Farben meiner Seite?",
 		"kind": "german",
-		"expected": ["zensical/setup/colors#primary-color"],
-		"note": "The Primary color section changes the main site color via theme.palette.primary."
+		"expected": [
+			"zensical/setup/colors#primary-color",
+			"zensical/setup/colors#accent-color",
+			"zensical/setup/colors#custom-colors"
+		],
+		"note": "The Primary color section changes the main site color via theme.palette.primary. Reviewed 2026-11-07: also counts setup/colors#accent-color, setup/colors#custom-colors, which answer the question on their own."
 	},
 	{
 		"question": "Wie füge ich eine Fußnote in einen Text ein?",

@@ -62,9 +62,10 @@
 		"kind": "long",
 		"expected": [
 			"kubernetes/docs/concepts/workloads/pods/disruptions#pod-disruption-budgets",
-			"kubernetes/docs/tasks/administer-cluster/safely-drain-node#configure-poddisruptionbudget"
+			"kubernetes/docs/tasks/administer-cluster/safely-drain-node#configure-poddisruptionbudget",
+			"kubernetes/docs/tasks/run-application/configure-pdb#protecting-an-application-with-a-poddisruptionbudget"
 		],
-		"note": "A PodDisruptionBudget limits simultaneous voluntary disruptions, and kubectl drain respects it."
+		"note": "A PodDisruptionBudget limits simultaneous voluntary disruptions, and kubectl drain respects it. Reviewed 2026-11-07: also counts docs/tasks/run-application/configure-pdb#protecting-an-application-with-a-poddisruptionbudget, which answer the question on their own."
 	},
 	{
 		"question": "My app takes a really long time to boot, like a couple of minutes, and the liveness probe keeps killing it before it is even up. Is there some way to give it more time only during startup without making the liveness check slower in general?",
@@ -142,9 +143,10 @@
 		"kind": "typo",
 		"expected": [
 			"kubernetes/docs/reference/kubectl/generated/kubectl_rollout/kubectl_rollout_restart",
-			"kubernetes/docs/reference/kubectl/generated/kubectl_rollout/kubectl_rollout_restart#heading-examples"
+			"kubernetes/docs/reference/kubectl/generated/kubectl_rollout/kubectl_rollout_restart#heading-examples",
+			"kubernetes/docs/reference/kubectl/quick-reference#updating-resources"
 		],
-		"note": "The kubectl rollout restart reference page and its examples answer the misspelled command."
+		"note": "The kubectl rollout restart reference page and its examples answer the misspelled command. Reviewed 2026-11-07: also counts docs/reference/kubectl/quick-reference#updating-resources, which answer the question on their own."
 	},
 	{
 		"question": "persistant volume acess modes ReadWriteOnce",
