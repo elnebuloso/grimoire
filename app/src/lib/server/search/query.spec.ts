@@ -212,6 +212,20 @@ describe('searchSnippets', () => {
 		]);
 	});
 
+	it('leaves out filler words, so short technical terms of a long question are searched', () => {
+		addPage(addSource('platform'), 'sso.md', { title: 'SSO', text: 'jwt rotation' });
+		const question =
+			'How do I rotate the signing key for SSO tokens when the identity provider of the billing service changes its certificate and the old JWT must keep working?';
+
+		expect(sourceIds(searchSnippets(db, { query: question, allowedSources: 'all' }))).toEqual([
+			'platform/sso'
+		]);
+		addPage(addSource('words'), 'how.md', { title: 'How to', text: 'what is this' });
+		expect(sourceIds(searchSnippets(db, { query: 'how to', allowedSources: 'all' }))).toEqual([
+			'words/how'
+		]);
+	});
+
 	it('searches the 16 longest different words of a long question', () => {
 		addPage(addSource('platform'), 'deploy.md', { title: 'Deploy', text: 'rollback steps' });
 		const short = Array.from({ length: 16 }, (_, index) => `w${index}`).join(' ');

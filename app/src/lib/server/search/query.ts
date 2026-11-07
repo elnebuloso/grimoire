@@ -202,11 +202,25 @@ export function hasSearchTerms(query: string): boolean {
 
 // Raw input breaks FTS5 syntax (`auth-service` reads as a column filter, `?` and `=` are errors).
 // OR keeps natural-language questions matching; BM25 still ranks hits with more terms higher.
+// Words that name nothing a page could be about; agents ask in English and German. Short terms
+// such as `sso` or `jwt` must not lose their place under the cap to these.
+const STOPWORDS = new Set(
+	(
+		'a an and are as at be but by can do does for from how i if in into is it its may me must my ' +
+		'no not of on or our should so than that the their then there these this to was we what when ' +
+		'where which who why will with would you your keep get use using ' +
+		'aber als am an auch auf aus bei bin bis da das dass dem den der des die du ein eine einen ' +
+		'einem einer es für hat ich im in ist kann man mit muss nach nicht noch oder sich sie sind so ' +
+		'über um und von vom wann was welche wenn wer wie wir wird wo zu zum zur'
+	).split(' ')
+);
+
 function toMatchExpression(query: string): string {
 	const words = query.match(SEARCH_WORD) ?? [];
-	// The longest words: a long question starts with "how do I", and its specific terms come last.
 	const distinct = [...new Set(words.map((word) => word.toLowerCase()))];
-	return distinct
+	const meaningful = distinct.filter((word) => !STOPWORDS.has(word));
+	// The longest words: a long question starts with "how do I", and its specific terms come last.
+	return (meaningful.length > 0 ? meaningful : distinct)
 		.toSorted((a, b) => b.length - a.length)
 		.slice(0, MAX_SEARCH_TERMS)
 		.map((word) => `"${word}"`)

@@ -1,9 +1,11 @@
 ---
 id: TASK-351
 title: 'Search: drop stopwords before choosing the 16 search terms'
-status: To Do
-assignee: []
+status: Done
+assignee:
+  - '@claude'
 created_date: '2026-11-06 23:46'
+updated_date: '2026-11-07 00:13'
 labels:
   - search
   - agent-api
@@ -29,7 +31,28 @@ Found by the third whole-repo audit on 2026-11-07 (HEAD 4a72798).
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 For a long question, stopwords are not among the searched terms and short technical terms like `sso` and `jwt` are
-- [ ] #2 A question made only of stopwords still searches
-- [ ] #3 Specs in `query.spec.ts` cover both, and the specs of TASK-305 and TASK-342 still pass
+- [x] #1 For a long question, stopwords are not among the searched terms and short technical terms like `sso` and `jwt` are
+- [x] #2 A question made only of stopwords still searches
+- [x] #3 Specs in `query.spec.ts` cover both, and the specs of TASK-305 and TASK-342 still pass
 <!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. Spec: the long SSO/JWT question finds a page that only matches sso and jwt; a question of stopwords only (`how to`) still searches
+2. query.ts: STOPWORDS (English and German) are left out before the longest-words cap; when nothing else is left, the words are searched as they are
+3. Handbook agents.md names it; the agent instructions stay within their 250-token budget unchanged
+<!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+- Stopwords are left out always, not only above the cap: they add matches on nearly every page and nothing to the ranking.
+- The spec failed before and passes after; search, agent, agent-api and start page specs pass (102 tests), including the specs of TASK-305 and TASK-342. make handbook passes.
+<!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Common English and German filler words are now left out of a search before the 16 longest words are chosen, so short technical terms of a long question (`sso`, `jwt`) are searched instead of `when` or `must`; a question made only of such words is searched as it is. Covered by a spec in query.spec.ts; the handbook says so.
+<!-- SECTION:FINAL_SUMMARY:END -->
