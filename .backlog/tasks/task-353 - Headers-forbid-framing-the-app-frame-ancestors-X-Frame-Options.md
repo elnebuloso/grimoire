@@ -1,11 +1,11 @@
 ---
 id: TASK-353
 title: 'Headers: forbid framing the app (frame-ancestors, X-Frame-Options)'
-status: In Progress
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-11-06 23:46'
-updated_date: '2026-11-07 00:05'
+updated_date: '2026-11-07 01:15'
 labels:
   - admin
   - ops
@@ -32,7 +32,7 @@ Found by the third whole-repo audit on 2026-11-07 (HEAD 4a72798).
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
 - [x] #1 Every response carries `Content-Security-Policy: frame-ancestors 'none'` and `X-Frame-Options: DENY`
-- [ ] #2 Pages, agent routes and downloads work as before (e2e passes)
+- [x] #2 Pages, agent routes and downloads work as before (e2e passes)
 - [x] #3 A spec in `access.spec.ts` (next to the robots header spec) covers the headers
 <!-- AC:END -->
 
@@ -48,4 +48,12 @@ Found by the third whole-repo audit on 2026-11-07 (HEAD 4a72798).
 <!-- SECTION:NOTES:BEGIN -->
 - access.spec.ts passes (27 tests); curl -I on /login and /query in the agent environment shows both headers. AC #2 is checked by the full e2e run before the push.
 - A full script-src policy is not part of this task.
+
+- Full make e2e passes (28 tests) with the headers, pages and downloads included.
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Every response now carries `Content-Security-Policy: frame-ancestors 'none'` and `X-Frame-Options: DENY`, so no other page, a docs site on a sibling subdomain included, can show grimoire in a frame and trick an admin into clicking an action. The hook that sets the response headers is now named handleHeaders. Covered by the header spec in access.spec.ts, checked with curl in the agent environment; make e2e passes.
+<!-- SECTION:FINAL_SUMMARY:END -->

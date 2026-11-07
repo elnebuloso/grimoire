@@ -1,11 +1,11 @@
 ---
 id: TASK-354
 title: 'Row actions: close the menu and keep focus when an action changes its row'
-status: In Progress
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-11-06 23:46'
-updated_date: '2026-11-07 00:24'
+updated_date: '2026-11-07 01:15'
 labels:
   - admin
 dependencies: []
@@ -34,7 +34,7 @@ Found by the third whole-repo audit on 2026-11-07 (HEAD 4a72798).
 <!-- AC:BEGIN -->
 - [x] #1 After promoting or demoting a user, the menu is closed and focus is on a sensible element, not the body
 - [x] #2 After an action that removes its row (delete user, revoke key, withdraw invitation, unlink), focus is not lost
-- [ ] #3 Checked in the agent environment in light and dark; the e2e steps that use these actions still pass
+- [x] #3 Checked in the agent environment in light and dark; the e2e steps that use these actions still pass
 <!-- AC:END -->
 
 ## Implementation Plan
@@ -51,4 +51,12 @@ Found by the third whole-repo audit on 2026-11-07 (HEAD 4a72798).
 - General fix in ConfirmAction instead of one combined promote/demote action: it covers every action whose form the refresh replaces or removes.
 - Agent environment (Playwright): after Make admin and after Remove admin role the menu is closed and focus is on the row's Actions button; after revoking a key its row is gone and focus is on <main>. Agent environment reset afterwards. ConfirmAction, ActionMenu and AppShell stories pass (20 tests).
 - Dark scheme not looked at separately: no style changed apart from removing the focus ring of <main>.
+
+- Dark scheme: the same promote/demote check in a dark-emulated browser gives a closed menu and focus on the row's Actions button. Full make e2e passes (28 tests). Agent environment reset afterwards.
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+A confirmed row action whose form the refresh replaces (a role change) or removes (a deleted row) now closes the menu it sat in and moves focus to the menu's button, or to <main> when the row is gone, instead of leaving the menu open and focus on the page body. <main> takes focus without a ring. Checked in the agent environment in light and dark for promote, demote and revoking a key; component stories and make e2e pass.
+<!-- SECTION:FINAL_SUMMARY:END -->
