@@ -8,7 +8,8 @@
     New to grimoire? Read [Concepts](index.md) first.
 
 A search returns the matching snippets, each without the rest of its page. Write so that every
-section makes sense on its own.
+section makes sense on its own. Which words a search matches and what ranks higher is under
+[Search and index](search.md).
 
 ## One topic per file
 

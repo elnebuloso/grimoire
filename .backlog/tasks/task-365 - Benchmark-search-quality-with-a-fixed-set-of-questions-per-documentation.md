@@ -1,9 +1,11 @@
 ---
 id: TASK-365
 title: 'Benchmark: search quality with a fixed set of questions per documentation'
-status: To Do
-assignee: []
+status: In Progress
+assignee:
+  - '@claude'
 created_date: '2026-11-07 01:44'
+updated_date: '2026-11-07 02:21'
 labels:
   - search
   - agent-api

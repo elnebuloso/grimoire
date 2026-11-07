@@ -1,9 +1,11 @@
 ---
 id: TASK-367
 title: 'Handbook: one page on how search and the index work'
-status: To Do
-assignee: []
+status: Done
+assignee:
+  - '@claude'
 created_date: '2026-11-07 01:45'
+updated_date: '2026-11-07 02:45'
 labels: []
 dependencies: []
 references:
@@ -34,8 +36,30 @@ Agreed with the user on 2026-11-07. A page of benchmark results in the handbook 
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 A handbook page describes search and the index as listed, for writers and for people connecting agents
-- [ ] #2 `writing.md` and `agents.md` link to it instead of repeating its content
-- [ ] #3 Every limit and rule on the page matches the code (checked against `query.ts` and `chunk.ts`)
-- [ ] #4 The page is in `nav` of `zensical.toml` and `make handbook` passes
+- [x] #1 A handbook page describes search and the index as listed, for writers and for people connecting agents
+- [x] #2 `writing.md` and `agents.md` link to it instead of repeating its content
+- [x] #3 Every limit and rule on the page matches the code (checked against `query.ts` and `chunk.ts`)
+- [x] #4 The page is in `nav` of `zensical.toml` and `make handbook` passes
 <!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. New handbook page docs/handbook/search.md: which words of a question count, what ranks higher, what an answer holds, what is not searched, when IDs change
+2. How a page becomes snippets and how IDs are built stay in writing.md (the author's page); search.md links there
+3. agents.md's query row and writing.md's intro link to search.md instead of repeating the rules; nav entry in zensical.toml
+<!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+- Checked against the code: bm25 weights 10/1/0.25 for title path/text/code (query.ts), MAX_HITS = 20, DEFAULT_TOKENS = 3000, STOPWORDS, MAX_SEARCH_TERMS = 16, the 500-character cut (operations.ts), missed queries only with a key and a searchable word.
+- Checked with FTS5 directly: case and accents are folded (`Über` finds `uber`), a hyphen separates words, no stems, prefixes or typos (`rollback` does not find `rollbacks`).
+- The exact error texts are not repeated; the page links to Errors in agents.md. make handbook passes.
+<!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+The handbook has a page "Search and index" for authors and for people connecting agents: which words of a question count (word rules, case and accents, no stems or typos, 500 characters, stopwords, 16 longest words), what ranks higher (title path ten times the text, code a quarter), what an answer holds (20 hits, the budget, the Did not fit line, why unrelated questions still get hits), what is not searched, and when IDs change. writing.md keeps how pages are split and IDs are built and links to it; agents.md links to it instead of repeating the rules. Every rule was checked against the code and FTS5.
+<!-- SECTION:FINAL_SUMMARY:END -->
