@@ -1,9 +1,9 @@
 {
 	"answerable": 26,
-	"rank1": 16,
+	"rank1": 17,
 	"within3": 22,
 	"within10": 25,
-	"meanReciprocalRank": 0.74,
+	"meanReciprocalRank": 0.759,
 	"unanswerableWithHits": 4,
 	"questions": [
 		"rank 2 | short | dark mode toggle palette",
@@ -18,7 +18,7 @@
 		"rank 8 | long | I would like my readers to be able to switch between different versions of the documentation, like 1.x and 2.x, with some kind of dropdown in the header. Is that possible and what do I need to configure?",
 		"rank 1 | long | What is the easiest way to have my documentation built and deployed to GitHub Pages automatically every time I push a commit to the main branch?",
 		"rank 1 | long | Is there some way to show at the bottom of each page the date when that page was last changed, ideally taken from the git history?",
-		"rank 2 | long | We want to collect some quick feedback from readers, so could I put a little thumbs up or thumbs down question asking whether the page was helpful at the end of every page?",
+		"rank 1 | long | We want to collect some quick feedback from readers, so could I put a little thumbs up or thumbs down question asking whether the page was helpful at the end of every page?",
 		"rank 2 | long | When a reader picks a tab like Python in one set of content tabs, can all the other tab groups on the site switch to Python as well, so they don't have to click every single one?",
 		"not found | german | Wie füge ich eine Suchleiste hinzu?",
 		"rank 1 | german | Wie ändere ich das Logo und das Favicon meiner Seite?",

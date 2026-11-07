@@ -1,8 +1,8 @@
 {
 	"cores": 4,
 	"runs": 3,
-	"indexingSeconds": 8.8,
-	"peakMemoryMb": 395,
-	"searchMedianMs": 1.93,
-	"searchP95Ms": 4.5
+	"indexingSeconds": 8.7,
+	"peakMemoryMb": 397,
+	"searchMedianMs": 2.43,
+	"searchP95Ms": 5.34
 }

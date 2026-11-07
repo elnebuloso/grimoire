@@ -224,6 +224,59 @@ describe('searchSnippets', () => {
 		);
 	});
 
+	it('searches the most common index term one edit away for a word no source contains', () => {
+		addPage(addSource('platform-docs'), 'a.md', { title: 'Install', text: 'install the agent' });
+		addPage(addSource('billing-docs'), 'b.md', { title: 'Installieren', text: 'installieren' });
+
+		const found = searchHits(db, { query: 'instal agent', allowedSources: 'all' });
+
+		expect(sourceIds(found.markdown)).toEqual(['platform-docs/a']);
+		expect(found.unknown).toEqual(['instal']);
+		expect(found.markdown).toMatch(
+			/\n\nNot in any searched source: instal \(searched as install\)$/
+		);
+	});
+
+	it('searches a longer form by prefix when no term is one edit away', () => {
+		addPage(addSource('billing-docs'), 'a.md', { title: 'Monatlicher Abrechnungslauf' });
+
+		const found = searchHits(db, { query: 'monatlich', allowedSources: 'all' });
+
+		expect(sourceIds(found.markdown)).toEqual(['billing-docs/a']);
+		expect(found.markdown).toMatch(
+			/Not in any searched source: monatlich \(searched as monatlich\*\)$/
+		);
+	});
+
+	it('leaves short words and words without a near term as they are', () => {
+		addPage(addSource('platform-docs'), 'a.md', { title: 'Rollback', text: 'sso' });
+
+		expect(searchHits(db, { query: 'rollback ssx', allowedSources: 'all' }).markdown).toMatch(
+			/Not in any searched source: ssx$/
+		);
+		expect(searchHits(db, { query: 'terraform', allowedSources: 'all' }).markdown).toBe('');
+	});
+
+	it('never searches instead with a term only a source outside the search contains', () => {
+		addPage(addSource('platform-docs'), 'a.md', { title: 'Rollback' });
+		addPage(addSource('billing-docs'), 'b.md', { title: 'Invoices', text: 'invoices' });
+
+		for (const found of [
+			searchHits(db, { query: 'rollback invoicez', allowedSources: ['platform-docs'] }),
+			searchHits(db, {
+				query: 'rollback invoicez',
+				sources: ['platform-docs'],
+				allowedSources: 'all'
+			})
+		]) {
+			expect(sourceIds(found.markdown)).toEqual(['platform-docs/a']);
+			expect(found.markdown).toMatch(/Not in any searched source: invoicez$/);
+		}
+		expect(
+			searchHits(db, { query: 'rollback invoicez', allowedSources: 'all' }).markdown
+		).toContain('invoicez (searched as invoices)');
+	});
+
 	it('accepts questions with characters that are FTS5 syntax', () => {
 		addPage(addSource('auth-service'), 'a.md', {
 			title: 'Deploy',

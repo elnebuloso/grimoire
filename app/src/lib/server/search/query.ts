@@ -158,9 +158,24 @@ export interface SearchResult {
  * hits themselves for a page that shows them on its own.
  */
 export function searchHits(db: DatabaseSync, options: SearchOptions): SearchResult {
-	const terms = searchTerms(options.query);
-	if (terms.length === 0) return { hits: [], skipped: [], unknown: [], markdown: '' };
 	const sources = options.sources ? JSON.stringify(options.sources) : null;
+	const occursHere = (match: string) => occurs(db, match, sources, options.allowedSources);
+
+	const expressions: string[] = [];
+	const unknown: string[] = [];
+	const notes: string[] = [];
+	for (const term of searchTerms(options.query)) {
+		const exact = toMatchExpression([term]);
+		if (occursHere(exact)) {
+			expressions.push(exact);
+			continue;
+		}
+		unknown.push(term);
+		const fallback = searchInstead(db, term, occursHere);
+		expressions.push(...(fallback ? [fallback.match] : []));
+		notes.push(fallback ? `${term} (searched as ${fallback.shown})` : term);
+	}
+	if (expressions.length === 0) return { hits: [], skipped: [], unknown: [], markdown: '' };
 
 	// bm25 weighs the columns title_path, text and code. Internal docs are full of names a title
 	// carries and commands code repeats, hence 10 / 1 / 0.25. Checked with typical questions
@@ -176,12 +191,11 @@ export function searchHits(db: DatabaseSync, options: SearchOptions): SearchResu
 			orderBy: 'bm25(snippets_fts, 10, 1, 0.25), snippets.id',
 			limit: MAX_HITS
 		},
-		{ match: toMatchExpression(terms), sources },
+		{ match: expressions.join(' OR '), sources },
 		options.allowedSources
 	);
 	if (hits.length === 0) return { hits: [], skipped: [], unknown: [], markdown: '' };
 
-	const unknown = terms.filter((term) => !occurs(db, term, sources, options.allowedSources));
 	const result = packIntoBudget(hits, options.tokens ?? DEFAULT_TOKENS);
 	// Tells "not covered" (a subject the sources never name) from a weak match, and points to a
 	// typo or a question in another language than the documentation.
@@ -189,15 +203,94 @@ export function searchHits(db: DatabaseSync, options: SearchOptions): SearchResu
 	return {
 		...result,
 		unknown,
-		markdown: `${result.markdown}\n\nNot in any searched source: ${unknown.join(', ')}`
+		markdown: `${result.markdown}\n\nNot in any searched source: ${notes.join(', ')}`
 	};
+}
+
+// Measured with the benchmark over English and German documentation: one edit finds most typos
+// and inflected forms (`instalieren`, `erstelen`, `begrenze`); two edits turn words of another
+// language into unrelated ones. Shorter words have too many neighbours one edit away.
+const MIN_TYPO_LENGTH = 4;
+// A prefix catches a longer form (`monatlich` in `monatlicher`) where no word is one edit away.
+const MIN_PREFIX_LENGTH = 5;
+
+/** What to search for a word no searched source contains: the closest index term, else its prefix. */
+function searchInstead(
+	db: DatabaseSync,
+	term: string,
+	occursHere: (match: string) => boolean
+): { match: string; shown: string } | null {
+	if (term.length >= MIN_TYPO_LENGTH) {
+		const closest = termsOneEditAway(db, term).find((candidate) =>
+			occursHere(toMatchExpression([candidate]))
+		);
+		if (closest) return { match: toMatchExpression([closest]), shown: closest };
+	}
+	if (term.length >= MIN_PREFIX_LENGTH && occursHere(`"${term}"*`)) {
+		return { match: `"${term}"*`, shown: `${term}*` };
+	}
+	return null;
+}
+
+// Per connection: a temp table needs no migration and reads the index as it is now.
+const withVocabulary = new WeakSet<DatabaseSync>();
+
+// Index terms one edit away, most common first. The vocabulary spans every source; the caller
+// checks each candidate in its own scope. The first two letters are taken as typed: no typo of the
+// benchmark changes them, and scanning by one letter took up to 4 ms per word on 37,000 terms.
+function termsOneEditAway(db: DatabaseSync, term: string): string[] {
+	if (!withVocabulary.has(db)) {
+		db.exec(
+			'CREATE VIRTUAL TABLE IF NOT EXISTS temp.snippets_vocab USING fts5vocab(main, snippets_fts, row)'
+		);
+		withVocabulary.add(db);
+	}
+	const start = term.slice(0, 2);
+	const rows = db
+		.prepare(
+			`SELECT term, doc FROM temp.snippets_vocab
+			WHERE term >= :from AND term < :to AND length(term) BETWEEN :shortest AND :longest`
+		)
+		.all({
+			from: start,
+			to: start.slice(0, -1) + String.fromCodePoint(start.codePointAt(start.length - 1)! + 1),
+			shortest: term.length - 1,
+			longest: term.length + 1
+		}) as { term: string; doc: number }[];
+	return rows
+		.filter((row) => editDistance(term, row.term, 1) <= 1)
+		.sort((a, b) => b.doc - a.doc || (a.term < b.term ? -1 : 1))
+		.map((row) => row.term);
+}
+
+/** Optimal string alignment distance (a swap of neighbours counts once), cut off past `limit`. */
+function editDistance(a: string, b: string, limit: number): number {
+	if (Math.abs(a.length - b.length) > limit) return limit + 1;
+	let before = Array.from({ length: b.length + 1 }, (_, j) => j);
+	let previous = before;
+	for (let i = 1; i <= a.length; i++) {
+		const current = [i];
+		let rowMin = i;
+		for (let j = 1; j <= b.length; j++) {
+			const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+			let value = Math.min(previous[j] + 1, current[j - 1] + 1, previous[j - 1] + cost);
+			if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1])
+				value = Math.min(value, before[j - 2] + 1);
+			current.push(value);
+			rowMin = Math.min(rowMin, value);
+		}
+		if (rowMin > limit) return limit + 1;
+		before = previous;
+		previous = current;
+	}
+	return previous[b.length];
 }
 
 // Only the searched sources the caller may see count: a word from a hidden source must not show.
 // No ORDER BY: the first match ends the lookup, where sorting would read every match first.
 function occurs(
 	db: DatabaseSync,
-	term: string,
+	match: string,
 	sources: string | null,
 	scope: SourceScope
 ): boolean {
@@ -213,8 +306,7 @@ function occurs(
 					AND ${IN_SCOPE}
 				LIMIT 1`
 			)
-			.get({ match: toMatchExpression([term]), sources, scope: scopeParameter(scope) }) !==
-		undefined
+			.get({ match, sources, scope: scopeParameter(scope) }) !== undefined
 	);
 }
 

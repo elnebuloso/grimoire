@@ -19,7 +19,8 @@ their IDs are built is under [How a page is split](writing.md#how-a-page-is-spli
 |---|---|
 | Words are letters, digits and `_`; everything else separates them. | `auth-service` searches `auth` and `service`; `ENV=prod` searches `env` and `prod`. |
 | Upper and lower case and accents make no difference. | `Über` finds `uber`; `JWT` finds `jwt`. |
-| A word matches only as written: no word stems, no typos, no prefixes. | `rollback` does not find `rollbacks`; `rollbak` finds nothing. |
+| A word matches as written. | `rollback` does not find `rollbacks` while `rollback` occurs somewhere. |
+| A word that occurs in no searched source is replaced by the most common word one letter away (a letter added, left out, changed or two swapped), else by the words that start with it; words under 4 letters are not replaced. | `rollbak` searches `rollback`; `monatlich` searches every word starting with `monatlich`, such as `monatlicher`. |
 | Only the first 500 characters of a question count. | A pasted log beyond that is ignored. |
 | Common English and German words are left out. | `how`, `the`, `when`, `wie`, `der`, `und`; a question of nothing but such words is searched as it is. |
 | Of the rest, the 16 longest different words count. | A long question keeps its specific terms and drops short leftovers. |
@@ -36,7 +37,7 @@ rarer they are across all snippets, the higher it ranks.
 - **A term that appears only in a code block** is found, but ranks low. Name commands, settings
   and error messages in the text as well when people will search for them.
 - **Write the word people use**, singular and plural alike if both are common: `rollback` and
-  `rollbacks` are different words to the search.
+  `rollbacks` are different words to the search as long as both occur somewhere.
 
 ## What an answer holds
 
@@ -50,8 +51,10 @@ rarer they are across all snippets, the higher it ranks.
   `Management > Quality > Queries without results`, and so is one with a
   `Not in any searched source:` line, with those words.
 - `Not in any searched source:` closes an answer whose question has words that no snippet of
-  the searched sources contains, such as `Not in any searched source: terraform, dynamodb`. Only
-  the sources the reader may see count.
+  the searched sources contains, such as
+  `Not in any searched source: terraform, rollbak (searched as rollback)`. A word in brackets was
+  searched in its place, as the rules above describe. Only the sources the reader may see count,
+  also for a replacement.
 - Because any one word matches, a question about something the documentation does not cover
   usually still returns snippets that share a word with it. That line tells the agent which part
   of the question is not covered: a topic the documentation lacks, a typo, or a question in

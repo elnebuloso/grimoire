@@ -1,9 +1,9 @@
 {
 	"answerable": 26,
-	"rank1": 21,
-	"within3": 22,
-	"within10": 24,
-	"meanReciprocalRank": 0.834,
+	"rank1": 22,
+	"within3": 23,
+	"within10": 25,
+	"meanReciprocalRank": 0.872,
 	"unanswerableWithHits": 4,
 	"questions": [
 		"rank 3 | short | Zwei-Faktor-Authentisierung aktivieren",
@@ -26,7 +26,7 @@
 		"rank 1 | english | How do I change the UUID of a copied database?",
 		"rank 1 | typo | Abwesenheitsart erfasen Einheit Stunden Halbtage",
 		"rank 1 | typo | Eingehnde Mails werden nicht verarbietet",
-		"not found | typo | Steuerabschlusbuchung erstelen",
+		"rank 1 | typo | Steuerabschlusbuchung erstelen",
 		"rank 1 | error | External ID not found in the system: base.user_admin",
 		"rank 1 | error | Bank public keys missing (call HPB first)",
 		"rank 1 | error | wkhtmltopdf Exit with code 1 due to network error: ContentNotFoundError",

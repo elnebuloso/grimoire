@@ -2,7 +2,7 @@
 	"cores": 4,
 	"runs": 3,
 	"indexingSeconds": 4,
-	"peakMemoryMb": 293,
-	"searchMedianMs": 1.63,
-	"searchP95Ms": 3.75
+	"peakMemoryMb": 296,
+	"searchMedianMs": 1.87,
+	"searchP95Ms": 4.75
 }
