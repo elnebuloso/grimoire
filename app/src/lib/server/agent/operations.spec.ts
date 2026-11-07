@@ -236,7 +236,8 @@ describe('querySources', () => {
 			missed: false,
 			markdown: 'Source "nope" not found. See `sources`.',
 			hits: [],
-			skipped: []
+			skipped: [],
+			unknown: []
 		});
 		expect(
 			querySources(db, { query: 'rollback', sources: ['billing-docs', 'platform-docs'] }, [
@@ -251,7 +252,8 @@ describe('querySources', () => {
 			missed: false,
 			markdown: expect.stringContaining('Source "" not found'),
 			hits: [],
-			skipped: []
+			skipped: [],
+			unknown: []
 		});
 	});
 });
@@ -275,6 +277,22 @@ describe('agentQuery', () => {
 		agentQuery(db, { query: '-- !' }, 'all');
 
 		expect(listMissedQueries(db)).toMatchObject([{ question: 'release process', count: 1 }]);
+	});
+
+	it('records a question with hits, with the words no searched source contains', () => {
+		const result = agentQuery(db, { query: 'rollback terraform' }, 'all');
+
+		expect(result).toMatchObject({ missed: false, unknown: ['terraform'] });
+		expect(result.markdown).toMatch(/\n\nNot in any searched source: terraform$/);
+		expect(listMissedQueries(db)).toMatchObject([
+			{ question: 'rollback terraform', unknownWords: ['terraform'] }
+		]);
+	});
+
+	it('records no question whose words all occur in a searched source', () => {
+		agentQuery(db, { query: 'rollback' }, 'all');
+
+		expect(listMissedQueries(db)).toEqual([]);
 	});
 
 	it('records the sources a missed question was asked in', () => {

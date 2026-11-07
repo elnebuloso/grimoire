@@ -145,7 +145,9 @@ const MAX_HITS = 20;
 export interface SearchResult {
 	hits: SnippetHit[];
 	skipped: string[];
-	/** The answer an agent gets: the rendered hits and a line naming the skipped IDs. */
+	/** Searched words that occur in no snippet of the searched sources. */
+	unknown: string[];
+	/** The answer an agent gets: the rendered hits and lines naming the skipped IDs and unknown words. */
 	markdown: string;
 }
 
@@ -156,8 +158,9 @@ export interface SearchResult {
  * hits themselves for a page that shows them on its own.
  */
 export function searchHits(db: DatabaseSync, options: SearchOptions): SearchResult {
-	const match = toMatchExpression(options.query);
-	if (!match) return { hits: [], skipped: [], markdown: '' };
+	const terms = searchTerms(options.query);
+	if (terms.length === 0) return { hits: [], skipped: [], unknown: [], markdown: '' };
+	const sources = options.sources ? JSON.stringify(options.sources) : null;
 
 	// bm25 weighs the columns title_path, text and code. Internal docs are full of names a title
 	// carries and commands code repeats, hence 10 / 1 / 0.25. Checked with typical questions
@@ -173,11 +176,46 @@ export function searchHits(db: DatabaseSync, options: SearchOptions): SearchResu
 			orderBy: 'bm25(snippets_fts, 10, 1, 0.25), snippets.id',
 			limit: MAX_HITS
 		},
-		{ match, sources: options.sources ? JSON.stringify(options.sources) : null },
+		{ match: toMatchExpression(terms), sources },
 		options.allowedSources
 	);
+	if (hits.length === 0) return { hits: [], skipped: [], unknown: [], markdown: '' };
 
-	return packIntoBudget(hits, options.tokens ?? DEFAULT_TOKENS);
+	const unknown = terms.filter((term) => !occurs(db, term, sources, options.allowedSources));
+	const result = packIntoBudget(hits, options.tokens ?? DEFAULT_TOKENS);
+	// Tells "not covered" (a subject the sources never name) from a weak match, and points to a
+	// typo or a question in another language than the documentation.
+	if (unknown.length === 0) return { ...result, unknown };
+	return {
+		...result,
+		unknown,
+		markdown: `${result.markdown}\n\nNot in any searched source: ${unknown.join(', ')}`
+	};
+}
+
+// Only the searched sources the caller may see count: a word from a hidden source must not show.
+// No ORDER BY: the first match ends the lookup, where sorting would read every match first.
+function occurs(
+	db: DatabaseSync,
+	term: string,
+	sources: string | null,
+	scope: SourceScope
+): boolean {
+	return (
+		db
+			.prepare(
+				`SELECT 1 FROM snippets_fts
+				JOIN snippets ON snippets.id = snippets_fts.rowid
+				JOIN live_pages AS pages ON pages.id = snippets.page_id
+				JOIN sources ON sources.id = pages.source_id
+				WHERE snippets_fts MATCH :match
+					AND (:sources IS NULL OR sources.slug IN (SELECT value FROM json_each(:sources)))
+					AND ${IN_SCOPE}
+				LIMIT 1`
+			)
+			.get({ match: toMatchExpression([term]), sources, scope: scopeParameter(scope) }) !==
+		undefined
+	);
 }
 
 function toSnippetHit({ title_path, part, parts, ...row }: SnippetRow): SnippetHit {
@@ -222,19 +260,21 @@ const STOPWORDS = new Set(
 	).split(' ')
 );
 
-function toMatchExpression(query: string): string {
+function searchTerms(query: string): string[] {
 	const words = query.match(SEARCH_WORD) ?? [];
 	const distinct = [...new Set(words.map((word) => word.toLowerCase()))];
 	const meaningful = distinct.filter((word) => !STOPWORDS.has(word));
 	// The longest words: a long question starts with "how do I", and its specific terms come last.
 	return (meaningful.length > 0 ? meaningful : distinct)
 		.toSorted((a, b) => b.length - a.length)
-		.slice(0, MAX_SEARCH_TERMS)
-		.map((word) => `"${word}"`)
-		.join(' OR ');
+		.slice(0, MAX_SEARCH_TERMS);
 }
 
-function packIntoBudget(hits: SnippetHit[], budget: number): SearchResult {
+function toMatchExpression(terms: string[]): string {
+	return terms.map((term) => `"${term}"`).join(' OR ');
+}
+
+function packIntoBudget(hits: SnippetHit[], budget: number): Omit<SearchResult, 'unknown'> {
 	const packed: SnippetHit[] = [];
 	const blocks: string[] = [];
 	const skipped: string[] = [];

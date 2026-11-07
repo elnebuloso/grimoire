@@ -31,20 +31,38 @@ describe('missed queries', () => {
 				question: 'vpn',
 				sources: ['platform-docs'],
 				count: 1,
-				lastAskedAt: '2026-11-01T12:00:00.000Z'
+				lastAskedAt: '2026-11-01T12:00:00.000Z',
+				unknownWords: null
 			},
 			{
 				question: 'release process',
 				sources: null,
 				count: 2,
-				lastAskedAt: '2026-10-31T12:00:00.000Z'
+				lastAskedAt: '2026-10-31T12:00:00.000Z',
+				unknownWords: null
 			},
 			{
 				question: 'release process',
 				sources: ['platform-docs'],
 				count: 1,
-				lastAskedAt: '2026-10-30T12:00:00.000Z'
+				lastAskedAt: '2026-10-30T12:00:00.000Z',
+				unknownWords: null
 			}
+		]);
+	});
+
+	it('lists the words not found of the latest ask of a question', () => {
+		recordMissedQuery(db, { question: 'vpn setup', sources: null, unknownWords: ['vpn'] }, NOW);
+		recordMissedQuery(
+			db,
+			{ question: 'vpn setup', sources: null, unknownWords: null },
+			daysLater(1)
+		);
+		recordMissedQuery(db, { question: 'sso jwt', sources: null, unknownWords: ['jwt'] }, NOW);
+
+		expect(listMissedQueries(db)).toMatchObject([
+			{ question: 'vpn setup', count: 2, unknownWords: null },
+			{ question: 'sso jwt', count: 1, unknownWords: ['jwt'] }
 		]);
 	});
 

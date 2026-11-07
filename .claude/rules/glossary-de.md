@@ -21,6 +21,7 @@ follows the table; a term not listed is chosen once and added here.
 | admin / invitation | Admin / Einladung | |
 | agent, agents | Agent, Agents | Agenten |
 | query without results | Abfrage ohne Treffer | |
+| words not found (of a query) | nicht gefundene Wörter | unbekannte Wörter |
 | owner (of a key) | Besitzer | Owner |
 | operator (who runs grimoire) | Betreiber | Betrieb, die Person, die grimoire betreibt |
 | duplicate | Duplikat | Dublette |

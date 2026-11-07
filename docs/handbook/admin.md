@@ -257,8 +257,14 @@ It keeps the newest 100 lines.
 ## Queries without results
 
 `Management > Quality > Queries without results` lists questions agents asked with `query` that found nothing,
-once per set of sources asked for, with how often and when last. Search matches words, not synonyms: such a question
-means the documentation lacks the topic or names it differently. Open a question in
+or that found hits while some of their words occur in no searched source, once per set of sources
+asked for, with how often and when last. Search matches words, not synonyms: such a question
+means the documentation lacks the topic or names it differently.
+
+**Words not found** shows those words for the latest ask, or `Nothing found` when the question
+found nothing at all. A product or tool name there (`terraform`) is usually a missing topic; a
+misspelling, a typo agents make; words in another language than the documentation, a question
+asked in the reader's language — the agent was told to ask again in the documentation's. Open a question in
 **Try a query** on the start page to check it again after the docs changed; it searches all
 sources, not only the ones the agent asked for.
 

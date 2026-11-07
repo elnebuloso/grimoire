@@ -186,6 +186,44 @@ describe('searchSnippets', () => {
 		);
 	});
 
+	it('names the searched words that no searched source contains, after the hits', () => {
+		addPage(addSource('platform-docs'), 'a.md', { title: 'Rollback', text: 'Deploy steps' });
+
+		const found = searchHits(db, {
+			query: 'Wie mache ich einen Rollback mit Terraform?',
+			allowedSources: 'all'
+		});
+
+		expect(found.unknown).toEqual(['terraform', 'mache']);
+		expect(found.markdown.endsWith('\n\nNot in any searched source: terraform, mache')).toBe(true);
+		expect(searchHits(db, { query: 'rollback deploy', allowedSources: 'all' })).toMatchObject({
+			unknown: []
+		});
+		expect(searchHits(db, { query: 'terraform', allowedSources: 'all' })).toMatchObject({
+			unknown: [],
+			markdown: ''
+		});
+	});
+
+	it('counts a word as not found when only a source outside the search contains it', () => {
+		addPage(addSource('platform-docs'), 'a.md', { title: 'Rollback' });
+		addPage(addSource('billing-docs'), 'b.md', { title: 'Terraform' });
+
+		expect(
+			searchHits(db, { query: 'rollback terraform', allowedSources: ['platform-docs'] }).unknown
+		).toEqual(['terraform']);
+		expect(
+			searchHits(db, {
+				query: 'rollback terraform',
+				sources: ['platform-docs'],
+				allowedSources: 'all'
+			}).unknown
+		).toEqual(['terraform']);
+		expect(searchHits(db, { query: 'rollback terraform', allowedSources: 'all' }).unknown).toEqual(
+			[]
+		);
+	});
+
 	it('accepts questions with characters that are FTS5 syntax', () => {
 		addPage(addSource('auth-service'), 'a.md', {
 			title: 'Deploy',

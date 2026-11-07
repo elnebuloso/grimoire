@@ -133,6 +133,8 @@ export interface QueryResult extends OperationResult {
 	hits: SnippetHit[];
 	/** The IDs of hits that did not fit the token budget. */
 	skipped: string[];
+	/** Searched words that occur in no searched source, while other words found hits. */
+	unknown: string[];
 }
 
 // Every word becomes a search term, and the search runs synchronously on the server thread: without
@@ -162,20 +164,25 @@ export function querySources(
 	const normalized = normalizeQueryOptions(options);
 	const hidden = normalized.sources?.find((source) => !findSource(db, source, scope));
 	if (hidden !== undefined)
-		return { ...sourceNotFound(hidden), missed: false, hits: [], skipped: [] };
-	const { markdown, hits, skipped } = searchHits(db, { ...normalized, allowedSources: scope });
-	if (markdown) return { found: true, markdown, missed: false, hits, skipped };
+		return { ...sourceNotFound(hidden), missed: false, hits: [], skipped: [], unknown: [] };
+	const { markdown, hits, skipped, unknown } = searchHits(db, {
+		...normalized,
+		allowedSources: scope
+	});
+	if (markdown) return { found: true, markdown, missed: false, hits, skipped, unknown };
 	return {
 		found: true,
 		markdown: `No results for "${normalized.query}". Try other terms, or look at a source's \`index\`.`,
 		missed: true,
 		hits,
-		skipped
+		skipped,
+		unknown
 	};
 }
 
 /**
- * `querySources` for an agent: a query that found nothing is recorded for the admins. Queries
+ * `querySources` for an agent: a query that found nothing, or searched words no source contains,
+ * is recorded for the admins with those words. Queries
  * without an API key are not recorded: anyone could fill the list with them.
  */
 export function agentQuery(
@@ -186,8 +193,17 @@ export function agentQuery(
 ): QueryResult {
 	const { query, sources } = normalizeQueryOptions(options);
 	const result = querySources(db, options, scope);
-	if (result.missed && hasSearchTerms(query) && scope !== 'public') {
-		recordMissedQuery(db, { question: query, sources: sources ?? null }, now);
+	const recorded = result.missed || result.unknown.length > 0;
+	if (recorded && hasSearchTerms(query) && scope !== 'public') {
+		recordMissedQuery(
+			db,
+			{
+				question: query,
+				sources: sources ?? null,
+				unknownWords: result.missed ? null : result.unknown
+			},
+			now
+		);
 	}
 	return result;
 }

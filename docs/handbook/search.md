@@ -47,10 +47,15 @@ rarer they are across all snippets, the higher it ranks.
   comes on top of the budget.
 - A question that finds nothing answers with `No results for …` (the exact texts are under
   [Errors](agents.md#errors)). With an API key, such a question is listed for the admins under
-  `Management > Quality > Queries without results`.
+  `Management > Quality > Queries without results`, and so is one with a
+  `Not in any searched source:` line, with those words.
+- `Not in any searched source:` closes an answer whose question has words that no snippet of
+  the searched sources contains, such as `Not in any searched source: terraform, dynamodb`. Only
+  the sources the reader may see count.
 - Because any one word matches, a question about something the documentation does not cover
-  usually still returns snippets that share a word with it. An agent should check that a snippet
-  answers the question before relying on it.
+  usually still returns snippets that share a word with it. That line tells the agent which part
+  of the question is not covered: a topic the documentation lacks, a typo, or a question in
+  another language than the documentation, which is worth asking again in its language.
 
 ## What is not searched
 

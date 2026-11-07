@@ -23,6 +23,7 @@
 		columns={[
 			{ label: m.query_question(), sort: 'question' },
 			{ label: m.sources() },
+			{ label: m.missed_unknown_words() },
 			{ label: m.missed_count(), sort: 'count', numeric: true },
 			{ label: m.missed_last_asked(), sort: 'asked' }
 		]}
@@ -34,6 +35,11 @@
 			<td>
 				{#if query.sources}<code>{query.sources.join(', ')}</code
 					>{:else}{m.query_all_sources()}{/if}
+			</td>
+			<td>
+				{#if query.unknownWords}<code>{query.unknownWords.join(', ')}</code>{:else}<span
+						class="muted">{m.missed_nothing_found()}</span
+					>{/if}
 			</td>
 			<td class="num">{query.count}</td>
 			<td class="when"><DateTime value={query.lastAskedAt} timeZone={data.timeZone} /></td>
