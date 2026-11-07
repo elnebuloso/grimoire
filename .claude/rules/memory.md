@@ -134,9 +134,11 @@ Facts learned while building grimoire.
 
 ## Git
 
-- Pull with `git pull --rebase origin main`. VS Code fetches in the background; a fetch at the
-  same moment writes `main` twice into `.git/FETCH_HEAD`, and a plain `git pull --rebase` stops
-  with "Cannot rebase onto multiple branches".
+- Update with `git fetch origin && git rebase origin/main`. VS Code fetches in the background; a
+  fetch at the same moment writes `main` twice into `.git/FETCH_HEAD`, and `git pull --rebase`
+  stops with "Cannot rebase onto multiple branches", also with `origin main` named.
+- The fixture repository `grimoire-fixture-docs` is pushed over SSH
+  (`git@github.com:elnebuloso/grimoire-fixture-docs.git`); an `https` clone has no credentials.
 
 ## Releases
 

@@ -2,83 +2,72 @@
 
 ## Where we stand
 
-- **1.10.0 is released** (redesign plus three audit rounds, about 60 tasks), with an operator
-  summary at the top of its GitHub release. Some generated entries there fix changes made within
-  the same release; the summary says so.
-- **A benchmark exists:** `make benchmark` indexes four vendored documentations (Kubernetes,
-  Material for MkDocs, FastAPI, Zensical) and compares every snippet ID, 120 search questions and
-  time/memory with `app/benchmark/baseline/`. How it works and how to use it:
-  `app/benchmark/README.md`. When to run it: `.claude/rules/testing-strategy.md`.
-- **New handbook page** `docs/handbook/search.md` ("Search and index").
-- **Open in the backlog:** TASK-368, TASK-369, TASK-370, all found by the benchmark. Nothing in
-  progress.
-- The last push (benchmark, handbook page, tasks) passed CI and cut no release (no `feat`/`fix`).
-  The handbook is deployed only after a release, so `search.md` goes online with the next one.
+- **Search work of 2026-11-07 is released** in 1.10.1, 1.11.0 and 1.12.0: duplicate front matter
+  keys accepted, more English stopwords, the `Not in any searched source: …` line with the words no
+  source contains (also recorded under Queries without results, column "Words not found"), and a
+  replacement for such words: the most common index term one edit away, else a prefix
+  (`instalieren (searched as installieren)`). Each GitHub release has an operator summary on top.
+- **The benchmark has eight documentations**, four English and four German (`kubernetes-de`,
+  `i-doit-de`, `fastapi-de`, `odoo-wiki-de`), 30 questions each. How it works:
+  `app/benchmark/README.md`.
+- **Rejected, with numbers in the tasks:** bm25 weights, FTS5 `porter` (English-only, breaks the
+  multilingual requirement), coordination, a per-page cap (TASK-370); a "no good match" threshold
+  (TASK-369); trigram search in three variants (TASK-373). Read those notes before trying any of it
+  again.
+- **The backlog holds only four idea spikes**, priority Low, deliberately not started:
+  TASK-374 Obsidian-style heading links, TASK-375 language-aware word stems, TASK-376 semantic
+  search across languages, TASK-377 the language of each source for agents. Each ends with an owner
+  decision; start one only when the owner asks.
 
 ## Next
 
-1. **TASK-368** first: small, a duplicate front matter key skips one Kubernetes page. The fix
-   changes the Kubernetes index baseline by one page: `make benchmark-update`, commit the
-   baseline with the fix.
-2. **TASK-370**, then **TASK-369**: search work measured with the benchmark. TASK-370 tries one
-   ranking change at a time and records every attempt with its numbers in the task notes,
-   kept or not. TASK-369 needs a rule the owner should see before it is built (below).
-3. Run `make benchmark` before the next release.
+Nothing is planned. When the owner picks up search again, start from the benchmark:
 
-Benchmark baseline, answerable questions per documentation = 26:
-
-| | rank 1 | within 3 | within 10 | MRR |
+| 26 answerable each | rank 1 | within 3 | within 10 | MRR |
 |---|---|---|---|---|
-| kubernetes | 8 | 13 | 20 | 0.449 |
-| mkdocs-material | 16 | 22 | 25 | 0.734 |
-| fastapi | 8 | 16 | 23 | 0.479 |
-| zensical | 13 | 18 | 21 | 0.602 |
+| kubernetes | 10 | 14 | 20 | 0.499 |
+| mkdocs-material | 17 | 22 | 25 | 0.759 |
+| fastapi | 10 | 16 | 24 | 0.540 |
+| zensical | 16 | 20 | 22 | 0.700 |
+| kubernetes-de | 21 | 23 | 23 | 0.842 |
+| i-doit-de | 11 | 15 | 19 | 0.530 |
+| fastapi-de | 8 | 17 | 24 | 0.503 |
+| odoo-wiki-de | 22 | 23 | 25 | 0.872 |
 
-All 16 questions without an answer still get hits (OR search): that is TASK-369.
-
-## Open decisions
-
-- **TASK-369, what "no good match" means:** a threshold on how many of the searched words the
-  best hit contains, a relevance score, or both, and what the agent then sees. Agent-visible
-  behaviour: present the rule and its benchmark numbers to the owner before building it.
-- **TASK-370, a tokenizer change** (e.g. FTS5 `porter` for word stems) is a schema migration and
-  re-indexes every source on the next sync; it also changes German matching. Owner decides once
-  the numbers are in.
+Weakest kinds: questions in another language than the documentation, and German inflection of
+words the index has in another form (`Phasen` vs `Phase`); both are what TASK-375 and TASK-376
+are about.
 
 ## Watch out
 
-- **Restart the dev server after pulling sync changes.** A `make dev` or agent environment started
-  before such a pull runs old server code against the newer indexing worker, which is read from
-  disk at every sync; since 1.10.0 the worker exits with code 1 when the job lacks `serverPid`.
-  Symptom: every sync fails with "indexing ended with exit code 1". Also in `memory.md`.
-- **`make benchmark` takes about 9 minutes** and needs the network once (it clones the fixture
-  repository into `app/.benchmark/`). It is not in CI on purpose.
-- **Performance baseline is machine-bound:** update it on the same 4-core machine, or the 2x
-  tolerance trips elsewhere. `make benchmark-update` rewrites all three baselines at once; check
-  the diff of `*.performance.json` before committing it.
+- **Every search decision must keep multilingual documentation working** (owner, 2026-11-07).
+  Measure on all eight documentations; a rule that only works for English is rejected.
+- **`make benchmark` takes about 11 minutes**; up to 880 MB per documentation. Nothing else may run
+  meanwhile: the time comparison is the only check on search speed.
+- **Fast iteration on search:** a temporary vitest spec under `app/benchmark/` that indexes each
+  documentation once into `app/.benchmark/dbs/` (`VACUUM INTO`) and runs `querySources` against
+  those copies measures a change in seconds instead of 11 minutes. Never commit it, and move it
+  out of `app/benchmark/` before `make benchmark`: vitest includes `benchmark/**`, runs it in
+  parallel and skews the timings. Delete `app/.benchmark/dbs/` afterwards (several hundred MB).
+- **Performance baseline:** machine-bound (4 cores here), updated with 1.12.0 because the
+  replacement lookup does more work. `make benchmark-update` rewrites it every time: revert
+  `*.performance.json` unless the change is meant to move it.
+- **The agent instructions are at 995 of 999 characters** (`operations.spec.ts` allows under 250
+  tokens = 4 characters each). Anything new needs something cut.
+- **The list "Queries without results" now also holds queries with hits** whose words partly occur
+  in no source; and a corrected word can give an unanswerable question hits (the line names the
+  correction). Both are intended.
+- **Fixture repository:** the vendored copies stay byte-identical (`vendor/.gitattributes`
+  `* -text`); push it over SSH (in `memory.md`). `fastapi-de` has no `mkdocs.yml` upstream, so no
+  `nav`; `i-doit`'s config lies at `vendor/i-doit/mkdocs.yml`, moved from `config/de/`;
+  `odoo-wiki-de` excludes its `VENDOR.md` through `exclusions` in `app/benchmark/documentations.ts`.
 - **Change questions and search code in separate commits**, so each commit's effect on the
-  numbers stays readable.
-- **For quick iterations** on TASK-370, `BENCHMARK_RUNS=1 make benchmark` indexes each
-  documentation once (about 4 minutes); the time/memory comparison is then noisier. Use the full
-  run for the baseline. The search ranks are taken from all hits (up to 20), not cut at the
-  3000-token budget.
-- **Expected IDs are snippet IDs.** A heading whose section is under about 50 tokens is merged into
-  its parent and has no ID of its own in `*.index.json` (only an alias `read` accepts); a question
-  must name the parent's ID.
-- **The vendored copies must stay byte-identical:** `vendor/.gitattributes` in the fixture
-  repository says `* -text`; some Kubernetes pages have CRLF on purpose. The git config here has
-  `core.autocrlf=input`, which would otherwise rewrite them.
-- **Commit types:** a fix of something not yet released is no `fix` (it inflated the 1.10.0
-  notes). Use `refactor`/`chore`/`test` and name the original commit.
-- **A literal `{ }` in a Paraglide message** is a placeholder; write "curly braces" (in
-  `memory.md`).
-- **Shell waits:** `pgrep -f` / `pkill -f` match the agent's own shell, so an `until ! pgrep …`
-  loop never ends; wait for a port, a file or a database state instead.
+  numbers stays readable. Expected IDs are snippet IDs: a heading merged into its parent has none.
+- **Restart the dev server after pulling sync changes**: an old server against a newer indexing
+  worker fails every sync with "indexing ended with exit code 1" (in `memory.md`).
 - **Not re-verified:** the handbook's backup restore command (`docs/handbook/database.md`) with
-  the image since it starts through `tini`; a safety check blocked the `rm` inside `sh -c`. It
-  worked on the base image before, and `sh -c` runs under `tini` (checked).
-- **The agent environment is stopped.** `make agent-start`, then `make agent-reset` for fresh
-  fixture data.
+  the image since it starts through `tini`.
+- **The agent environment is stopped.** `make agent-start`, then `make agent-reset`.
 
 ## Working with the owner
 
@@ -90,5 +79,6 @@ All 16 questions without an answer still get hits (OR search): that is TASK-369.
   `make test`, `make e2e`; what they find is a commit of its own, then all three again.
 - Commit and push only on the owner's word. A push of `feat`/`fix` commits to `main` is a
   release: say so before pushing, and after it add the operator summary with `gh release edit`.
+  A fix of something not yet released is no `fix`.
 - "The rules" means `.claude/rules/`; `.claude/rules/agent-plugin-charter/` comes from a plugin,
   never edit it.
