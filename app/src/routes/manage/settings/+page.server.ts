@@ -4,6 +4,8 @@ import { MIN_PASSPHRASE_LENGTH } from '#lib/server/instance-export.js';
 import { readSettings, saveSettings } from '#lib/server/settings.js';
 import { isSlug } from '#lib/slug.js';
 import { m } from '#lib/paraglide/messages.js';
+import type { Refusal } from '#lib/forms.js';
+import { authMessage } from '#lib/server/auth/auth-messages.js';
 
 export const load: PageServerLoad = ({ url }) => ({
 	settings: readSettings(database()),
@@ -15,21 +17,21 @@ export const load: PageServerLoad = ({ url }) => ({
 	)
 });
 
-// A refusal of the passphrase marks its field; unreadable tokens are fixed on their sources.
-function exportMessage(
-	problem: string | null,
-	sources: string[]
-): { message: string; aboutPassphrase: boolean } | undefined {
+// A refusal of the passphrase or the current password marks its field; unreadable tokens are
+// fixed on their sources.
+function exportMessage(problem: string | null, sources: string[]): Refusal | undefined {
 	if (problem === 'passphrase-too-short') {
-		const message = m.export_passphrase_too_short({ min: MIN_PASSPHRASE_LENGTH });
-		return { message, aboutPassphrase: true };
+		const error = m.export_passphrase_too_short({ min: MIN_PASSPHRASE_LENGTH });
+		return { error, field: 'passphrase' };
 	}
 	if (problem === 'passphrase-mismatch') {
-		return { message: m.export_passphrase_mismatch(), aboutPassphrase: true };
+		return { error: m.export_passphrase_mismatch(), field: 'passphrase' };
+	}
+	if (problem === 'wrong-current-password' || problem === 'blocked') {
+		return { error: authMessage(problem), field: 'current' };
 	}
 	if (problem === 'unreadable-tokens' && sources.length > 0) {
-		const message = m.export_unreadable_tokens({ sources: sources.join(', ') });
-		return { message, aboutPassphrase: false };
+		return { error: m.export_unreadable_tokens({ sources: sources.join(', ') }) };
 	}
 	return undefined;
 }

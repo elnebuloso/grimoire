@@ -1,9 +1,11 @@
 ---
 id: TASK-346
 title: 'Export: confirm the current password before writing an instance export'
-status: To Do
-assignee: []
+status: Done
+assignee:
+  - '@claude'
 created_date: '2026-11-06 23:46'
+updated_date: '2026-11-07 00:02'
 labels:
   - admin
   - ops
@@ -31,8 +33,29 @@ Found by the third whole-repo audit on 2026-11-07 (HEAD 4a72798).
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 An export request without the correct current password is refused and writes no file
-- [ ] #2 A wrong current password counts as a failed login of the client
-- [ ] #3 With the correct current password the export works as before
-- [ ] #4 Route spec and the e2e step for the export in `manage.e2e.ts` cover it; the handbook names the requirement
+- [x] #1 An export request without the correct current password is refused and writes no file
+- [x] #2 A wrong current password counts as a failed login of the client
+- [x] #3 With the correct current password the export works as before
+- [x] #4 Route spec and the e2e step for the export in `manage.e2e.ts` cover it; the handbook names the requirement
 <!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. Export route: after the passphrase checks, checkCurrentPassword with the session cookie and the client address; a refusal leads back with export=wrong-current-password or export=blocked
+2. Settings load maps those to a refusal at the new current-password field; the export problem uses the Refusal shape and markRefusal like the other forms
+3. Specs: export.spec with a real admin session (wrong and empty current password refused, the right one downloads), settings.spec for the new field; e2e fills the current password; handbook moving.md
+<!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+- settings and export specs pass (9 tests); manage.e2e.ts passes (22 tests) with the current password filled in.
+- A wrong current password counts as a failed login (checkCurrentPassword), so the export cannot be used to guess it.
+<!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+The instance export now asks for the current password of the admin before it writes the file, checked like a password change (a wrong one counts as a failed login), so an open or stolen admin session alone can no longer download every Git token in plain text. A refusal marks the new field on the settings page. Export and settings specs and the e2e export step cover it; the handbook says what an admin without a password does.
+<!-- SECTION:FINAL_SUMMARY:END -->

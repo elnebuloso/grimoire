@@ -354,11 +354,13 @@ test('exports the instance, the stored token readable only with the passphrase',
 	const passphrase = EXPORT_PASSPHRASE;
 	await asAdmin(page);
 	await page.goto('/manage/settings');
+	await page.getByLabel('Current password').fill(PASSWORD);
 	await page.getByLabel('Passphrase (at least 12 characters)').fill(passphrase);
 	await page.getByLabel('Passphrase again').fill(`${passphrase}!`);
 	await page.getByRole('button', { name: 'Download export' }).click();
 	await expect(page.getByRole('alert')).toHaveText('The two passphrases differ.');
 
+	await page.getByLabel('Current password').fill(PASSWORD);
 	await page.getByLabel('Passphrase (at least 12 characters)').fill(passphrase);
 	await page.getByLabel('Passphrase again').fill(passphrase);
 	const downloading = page.waitForEvent('download');

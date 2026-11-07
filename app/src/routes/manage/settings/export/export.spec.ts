@@ -19,22 +19,28 @@ vi.mock('$app/env/private', () => ({
 }));
 
 const { POST } = await import('./+server');
+const { login } = await import('#lib/server/auth/auth.js');
+const { createUser } = await import('#lib/server/auth/test-user.js');
 
 const PASSPHRASE = 'harbour lantern seventeen';
+const PASSWORD = 'correct horse battery';
+let session: string;
 
-function exportWith(fields: Record<string, string>) {
+function exportWith(fields: Record<string, string>, current = PASSWORD) {
 	return POST({
 		request: new Request('https://grimoire.example/manage/settings/export', {
 			method: 'POST',
-			body: new URLSearchParams(fields)
+			body: new URLSearchParams({ current, ...fields })
 		}),
-		locals: { user: { id: 1 } }
+		locals: { user: { id: 1 } },
+		cookies: { get: (name: string) => (name === 'grimoire_session' ? session : undefined) },
+		getClientAddress: () => '203.0.113.7'
 	} as never);
 }
 
-async function refusal(fields: Record<string, string>): Promise<string> {
+async function refusal(fields: Record<string, string>, current?: string): Promise<string> {
 	try {
-		await exportWith(fields);
+		await exportWith(fields, current);
 	} catch (error) {
 		if (isRedirect(error)) return error.location;
 		throw error;
@@ -42,8 +48,12 @@ async function refusal(fields: Record<string, string>): Promise<string> {
 	throw new Error('expected a redirect');
 }
 
-beforeEach(() => {
+beforeEach(async () => {
 	db = openDatabase(':memory:');
+	await createUser(db, { email: 'admin@example.com', password: PASSWORD, roles: ['admin'] });
+	const loggedIn = await login(db, 'admin-pc', { email: 'admin@example.com', password: PASSWORD });
+	if (!('session' in loggedIn)) throw new Error(loggedIn.error);
+	session = loggedIn.session;
 	db.exec(`INSERT INTO sources (id, slug, name, git_url, branch, path)
 		VALUES (1, 'billing-docs', 'Billing', 'https://git.example.com/billing.git', 'main', 'docs')`);
 	db.prepare('UPDATE sources SET encrypted_token = ?').run(
@@ -76,6 +86,15 @@ describe('export download', () => {
 			'/manage/settings?export=passphrase-mismatch#export'
 		);
 		expect(await refusal({})).toBe('/manage/settings?export=passphrase-too-short#export');
+	});
+
+	it('refuses without the current password of the admin, and writes no file', async () => {
+		expect(await refusal({ passphrase: PASSPHRASE, repeat: PASSPHRASE }, 'wrong password')).toBe(
+			'/manage/settings?export=wrong-current-password#export'
+		);
+		expect(await refusal({ passphrase: PASSPHRASE, repeat: PASSPHRASE }, '')).toBe(
+			'/manage/settings?export=wrong-current-password#export'
+		);
 	});
 
 	it('refuses while a token does not decrypt, naming its source', async () => {

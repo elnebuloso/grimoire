@@ -42,22 +42,29 @@ describe('export refusals on the settings page', () => {
 
 	it('shows a refused passphrase at its field', () => {
 		expect(problemOf('export=passphrase-too-short')).toEqual({
-			message: 'The passphrase needs at least 12 characters.',
-			aboutPassphrase: true
+			error: 'The passphrase needs at least 12 characters.',
+			field: 'passphrase'
 		});
 		expect(problemOf('export=passphrase-mismatch')).toEqual({
-			message: 'The two passphrases differ.',
-			aboutPassphrase: true
+			error: 'The two passphrases differ.',
+			field: 'passphrase'
 		});
+	});
+
+	it('shows a refused current password at its field', () => {
+		expect(problemOf('export=wrong-current-password')).toEqual({
+			error: 'Wrong current password.',
+			field: 'current'
+		});
+		expect(problemOf('export=blocked')).toMatchObject({ field: 'current' });
 	});
 
 	it('names the sources whose token is unreadable, and nothing that is no slug', () => {
 		expect(
 			problemOf('export=unreadable-tokens&sources=billing-docs,Not%20a%20slug,platform')
 		).toEqual({
-			message:
-				'The access token of billing-docs, platform cannot be read with the encryption key of this instance. Enter it again or remove it on the page of the source, then export again.',
-			aboutPassphrase: false
+			error:
+				'The access token of billing-docs, platform cannot be read with the encryption key of this instance. Enter it again or remove it on the page of the source, then export again.'
 		});
 	});
 

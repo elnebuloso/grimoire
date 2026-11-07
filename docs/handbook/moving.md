@@ -29,8 +29,10 @@ password, or set one through **Forgot your password?**, and link the provider ag
 
 ## Export
 
-On the old instance, an admin opens `Settings` in the management area and enters a passphrase of at
-least 12 characters twice under **Export**. The download is named after the instance and the day,
+On the old instance, an admin opens `Settings` in the management area and enters their current
+password and a passphrase of at least 12 characters twice under **Export**. An admin who logs in only
+through an identity provider sets a password first through **Forgot your password?**; a wrong
+current password counts as a failed login. The download is named after the instance and the day,
 such as `acme-docs-2026-11-04.grimoire-export`.
 
 !!! danger "Keep the file like a password"

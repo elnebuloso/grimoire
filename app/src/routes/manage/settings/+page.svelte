@@ -6,7 +6,7 @@
 	import ChoiceField from '#lib/components/ChoiceField.svelte';
 	import FormError from '#lib/components/FormError.svelte';
 	import TextField from '#lib/components/TextField.svelte';
-	import { submitWithToast } from '#lib/forms.js';
+	import { markRefusal, submitWithToast } from '#lib/forms.js';
 	import { m } from '#lib/paraglide/messages.js';
 	import { showToast } from '#lib/toasts.svelte.js';
 	import type { PageProps } from './$types';
@@ -15,6 +15,7 @@
 
 	let exporting = $state(false);
 	let exportFailed = $state(false);
+	const refusal = $derived(exportFailed ? undefined : data.exportProblem);
 
 	// The answer is either the file, saved through a link of its own, or the way back to this page
 	// with the reason in the address; anything else, a lost connection included, is a failure.
@@ -80,8 +81,16 @@
 	<p class="notice warn">{m.export_warning()}</p>
 	<form method="post" action={resolve('/manage/settings/export')} onsubmit={exportInstance}>
 		<FormError
-			message={exportFailed ? m.export_failed() : data.exportProblem?.message}
+			message={exportFailed ? m.export_failed() : data.exportProblem?.error}
 			id="export-error"
+		/>
+		<TextField
+			label={m.password_current()}
+			name="current"
+			type="password"
+			required
+			autocomplete="current-password"
+			{...markRefusal(refusal, 'current', 'export-error')}
 		/>
 		<TextField
 			label={m.export_passphrase({ min: data.minPassphraseLength })}
@@ -90,10 +99,7 @@
 			required
 			minlength={data.minPassphraseLength}
 			autocomplete="new-password"
-			aria-invalid={(!exportFailed && data.exportProblem?.aboutPassphrase) || undefined}
-			aria-describedby={!exportFailed && data.exportProblem?.aboutPassphrase
-				? 'export-error'
-				: undefined}
+			{...markRefusal(refusal, 'passphrase', 'export-error')}
 		/>
 		<TextField
 			label={m.export_passphrase_repeat()}
