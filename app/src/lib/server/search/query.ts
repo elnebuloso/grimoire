@@ -169,7 +169,8 @@ export function searchHits(db: DatabaseSync, options: SearchOptions): SearchResu
 			join: 'JOIN snippets_fts ON snippets_fts.rowid = snippets.id',
 			where: `snippets_fts MATCH :match
 				AND (:sources IS NULL OR sources.slug IN (SELECT value FROM json_each(:sources)))`,
-			orderBy: 'bm25(snippets_fts, 10, 1, 0.25)',
+			// The snippet's id after an equal score: the same index always gives the same order.
+			orderBy: 'bm25(snippets_fts, 10, 1, 0.25), snippets.id',
 			limit: MAX_HITS
 		},
 		{ match, sources: options.sources ? JSON.stringify(options.sources) : null },
