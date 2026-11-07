@@ -1,7 +1,7 @@
 {
-	"pages": 2519,
-	"snippets": 19343,
-	"tokens": 5654257,
+	"pages": 2520,
+	"snippets": 19350,
+	"tokens": 5657500,
 	"deadLinks": [
 		"kubernetes/blog/_posts/2020/cluster-api-v1alpha3-delivers-new-features-and-an-improved-user-experience -> blog/_posts/2020/cluster-api-v1alpha3-delivers-new-features-and-an-improved-user-experience#provider-implementer-s-guide",
 		"kubernetes/blog/_posts/2020/introducing-hierarchical-namespaces#hands-on-with-hierarchical-namespaces -> blog/_posts/2020/introducing-hierarchical-namespaces#note-1",
@@ -57,9 +57,7 @@
 		"kubernetes/docs/tutorials/stateless-application/canary-deployment#completing-the-rollout -> docs/tutorials/stateless-application/canary-deployment#cleaning-up",
 		"kubernetes/releases/release#targeting-enhancements-issues-and-prs-to-release-milestones -> releases/release#post-release-weeks-14+"
 	],
-	"warnings": [
-		"vendor/kubernetes/content/en/blog/_posts/2026/ai-conformance-spotlight/index.md: skipped, Map keys must be unique at line 7, column 1:\n\ncanonicalUrl: https://www.kubernetes.dev/blog/2026/10/29/sig-arch-ai-conformanc…\ndraft: false\n^\n"
-	],
+	"warnings": [],
 	"ids": [
 		"kubernetes/blog/_index",
 		"kubernetes/blog/_posts/2015/announcing-first-kubernetes-enterprise",
@@ -5200,6 +5198,13 @@
 		"kubernetes/blog/_posts/2026/agent-sandbox#scaling-agents-with-extensions",
 		"kubernetes/blog/_posts/2026/agent-sandbox#quick-start",
 		"kubernetes/blog/_posts/2026/agent-sandbox#the-future-of-agents-is-cloud-native",
+		"kubernetes/blog/_posts/2026/ai-conformance-spotlight/index",
+		"kubernetes/blog/_posts/2026/ai-conformance-spotlight/index#introductions",
+		"kubernetes/blog/_posts/2026/ai-conformance-spotlight/index#program-working-group-subproject-the-many-shapes-of-ai-conformance (1/2)",
+		"kubernetes/blog/_posts/2026/ai-conformance-spotlight/index#program-working-group-subproject-the-many-shapes-of-ai-conformance (2/2)",
+		"kubernetes/blog/_posts/2026/ai-conformance-spotlight/index#from-working-group-to-sig-architecture-subproject",
+		"kubernetes/blog/_posts/2026/ai-conformance-spotlight/index#ai-conformance-and-kubernetes",
+		"kubernetes/blog/_posts/2026/ai-conformance-spotlight/index#final-remarks",
 		"kubernetes/blog/_posts/2026/announcing-ai-gateway-wg",
 		"kubernetes/blog/_posts/2026/announcing-ai-gateway-wg#what-is-an-ai-gateway",
 		"kubernetes/blog/_posts/2026/announcing-ai-gateway-wg#working-group-charter-and-mission",

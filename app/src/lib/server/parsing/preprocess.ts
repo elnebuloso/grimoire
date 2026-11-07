@@ -42,7 +42,8 @@ function splitFrontmatter(source: string) {
 	const match = FRONTMATTER.exec(source);
 	if (!match || match.index !== 0) return { metadata: { tags: [] }, body: source };
 
-	const data: unknown = parseYaml(match[1]) ?? {};
+	// MkDocs (PyYAML) and Hugo keep the last value of a repeated key instead of rejecting the page
+	const data: unknown = parseYaml(match[1], { uniqueKeys: false }) ?? {};
 	const fields = typeof data === 'object' && data !== null ? (data as Record<string, unknown>) : {};
 	return {
 		metadata: {

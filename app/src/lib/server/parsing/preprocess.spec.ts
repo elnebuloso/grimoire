@@ -128,6 +128,13 @@ Some text with \`code\` and a [link](other.md#section).
 			expect(() => preprocessPage('---\ntitle: [unclosed\n---\nText\n')).toThrow();
 		});
 
+		it('keeps the last value of a repeated key', () => {
+			expect(preprocessPage('---\ntitle: First\ntitle: Last\n---\nText\n')).toMatchObject({
+				title: 'Last',
+				markdown: 'Text\n'
+			});
+		});
+
 		it('ignores a horizontal rule that is not at the start', () => {
 			expect(preprocessPage('Text\n\n---\n\nMore\n').markdown).toBe('Text\n\n***\n\nMore\n');
 		});
