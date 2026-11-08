@@ -13,8 +13,8 @@
   - add-on: `npx sv@<version> add <addon>=<option>:<value>+<option>:<value> --install npm`, with
     all of the add-on's options set; `npx sv@<version> add --help` lists them and their defaults.
 - **Afterwards, work with what it generated.** Configure in the files the CLI wrote rather than
-  rewriting them, and pin the versions it added to `app/package.json` to exact ones, as the
-  dependency rule in `memory.md` asks.
+  rewriting them, and pin the versions it added to `app/package.json` to exact ones, as
+  `dependencies.md` asks.
 
 ## SvelteKit 3
 

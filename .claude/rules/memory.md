@@ -14,14 +14,6 @@ loaded on demand: read the file before working in its area.
 | `.claude/memory/database.md` | a schema change, `/setup`, export or import |
 | `.claude/memory/releases-and-handbook.md` | a release or a page in `docs/handbook/` |
 
-## Dependencies
-
-- A new or updated dependency is at least two weeks old and pinned to an exact version; security
-  fixes are the exception. The same holds for base images, images in examples and GitHub Actions.
-- A GitHub Action is pinned by the commit SHA of its version tag, with the tag as a comment
-  (`actions/checkout@<sha> # v7.0.1`): a tag can be moved. `gh api repos/<owner>/<action>/git/ref/tags/<tag>`
-  gives the SHA; an annotated tag needs one more `git/tags/<sha>` lookup.
-
 ## Git and Backlog
 
 - Update with `git fetch origin && git rebase origin/main`, in place of the `git pull --rebase` of
