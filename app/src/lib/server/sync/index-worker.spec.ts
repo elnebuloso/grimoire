@@ -41,6 +41,7 @@ function runWorker(serverPid: number): Promise<number | null> {
 		allowedIncludeOrigins: [],
 		databasePath: join(root, 'grimoire.db'),
 		sourceId: 1,
+		branch: 'main',
 		commit: 'c1',
 		serverPid
 	};

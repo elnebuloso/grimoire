@@ -145,6 +145,7 @@ async function checkAndSync(
 						allowedIncludeOrigins: options.allowedIncludeOrigins ?? [],
 						databasePath: databasePath(db),
 						sourceId,
+						branch: source.branch,
 						commit,
 						serverPid: process.pid
 					},

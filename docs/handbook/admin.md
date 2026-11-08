@@ -210,6 +210,7 @@ detail.
 | `Indexing took too long.` | `indexing took longer than 10 minutes`, or the deadline set | Split the source into smaller paths, ask authors to look for a huge or generated page, or ask the operator for a longer indexing deadline (see [Memory and CPU limits](docker.md#memory-and-cpu-limits)). |
 | `Indexing stopped before it finished.` | `indexing ended with … before it finished, out of memory for example` | Ask the operator for more memory (see [Memory and CPU limits](docker.md#memory-and-cpu-limits)). |
 | none | `invalid cron expression "0 25 * * *": …` | Correct **Schedule**. |
+| none | `the source was changed or deleted while this sync waited; the next sync indexes it as it is now` | Nothing to do: the source keeps its previous index, and the sync that saving started indexes with the new settings. For a paused source, click **Sync now**. |
 
 When indexing fails because of the commit's content (no page could be indexed, the source path is
 missing, indexing ran past its time limit or out of memory), that commit is not indexed again:

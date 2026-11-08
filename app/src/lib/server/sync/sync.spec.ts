@@ -382,4 +382,58 @@ describe('deleting a source while it syncs', () => {
 			runs: rows('SELECT id FROM sync_runs').length
 		}).toEqual({ pages: 0, snippets: 0, links: 0, runs: 0 });
 	});
+
+	it('writes nothing into a source created while the sync of a deleted one waited', async () => {
+		// Before ids were never reused, the new source took the deleted one's id and its content.
+		let created = 0;
+		const lanes: SyncLanes = {
+			check: (run) => run(),
+			sync: (run) => {
+				db.prepare('DELETE FROM sources').run();
+				created = addSource('https://git.example/other.git', []);
+				return run();
+			}
+		};
+
+		await syncSource(db, source, { key, policy: LOCAL, workDirectory: work, lanes });
+
+		expect(created).not.toBe(source);
+		expect({
+			pages: rows('SELECT id FROM pages').length,
+			runs: rows('SELECT id FROM sync_runs').length,
+			state: rows(
+				'SELECT index_generation, last_commit, error, warnings FROM sources WHERE id = ?',
+				created
+			)
+		}).toEqual({
+			pages: 0,
+			runs: 0,
+			state: [{ index_generation: 0, last_commit: null, error: null, warnings: '[]' }]
+		});
+	});
+});
+
+describe('changing a source while its sync waits', () => {
+	it('does not publish what the old settings reached', async () => {
+		const lanes: SyncLanes = {
+			check: (run) => run(),
+			sync: (run) => {
+				db.prepare('UPDATE sources SET exclusions = \'["docs/deploy.md"]\'').run();
+				return run();
+			}
+		};
+
+		const outcome = await syncSource(db, source, {
+			key,
+			policy: LOCAL,
+			workDirectory: work,
+			lanes
+		});
+
+		expect(outcome).toMatchObject({ status: 'failed', error: /changed or deleted/ });
+		expect({
+			pages: rows('SELECT id FROM pages').length,
+			state: rows('SELECT index_generation, last_commit FROM sources')
+		}).toEqual({ pages: 0, state: [{ index_generation: 0, last_commit: null }] });
+	});
 });

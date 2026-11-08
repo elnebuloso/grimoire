@@ -22,6 +22,9 @@ export interface SyncSource {
 	errorKind: SyncErrorKind | null;
 }
 
+/** What the index of a source is built from. */
+export type IndexSettings = Pick<SyncSource, 'gitUrl' | 'branch' | 'path' | 'exclusions'>;
+
 export interface IndexedPage {
 	/** Path relative to the source path, e.g. `deploy.md`. */
 	file: string;
@@ -142,13 +145,20 @@ const PAGES_PER_DELETE = 50;
  * synced. The new index is written in short transactions under the next generation of the source
  * and goes live at once with it, so readers see either the old or the new index; the old one is
  * deleted afterwards, again in short transactions.
+ *
+ * With `startedFrom`, the new index goes live only while the source still has those settings: a
+ * sync that waited while the source was edited would otherwise publish what the old settings
+ * reached. False when it did not go live; its pages are deleted again.
  */
 export function replaceSourceIndex(
 	db: DatabaseSync,
 	sourceId: number,
 	index: SourceIndex,
-	{ snippetsPerBatch = SNIPPETS_PER_BATCH } = {}
-) {
+	{
+		snippetsPerBatch = SNIPPETS_PER_BATCH,
+		startedFrom
+	}: { snippetsPerBatch?: number; startedFrom?: IndexSettings } = {}
+): boolean {
 	const insertPage = db.prepare(
 		`INSERT INTO pages (source_id, generation, file, nav_position, title, description, tags,
 			content)
@@ -219,18 +229,33 @@ export function replaceSourceIndex(
 		});
 	}
 
-	db.prepare(
-		`UPDATE sources SET index_generation = ?, last_commit = ?, last_synced_at = ?, error = NULL,
-			error_kind = NULL, failed_commit = NULL, warnings = ?
-		WHERE id = ?`
-	).run(
-		generation,
-		index.commit,
-		new Date().toISOString(),
-		JSON.stringify(index.warnings),
-		sourceId
-	);
+	const settingsMatch = startedFrom
+		? 'AND git_url = ? AND branch = ? AND path = ? AND json(exclusions) = json(?)'
+		: '';
+	const settings = startedFrom
+		? [
+				startedFrom.gitUrl,
+				startedFrom.branch,
+				startedFrom.path,
+				JSON.stringify(startedFrom.exclusions)
+			]
+		: [];
+	const { changes } = db
+		.prepare(
+			`UPDATE sources SET index_generation = ?, last_commit = ?, last_synced_at = ?, error = NULL,
+				error_kind = NULL, failed_commit = NULL, warnings = ?
+			WHERE id = ? ${settingsMatch}`
+		)
+		.run(
+			generation,
+			index.commit,
+			new Date().toISOString(),
+			JSON.stringify(index.warnings),
+			sourceId,
+			...settings
+		);
 	deleteStalePages(db, sourceId, snippetsPerBatch);
+	return changes > 0;
 }
 
 /** Deletes the pages of a source that are not live, with their snippets and links. */

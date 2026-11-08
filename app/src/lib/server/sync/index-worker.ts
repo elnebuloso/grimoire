@@ -20,6 +20,7 @@ export interface IndexJob {
 	allowedIncludeOrigins: string[];
 	databasePath: string;
 	sourceId: number;
+	branch: string;
 	commit: string;
 	/** The server process that waits for the result. */
 	serverPid: number;
@@ -50,7 +51,24 @@ async function index(job: IndexJob): Promise<IndexOutcome> {
 	const db = new DatabaseSync(job.databasePath, { timeout: 30_000 });
 	try {
 		db.exec('PRAGMA foreign_keys = ON');
-		replaceSourceIndex(db, job.sourceId, { commit: job.commit, ...index });
+		const startedFrom = {
+			gitUrl: job.remote.url,
+			branch: job.branch,
+			path: job.source.path,
+			exclusions: job.source.exclusions
+		};
+		const live = replaceSourceIndex(
+			db,
+			job.sourceId,
+			{ commit: job.commit, ...index },
+			{ startedFrom }
+		);
+		if (!live) {
+			throw new SyncFailure(
+				'unknown',
+				'the source was changed or deleted while this sync waited; the next sync indexes it as it is now'
+			);
+		}
 	} finally {
 		db.close();
 	}
