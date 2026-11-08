@@ -238,7 +238,13 @@ const withVocabulary = new WeakSet<DatabaseSync>();
 // Index terms one edit away, most common first. The vocabulary spans every source; the caller
 // checks each candidate in its own scope. The first two letters are taken as typed: no typo of the
 // benchmark changes them, and scanning by one letter took up to 4 ms per word on 37,000 terms.
-function termsOneEditAway(db: DatabaseSync, term: string): string[] {
+function termsOneEditAway(db: DatabaseSync, typed: string): string[] {
+	// The vocabulary holds `anderungen` for "Änderungen": the tokenizer drops the diacritics of
+	// Latin letters, so an umlaut would spend the one edit or miss the first two letters.
+	const term = typed
+		.normalize('NFD')
+		.replace(/(\p{Script=Latin})\p{Mn}+/gu, '$1')
+		.normalize('NFC');
 	if (!withVocabulary.has(db)) {
 		db.exec(
 			'CREATE VIRTUAL TABLE IF NOT EXISTS temp.snippets_vocab USING fts5vocab(main, snippets_fts, row)'

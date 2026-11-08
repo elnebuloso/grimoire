@@ -1,9 +1,9 @@
 {
 	"answerable": 26,
-	"rank1": 8,
-	"within3": 17,
-	"within10": 24,
-	"meanReciprocalRank": 0.503,
+	"rank1": 9,
+	"within3": 18,
+	"within10": 25,
+	"meanReciprocalRank": 0.539,
 	"unanswerableWithHits": 4,
 	"questions": [
 		"rank 2 | short | Abhängigkeit mit yield aufräumen",
@@ -24,7 +24,7 @@
 		"rank 1 | english | How do I set the HTTP status code 201 for a POST route?",
 		"not found | english | How do I run a task only after the response has been sent, such as sending an email?",
 		"rank 6 | english | How do I read a cookie from the request?",
-		"rank 14 | typo | Abhängigkieten in Tests überschrieben",
+		"rank 1 | typo | Abhängigkieten in Tests überschrieben",
 		"rank 2 | typo | verschachtelte Pydantic-Modele im Reqeust-Body",
 		"rank 1 | typo | Midleware, die jeder Respone einen Header mit der Verarbeitungszeit hinzufügt",
 		"rank 1 | error | RequestValidationError eigener Exceptionhandler",

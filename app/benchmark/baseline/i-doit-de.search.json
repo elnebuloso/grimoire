@@ -1,9 +1,9 @@
 {
 	"answerable": 26,
-	"rank1": 11,
+	"rank1": 9,
 	"within3": 15,
 	"within10": 19,
-	"meanReciprocalRank": 0.53,
+	"meanReciprocalRank": 0.485,
 	"unanswerableWithHits": 4,
 	"questions": [
 		"rank 5 | short | Systemvoraussetzungen PHP-Version MariaDB",
@@ -25,8 +25,8 @@
 		"rank 1 | english | How can I lowercase or URL-encode the hostname variable used in the QR code?",
 		"rank 2 | english | How do I turn on two-factor authentication with an authenticator app for my user?",
 		"not found | typo | benutzerdefinirte Kategorie anlgen",
-		"rank 1 | typo | Admin-Center Pasword vergesen zurücksetzn",
-		"rank 1 | typo | Server im Rak positionieren Höheneinhiten",
+		"rank 3 | typo | Admin-Center Pasword vergesen zurücksetzn",
+		"rank 2 | typo | Server im Rak positionieren Höheneinhiten",
 		"rank 3 | error | MySQL-Server has gone away",
 		"rank 2 | error | Can't create table (errno: 140 \"Wrong create options\")",
 		"rank 1 | error | rmdir(...): Device or resource busy beim Add-on installieren im Docker-Container",

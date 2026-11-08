@@ -237,6 +237,25 @@ describe('searchSnippets', () => {
 		);
 	});
 
+	it('finds the term one edit away for a word typed with umlauts', () => {
+		addPage(addSource('billing-docs'), 'a.md', {
+			title: 'Änderungen',
+			text: 'Jede Konfigurationsänderung wird protokolliert.'
+		});
+
+		for (const [typed, term] of [
+			['Änderugnen', 'anderungen'],
+			['Konfigurationsänderugn', 'konfigurationsanderung']
+		]) {
+			const found = searchHits(db, { query: typed, allowedSources: 'all' });
+
+			expect(sourceIds(found.markdown)).toEqual(['billing-docs/a']);
+			expect(found.markdown).toMatch(
+				new RegExp(`Not in any searched source: ${typed.toLowerCase()} \\(searched as ${term}\\)$`)
+			);
+		}
+	});
+
 	it('searches a longer form by prefix when no term is one edit away', () => {
 		addPage(addSource('billing-docs'), 'a.md', { title: 'Monatlicher Abrechnungslauf' });
 
