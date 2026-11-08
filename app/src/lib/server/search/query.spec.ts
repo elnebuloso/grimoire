@@ -238,6 +238,25 @@ describe('searchSnippets', () => {
 		);
 	});
 
+	it('keeps the words of a source apart from another one whose snippets lie between its own', () => {
+		const platform = addSource('platform-docs');
+		addPage(platform, 'a.md', { title: 'Rollback' });
+		addPage(addSource('billing-docs'), 'b.md', { title: 'Terraform' });
+		addPage(platform, 'c.md', { title: 'Deploy' });
+
+		const restricted = searchHits(db, {
+			query: 'deploy terraform',
+			sources: ['platform-docs'],
+			allowedSources: 'all'
+		});
+
+		expect(restricted.unknown).toEqual(['terraform']);
+		expect(restricted.elsewhere).toEqual(['billing-docs']);
+		expect(
+			searchHits(db, { query: 'deploy terraform', allowedSources: ['platform-docs'] }).unknown
+		).toEqual(['terraform']);
+	});
+
 	describe('other sources holding the words a restricted search missed', () => {
 		beforeEach(() => {
 			addPage(addSource('platform-docs'), 'a.md', { title: 'Rollback' });

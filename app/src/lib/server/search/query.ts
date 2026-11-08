@@ -161,7 +161,14 @@ export interface SearchResult {
  */
 export function searchHits(db: DatabaseSync, options: SearchOptions): SearchResult {
 	const sources = options.sources ? JSON.stringify(options.sources) : null;
-	const occursHere = (match: string) => occurs(db, match, sources, options.allowedSources);
+	// Everything the caller may read: the first match of a word settles it. Anything narrower is
+	// looked up source by source, within the ids of each one's snippets.
+	const readable =
+		sources !== null || options.allowedSources !== 'all'
+			? readableSources(db, sources, options.allowedSources)
+			: undefined;
+	const occursHere = (match: string) =>
+		readable ? occursIn(db, match, readable) : occursAnywhere(db, match);
 
 	const expressions: string[] = [];
 	const unknown: string[] = [];
@@ -179,7 +186,7 @@ export function searchHits(db: DatabaseSync, options: SearchOptions): SearchResu
 	}
 	const elsewhere =
 		sources && unknown.length > 0
-			? otherSourcesContaining(db, unknown, sources, options.allowedSources)
+			? otherSourcesContaining(db, unknown, options.sources ?? [], options.allowedSources)
 			: [];
 	const nothing = { hits: [], skipped: [], unknown: [], elsewhere, markdown: '' };
 	if (expressions.length === 0) return nothing;
@@ -225,35 +232,45 @@ export function foundInOtherSources(slugs: string[]): string {
 const MAX_OTHER_SOURCES = 5;
 
 // An agent picks sources by name and description; a wrong pick misses words another source holds.
+// The matches are counted without a join, each assigned to its source by its id; only the sources
+// named are checked with one.
 function otherSourcesContaining(
 	db: DatabaseSync,
 	words: string[],
-	searched: string,
+	searched: string[],
 	scope: SourceScope
 ): string[] {
-	const rows = db
-		.prepare(
-			`SELECT sources.slug, count(*) AS matches FROM snippets_fts
-			JOIN snippets ON snippets.id = snippets_fts.rowid
-			JOIN live_pages AS pages ON pages.id = snippets.page_id
-			JOIN sources ON sources.id = pages.source_id
-			WHERE snippets_fts MATCH :match
-				AND sources.slug NOT IN (SELECT value FROM json_each(:searched))
-				AND ${IN_SCOPE}
-			GROUP BY sources.slug
-			ORDER BY matches DESC, sources.slug
-			LIMIT ${MAX_OTHER_SOURCES}`
-		)
-		.all({ match: toMatchExpression(words), searched, scope: scopeParameter(scope) }) as {
-		slug: string;
-	}[];
-	return rows.map((row) => row.slug);
+	const readable = readableSources(db, null, scope).ids;
+	const others = liveRanges(db).filter(
+		(range) => readable.includes(range.id) && !searched.includes(range.slug)
+	);
+	if (others.length === 0) return [];
+	const match = toMatchExpression(words);
+	const matches = new Map<SourceRange, number>();
+	const rowids = db
+		.prepare('SELECT rowid FROM snippets_fts WHERE snippets_fts MATCH :match')
+		.iterate({ match }) as Iterable<{ rowid: number }>;
+	for (const { rowid } of rowids) {
+		const range = rangeHolding(others, rowid);
+		if (range) matches.set(range, (matches.get(range) ?? 0) + 1);
+	}
+	const named: string[] = [];
+	const ranked = [...matches].sort(
+		([a, countA], [b, countB]) => countB - countA || (a.slug < b.slug ? -1 : 1)
+	);
+	for (const [range] of ranked) {
+		if (named.length === MAX_OTHER_SOURCES) break;
+		if (occursIn(db, match, { ids: [range.id], runs: [range] })) named.push(range.slug);
+	}
+	return named;
 }
 
 // Measured with the benchmark over English and German documentation: one edit finds most typos
 // and inflected forms (`instalieren`, `erstelen`, `begrenze`); two edits turn words of another
 // language into unrelated ones. Shorter words have too many neighbours one edit away.
 const MIN_TYPO_LENGTH = 4;
+// Each candidate costs a lookup per searched range; the most common ones are the likely fixes.
+const MAX_TYPO_CANDIDATES = 5;
 // A prefix catches a longer form (`monatlich` in `monatlicher`) where no word is one edit away.
 const MIN_PREFIX_LENGTH = 5;
 
@@ -264,9 +281,9 @@ function searchInstead(
 	occursHere: (match: string) => boolean
 ): { match: string; shown: string } | null {
 	if (term.length >= MIN_TYPO_LENGTH) {
-		const closest = termsOneEditAway(db, term).find((candidate) =>
-			occursHere(toMatchExpression([candidate]))
-		);
+		const closest = termsOneEditAway(db, term)
+			.slice(0, MAX_TYPO_CANDIDATES)
+			.find((candidate) => occursHere(toMatchExpression([candidate])));
 		if (closest) return { match: toMatchExpression([closest]), shown: closest };
 	}
 	if (term.length >= MIN_PREFIX_LENGTH && occursHere(`"${term}"*`)) {
@@ -335,27 +352,131 @@ function editDistance(a: string, b: string, limit: number): number {
 	return previous[b.length];
 }
 
-// Only the searched sources the caller may see count: a word from a hidden source must not show.
-// No ORDER BY: the first match ends the lookup, where sorting would read every match first.
-function occurs(
+/** A source with live snippets and the lowest and highest of their ids. */
+interface SourceRange {
+	id: number;
+	slug: string;
+	first: number;
+	last: number;
+}
+
+// FTS5 seeks a rowid range itself but knows no source: matching first and filtering by source
+// after the join reads every match of a word that only other sources hold, 27 ms per word on
+// 19,000 snippets against at most 1 ms within a range. A source's snippets are written in one go,
+// so their ids lie close together. Writing an index raises the source's generation; until then its
+// bounds are taken from here, as finding them takes 17 ms.
+const boundsByDatabase = new WeakMap<
+	DatabaseSync,
+	Map<number, { generation: number; first: number; last: number }>
+>();
+
+/** Every source with live snippets, lowest ids first. */
+function liveRanges(db: DatabaseSync): SourceRange[] {
+	const cached = boundsByDatabase.get(db) ?? new Map();
+	boundsByDatabase.set(db, cached);
+	const sources = db
+		.prepare('SELECT id, slug, index_generation AS generation FROM sources')
+		.all() as { id: number; slug: string; generation: number }[];
+	return sources
+		.flatMap(({ id, slug, generation }) => {
+			let bounds = cached.get(id);
+			if (bounds?.generation !== generation) {
+				const row = db
+					.prepare(
+						`SELECT min(snippets.id) AS first, max(snippets.id) AS last
+						FROM live_pages AS pages JOIN snippets ON snippets.page_id = pages.id
+						WHERE pages.source_id = ?`
+					)
+					.get(id) as { first: number | null; last: number | null };
+				bounds = { generation, first: row.first ?? 0, last: row.last ?? -1 };
+				cached.set(id, bounds);
+			}
+			return bounds.first <= bounds.last
+				? [{ id, slug, first: bounds.first, last: bounds.last }]
+				: [];
+		})
+		.sort((a, b) => a.first - b.first);
+}
+
+/** The range holding `rowid`, by binary search over ranges sorted by their first id. */
+function rangeHolding(ranges: SourceRange[], rowid: number): SourceRange | undefined {
+	let low = 0;
+	let high = ranges.length - 1;
+	while (low <= high) {
+		const middle = (low + high) >> 1;
+		if (ranges[middle].last < rowid) low = middle + 1;
+		else if (ranges[middle].first > rowid) high = middle - 1;
+		else return ranges[middle];
+	}
+	return undefined;
+}
+
+/**
+ * The sources in scope, or the given ones of them, and the id ranges that cover their snippets:
+ * neighbouring ranges merge until one of a source outside lies between, so one large internal
+ * source among many small public ones leaves at most two.
+ */
+function readableSources(
 	db: DatabaseSync,
-	match: string,
 	sources: string | null,
 	scope: SourceScope
-): boolean {
+): { ids: number[]; runs: { first: number; last: number }[] } {
+	const ids = (
+		db
+			.prepare(
+				`SELECT id FROM sources
+				WHERE (:sources IS NULL OR slug IN (SELECT value FROM json_each(:sources))) AND ${IN_SCOPE}`
+			)
+			.all({ sources, scope: scopeParameter(scope) }) as { id: number }[]
+	).map((row) => row.id);
+	const runs: { first: number; last: number }[] = [];
+	let open = false;
+	for (const range of liveRanges(db)) {
+		if (!ids.includes(range.id)) {
+			open = false;
+		} else if (open) {
+			runs[runs.length - 1].last = Math.max(runs[runs.length - 1].last, range.last);
+		} else {
+			runs.push({ first: range.first, last: range.last });
+			open = true;
+		}
+	}
+	return { ids, runs };
+}
+
+// No ORDER BY: the first match ends the lookup, where sorting would read every match first.
+function occursAnywhere(db: DatabaseSync, match: string): boolean {
 	return (
 		db
 			.prepare(
 				`SELECT 1 FROM snippets_fts
 				JOIN snippets ON snippets.id = snippets_fts.rowid
 				JOIN live_pages AS pages ON pages.id = snippets.page_id
-				JOIN sources ON sources.id = pages.source_id
 				WHERE snippets_fts MATCH :match
-					AND (:sources IS NULL OR sources.slug IN (SELECT value FROM json_each(:sources)))
-					AND ${IN_SCOPE}
 				LIMIT 1`
 			)
-			.get({ match, sources, scope: scopeParameter(scope) }) !== undefined
+			.get({ match }) !== undefined
+	);
+}
+
+// The join keeps out rows of another source or an old index that lie inside a range.
+function occursIn(
+	db: DatabaseSync,
+	match: string,
+	readable: { ids: number[]; runs: { first: number; last: number }[] }
+): boolean {
+	const lookup = db.prepare(
+		`SELECT 1 FROM snippets_fts
+		JOIN snippets ON snippets.id = snippets_fts.rowid
+		JOIN live_pages AS pages ON pages.id = snippets.page_id
+		WHERE snippets_fts MATCH :match
+			AND snippets_fts.rowid BETWEEN :first AND :last
+			AND pages.source_id IN (SELECT value FROM json_each(:ids))
+		LIMIT 1`
+	);
+	const ids = JSON.stringify(readable.ids);
+	return readable.runs.some(
+		({ first, last }) => lookup.get({ match, first, last, ids }) !== undefined
 	);
 }
 
@@ -415,7 +536,10 @@ function toMatchExpression(terms: string[]): string {
 	return terms.map((term) => `"${term}"`).join(' OR ');
 }
 
-function packIntoBudget(hits: SnippetHit[], budget: number): Omit<SearchResult, 'unknown'> {
+function packIntoBudget(
+	hits: SnippetHit[],
+	budget: number
+): Omit<SearchResult, 'unknown' | 'elsewhere'> {
 	const packed: SnippetHit[] = [];
 	const blocks: string[] = [];
 	// The parts of a long section share one ID.
