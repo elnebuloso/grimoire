@@ -34,6 +34,11 @@ export const MAX_URL_INCLUDES = 100;
 // that hangs costs warnings on its includes, not the whole sync.
 const URL_INCLUDES_DEADLINE_MS = 2 * 60_000;
 
+// Parsing takes about 1 GB of memory and 25 s per MB of Markdown with tables, measured on a
+// generated API reference: one such page made the indexing process run out of memory and held the
+// whole source back. The largest of 3,906 pages in the benchmark documentations has 0.73 MB.
+export const MAX_PAGE_BYTES = 1_000_000;
+
 /** Checks out further directories of the repository so their files can be read. */
 export type FetchDirectories = (directories: string[]) => Promise<void>;
 
@@ -64,6 +69,13 @@ export async function prepareCheckout(
 	for (const file of listed) {
 		if (!hasGrimoireId(file)) {
 			warnings.push(`${posix.join(sourcePath, file)}: "#" in the file name, skipped`);
+			continue;
+		}
+		const size = sizeInside(root, posix.join(sourcePath, file));
+		if (size !== undefined && size > MAX_PAGE_BYTES) {
+			warnings.push(
+				`${posix.join(sourcePath, file)}: larger than ${MAX_PAGE_BYTES / 1_000_000} MB, skipped`
+			);
 			continue;
 		}
 		const content = read(posix.join(sourcePath, file));
@@ -276,6 +288,11 @@ function realInside(root: string, path: string): string | undefined {
 	} catch {
 		return undefined;
 	}
+}
+
+function sizeInside(root: string, path: string): number | undefined {
+	const real = realInside(root, join(root, path));
+	return real === undefined ? undefined : statSync(real).size;
 }
 
 // Anyone who can push to a docs branch could commit a symlink to `/proc/self/environ` or the

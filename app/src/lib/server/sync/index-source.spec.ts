@@ -5,7 +5,7 @@ import { dirname, join } from 'node:path';
 import { indexPages } from './index-pages';
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { MAX_URL_INCLUDES, prepareCheckout, type FetchUrl } from './index-source';
+import { MAX_PAGE_BYTES, MAX_URL_INCLUDES, prepareCheckout, type FetchUrl } from './index-source';
 import { fetchInclude } from './url-include';
 
 const URL = 'https://docs.example.com/shared/note.md';
@@ -179,6 +179,15 @@ describe('indexCheckout with "#" in a file name', () => {
 		await expect(indexCheckout(async () => ({ content: '' }))).rejects.toThrow(
 			'no page could be indexed, docs/faq#2.md: "#" in the file name, skipped'
 		);
+	});
+
+	it('skips a page larger than the limit and names it', async () => {
+		write({ 'docs/index.md': '# Home\n', 'docs/api.md': `# API\n\n${'x'.repeat(MAX_PAGE_BYTES)}` });
+
+		const index = await indexCheckout(async () => ({ content: '' }));
+
+		expect(index.pages.map((page) => page.file)).toEqual(['index.md']);
+		expect(index.warnings).toEqual(['docs/api.md: larger than 1 MB, skipped']);
 	});
 
 	it('throws when the source path holds no Markdown file, so the working index stays', async () => {

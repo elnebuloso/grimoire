@@ -87,6 +87,7 @@ page. Fix them in the repository; the next sync clears them.
 | `docs/deploy.md: include "https://…" not fetched, https://… is not listed in INCLUDE_URL_ALLOW` | Ask the operator to allow the origin, or include a file from the repository. |
 | `docs/deploy.md: include "https://…" not fetched, …` | The fetch failed: a redirect (not followed), an error status, more than 1 MiB, no answer within 10 seconds, more than 100 URL includes in one sync, all URL includes of a sync together taking longer than 2 minutes, or credentials in the URL. |
 | `docs/deploy.md: include "notes.md" in the URL include "https://…" is not a URL, not inserted` | A file included by URL may include URLs only. |
+| `docs/api.md: larger than 1 MB, skipped` | A page may have at most 1,000,000 bytes; split it into several pages. A generated reference near that size can still exhaust the memory of a small server: split it well below. |
 | `docs/run#1.md: "#" in the file name, skipped` | Rename the file: in an ID, `#` starts the anchor. |
 | `docs/link.md: not readable inside the repository, skipped` | The file is a symlink that points outside the repository, or to a file the branch does not have; replace it with the file or correct its target. |
 | `site config ignored, …` | Fix `mkdocs.yml` or `zensical.toml` as the message says; until then its `nav` and `toc` settings do not apply. |

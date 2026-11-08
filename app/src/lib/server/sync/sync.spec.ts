@@ -375,7 +375,8 @@ describe('syncSource', () => {
 	// A process near its heap limit collects garbage over and over before it dies, about 2 s; a core
 	// dump would take seconds more, which `make test` turns off with `prlimit --core=1`.
 	it('fails a sync whose indexing runs out of memory and keeps syncing other sources', async () => {
-		const sections = Array.from({ length: 10_000 }, (_, i) => `## Section ${i}\n\n${filler}`);
+		// Below MAX_PAGE_BYTES, so it is parsed, yet far beyond what 32 MB of heap hold.
+		const sections = Array.from({ length: 2_000 }, (_, i) => `## Section ${i}\n\n${filler}`);
 		commitFiles({ 'docs/huge.md': `# Huge\n\n${sections.join('\n\n')}` });
 
 		const exhausted = await syncSource(db, source, {
