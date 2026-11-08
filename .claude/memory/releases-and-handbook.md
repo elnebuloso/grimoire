@@ -2,10 +2,10 @@
 
 ## Releases
 
-- semantic-release (`.releaserc.json`) writes the release notes from the commits on `main`. After
-  every release, once the pipeline has published it, add a short summary at the top of its GitHub
-  release with `gh release edit`: what the release is about and what an operator has to do, above
-  the generated list.
+- semantic-release (`.releaserc.json`) writes the release notes from the commits on `main`; the
+  summary on top follows `.claude/rules/release-notes.md`. A `test`, `chore` or `docs` commit on
+  top of unreleased `fix` commits still releases them: the analyzer reads every commit since the
+  last tag.
 
 ## Handbook
 
