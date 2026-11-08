@@ -7,6 +7,7 @@ import {
 	readSnippets,
 	renderSnippet,
 	scopeParameter,
+	foundInOtherSources,
 	searchHits,
 	type SnippetHit
 } from '../search/query';
@@ -165,14 +166,18 @@ export function querySources(
 	const hidden = normalized.sources?.find((source) => !findSource(db, source, scope));
 	if (hidden !== undefined)
 		return { ...sourceNotFound(hidden), missed: false, hits: [], skipped: [], unknown: [] };
-	const { markdown, hits, skipped, unknown } = searchHits(db, {
+	const { markdown, hits, skipped, unknown, elsewhere } = searchHits(db, {
 		...normalized,
 		allowedSources: scope
 	});
 	if (markdown) return { found: true, markdown, missed: false, hits, skipped, unknown };
+	const next =
+		elsewhere.length > 0
+			? `${foundInOtherSources(elsewhere)}.`
+			: "Try other terms, or look at a source's `index`.";
 	return {
 		found: true,
-		markdown: `No results for "${normalized.query}". Try other terms, or look at a source's \`index\`.`,
+		markdown: `No results for "${normalized.query}". ${next}`,
 		missed: true,
 		hits,
 		skipped,

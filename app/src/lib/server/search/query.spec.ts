@@ -238,6 +238,61 @@ describe('searchSnippets', () => {
 		);
 	});
 
+	describe('other sources holding the words a restricted search missed', () => {
+		beforeEach(() => {
+			addPage(addSource('platform-docs'), 'a.md', { title: 'Rollback' });
+			addPage(addSource('billing-docs'), 'b.md', { title: 'Terraform' });
+			addPage(
+				addSource('infra-docs'),
+				'c.md',
+				{ anchor: 'plan', title: 'Terraform plan' },
+				{ anchor: 'apply', title: 'Terraform apply' }
+			);
+		});
+
+		it('names them after the unknown words, most matches first', () => {
+			const found = searchHits(db, {
+				query: 'rollback terraform',
+				sources: ['platform-docs'],
+				allowedSources: 'all'
+			});
+
+			expect(found.elsewhere).toEqual(['infra-docs', 'billing-docs']);
+			expect(found.markdown).toMatch(
+				/\n\nNot in any searched source: terraform\nFound in other sources: infra-docs, billing-docs$/
+			);
+		});
+
+		it('names them also when nothing was found', () => {
+			expect(
+				searchHits(db, { query: 'terraform', sources: ['platform-docs'], allowedSources: 'all' })
+			).toMatchObject({ markdown: '', elsewhere: ['infra-docs', 'billing-docs'] });
+		});
+
+		it('names only sources the reader may see', () => {
+			expect(
+				searchHits(db, {
+					query: 'rollback terraform',
+					sources: ['platform-docs'],
+					allowedSources: ['platform-docs', 'billing-docs']
+				}).elsewhere
+			).toEqual(['billing-docs']);
+		});
+
+		it('looks for none when the search is not restricted or no word is missing', () => {
+			expect(
+				searchHits(db, { query: 'rollback kubernetes', allowedSources: 'all' }).elsewhere
+			).toEqual([]);
+			const complete = searchHits(db, {
+				query: 'rollback',
+				sources: ['platform-docs'],
+				allowedSources: 'all'
+			});
+			expect(complete.elsewhere).toEqual([]);
+			expect(complete.markdown).not.toContain('Found in other sources');
+		});
+	});
+
 	it('searches the most common index term one edit away for a word no source contains', () => {
 		addPage(addSource('platform-docs'), 'a.md', { title: 'Install', text: 'install the agent' });
 		addPage(addSource('billing-docs'), 'b.md', { title: 'Installieren', text: 'installieren' });

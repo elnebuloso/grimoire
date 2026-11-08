@@ -219,6 +219,15 @@ describe('querySources', () => {
 		expect(result.markdown).toContain('No results for "kubernetes"');
 	});
 
+	it('points to the other sources when the given ones lack every word', () => {
+		const result = querySources(db, { query: 'invoices', sources: ['platform-docs'] }, 'all');
+
+		expect(result.missed).toBe(true);
+		expect(result.markdown).toBe(
+			'No results for "invoices". Found in other sources: billing-docs.'
+		);
+	});
+
 	it('searches only the sources in scope', () => {
 		expect(sourceIds(querySources(db, { query: 'rollback' }, ['billing-docs']).markdown)).toEqual([
 			'billing-docs/index'

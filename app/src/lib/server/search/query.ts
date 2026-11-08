@@ -147,6 +147,8 @@ export interface SearchResult {
 	skipped: string[];
 	/** Searched words that occur in no snippet of the searched sources. */
 	unknown: string[];
+	/** Other sources in scope that contain an unknown word, most matches first; only for a search restricted to sources. */
+	elsewhere: string[];
 	/** The answer an agent gets: the rendered hits and lines naming the skipped IDs and unknown words. */
 	markdown: string;
 }
@@ -175,7 +177,12 @@ export function searchHits(db: DatabaseSync, options: SearchOptions): SearchResu
 		expressions.push(...(fallback ? [fallback.match] : []));
 		notes.push(fallback ? `${term} (searched as ${fallback.shown})` : term);
 	}
-	if (expressions.length === 0) return { hits: [], skipped: [], unknown: [], markdown: '' };
+	const elsewhere =
+		sources && unknown.length > 0
+			? otherSourcesContaining(db, unknown, sources, options.allowedSources)
+			: [];
+	const nothing = { hits: [], skipped: [], unknown: [], elsewhere, markdown: '' };
+	if (expressions.length === 0) return nothing;
 
 	// bm25 weighs the columns title_path, text and code. Internal docs are full of names a title
 	// carries and commands code repeats, hence 10 / 1 / 0.25. Checked with typical questions
@@ -194,17 +201,53 @@ export function searchHits(db: DatabaseSync, options: SearchOptions): SearchResu
 		{ match: expressions.join(' OR '), sources },
 		options.allowedSources
 	);
-	if (hits.length === 0) return { hits: [], skipped: [], unknown: [], markdown: '' };
+	if (hits.length === 0) return nothing;
 
 	const result = packIntoBudget(hits, options.tokens ?? DEFAULT_TOKENS);
 	// Tells "not covered" (a subject the sources never name) from a weak match, and points to a
 	// typo or a question in another language than the documentation.
-	if (unknown.length === 0) return { ...result, unknown };
+	if (unknown.length === 0) return { ...result, unknown, elsewhere };
+	const otherSources = elsewhere.length > 0 ? `\n${foundInOtherSources(elsewhere)}` : '';
 	return {
 		...result,
 		unknown,
-		markdown: `${result.markdown}\n\nNot in any searched source: ${notes.join(', ')}`
+		elsewhere,
+		markdown: `${result.markdown}\n\nNot in any searched source: ${notes.join(', ')}${otherSources}`
 	};
+}
+
+/** The line naming the sources outside the search that hold the words it missed. */
+export function foundInOtherSources(slugs: string[]): string {
+	return `Found in other sources: ${slugs.join(', ')}`;
+}
+
+// More names than an agent would search one after the other.
+const MAX_OTHER_SOURCES = 5;
+
+// An agent picks sources by name and description; a wrong pick misses words another source holds.
+function otherSourcesContaining(
+	db: DatabaseSync,
+	words: string[],
+	searched: string,
+	scope: SourceScope
+): string[] {
+	const rows = db
+		.prepare(
+			`SELECT sources.slug, count(*) AS matches FROM snippets_fts
+			JOIN snippets ON snippets.id = snippets_fts.rowid
+			JOIN live_pages AS pages ON pages.id = snippets.page_id
+			JOIN sources ON sources.id = pages.source_id
+			WHERE snippets_fts MATCH :match
+				AND sources.slug NOT IN (SELECT value FROM json_each(:searched))
+				AND ${IN_SCOPE}
+			GROUP BY sources.slug
+			ORDER BY matches DESC, sources.slug
+			LIMIT ${MAX_OTHER_SOURCES}`
+		)
+		.all({ match: toMatchExpression(words), searched, scope: scopeParameter(scope) }) as {
+		slug: string;
+	}[];
+	return rows.map((row) => row.slug);
 }
 
 // Measured with the benchmark over English and German documentation: one edit finds most typos

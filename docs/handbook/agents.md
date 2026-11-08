@@ -93,6 +93,8 @@ Over MCP, `404` and `500` come back as tool errors with the same texts, invalid 
 tool errors naming the argument, and a missing key as HTTP `401`. A search without results is not
 an error: `query` answers
 ``No results for "release train". Try other terms, or look at a source's `index`.``
+When the question named sources and another source the key may read contains its words, the
+answer names that source instead: ``No results for "release train". Found in other sources: ops-handbook.``
 An answer with hits ends with ``Not in any searched source: terraform`` when some words of the
 question occur in no source the key may read; the rules are under
 [What an answer holds](search.md#what-an-answer-holds).
