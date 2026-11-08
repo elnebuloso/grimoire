@@ -32,21 +32,24 @@ describe('missed queries', () => {
 				sources: ['platform-docs'],
 				count: 1,
 				lastAskedAt: '2026-11-01T12:00:00.000Z',
-				unknownWords: null
+				unknownWords: null,
+				otherSources: null
 			},
 			{
 				question: 'release process',
 				sources: null,
 				count: 2,
 				lastAskedAt: '2026-10-31T12:00:00.000Z',
-				unknownWords: null
+				unknownWords: null,
+				otherSources: null
 			},
 			{
 				question: 'release process',
 				sources: ['platform-docs'],
 				count: 1,
 				lastAskedAt: '2026-10-30T12:00:00.000Z',
-				unknownWords: null
+				unknownWords: null,
+				otherSources: null
 			}
 		]);
 	});

@@ -13,6 +13,8 @@ export interface MissedQuery {
 	lastAskedAt: string;
 	/** The searched words no source contained when it was last asked; null when it found nothing. */
 	unknownWords: string[] | null;
+	/** Other readable sources that held those words when it was last asked; null when none did. */
+	otherSources: string[] | null;
 }
 
 /**
@@ -21,16 +23,23 @@ export interface MissedQuery {
  */
 export function recordMissedQuery(
 	db: DatabaseSync,
-	query: { question: string; sources: string[] | null; unknownWords?: string[] | null },
+	query: {
+		question: string;
+		sources: string[] | null;
+		unknownWords?: string[] | null;
+		otherSources?: string[] | null;
+	},
 	now: Date
 ) {
 	const cutoff = new Date(now.getTime() - KEEP_DAYS * 86_400_000).toISOString();
 	db.prepare(
-		'INSERT INTO missed_queries (question, sources, unknown_words, asked_at) VALUES (?, ?, ?, ?)'
+		`INSERT INTO missed_queries (question, sources, unknown_words, other_sources, asked_at)
+		VALUES (?, ?, ?, ?, ?)`
 	).run(
 		query.question,
 		query.sources ? JSON.stringify([...query.sources].sort()) : null,
 		query.unknownWords ? JSON.stringify(query.unknownWords) : null,
+		query.otherSources?.length ? JSON.stringify(query.otherSources) : null,
 		now.toISOString()
 	);
 	db.prepare('DELETE FROM missed_queries WHERE asked_at < ?').run(cutoff);
@@ -46,18 +55,20 @@ export function listMissedQueries(db: DatabaseSync): MissedQuery[] {
 	const rows = db
 		.prepare(
 			`SELECT question, sources, count(*) AS count, max(asked_at) AS lastAskedAt,
-				unknown_words AS unknownWords
+				unknown_words AS unknownWords, other_sources AS otherSources
 			FROM missed_queries
 			GROUP BY question, sources
 			ORDER BY lastAskedAt DESC`
 		)
-		.all() as unknown as (Omit<MissedQuery, 'sources' | 'unknownWords'> & {
+		.all() as unknown as (Omit<MissedQuery, 'sources' | 'unknownWords' | 'otherSources'> & {
 		sources: string | null;
 		unknownWords: string | null;
+		otherSources: string | null;
 	})[];
 	return rows.map((row) => ({
 		...row,
 		sources: row.sources === null ? null : JSON.parse(row.sources),
-		unknownWords: row.unknownWords === null ? null : JSON.parse(row.unknownWords)
+		unknownWords: row.unknownWords === null ? null : JSON.parse(row.unknownWords),
+		otherSources: row.otherSources === null ? null : JSON.parse(row.otherSources)
 	}));
 }

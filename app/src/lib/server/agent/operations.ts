@@ -136,6 +136,8 @@ export interface QueryResult extends OperationResult {
 	skipped: string[];
 	/** Searched words that occur in no searched source, while other words found hits. */
 	unknown: string[];
+	/** Other readable sources that hold the words a query restricted to sources missed. */
+	elsewhere: string[];
 }
 
 // Every word becomes a search term, and the search runs synchronously on the server thread: without
@@ -165,12 +167,19 @@ export function querySources(
 	const normalized = normalizeQueryOptions(options);
 	const hidden = normalized.sources?.find((source) => !findSource(db, source, scope));
 	if (hidden !== undefined)
-		return { ...sourceNotFound(hidden), missed: false, hits: [], skipped: [], unknown: [] };
+		return {
+			...sourceNotFound(hidden),
+			missed: false,
+			hits: [],
+			skipped: [],
+			unknown: [],
+			elsewhere: []
+		};
 	const { markdown, hits, skipped, unknown, elsewhere } = searchHits(db, {
 		...normalized,
 		allowedSources: scope
 	});
-	if (markdown) return { found: true, markdown, missed: false, hits, skipped, unknown };
+	if (markdown) return { found: true, markdown, missed: false, hits, skipped, unknown, elsewhere };
 	const next =
 		elsewhere.length > 0
 			? `${foundInOtherSources(elsewhere)}.`
@@ -181,7 +190,8 @@ export function querySources(
 		missed: true,
 		hits,
 		skipped,
-		unknown
+		unknown,
+		elsewhere
 	};
 }
 
@@ -205,7 +215,8 @@ export function agentQuery(
 			{
 				question: query,
 				sources: sources ?? null,
-				unknownWords: result.missed ? null : result.unknown
+				unknownWords: result.missed ? null : result.unknown,
+				otherSources: result.elsewhere
 			},
 			now
 		);

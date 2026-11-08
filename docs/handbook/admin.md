@@ -276,6 +276,11 @@ asked in the reader's language — the agent was told to ask again in the docume
 **Try a query** on the start page to check it again after the docs changed; it searches all
 sources, not only the ones the agent asked for.
 
+`Found in infra-docs` under the words means the agent asked only other sources, and these sources
+its key may read hold the words: no gap, a wrong pick. Agents pick sources by name and **Short
+description**; when one is picked wrongly again and again, sharpen the descriptions of both
+sources.
+
 - Questions are stored as the agent sent them, up to 500 characters, and may contain whatever the
   agent put in.
 - Entries are deleted after 30 days and beyond the newest 10,000.

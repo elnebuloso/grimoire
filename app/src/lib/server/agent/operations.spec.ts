@@ -246,7 +246,8 @@ describe('querySources', () => {
 			markdown: 'Source "nope" not found. See `sources`.',
 			hits: [],
 			skipped: [],
-			unknown: []
+			unknown: [],
+			elsewhere: []
 		});
 		expect(
 			querySources(db, { query: 'rollback', sources: ['billing-docs', 'platform-docs'] }, [
@@ -262,7 +263,8 @@ describe('querySources', () => {
 			markdown: expect.stringContaining('Source "" not found'),
 			hits: [],
 			skipped: [],
-			unknown: []
+			unknown: [],
+			elsewhere: []
 		});
 	});
 });
@@ -295,6 +297,16 @@ describe('agentQuery', () => {
 		expect(result.markdown).toMatch(/\n\nNot in any searched source: terraform$/);
 		expect(listMissedQueries(db)).toMatchObject([
 			{ question: 'rollback terraform', unknownWords: ['terraform'] }
+		]);
+	});
+
+	it('records a question restricted to the wrong source with the sources holding its words', () => {
+		agentQuery(db, { query: 'invoices', sources: ['platform-docs'] }, 'all');
+		agentQuery(db, { query: 'kubernetes', sources: ['platform-docs'] }, 'all');
+
+		expect(listMissedQueries(db)).toMatchObject([
+			{ question: 'kubernetes', otherSources: null },
+			{ question: 'invoices', unknownWords: null, otherSources: ['billing-docs'] }
 		]);
 	});
 

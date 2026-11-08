@@ -40,6 +40,9 @@
 				{#if query.unknownWords}<code>{query.unknownWords.join(', ')}</code>{:else}<span
 						class="muted">{m.missed_nothing_found()}</span
 					>{/if}
+				{#if query.otherSources}<span class="elsewhere"
+						>{m.missed_found_elsewhere({ sources: query.otherSources.join(', ') })}</span
+					>{/if}
 			</td>
 			<td class="num">{query.count}</td>
 			<td class="when"><DateTime value={query.lastAskedAt} timeZone={data.timeZone} /></td>
@@ -51,6 +54,11 @@
 </section>
 
 <style>
+	.elsewhere {
+		display: block;
+		color: var(--ink-2);
+	}
+
 	.when {
 		color: var(--ink-2);
 		white-space: nowrap;
