@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import Ellipsis from '@lucide/svelte/icons/ellipsis';
+	import { placeBelow } from '#lib/popover.js';
 
 	/**
 	 * The rare and destructive actions of one row, behind a button. A native popover: Escape and a
@@ -12,15 +13,6 @@
 	const menuId = $props.id();
 	let button = $state<HTMLButtonElement>();
 	let menu = $state<HTMLElement>();
-
-	// A popover sits in the top layer, away from its button: place it below the button's end edge,
-	// in page coordinates so it scrolls with the page.
-	function place(event: ToggleEvent) {
-		if (event.newState !== 'open' || !button || !menu) return;
-		const rect = button.getBoundingClientRect();
-		menu.style.top = `${rect.bottom + window.scrollY + 4}px`;
-		menu.style.right = `${document.documentElement.clientWidth - rect.right - window.scrollX}px`;
-	}
 </script>
 
 <button bind:this={button} class="trigger" popovertarget={menuId} aria-label={label}>
@@ -34,7 +26,7 @@ stays open behind it and closes with it. `close` does not bubble, hence the capt
 	id={menuId}
 	class="menu"
 	popover="auto"
-	onbeforetoggle={place}
+	onbeforetoggle={(event) => placeBelow(event, button, menu, 4)}
 	onclosecapture={() => menu?.hidePopover()}
 >
 	{@render children()}

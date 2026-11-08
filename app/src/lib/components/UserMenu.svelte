@@ -3,6 +3,7 @@
 	import CircleUserRound from '@lucide/svelte/icons/circle-user-round';
 	import Preferences from './Preferences.svelte';
 	import { m } from '#lib/paraglide/messages.js';
+	import { placeBelow } from '#lib/popover.js';
 	import type { Theme } from '#lib/theme.js';
 
 	/**
@@ -14,15 +15,6 @@
 	const menuId = $props.id();
 	let button = $state<HTMLButtonElement>();
 	let menu = $state<HTMLElement>();
-
-	// A popover sits in the top layer, away from its button: place it below the button's end edge,
-	// in page coordinates so it scrolls with the page.
-	function place(event: ToggleEvent) {
-		if (event.newState !== 'open' || !button || !menu) return;
-		const rect = button.getBoundingClientRect();
-		menu.style.top = `${rect.bottom + window.scrollY + 6}px`;
-		menu.style.right = `${document.documentElement.clientWidth - rect.right - window.scrollX}px`;
-	}
 </script>
 
 <button bind:this={button} class="trigger" popovertarget={menuId}>
@@ -30,7 +22,13 @@
 	<span class="email">{email}</span>
 </button>
 
-<div bind:this={menu} id={menuId} class="menu" popover="auto" onbeforetoggle={place}>
+<div
+	bind:this={menu}
+	id={menuId}
+	class="menu"
+	popover="auto"
+	onbeforetoggle={(event) => placeBelow(event, button, menu, 6)}
+>
 	<p class="muted">{m.header_logged_in_as()}</p>
 	<h2>{email}</h2>
 	<Preferences {theme} />

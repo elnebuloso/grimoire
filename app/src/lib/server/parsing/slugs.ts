@@ -1,4 +1,4 @@
-import { extensionSettings } from './site-config.ts';
+import { extensionSettings, isRecord } from './site-config.ts';
 export type Slugify = (text: string) => string;
 
 /** Python-Markdown's `toc.slugify`, the default of MkDocs and Zensical. */
@@ -92,8 +92,4 @@ function unknownSlugify(name: string): string {
 
 function escapeClass(text: string): string {
 	return text.replace(/[\\\]^-]/g, '\\$&');
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-	return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
