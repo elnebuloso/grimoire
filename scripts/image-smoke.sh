@@ -61,6 +61,7 @@ child.send({
 	allowedIncludeOrigins: [],
 	databasePath: process.env.DATABASE_PATH,
 	sourceId: 1,
+	branch: 'main',
 	commit: 'smoke',
 	serverPid: process.pid
 });
