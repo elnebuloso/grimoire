@@ -178,6 +178,20 @@ describe('searchSnippets', () => {
 		expect(found.skipped).toEqual(['auth/deploy#large']);
 	});
 
+	it('names a section once when several of its parts do not fit', () => {
+		addPage(
+			addSource('auth'),
+			'deploy.md',
+			{ anchor: 'large', title: 'Rollback', text: `Rollback ${'x'.repeat(2000)}` },
+			{ anchor: 'large', title: 'Rollback', text: `Rollback ${'y'.repeat(2000)}` },
+			{ anchor: 'other', title: 'Rollback', text: `Rollback ${'z'.repeat(2000)}` }
+		);
+
+		const result = searchSnippets(db, { query: 'rollback', tokens: 200, allowedSources: 'all' });
+
+		expect(result).toBe('Did not fit: auth/deploy#large, auth/deploy#other');
+	});
+
 	it('has no line about skipped hits when everything fits', () => {
 		addPage(addSource('auth'), 'a.md', { title: 'Rollback' });
 

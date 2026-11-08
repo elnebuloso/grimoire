@@ -375,21 +375,22 @@ function toMatchExpression(terms: string[]): string {
 function packIntoBudget(hits: SnippetHit[], budget: number): Omit<SearchResult, 'unknown'> {
 	const packed: SnippetHit[] = [];
 	const blocks: string[] = [];
-	const skipped: string[] = [];
+	// The parts of a long section share one ID.
+	const skipped = new Set<string>();
 	let remaining = budget;
 	for (const hit of hits) {
 		const block = renderSnippet(hit);
 		const tokens = estimateTokens(`${block}\n\n`);
 		if (tokens > remaining) {
-			skipped.push(grimoireId(hit, hit.anchor));
+			skipped.add(grimoireId(hit, hit.anchor));
 			continue;
 		}
 		packed.push(hit);
 		blocks.push(block);
 		remaining -= tokens;
 	}
-	if (skipped.length > 0) blocks.push(`Did not fit: ${skipped.join(', ')}`);
-	return { hits: packed, skipped, markdown: blocks.join('\n\n') };
+	if (skipped.size > 0) blocks.push(`Did not fit: ${[...skipped].join(', ')}`);
+	return { hits: packed, skipped: [...skipped], markdown: blocks.join('\n\n') };
 }
 
 /** Renders a snippet with its title path, its grimoire ID and where to edit it. */
