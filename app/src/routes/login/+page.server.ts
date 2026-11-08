@@ -11,6 +11,16 @@ import { pathOnThisSite } from '#lib/server/path-on-this-site.js';
 // A plain form needs no JavaScript; hydrating it would reset what was typed before it finished.
 export const csr = false;
 
+function existingSlugs(slugs: string[]): string[] {
+	if (slugs.length === 0) return [];
+	const known = new Set(
+		(database().prepare('SELECT slug FROM sources').all() as { slug: string }[]).map(
+			(source) => source.slug
+		)
+	);
+	return slugs.filter((slug) => known.has(slug));
+}
+
 export const load: PageServerLoad = ({ url }) => {
 	// Set by a login through an identity provider that was refused, on its way back here.
 	const problem = url.searchParams.get('problem');
@@ -20,7 +30,10 @@ export const load: PageServerLoad = ({ url }) => {
 		next: url.searchParams.get('next') ?? '',
 		problem: isAuthProblem(problem) ? authMessage(problem) : undefined,
 		// Set by an import on the setup page.
-		imported: url.searchParams.has('imported')
+		imported: url.searchParams.has('imported'),
+		// The sources that import found unable to sync; only existing ones, so a link cannot put
+		// other text on the page.
+		refused: existingSlugs(url.searchParams.getAll('refused'))
 	};
 };
 

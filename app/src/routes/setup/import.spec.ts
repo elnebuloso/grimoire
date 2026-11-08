@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
+import { describe, it, expect, afterEach, beforeAll, beforeEach, vi } from 'vitest';
 import { randomBytes } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import type { DatabaseSync } from 'node:sqlite';
@@ -49,6 +49,10 @@ beforeEach(async () => {
 		.at(-1)!;
 });
 
+afterEach(() => {
+	vi.unstubAllEnvs();
+});
+
 function submit(fields: { token?: string; passphrase?: string; file?: Buffer }) {
 	const body = new FormData();
 	body.set('token', fields.token ?? token);
@@ -78,6 +82,17 @@ describe('import on the setup page', () => {
 	it('imports the export and leads to the login', async () => {
 		expect(await redirectOf(submit({ file: FIXTURE }))).toBe('/login?imported');
 		expect(users()).toEqual([{ email: 'ada@example.com' }, { email: 'bob@example.com' }]);
+	});
+
+	it('names the sources the target will not reach in the way to the login', async () => {
+		// Behind a proxy only listed hosts are reached, so every source is refused without a lookup.
+		vi.stubEnv('HTTPS_PROXY', 'http://proxy.example:3128');
+		const location = await redirectOf(submit({ file: FIXTURE }));
+		const slugs = (
+			db.prepare('SELECT slug FROM sources ORDER BY slug').all() as { slug: string }[]
+		).map((source) => source.slug);
+		expect(slugs.length).toBeGreaterThan(0);
+		expect(location).toBe(`/login?imported${slugs.map((slug) => `&refused=${slug}`).join('')}`);
 	});
 
 	it('needs the setup token, before the file is read', async () => {

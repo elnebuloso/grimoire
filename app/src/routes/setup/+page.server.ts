@@ -76,9 +76,11 @@ export const actions = {
 		}
 		checkAdminAccount(db);
 		log.info(`export imported on the setup page: ${result.users} users, ${result.sources} sources`);
-		for (const { slug, reason } of await refusedSources(db, connectionPolicy(GIT_ALLOWED_HOSTS))) {
+		const unreachable = await refusedSources(db, connectionPolicy(GIT_ALLOWED_HOSTS));
+		for (const { slug, reason } of unreachable) {
 			log.warn(`imported source ${slug} cannot sync: ${reason}`);
 		}
-		redirect(303, '/login?imported');
+		const named = unreachable.map(({ slug }) => `&refused=${encodeURIComponent(slug)}`).join('');
+		redirect(303, `/login?imported${named}`);
 	}
 } satisfies Actions;

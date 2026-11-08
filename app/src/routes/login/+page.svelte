@@ -24,6 +24,11 @@
 
 {#if data.imported && !form?.error}
 	<p class="notice" role="status">{m.login_imported()}</p>
+	{#if data.refused.length > 0}
+		<p class="notice" role="status">
+			{m.login_imported_refused({ sources: data.refused.join(', ') })}
+		</p>
+	{/if}
 {/if}
 
 <form method="post">

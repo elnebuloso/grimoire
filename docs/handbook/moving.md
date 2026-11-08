@@ -80,7 +80,9 @@ kubectl exec deployment/grimoire -- rm /tmp/import.grimoire-export
 
 It ends with a line such as `Imported 2 users and 14 sources.`, followed by a line
 `Source <slug> cannot sync: The server may not connect to <host>. …` for each imported source on a
-Git host this instance refuses; an import on the setup page writes these lines to the server log.
+Git host this instance refuses; an import on the setup page writes these lines to the server log
+and names the sources on the login page that follows, in `These sources cannot sync on this
+instance: <slugs>.`
 List those hosts in `GIT_ALLOWED_HOSTS` (see [Git servers](docker.md#git-servers)) and restart, or
 the sources fail their syncs. The server may run meanwhile; its setup page ends with the import.
 Without `-it` the script stops with `Run this in a terminal: it asks for the passphrase of the

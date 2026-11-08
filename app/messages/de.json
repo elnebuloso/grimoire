@@ -442,6 +442,7 @@
 	"import_newer_version": "Der Export stammt aus einem neueren grimoire. Importiere ihn in diese oder eine spätere Version.",
 	"import_wrong_passphrase": "Die Passphrase ist falsch, oder die Datei wurde seit dem Export verändert oder abgeschnitten.",
 	"login_imported": "Der Export ist importiert. Melde dich mit einem Account daraus an; die Seiten kommen mit dem ersten Sync jeder Quelle zurück.",
+	"login_imported_refused": "Diese Quellen können auf dieser Instanz nicht synchronisieren: {sources}. Das Server-Log nennt jeweils den Grund.",
 	"access_redirected": "Der Git-Server leitet diese URL weiter (HTTP {status}). Nimm die Clone-URL aus dem Clone-Button des Repositorys, meist mit .git am Ende; ein verschobenes Projekt hat einen neuen Pfad.",
 	"access_redirected_to": "Der Git-Server leitet diese URL weiter auf {url}. Trag sie als Git-URL ein und teste oder speichere erneut.",
 	"field_git_url_hint": "Die Clone-URL des Repositorys, meist mit .git am Ende.",
