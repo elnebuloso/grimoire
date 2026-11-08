@@ -63,8 +63,15 @@ export async function prepareCheckout(
 		else raw.set(file, content);
 	}
 	const files = [...raw.keys()];
-	// An empty index would replace the working one.
-	if (listed.length > 0 && files.length === 0) {
+	// An empty index would replace the working one, also when the path holds no page at all: a
+	// folder turned into a submodule or pages renamed to `.markdown` look just like that.
+	if (listed.length === 0) {
+		throw new SyncFailure(
+			'noPage',
+			`no page could be indexed, no Markdown file below the source path "${sourcePath}"`
+		);
+	}
+	if (files.length === 0) {
 		throw new SyncFailure('noPage', `no page could be indexed, ${warnings.at(-1)}`);
 	}
 

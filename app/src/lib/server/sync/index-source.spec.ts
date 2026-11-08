@@ -180,6 +180,14 @@ describe('indexCheckout with "#" in a file name', () => {
 			'no page could be indexed, docs/faq#2.md: "#" in the file name, skipped'
 		);
 	});
+
+	it('throws when the source path holds no Markdown file, so the working index stays', async () => {
+		write({ 'docs/api.markdown': '# API\n', 'docs/drafts/.keep': '' });
+
+		await expect(indexCheckout(async () => ({ content: '' }))).rejects.toThrow(
+			'no page could be indexed, no Markdown file below the source path "docs"'
+		);
+	});
 });
 
 describe('indexCheckout with symlinks', () => {

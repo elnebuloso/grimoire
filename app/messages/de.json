@@ -112,7 +112,7 @@
 	"admin_fix_unreachable": "Prüf die Git-URL unter Einstellungen. Stimmt sie, ist der Git-Server von grimoire aus nicht erreichbar; „Jetzt synchronisieren“ versucht es erneut.",
 	"admin_fix_deadline": "Die Quelle braucht zu lange zum Indexieren: Grenz sie mit „Pfad im Repository“ oder Ausschlüssen ein, oder bitte den Betreiber, INDEXING_DEADLINE_MINUTES zu erhöhen.",
 	"admin_fix_aborted": "Das Indexieren ist abgebrochen, meist aus Mangel an Speicher: Grenz die Quelle mit „Pfad im Repository“ oder Ausschlüssen ein, oder bitte den Betreiber um mehr Speicher.",
-	"admin_fix_no_page": "Jede Seite wurde übersprungen; oben steht der Grund der letzten. Behebe das Genannte im Repository, etwa das Markdown oder einen Dateinamen: Der nächste Commit wird wieder synchronisiert.",
+	"admin_fix_no_page": "Keine Seite wurde indexiert, daher bleibt der bisherige Index; oben steht der letzte Grund. Behebe das Genannte: das Markdown oder einen Dateinamen im Repository, oder „Pfad im Repository“ und die Ausschlüsse unter Einstellungen, wenn der Pfad keine .md-Datei enthält. Der nächste Commit oder das Speichern der Einstellungen synchronisiert wieder.",
 	"admin_fix_unknown": "Prüf die Einstellungen und den Sync-Verlauf der Quelle; „Jetzt synchronisieren“ versucht es erneut.",
 	"admin_fix_redirect": "Trag unter Einstellungen die Clone-URL des Repositorys ein, meist mit .git am Ende; „Verbindung testen“ nennt die Adresse, auf die der Git-Server umleitet.",
 	"admin_fix_forbidden": "grimoire darf sich nicht mit diesem Git-Server verbinden: Bitte den Betreiber, seinen Host in GIT_ALLOWED_HOSTS aufzunehmen, oder korrigiere die Git-URL unter Einstellungen.",
