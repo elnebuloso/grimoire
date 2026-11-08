@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Status | Proposed |
+| Status | Accepted |
 | Date | 2026-10-31 |
 | Deciders | Projectowner |
 | Covers | Which key encrypts the secrets grimoire stores, and how one key serves several kinds of secret |

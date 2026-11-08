@@ -25,7 +25,7 @@ administrator exists offers nothing but the setup.
 ## Decision
 
 - **An export is the real state of the whole instance, in one file.** Sources with their access
-  tokens, owners and visibility, users with their roles and password hashes, API keys with their
+  tokens and visibility, users with their roles and password hashes, API keys with their
   owners and the sources they reach, and the settings. Derived and transient data stay behind.
 - **An administrator exports**, from the management area.
 - **The whole file is encrypted with a key derived from a passphrase**, chosen when the export is

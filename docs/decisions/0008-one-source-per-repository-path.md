@@ -2,11 +2,11 @@
 
 | | |
 |---|---|
-| Status | Accepted |
+| Status | Superseded |
 | Date | 2026-11-05 |
 | Deciders | Projectowner |
 | Covers | When two sources count as the same documentation, what happens when someone adds or changes a source that duplicates or overlaps another, what the message reveals, and how existing duplicates are found |
-| Superseded by | 0010, for what the message about a duplicate reveals |
+| Superseded by | 0014 |
 
 ## Context
 

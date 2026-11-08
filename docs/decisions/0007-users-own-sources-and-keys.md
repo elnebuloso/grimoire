@@ -2,11 +2,11 @@
 
 | | |
 |---|---|
-| Status | Proposed |
+| Status | Superseded |
 | Date | 2026-11-03 |
 | Deciders | Projectowner |
 | Covers | Who owns a source and an API key, who may read, list, change and delete a source, and what happens to both when their owner leaves |
-| Superseded by | 0010, for sources: their owner, their visibility and who manages them |
+| Superseded by | 0012, 0013, 0015 |
 
 ## Context
 

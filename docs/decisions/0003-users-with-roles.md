@@ -2,10 +2,11 @@
 
 | | |
 |---|---|
-| Status | Accepted |
+| Status | Superseded |
 | Date | 2026-10-30 |
 | Deciders | Projectowner |
 | Covers | How accounts, their roles and their sessions decide access to the management area |
+| Superseded by | 0015 |
 
 ## Context
 
