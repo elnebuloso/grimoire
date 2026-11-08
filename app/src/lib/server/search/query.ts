@@ -245,18 +245,29 @@ function otherSourcesContaining(
 		(range) => readable.includes(range.id) && !searched.includes(range.slug)
 	);
 	if (others.length === 0) return [];
-	const match = toMatchExpression(words);
-	const matches = new Map<SourceRange, number>();
-	const rowids = db
-		.prepare('SELECT rowid FROM snippets_fts WHERE snippets_fts MATCH :match')
-		.iterate({ match }) as Iterable<{ rowid: number }>;
-	for (const { rowid } of rowids) {
-		const range = rangeHolding(others, rowid);
-		if (range) matches.set(range, (matches.get(range) ?? 0) + 1);
+	const found = new Map<SourceRange, { words: number; matches: number }>();
+	const lookup = db.prepare('SELECT rowid FROM snippets_fts WHERE snippets_fts MATCH :match');
+	for (const word of words) {
+		const counted = new Set<SourceRange>();
+		for (const { rowid } of lookup.iterate({ match: toMatchExpression([word]) }) as Iterable<{
+			rowid: number;
+		}>) {
+			const range = rangeHolding(others, rowid);
+			if (!range) continue;
+			const tally = found.get(range) ?? { words: 0, matches: 0 };
+			// The source holding most of the missed words is the likely topic, not the one that
+			// repeats a common one most often.
+			if (!counted.has(range)) tally.words++;
+			counted.add(range);
+			tally.matches++;
+			found.set(range, tally);
+		}
 	}
+	const match = toMatchExpression(words);
 	const named: string[] = [];
-	const ranked = [...matches].sort(
-		([a, countA], [b, countB]) => countB - countA || (a.slug < b.slug ? -1 : 1)
+	const ranked = [...found].sort(
+		([a, tallyA], [b, tallyB]) =>
+			tallyB.words - tallyA.words || tallyB.matches - tallyA.matches || (a.slug < b.slug ? -1 : 1)
 	);
 	for (const [range] of ranked) {
 		if (named.length === MAX_OTHER_SOURCES) break;

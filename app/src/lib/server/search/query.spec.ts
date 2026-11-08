@@ -282,6 +282,26 @@ describe('searchSnippets', () => {
 			);
 		});
 
+		it('names the source holding most of the missed words first', () => {
+			addPage(addSource('ops-handbook'), 'd.md', { title: 'Release train' });
+			for (const slug of ['web-docs', 'api-docs']) {
+				addPage(
+					addSource(slug),
+					'e.md',
+					{ anchor: 'a', title: 'Release notes' },
+					{ anchor: 'b', title: 'Release process' }
+				);
+			}
+
+			expect(
+				searchHits(db, {
+					query: 'release train',
+					sources: ['platform-docs'],
+					allowedSources: 'all'
+				}).elsewhere
+			).toEqual(['ops-handbook', 'api-docs', 'web-docs']);
+		});
+
 		it('names them also when nothing was found', () => {
 			expect(
 				searchHits(db, { query: 'terraform', sources: ['platform-docs'], allowedSources: 'all' })

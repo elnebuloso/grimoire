@@ -1,9 +1,11 @@
 ---
 id: TASK-402
 title: 'Query: rank the other sources by how many missed words they hold'
-status: To Do
-assignee: []
+status: Done
+assignee:
+  - '@claude'
 created_date: '2026-11-08 19:51'
+updated_date: '2026-11-08 20:35'
 labels:
   - search
   - agent-api
@@ -21,7 +23,19 @@ Found by the audit of 2026-11-08 (three independent reviewers, the severe findin
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Sources are ordered first by how many distinct missed words they contain, then by matching snippets, then by slug
-- [ ] #2 A spec with two missed words, where many sources hold one and a single source holds both, names that source first
-- [ ] #3 The answer texts stay as `docs/handbook/search.md` and `docs/handbook/agents.md` describe them
+- [x] #1 Sources are ordered first by how many distinct missed words they contain, then by matching snippets, then by slug
+- [x] #2 A spec with two missed words, where many sources hold one and a single source holds both, names that source first
+- [x] #3 The answer texts stay as `docs/handbook/search.md` and `docs/handbook/agents.md` describe them
 <!-- AC:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+otherSourcesContaining tallies per source the distinct missed words and the matches, one rowid pass per word (no join); order: distinct words, matches, slug. Spec "names the source holding most of the missed words first" (release train: ops-handbook before two sources with two "release" snippets each) fails before, passes after. search.md says the new order. Committed as feat(query): TASK-397 is not released yet.
+<!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+"Found in other sources" now names first the sources that hold the most of the missed words, then those with the most matches, so a source covering the whole question is not crowded out by large sources repeating one common word. Spec and handbook updated.
+<!-- SECTION:FINAL_SUMMARY:END -->
