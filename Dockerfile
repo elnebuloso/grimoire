@@ -9,7 +9,10 @@ COPY app/ ./
 RUN npm run build && npm prune --omit=dev
 
 FROM node:24-trixie-slim
+# The upgrade takes Debian's security fixes released since the base image was built; Node's own
+# fixes, such as the bundled Brotli decoder's, come with the base image above.
 RUN apt-get update \
+	&& apt-get upgrade --yes \
 	&& apt-get install --yes --no-install-recommends git ca-certificates tini \
 	&& rm -rf /var/lib/apt/lists/* \
 	&& mkdir /data && chown node:node /data
