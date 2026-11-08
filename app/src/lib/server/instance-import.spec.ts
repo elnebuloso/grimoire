@@ -4,6 +4,7 @@ import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
+import { gzipSync } from 'node:zlib';
 import { login } from './auth/auth';
 import { scopeForKey } from './api-keys';
 import { migrate } from './db/migrate';
@@ -16,6 +17,11 @@ import { decryptSecret, deriveKeys } from './secret-encryption';
 // read of it takes half a second alone and several on a busy machine, past the default timeout.
 vi.unmock('node:crypto');
 vi.setConfig({ testTimeout: 30_000 });
+// Lets a test seal content that is not gzip, as only a hand-made file holds.
+vi.mock('node:zlib', async (importOriginal) => {
+	const zlib = await importOriginal<typeof import('node:zlib')>();
+	return { ...zlib, gzipSync: vi.fn(zlib.gzipSync) };
+});
 
 // Written once by `writeExport` at schema version 4, the first that exports. Never write it again:
 // it stands for the exports already out there, which every later version must import.
@@ -122,6 +128,18 @@ describe('importExport', () => {
 		});
 		expect(rows(db, 'SELECT * FROM users')).toEqual([]);
 		expect(rows(db, 'SELECT syncs_paused FROM settings')).toEqual([{ syncs_paused: 0 }]);
+	});
+
+	it('refuses a sealed file whose content is not gzip', async () => {
+		vi.mocked(gzipSync).mockImplementationOnce((plain) => Buffer.from(plain as Buffer));
+		const content = new DatabaseSync(':memory:');
+		migrate(content, migrations);
+		const file = await sealExport(content, PASSPHRASE);
+		const db = openDatabase(':memory:');
+
+		expect(await importExport(db, file, PASSPHRASE, migrations, tokenKey)).toEqual({
+			error: 'not-an-export'
+		});
 	});
 
 	it('copies only the exported columns of a file that carries more', async () => {

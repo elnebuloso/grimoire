@@ -158,8 +158,15 @@ export async function readExport(
 	} catch {
 		return { error: 'wrong-passphrase-or-damaged' };
 	}
+	let unpacked: Buffer;
+	try {
+		unpacked = gunzipSync(content, { maxOutputLength: MAX_CONTENT_BYTES });
+	} catch {
+		// Sealed with the passphrase, but no gzip or past the limit: made by hand, not exported.
+		return { error: 'not-an-export' };
+	}
 	const db = new DatabaseSync(':memory:');
-	db.deserialize(gunzipSync(content, { maxOutputLength: MAX_CONTENT_BYTES }));
+	db.deserialize(unpacked);
 	return { db };
 }
 
