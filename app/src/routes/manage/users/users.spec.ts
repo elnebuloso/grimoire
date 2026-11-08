@@ -88,6 +88,13 @@ describe('users page', () => {
 		expect(isHttpError(thrown) && thrown.status).toBe(404);
 	});
 
+	it('refuses a password link for the own account, also when sent without the page', async () => {
+		const thrown = await action('passwordLink', ADMIN.id).catch((error) => error);
+
+		expect(isHttpError(thrown) && thrown.status).toBe(403);
+		expect(db.prepare('SELECT count(*) AS n FROM password_resets').get()).toEqual({ n: 0 });
+	});
+
 	it('withdraws an invitation', async () => {
 		const { token } = inviteUser(db, 'new@example.com', 1) as { token: string };
 		await action('withdraw', listInvitations(db)[0].id);

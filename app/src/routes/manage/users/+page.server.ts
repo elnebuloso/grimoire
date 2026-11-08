@@ -123,6 +123,9 @@ export const actions = {
 	},
 	passwordLink: async ({ request, locals, url }) => {
 		const id = await idOf(request);
+		// The page offers none for the own account: a found session would get past the password
+		// checks of export and linking with it.
+		if (id === locals.user!.id) error(403);
 		const link = createPasswordLink(database(), id);
 		if (!link) error(404);
 		log.info(`password link for user ${id} created by user ${locals.user!.id}`);
