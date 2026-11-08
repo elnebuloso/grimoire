@@ -88,6 +88,12 @@ holds, such as `Billing API` and `Billing runbooks`. The same repository and pat
 second time, not even on another branch; what counts as the same and the messages are under
 [Documentation that is already registered](#documentation-that-is-already-registered).
 
+!!! warning "A source instructs every agent that reads it"
+    Agents act on what they find in a source: a command, a setting, a step of a process. grimoire
+    serves the text of the **Branch** as it is, without checking it, from the next sync on. Whoever
+    can push to that branch therefore tells every connected agent what to do. Add a branch that
+    only changes through reviewed merge requests.
+
 The form of a source groups its fields into **General**, **Repository**, **Access** and
 **Schedule and visibility**; **Test connection** sits at the end of **Access**.
 
