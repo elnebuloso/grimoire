@@ -75,9 +75,7 @@ describe('what the start page lists and the agent API reads', () => {
 		db.exec("INSERT INTO users (id, email) VALUES (1, 'writer@example.com')");
 	});
 
-	it('agree for a visitor, a user and a key limited to one internal source', () => {
-		expect(listed()).toEqual(agentSlugs('public'));
-
+	it('agree for a user and a key limited to one internal source', () => {
 		const everything = createApiKey(db, 'ci', 'all', null, 1);
 		if ('error' in everything) throw new Error(everything.error);
 		expect(listed(1)).toEqual(agentSlugs(scopeForKey(db, everything.key, CLOCK)!.scope));
@@ -110,33 +108,52 @@ describe('start page', () => {
 		expect(load('').mcpName).toBe('acme-agents');
 	});
 
-	it('lists the public sources to a visitor, and to a user also the internal ones', () => {
+	it('lists every source to a visitor and to a user, internal ones included', () => {
 		addSourceWithPage('billing-docs', '# Invoices', true);
 		const slugs = (userId?: number) => load('', userId).sources.rows.map((source) => source.slug);
 
-		expect(slugs()).toEqual(['billing-docs']);
+		expect(slugs()).toEqual(['billing-docs', 'platform-docs']);
 		expect(slugs(1)).toEqual(['billing-docs', 'platform-docs']);
 	});
 
-	it('tells about a source only the state of its content, and searches its description', () => {
+	it('tells a visitor the state and counts of a source but not its error, and searches its description', () => {
 		db.exec(`UPDATE sources SET error = 'git ls-remote failed', paused = 1,
 			description = 'Login and tokens' WHERE slug = 'platform-docs'`);
-		const [row] = load('?search=tokens', 1).sources.rows as Record<string, unknown>[];
-		expect(row).toMatchObject({ slug: 'platform-docs', description: 'Login and tokens' });
+		const [row] = load('?search=tokens').sources.rows as Record<string, unknown>[];
+		expect(row).toMatchObject({
+			slug: 'platform-docs',
+			description: 'Login and tokens',
+			error: true,
+			paused: true
+		});
 		expect(Object.keys(row).sort()).toEqual(
 			[
+				'deadLinks',
 				'description',
 				'docsUrl',
+				'error',
 				'id',
+				'lastCheck',
 				'lastSync',
 				'name',
 				'pages',
+				'paused',
 				'slug',
 				'snippets',
 				'tokens',
-				'visibility'
+				'visibility',
+				'warnings'
 			].sort()
 		);
+	});
+
+	it('filters the sources by state for a visitor', () => {
+		addSourceWithPage('billing-docs', '# Invoices', true);
+		db.exec("UPDATE sources SET error = 'git ls-remote failed' WHERE slug = 'platform-docs'");
+		const slugs = (search: string) => load(search).sources.rows.map((source) => source.slug);
+
+		expect(slugs('?status=error')).toEqual(['platform-docs']);
+		expect(slugs('?status=synced')).toEqual(['billing-docs']);
 	});
 
 	it('offers no query to a visitor while no source is public', () => {

@@ -75,8 +75,8 @@ logged in. The last way to log in stays: without a password, the only link canno
 
 ## What you read
 
-Logged in, the start page lists the public and the internal sources, and **Try a query** searches
-them. Admins add sources and decide whether each is internal or public; to have a repository
+The start page lists every source with its state, to anyone. Logged in, **Try a query** searches
+the public and the internal ones. Admins add sources and decide whether each is internal or public; to have a repository
 added, ask an admin.
 
 ## API keys

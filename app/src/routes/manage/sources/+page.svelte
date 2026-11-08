@@ -1,27 +1,15 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
-	import DataTable from '#lib/components/DataTable.svelte';
-	import DateTime from '#lib/components/DateTime.svelte';
 	import EmptyState from '#lib/components/EmptyState.svelte';
 	import PageHead from '#lib/components/PageHead.svelte';
 	import SourceLabel from '#lib/components/SourceLabel.svelte';
-	import StatusBadge, { WORDS } from '#lib/components/StatusBadge.svelte';
+	import SourceTable from '#lib/components/SourceTable.svelte';
 	import { m } from '#lib/paraglide/messages.js';
-	import { getLocale } from '#lib/paraglide/runtime.js';
-	import { VISIBILITIES } from '#lib/source-fields.js';
-	import { SOURCE_FILTERS, sourceState } from '#lib/source-state.js';
-	import { VISIBILITY_LABEL } from '#lib/visibility-label.js';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
 
-	const count = (value: number) => value.toLocaleString(getLocale());
 	const newSource = resolve('/manage/sources/[id]/[[tab=tab]]', { id: 'new' });
-
-	const WARNING_LABELS: Record<(typeof SOURCE_FILTERS.warnings)[number], () => string> = {
-		yes: m.source_filter_warnings_yes,
-		no: m.source_filter_warnings_no
-	};
 </script>
 
 <PageHead title={m.sources()} />
@@ -34,72 +22,17 @@
 			<a class="button primary" href={newSource}>{m.source_new()}</a>
 		{/if}
 	</div>
-	<DataTable
-		label={m.sources_table()}
+	<SourceTable
 		list={data.sources}
-		key={(source) => source.id}
-		search={m.list_search_sources()}
-		filters={[
-			{
-				name: 'status',
-				label: m.source_status(),
-				options: SOURCE_FILTERS.status.map((value) => ({ value, label: WORDS[value]() }))
-			},
-			{
-				name: 'visibility',
-				label: m.visibility(),
-				options: VISIBILITIES.map((value) => ({ value, label: VISIBILITY_LABEL[value]() }))
-			},
-			{
-				name: 'warnings',
-				label: m.source_warnings(),
-				options: SOURCE_FILTERS.warnings.map((value) => ({
-					value,
-					label: WARNING_LABELS[value]()
-				}))
-			}
-		]}
-		columns={[
-			{ label: m.source(), sort: 'name' },
-			{ label: m.visibility() },
-			{ label: m.pages(), numeric: true },
-			{ label: m.snippets(), numeric: true },
-			{ label: m.tokens(), numeric: true },
-			{ label: m.source_status(), sort: 'status' },
-			{ label: m.last_check_in_zone({ zone: data.timeZone }), sort: 'checked' },
-			{ label: m.dead_links(), numeric: true }
-		]}
+		timeZone={data.timeZone}
+		deadLinksHref={(source) => `${resolve('/manage/dead-links')}#source-${source.id}`}
 	>
-		{#snippet row(source)}
-			<th scope="row">
-				<SourceLabel
-					name={source.name}
-					slug={source.slug}
-					href={resolve('/manage/sources/[id]/[[tab=tab]]', { id: String(source.id) })}
-				/>
-			</th>
-			<td>{VISIBILITY_LABEL[source.visibility]()}</td>
-			<td class="num">{count(source.pages)}</td>
-			<td class="num">{count(source.snippets)}</td>
-			<td class="num">{count(source.tokens)}</td>
-			<td><StatusBadge state={sourceState(source)} /></td>
-			<td class="when">
-				{#if source.lastCheck}
-					<DateTime value={source.lastCheck} timeZone={data.timeZone} short />
-				{:else}
-					{m.never()}
-				{/if}
-			</td>
-			<td class="num">
-				{#if source.deadLinks > 0}
-					<a
-						href="{resolve('/manage/dead-links')}#source-{source.id}"
-						aria-label={source.deadLinks === 1
-							? m.admin_dead_link()
-							: m.admin_dead_links({ count: source.deadLinks })}>{count(source.deadLinks)}</a
-					>
-				{:else}{count(source.deadLinks)}{/if}
-			</td>
+		{#snippet name(source)}
+			<SourceLabel
+				name={source.name}
+				slug={source.slug}
+				href={resolve('/manage/sources/[id]/[[tab=tab]]', { id: String(source.id) })}
+			/>
 		{/snippet}
 		{#snippet empty()}
 			{#if data.filtered}
@@ -108,12 +41,5 @@
 				<EmptyState text={m.no_sources_yet()} action={{ href: newSource, label: m.source_new() }} />
 			{/if}
 		{/snippet}
-	</DataTable>
+	</SourceTable>
 </section>
-
-<style>
-	.when {
-		color: var(--ink-2);
-		white-space: nowrap;
-	}
-</style>

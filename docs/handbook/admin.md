@@ -65,12 +65,12 @@ sessions are logged out; the browser you changed it in stays logged in.
 ## Sources
 
 !!! note "Shown on the start page"
-    The start page `/` lists the public sources to everyone, and to a logged-in user also the
-    internal ones: name, slug, short description, visibility, counts of pages, snippets and
-    tokens, and the time of the last successful sync, or `Not available yet`. Sync errors,
-    paused polling and dead links show only here in the management area. For public sources it
-    links the **Documentation** site; for admins every name leads to the source's management
-    view. **Try a query** searches what the viewer may read.
+    The start page `/` lists every source to everyone, internal ones included and without
+    logging in, with the same columns and filters as this list: visibility, counts of pages,
+    snippets and tokens, status (a sync error without its message, paused, not synced), last
+    check and the number of dead links, plus the short description. Nothing on it leads into the
+    management area. For public sources it links the **Documentation** site. **Try a query**
+    searches only what the viewer may read: without logging in, the public sources.
 
 Only admins add, change, sync, rename and delete sources; users read them and create their own API
 keys (see [Your account and API keys](users.md)).
@@ -100,7 +100,7 @@ The form of a source groups its fields into **General**, **Repository**, **Acces
 | **Path in the repository** | Relative to the repository root, such as `docs`; a trailing slash is dropped; empty for the whole repository; no `..`. |
 | **Exclusions** | Glob patterns relative to the repository root, one per line, such as `docs/drafts/**`, at most 1,000 characters and 4 groups in braces `{ }` each. |
 | **Schedule** | Cron with five fields in the instance's time zone, such as `0 6 * * 1-5` for weekdays at 6:00; empty uses the global schedule the label shows. The next three runs show below the field as you type; `Not a valid schedule yet.` there means saving will be refused. A schedule that never runs, such as `0 0 30 2 *`, is rejected. |
-| **Visibility** | **Internal** for a new source: the API key of every user, and every user logged in on the start page. **Public**: anyone who can reach grimoire, without an API key, over MCP and HTTP and in **Try a query** on the start page. Switch either way at any time; content read while a source was public cannot be taken back by making it internal. |
+| **Visibility** | **Internal** for a new source: read with the API key of every user and, logged in, in **Try a query**; listed on the start page to everyone, without its content. **Public**: anyone who can reach grimoire, without an API key, over MCP and HTTP and in **Try a query** on the start page. Switch either way at any time; content read while a source was public cannot be taken back by making it internal. |
 | **Paused** | Polling skips the source; only **Sync now** syncs it. |
 | **Username**, **Access token** | A read-only token of the Git host, see the table below. |
 

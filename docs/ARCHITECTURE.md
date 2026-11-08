@@ -92,8 +92,8 @@ Beside the sources, the admin area has:
 - **Settings** for the whole instance, today one switch that pauses the syncs of all sources
   (ADR 0002).
 
-The start page is open to everyone: every source with its visibility and stats, a query against
-the public sources and how to connect an agent.
+The start page is open to everyone: every source with its visibility, stats and sync state, a
+query against the public sources and how to connect an agent.
 
 **Secrets.** Access tokens are never output – not in the `Edit:` line, not in error messages,
 logs or the API. Git URLs are always shown without credentials.

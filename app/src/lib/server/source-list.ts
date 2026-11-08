@@ -11,7 +11,7 @@ const filters: Record<SourceFilter | 'visibility', (source: SourceStats) => stri
 
 /** How every list of sources searches, filters and sorts. */
 export const SOURCE_LIST: ListSpec<SourceStats> = {
-	search: (source) => `${source.name} ${source.slug}`,
+	search: (source) => `${source.name} ${source.slug} ${source.description}`,
 	filters,
 	sorts: {
 		name: (source) => source.name,

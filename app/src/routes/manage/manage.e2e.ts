@@ -426,15 +426,14 @@ test('imports the export on the setup page of an empty instance with another key
 	expect((await page.request.get(`${other}/setup`)).status()).toBe(404);
 });
 
-test('lists an internal source on the start page only once logged in, without its settings', async ({
+test('lists an internal source on the start page to a visitor, without its settings', async ({
 	page
 }) => {
 	await page.goto('/');
-	await expect(page.getByRole('row', { name: /auth-service/ })).toHaveCount(0);
-	await asAdmin(page);
-	await page.goto('/');
-	await expect(page.getByRole('row', { name: /auth-service/ })).toContainText('Login and billing');
-	// Synced once without success: its error message stays hidden, like the settings.
+	const row = page.getByRole('row', { name: /auth-service/ });
+	await expect(row).toContainText('Login and billing');
+	await expect(row.getByRole('link')).toHaveCount(0);
+	// Synced once without success: its state shows, its error message stays hidden like the settings.
 	const html = await page.content();
 	for (const detail of [GIT_HOST, 'does not exist', TOKEN]) {
 		expect(html).not.toContain(detail);
