@@ -405,10 +405,8 @@ export function managementCounts(db: DatabaseSync, request?: object): Management
 	const count = (sql: string) => (db.prepare(sql).get() as { count: number }).count;
 	return {
 		failedSources: count('SELECT count(*) AS count FROM sources WHERE error IS NOT NULL'),
-		deadLinks: count(
-			`SELECT count(*) AS count FROM links JOIN live_pages AS pages ON pages.id = links.page_id
-			WHERE links.dead = 1`
-		),
+		// Cached per index generation: a scan of every link would run on each page of the area.
+		deadLinks: sourceStats(db).reduce((sum, source) => sum + source.deadLinks, 0),
 		duplicates: sourceOverlaps(db, request).length,
 		invitations: count('SELECT count(*) AS count FROM invitations')
 	};

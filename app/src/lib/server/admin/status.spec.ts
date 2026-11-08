@@ -270,6 +270,24 @@ describe('dashboard', () => {
 		expect(managementCounts(db)).toMatchObject({ duplicates: 1, invitations: 1 });
 	});
 
+	it('counts the dead links of the new index after a sync', () => {
+		expect(managementCounts(db).deadLinks).toBe(1);
+
+		const deploy = Number(
+			db
+				.prepare(
+					`INSERT INTO pages (source_id, generation, file, title, content)
+					VALUES (5, 1, 'deploy.md', 'Deploy', '')`
+				)
+				.run().lastInsertRowid
+		);
+		insertLink(deploy, null, 'fine/gone', true);
+		insertLink(deploy, null, 'fine/moved', true);
+		db.exec('UPDATE sources SET index_generation = 1 WHERE id = 5');
+
+		expect(managementCounts(db).deadLinks).toBe(2);
+	});
+
 	it('adds up the figures of all sources and counts the API keys', () => {
 		expect(dashboard(db).totals).toEqual({
 			sources: 7,
