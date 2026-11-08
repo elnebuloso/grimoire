@@ -127,7 +127,10 @@ describe('source page', () => {
 			303,
 			'/manage/sources/1'
 		]);
-		expect(requestSyncInBackground).toHaveBeenCalledExactlyOnceWith(1, { force: true });
+		expect(requestSyncInBackground).toHaveBeenCalledExactlyOnceWith(1, {
+			force: true,
+			fresh: true
+		});
 	});
 
 	it('never puts the token into page data', async () => {
@@ -216,7 +219,11 @@ describe('source page', () => {
 		expect(await saveSource('1', SOURCE)).toEqual({ saved: true, reindexing: false });
 
 		expect(loadSource('1')).toMatchObject({ source: { paused: false } });
-		expect(requestSyncInBackground).toHaveBeenCalledExactlyOnceWith(1, { force: false });
+		// The form sends the token again, which counts as changed access.
+		expect(requestSyncInBackground).toHaveBeenCalledExactlyOnceWith(1, {
+			force: false,
+			fresh: true
+		});
 	});
 
 	it('forces a sync on save only when the index changes or the last sync failed', async () => {
@@ -242,6 +249,14 @@ describe('source page', () => {
 
 		db.prepare('UPDATE sources SET error = \'branch "develop" not found\' WHERE id = 1').run();
 		expect(await forcedAfter({})).toBe(true);
+		// A new token gets a run of its own, as a running one still uses the old token.
+		requestSyncInBackground.mockClear();
+		db.prepare('UPDATE sources SET error = NULL WHERE id = 1').run();
+		await thrown(() => saveSource('1', { ...fields, token: 'glpat-new-token' }));
+		expect(requestSyncInBackground).toHaveBeenCalledExactlyOnceWith(1, {
+			force: false,
+			fresh: true
+		});
 		// The answer tells the page which toast to show.
 		expect(await saveSource('1', { ...fields, path: 'handbook/' })).toEqual({
 			saved: true,

@@ -36,13 +36,18 @@ export function createSyncQueue(run: RunSync, { parallelChecks = PARALLEL_CHECKS
 	 * Queues a sync of one source. While one is waiting, its result is shared – unless this request
 	 * forces a sync and the waiting one does not, so "sync now" is never swallowed. A running sync
 	 * is shared only with unforced requests: a forced one queues the next run, since the running
-	 * one may have checked the branch before the commit the admin wants. The new run starts after
-	 * the one before it, so no source has more than one run waiting.
+	 * one may have checked the branch before the commit the admin wants. `fresh` does the same
+	 * without forcing a full index: the running sync read the settings before a save, such as a new
+	 * access token. The new run starts after the one before it, so no source has more than one run
+	 * waiting.
 	 */
-	function request(sourceId: number, { force = false } = {}): Promise<SyncResult> {
+	function request(sourceId: number, { force = false, fresh = false } = {}): Promise<SyncResult> {
 		const pendingJob = pending.get(sourceId);
-		if (pendingJob && !force) return pendingJob.promise;
-		if (pendingJob && pendingJob.force && !pendingJob.started()) return pendingJob.promise;
+		// A run that has not started reads the settings when it does.
+		if (pendingJob && !pendingJob.started() && (!force || pendingJob.force)) {
+			return pendingJob.promise;
+		}
+		if (pendingJob && !force && !fresh) return pendingJob.promise;
 
 		const previous = pendingJob ? pendingJob.promise.catch(() => undefined) : Promise.resolve();
 		let started = false;
@@ -61,7 +66,10 @@ export function createSyncQueue(run: RunSync, { parallelChecks = PARALLEL_CHECKS
 	}
 
 	/** Queues a sync without waiting for it; a failure ends up in the log. */
-	function requestInBackground(sourceId: number, options: { force?: boolean } = {}): void {
+	function requestInBackground(
+		sourceId: number,
+		options: { force?: boolean; fresh?: boolean } = {}
+	): void {
 		request(sourceId, options).catch((error: Error) => {
 			log.error({ err: error }, `sync of source ${sourceId} failed`);
 		});

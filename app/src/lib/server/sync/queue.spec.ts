@@ -76,6 +76,24 @@ describe('createSyncQueue', () => {
 		expect(fake.highest).toEqual({ check: 4, sync: 1 });
 	});
 
+	it('runs once more without forcing after a running sync when asked for a fresh one', async () => {
+		const fake = fakeSync();
+		const queue = createSyncQueue(fake.run);
+		const running = queue.request(1);
+		await flush();
+
+		const fresh = queue.request(1, { fresh: true });
+		expect(queue.request(1, { fresh: true })).toBe(fresh);
+		expect(queue.request(1)).toBe(fresh);
+		await fake.finishAll();
+		await Promise.all([running, fresh]);
+
+		expect(fake.started).toEqual([
+			[1, false],
+			[1, false]
+		]);
+	});
+
 	it('shares the pending sync of a source instead of queueing it twice', async () => {
 		const fake = fakeSync();
 		const queue = createSyncQueue(fake.run);

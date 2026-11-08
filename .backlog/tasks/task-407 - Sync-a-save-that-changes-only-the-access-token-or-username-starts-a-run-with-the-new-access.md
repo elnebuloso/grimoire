@@ -3,9 +3,11 @@ id: TASK-407
 title: >-
   Sync: a save that changes only the access token or username starts a run with
   the new access
-status: To Do
-assignee: []
+status: Done
+assignee:
+  - '@claude'
 created_date: '2026-11-08 19:51'
+updated_date: '2026-11-08 20:58'
 labels:
   - sync
   - admin
@@ -23,7 +25,19 @@ Found by the audit of 2026-11-08 (three independent reviewers, the severe findin
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 A save that changes token or username while that source syncs leads to one more run with the new access after the running one, without a forced full re-index
-- [ ] #2 A save that changes nothing about access still shares the running run as before
-- [ ] #3 A spec in `queue.spec.ts` covers both
+- [x] #1 A save that changes token or username while that source syncs leads to one more run with the new access after the running one, without a forced full re-index
+- [x] #2 A save that changes nothing about access still shares the running run as before
+- [x] #3 A spec in `queue.spec.ts` covers both
 <!-- AC:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+request in queue.ts takes `fresh`: like a forced request it does not share a run that has started, but runs unforced; a run still waiting is shared, as it reads the settings when it starts (same rule as before for forced requests). The save action passes fresh: changes.access. An unchanged run clears the stored sync error (clearSyncError), so the run with the new token removes a refusal the old run stored. Specs: queue.spec.ts "runs once more without forcing after a running sync when asked for a fresh one" fails without the change; sources.spec.ts asserts { force, fresh } on create, resave and a token-only change.
+<!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Saving a source whose username or token changed now queues one more, unforced run after a sync of that source already running, so the new access is used right away instead of at the next scheduled check. Queue and route specs updated.
+<!-- SECTION:FINAL_SUMMARY:END -->

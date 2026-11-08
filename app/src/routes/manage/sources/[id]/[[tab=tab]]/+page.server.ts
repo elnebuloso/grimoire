@@ -171,8 +171,11 @@ export const actions = {
 
 		// Forced only when the index changes, so a changed path or exclusions take effect without
 		// waiting for a new commit; a forced sync of a large source holds every other one for minutes.
+		// Changed access gets a run of its own: one already running still uses the old token.
 		const syncs = syncsAutomatically(db, form);
-		if (syncs) requestSyncInBackground(result.id, { force: changes.reindex });
+		if (syncs) {
+			requestSyncInBackground(result.id, { force: changes.reindex, fresh: changes.access });
+		}
 		// A new source opens on its status; saved settings stay in view, and the answer says
 		// whether a sync of the whole source started or only a check for a new commit.
 		if (!source) redirect(303, `/manage/sources/${result.id}`);
