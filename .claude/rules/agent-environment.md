@@ -53,4 +53,4 @@ with another claim. The per-provider variables are exported by `scripts/agent-en
 written to `.env`: SvelteKit reads only declared variables from there.
 
 The dev server runs over plain `http`, so curl needs no `X-Forwarded-Proto` header here; the
-other curl notes in `memory.md` apply.
+other curl notes in `.claude/memory/trying-by-hand.md` apply.
