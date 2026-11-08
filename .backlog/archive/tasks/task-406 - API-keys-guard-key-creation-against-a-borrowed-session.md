@@ -4,6 +4,7 @@ title: 'API keys: guard key creation against a borrowed session'
 status: To Do
 assignee: []
 created_date: '2026-11-08 19:51'
+updated_date: '2026-11-08 19:55'
 labels:
   - admin
   - agent-api
@@ -25,3 +26,9 @@ Found by the audit of 2026-11-08 (three independent reviewers, the severe findin
 - [ ] #2 The chosen guard works for a password account and has a defined behaviour for an OIDC-only account, covered by specs
 - [ ] #3 `docs/handbook/users.md` says what the user must do; new texts exist in every `app/messages/<locale>.json` and follow `.claude/rules/glossary-de.md`
 <!-- AC:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Owner decision (2026-11-08): dropped. Whoever sits at an unlocked machine with an open session can read and copy everything directly anyway; the key shows in the owner's list and can be revoked there.
+<!-- SECTION:NOTES:END -->

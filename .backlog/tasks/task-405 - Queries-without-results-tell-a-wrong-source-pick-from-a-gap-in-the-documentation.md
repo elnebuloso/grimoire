@@ -6,6 +6,7 @@ title: >-
 status: To Do
 assignee: []
 created_date: '2026-11-08 19:51'
+updated_date: '2026-11-08 19:55'
 labels:
   - admin
   - agent-api
@@ -23,7 +24,13 @@ Found by the audit of 2026-11-08 (three independent reviewers, the severe findin
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 The owner's decision (leave out or mark) is recorded in the task before implementation
+- [x] #1 The owner's decision (leave out or mark) is recorded in the task before implementation
 - [ ] #2 A question whose missed words another readable source holds is recorded as decided, covered by a spec in `operations.spec.ts`
 - [ ] #3 The page and `docs/handbook/admin.md` (Queries without results) describe what such an entry means; new texts exist in every `app/messages/<locale>.json`
 <!-- AC:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Owner decision (2026-11-08): keep such questions on the list, marked with the other sources that held the words; that also shows which sources agents confuse.
+<!-- SECTION:NOTES:END -->
