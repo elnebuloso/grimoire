@@ -1,6 +1,7 @@
 <script module lang="ts">
 	import { defineMeta } from '@storybook/addon-svelte-csf';
 	import { expect, within } from 'storybook/test';
+	import type { ListPage } from '#lib/list.js';
 	import SourceLabel from './SourceLabel.svelte';
 	import SourceTable, { type SourceRow } from './SourceTable.svelte';
 
@@ -38,7 +39,8 @@
 			deadLinks: 0
 		}
 	];
-	const list = { rows, total: rows.length, page: 1, pageCount: 1 };
+	const list: ListPage<Source> = { rows, total: rows.length, page: 1, pageCount: 1 };
+	const noSources: ListPage<Source> = { rows: [], total: 0, page: 1, pageCount: 1 };
 </script>
 
 <Story
@@ -97,7 +99,7 @@
 	}}
 >
 	{#snippet template()}
-		<SourceTable list={{ rows: [], total: 0, page: 1, pageCount: 1 }} timeZone="UTC">
+		<SourceTable list={noSources} timeZone="UTC">
 			{#snippet name(source)}<SourceLabel name={String(source.id)} slug="" />{/snippet}
 			{#snippet empty()}<p>No sources yet.</p>{/snippet}
 		</SourceTable>

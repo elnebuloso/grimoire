@@ -107,12 +107,12 @@
 		</td>
 		<td class="num">
 			{#if deadLinksHref && source.deadLinks > 0}
-				<a
-					href={deadLinksHref(source)}
-					aria-label={source.deadLinks === 1
+				{@const label =
+					source.deadLinks === 1
 						? m.admin_dead_link()
-						: m.admin_dead_links({ count: source.deadLinks })}>{count(source.deadLinks)}</a
-				>
+						: m.admin_dead_links({ count: source.deadLinks })}
+				<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- the caller resolves it -->
+				<a href={deadLinksHref(source)} aria-label={label}>{count(source.deadLinks)}</a>
 			{:else}{count(source.deadLinks)}{/if}
 		</td>
 	{/snippet}
