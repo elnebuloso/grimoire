@@ -24,5 +24,3 @@
   with goto's arguments. A story listens to these to see what a form posts or a table navigates to.
 - `play` cannot use Storybook's deferred `mount` through the Svelte CSF wrapper
   (`MountMustBeDestructuredError`): stub timers after mount instead.
-- Stories run twice, in a light and a dark Chromium instance (`vite.config.ts`), so axe checks
-  the contrast of both schemes.

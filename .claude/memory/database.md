@@ -1,7 +1,5 @@
 # Database
 
-- `/setup` reopens whenever no account has the role `admin`, not only on an empty instance. The
-  UI cannot get there (the last admin keeps the role); a direct database edit can.
 - `app/src/lib/server/fixtures/export-schema-4.grimoire-export` is never written again. It stands
   for exports made by 1.4.0; specs and the image smoke import it through every later migration.
   Its private source arrives as internal, its users without identities.
