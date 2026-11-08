@@ -310,6 +310,28 @@ describe('syncSource', () => {
 		expect(await sync()).toMatchObject({ status: 'synced', commit: 'c1' });
 	});
 
+	it('does not clone a commit again whose clone timed out, until forced or the branch moves', async () => {
+		const timeout = new SyncFailure('unreachable', 'git clone failed: no answer within 300 s');
+		vi.mocked(sparseClone).mockRejectedValueOnce(timeout);
+		expect(await sync()).toMatchObject({ status: 'failed', kind: 'unreachable' });
+
+		expect(await sync()).toMatchObject({
+			status: 'failed',
+			kind: 'unreachable',
+			error: 'git clone failed: no answer within 300 s',
+			commit: 'c1'
+		});
+		expect(sparseClone).toHaveBeenCalledTimes(1);
+
+		expect(await sync(source, { force: true })).toMatchObject({ status: 'synced' });
+		vi.mocked(sparseClone).mockRejectedValueOnce(timeout);
+		branchAt('c2');
+		await sync();
+		branchAt('c3');
+		expect(await sync()).toMatchObject({ status: 'synced', commit: 'c3' });
+		expect(sparseClone).toHaveBeenCalledTimes(4);
+	});
+
 	it('remembers the commit it cloned as failed, not the one the check saw', async () => {
 		vi.mocked(remoteCommit).mockResolvedValue('c1');
 		vi.mocked(headCommit).mockResolvedValue('c2');

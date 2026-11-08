@@ -18,7 +18,7 @@ import { decryptSecret } from '../secret-encryption';
 import { sha256 } from '../sha256';
 import { ConnectionRefused, type ConnectionPolicy } from './connection-policy';
 import { syncErrorKind } from './error-kind';
-import { SyncFailure, type SyncErrorKind } from './failure';
+import { SyncFailure, TIMED_OUT, type SyncErrorKind } from './failure';
 import { headCommit, redact, remoteCommit, sparseClone, type GitRemote } from './git';
 import type { IndexJob, IndexOutcome } from './index-worker';
 import type { SyncLanes } from './queue';
@@ -102,6 +102,7 @@ async function checkAndSync(
 	// Set again when the check really starts; also recorded when it never got that far, so a
 	// broken source waits for its next scheduled run instead of being retried on every tick.
 	let checkedAt = new Date();
+	let cloningCommit: string | undefined;
 	let indexingCommit: string | undefined;
 
 	try {
@@ -125,12 +126,13 @@ async function checkAndSync(
 		if (
 			latest === source.failedCommit &&
 			storedKind &&
-			REPEATING_KINDS.has(storedKind) &&
+			repeats(storedKind, source.error!) &&
 			!options.force
 		) {
 			return { status: 'failed', error: source.error!, kind: storedKind, commit: latest };
 		}
 
+		cloningCommit = latest;
 		const synced = await lanes.sync(async () => {
 			const checkout = await mkdtemp(join(options.workDirectory ?? tmpdir(), 'grimoire-sync-'));
 			try {
@@ -165,9 +167,12 @@ async function checkAndSync(
 		const kind = failureKind(error as Error);
 		// Once indexing started, the commit is remembered as failed when the failure repeats, and
 		// forgotten when it passes, so an older failure of the same commit no longer holds it back.
-		const remembered = REPEATING_KINDS.has(kind) && !indexSettingsChanged(db, source);
-		const failedCommit =
-			indexingCommit === undefined ? undefined : remembered ? indexingCommit : null;
+		// A clone that repeats, such as one stopped at its time limit, is remembered by the commit
+		// the check saw: retried every interval, it would hold the single sync slot for good.
+		const repeating = repeats(kind, message);
+		const remembered = repeating && !indexSettingsChanged(db, source);
+		const attempted = indexingCommit ?? (repeating ? cloningCommit : undefined);
+		const failedCommit = attempted === undefined ? undefined : remembered ? attempted : null;
 		recordSyncError(db, sourceId, { message, kind }, failedCommit);
 		return { status: 'failed', error: message, kind, commit: indexingCommit };
 	} finally {
@@ -178,6 +183,10 @@ async function checkAndSync(
 // Indexing the same commit again fails the same way for these; a network error or a locked
 // database while indexing passes, so its commit is tried again at the next check.
 const REPEATING_KINDS = new Set<SyncErrorKind>(['noPage', 'path', 'deadline', 'aborted']);
+
+function repeats(kind: SyncErrorKind, message: string): boolean {
+	return REPEATING_KINDS.has(kind) || TIMED_OUT.test(message);
+}
 
 function failureKind(error: Error): SyncErrorKind {
 	if (error instanceof SyncFailure) return error.kind;

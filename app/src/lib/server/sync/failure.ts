@@ -24,3 +24,6 @@ export class SyncFailure extends Error {
 
 /** A host name that does not resolve: from the connection check, Node's lookup or Git itself. */
 export const UNRESOLVABLE = /has no address|ENOTFOUND|EAI_AGAIN|Could not resolve host/;
+
+/** A Git call that was stopped at its time limit; on the same commit it would run as long again. */
+export const TIMED_OUT = /^git \S+ failed: no answer within /;

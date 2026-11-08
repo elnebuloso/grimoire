@@ -212,11 +212,12 @@ detail.
 | none | `invalid cron expression "0 25 * * *": …` | Correct **Schedule**. |
 | none | `the source was changed or deleted while this sync waited; the next sync indexes it as it is now` | Nothing to do: the source keeps its previous index, and the sync that saving started indexes with the new settings. For a paused source, click **Sync now**. |
 
-When indexing fails because of the commit's content (no page could be indexed, the source path is
-missing, indexing ran past its time limit or out of memory), that commit is not indexed again:
-checks keep showing the error until the branch moves on. **Sync now** and saving the source try the
-same commit again. Any other failure while indexing, such as the Git server not answering, is
-retried at the next check.
+When a sync fails in a way that would repeat on the same commit (no page could be indexed, the
+source path is missing, indexing ran past its time limit or out of memory, or cloning took longer
+than 5 minutes: `git clone failed: no answer within 300 s`), that commit is not synced again: checks
+keep showing the error until the branch moves on. **Sync now** and saving the source try the
+same commit again. Any other failure, such as the Git server refusing the connection, is retried at
+the next check.
 
 A Git server that does not answer within 30 seconds is skipped until the next scheduled check and
 shows as error. Warnings about single pages and includes are for the authors; they explain them on
