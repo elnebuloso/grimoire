@@ -41,17 +41,18 @@ describe('clientKey', () => {
 	it.each([
 		['192.0.2.1', '192.0.2.1'],
 		['::ffff:192.0.2.1', '192.0.2.1'],
-		['2001:db8:1:2:aaaa::1', '2001:db8:1:2::/64'],
-		['2001:DB8:1:2:bbbb:cccc:dddd:eeee', '2001:db8:1:2::/64'],
-		['2001:0db8:0001::1', '2001:db8:1:0::/64'],
-		['::1', '0:0:0:0::/64'],
-		['64:ff9b::192.0.2.1', '64:ff9b:0:0::/64'],
-		['fe80::1%eth0', 'fe80:0:0:0::/64']
+		['2001:db8:1:2:aaaa::1', '2001:db8:1:0::/56'],
+		['2001:DB8:1:12ab:bbbb:cccc:dddd:eeee', '2001:db8:1:1200::/56'],
+		['2001:0db8:0001::1', '2001:db8:1:0::/56'],
+		['::1', '0:0:0:0::/56'],
+		['64:ff9b::192.0.2.1', '64:ff9b:0:0::/56'],
+		['fe80::1%eth0', 'fe80:0:0:0::/56']
 	])('limits %s as %s', (address, key) => {
 		expect(clientKey(address)).toBe(key);
 	});
 
-	it('tells addresses of different /64 networks apart', () => {
-		expect(clientKey('2001:db8:1:2::1')).not.toBe(clientKey('2001:db8:1:3::1'));
+	it('counts the /64 networks of one /56 as one client and tells /56 networks apart', () => {
+		expect(clientKey('2001:db8:1:1200::1')).toBe(clientKey('2001:db8:1:12ff::1'));
+		expect(clientKey('2001:db8:1:1200::1')).not.toBe(clientKey('2001:db8:1:1300::1'));
 	});
 });

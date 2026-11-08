@@ -42,8 +42,9 @@ export function createAttemptLimit(max: number, windowMinutes: number) {
 }
 
 /**
- * The key a client address is limited by: an IPv6 address by its `/64`, which one client usually
- * holds whole and could rotate through, every other address as it is.
+ * The key a client address is limited by: an IPv6 address by its `/56`, every other address as it
+ * is. A home connection is usually delegated a whole `/56`, 256 networks of `/64`; keyed by `/64`,
+ * one client could rotate through them and multiply every limit by 256.
  */
 export function clientKey(address: string): string {
 	const plain = address.split('%')[0];
@@ -56,8 +57,7 @@ export function clientKey(address: string): string {
 	const size = (parts: string[]) => parts.length + (parts.at(-1)?.includes('.') ? 1 : 0);
 	const zeros = tail === undefined ? 0 : 8 - size(groups(head)) - size(groups(tail));
 	const all = [...groups(head), ...Array<string>(zeros).fill('0'), ...groups(tail)];
-	return `${all
-		.slice(0, 4)
-		.map((group) => parseInt(group, 16).toString(16))
-		.join(':')}::/64`;
+	const prefix = all.slice(0, 4).map((group) => parseInt(group, 16));
+	prefix[3] &= 0xff00;
+	return `${prefix.map((group) => group.toString(16)).join(':')}::/56`;
 }

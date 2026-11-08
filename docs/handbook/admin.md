@@ -27,7 +27,7 @@ characters.
   get `Too many failed logins. Try again later.`, also with the right password. Wait 15 minutes.
   A successful login clears the failures for its own account only. A wrong current password under
   **Change the password** counts as a failed login.
-  IPv6 addresses of one `/64` network count as one client address.
+  IPv6 addresses of one `/56` network count as one client address.
 - The same message appears for everybody while the server is busy checking many logins at once.
   Try again after a moment.
 - **Language** and **Theme** are in the menu under your address at the top right; before you
