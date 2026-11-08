@@ -1,13 +1,14 @@
-# 24.22.1 at least: older Node 24 releases carry a Brotli decoder flaw that the Debian `nodejs`
-# package has not fixed, so the base is the official Node image.
-FROM node:24.22.1-trixie-slim AS build
+# The official Node image, not Debian's `nodejs`, which lags behind on security fixes (it kept a
+# Brotli decoder flaw fixed in Node 24.22.1). Node 24 rolling: every build takes its newest minor
+# and patch release, so security fixes arrive without a change here.
+FROM node:24-trixie-slim AS build
 WORKDIR /grimoire/app
 COPY app/package.json app/package-lock.json ./
 RUN npm ci
 COPY app/ ./
 RUN npm run build && npm prune --omit=dev
 
-FROM node:24.22.1-trixie-slim
+FROM node:24-trixie-slim
 RUN apt-get update \
 	&& apt-get install --yes --no-install-recommends git ca-certificates tini \
 	&& rm -rf /var/lib/apt/lists/* \
