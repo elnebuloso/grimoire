@@ -119,9 +119,3 @@ Pull requests run the same checks without releasing.
 ## License
 
 [MIT](LICENSE)
-
-## Acknowledgements
-
-Inspired by [Context7](https://context7.com), which serves the documentation of public libraries
-to AI agents. grimoire does it for the internal knowledge of an organisation: how your services,
-tools and processes work and how to use them.
