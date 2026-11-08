@@ -215,7 +215,7 @@ function exclusionsJson(exclusions: string): string {
 	);
 }
 
-/** Another source `form` would duplicate or overlap; no name when the user may not see it. */
+/** Another source `form` would duplicate or overlap, named in the message. */
 export interface SourceConflict {
 	kind: Overlap;
 	name: string;
