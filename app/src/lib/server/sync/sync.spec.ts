@@ -167,6 +167,21 @@ describe('syncSource', () => {
 		expect(readdirSync(work)).toEqual([]);
 	});
 
+	it('syncs a path and includes from directories whose names Git reads as patterns', async () => {
+		commitFiles({
+			'content/[lang]/index.md': '# Start\n\n--8<-- "shared/[v2]/note.md"\n',
+			'shared/[v2]/note.md': 'Rollback takes ten minutes.\n'
+		});
+		db.prepare("UPDATE sources SET path = 'content/[lang]' WHERE id = ?").run(source);
+
+		const result = await syncSource(db, source, { key, policy: LOCAL, workDirectory: work });
+
+		expect(result).toMatchObject({ status: 'synced', pages: 1, warnings: [] });
+		expect(rows('SELECT content FROM snippets')).toEqual([
+			{ content: expect.stringContaining('Rollback takes ten minutes.') }
+		]);
+	});
+
 	it('skips an unchanged branch and replaces the index after a new commit', async () => {
 		await syncSource(db, source, { key, policy: LOCAL, workDirectory: work });
 		expect(await syncSource(db, source, { key, policy: LOCAL, workDirectory: work })).toMatchObject(

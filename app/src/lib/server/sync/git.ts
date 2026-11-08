@@ -175,15 +175,22 @@ export async function sparseClone(remote: GitRemote, branch: string, path: strin
 		],
 		connection
 	);
-	// Fetches the blobs of `path` lazily, from the URL the clone stored.
+	// Fetches the blobs of `path` lazily, from the URL the clone stored. `--skip-checks` here and
+	// below: cone mode refuses a directory named with `*?[]\` otherwise, and escapes them itself.
 	if (!wholeRepository) {
-		await git(['-C', dir, 'sparse-checkout', 'set', '--', path], await connect(remote));
+		await git(
+			['-C', dir, 'sparse-checkout', 'set', '--skip-checks', '--', path],
+			await connect(remote)
+		);
 	}
 }
 
 /** Checks out further directories of a sparse clone, fetching their files from the remote. */
 export async function addSparseDirectories(remote: GitRemote, dir: string, directories: string[]) {
-	await git(['-C', dir, 'sparse-checkout', 'add', '--', ...directories], await connect(remote));
+	await git(
+		['-C', dir, 'sparse-checkout', 'add', '--skip-checks', '--', ...directories],
+		await connect(remote)
+	);
 }
 
 export async function headCommit(dir: string): Promise<string> {
