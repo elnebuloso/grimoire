@@ -8,6 +8,7 @@ import {
 	readdirSync,
 	readFileSync,
 	rmSync,
+	symlinkSync,
 	writeFileSync
 } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -66,7 +67,7 @@ function git(cwd: string, ...args: string[]) {
 	);
 }
 
-function commitFiles(files: Record<string, string | null>, repository = bare) {
+function commitFiles(files: Record<string, string | null | { link: string }>, repository = bare) {
 	const clone = mkdtempSync(join(root, 'edit-'));
 	git(root, 'clone', '--quiet', repository, clone);
 	for (const [path, content] of Object.entries(files)) {
@@ -75,7 +76,8 @@ function commitFiles(files: Record<string, string | null>, repository = bare) {
 			continue;
 		}
 		mkdirSync(dirname(join(clone, path)), { recursive: true });
-		writeFileSync(join(clone, path), content);
+		if (typeof content === 'string') writeFileSync(join(clone, path), content);
+		else symlinkSync(content.link, join(clone, path));
 	}
 	git(clone, 'add', '--all');
 	git(clone, 'commit', '--quiet', '-m', 'change');
@@ -180,6 +182,31 @@ describe('syncSource', () => {
 		expect(rows('SELECT content FROM snippets')).toEqual([
 			{ content: expect.stringContaining('Rollback takes ten minutes.') }
 		]);
+	});
+
+	it('follows symlinks from the source path into the rest of the repository', async () => {
+		commitFiles({
+			'docs/runbooks': { link: '../ops/runbooks' },
+			'docs/oncall.md': { link: '../ops/oncall.md' },
+			'ops/runbooks/restart.md': '# Restart\n\nRestart the gateway.\n',
+			'ops/oncall.md': '# On call\n\nPage the platform team.\n',
+			'handbook/index.md': '# Handbook\n',
+			site: { link: 'handbook' }
+		});
+
+		const result = await syncSource(db, source, { key, policy: LOCAL, workDirectory: work });
+
+		expect(result).toMatchObject({ status: 'synced' });
+		expect(
+			rows("SELECT file FROM pages WHERE file IN ('oncall.md', 'runbooks/restart.md')")
+		).toEqual([{ file: 'oncall.md' }, { file: 'runbooks/restart.md' }]);
+		db.prepare("UPDATE sources SET path = 'site', last_commit = NULL WHERE id = ?").run(source);
+		expect(await syncSource(db, source, { key, policy: LOCAL, workDirectory: work })).toMatchObject(
+			{
+				status: 'synced',
+				pages: 1
+			}
+		);
 	});
 
 	it('skips an unchanged branch and replaces the index after a new commit', async () => {

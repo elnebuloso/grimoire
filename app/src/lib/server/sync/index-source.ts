@@ -1,4 +1,12 @@
-import { readdirSync, readFileSync, realpathSync, statSync } from 'node:fs';
+import {
+	existsSync,
+	lstatSync,
+	readdirSync,
+	readFileSync,
+	readlinkSync,
+	realpathSync,
+	statSync
+} from 'node:fs';
 import { isAbsolute, join, matchesGlob, posix, relative } from 'node:path';
 import { resolveIncludes, type IncludeResult, type UrlContent } from '../parsing/include.ts';
 import { hasGrimoireId } from '../grimoire-id.ts';
@@ -51,6 +59,7 @@ export async function prepareCheckout(
 	const read = (path: string) => readInside(root, path);
 	const warnings: string[] = [];
 	const raw = new Map<string, string>();
+	await fetchLinkTargets(root, sourcePath, fetchDirectories);
 	const listed = listPages(checkout, sourcePath, source.exclusions);
 	for (const file of listed) {
 		if (!hasGrimoireId(file)) {
@@ -156,6 +165,52 @@ async function withinDeadline(
 	} finally {
 		clearTimeout(timer);
 	}
+}
+
+/**
+ * Checks out the targets of symlinks that point from the source path into the rest of the
+ * repository: the sparse clone holds only the source path, so such a link points at nothing until
+ * its target is there. Round by round, as a fetched directory may hold links of its own.
+ */
+async function fetchLinkTargets(
+	root: string,
+	sourcePath: string,
+	fetchDirectories: FetchDirectories
+) {
+	if (sourcePath === '.') return;
+	const fetched = new Set<string>();
+	let pending = [sourcePath];
+	while (pending.length > 0) {
+		const missing = new Set(
+			pending.flatMap((path) => missingLinkTargets(root, path)).filter((dir) => !fetched.has(dir))
+		);
+		if (missing.size > 0) await fetchDirectories([...missing]);
+		missing.forEach((directory) => fetched.add(directory));
+		pending = [...missing];
+	}
+}
+
+/** The directories to check out for the links at or below `path` whose targets are not there. */
+function missingLinkTargets(root: string, path: string): string[] {
+	const full = join(root, path);
+	let stats;
+	try {
+		stats = lstatSync(full);
+	} catch {
+		return [];
+	}
+	if (stats.isSymbolicLink()) {
+		const target = readlinkSync(full);
+		// An absolute target, or one above the root, lies outside the repository: never fetched.
+		if (isAbsolute(target)) return [];
+		const resolved = posix.normalize(posix.join(posix.dirname(path), target));
+		if (resolved.startsWith('..') || existsSync(join(root, resolved))) return [];
+		return [resolved.endsWith('.md') ? posix.dirname(resolved) : resolved];
+	}
+	if (!stats.isDirectory()) return [];
+	return readdirSync(full)
+		.filter((name) => name !== '.git')
+		.flatMap((name) => missingLinkTargets(root, posix.join(path, name)));
 }
 
 /** Markdown files below the source path, relative to it, without excluded ones. */
