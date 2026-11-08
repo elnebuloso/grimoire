@@ -17,6 +17,17 @@ next to it.
 - **Success is a toast, an error stays at the field.** A changing action reports its outcome in a
   toast that names the affected item; validation errors stay in the form next to the field.
 - **Dialogs are Svelte dialogs**, not `confirm()` and not a separate confirmation page.
+- **Confirmation in three levels.** An action that can be undone and affects nobody else asks
+  nothing (save, sync, pause). One that affects others or is hard to take back asks in a dialog
+  that states the consequence and names the action on its button ("Revoke", never "OK"): revoking
+  a key, changing a role, deleting a user, making a source public. One that destroys data or breaks
+  links from outside asks for the slug to be typed: deleting a source, changing its slug.
+- **Help where the fix is done.** How to fix a problem is said on the page where it is fixed; an
+  overview links there instead of explaining it.
+- **Every list has an empty state** that says why it is empty and, where there is one, offers the
+  action that changes that.
+- **URLs stay** unless there is a reason to change them: the handbook, bookmarks and mails point
+  to them.
 - **Exceptions only for technical or security reasons:** the pages with `csr = false` (login,
   password reset, invitation, setup, single sign-on callback) stay plain forms, because hydrating
   them would reset what was typed before it finished, and the callback must not run its load a
@@ -24,6 +35,12 @@ next to it.
 
 ## When something becomes a component
 
+- **One thing, one place.** Every function has exactly one home. Where a second page needs it,
+  that page links there or shows a filtered view of the same component, never a second
+  implementation.
+- **No third-party component library.** Native elements (`<dialog>`, `<details>`, `popover`) and
+  the project's own small components carry the UI; a library would bring a second design system
+  next to the tokens.
 - **The catalog is the inventory.** Before writing markup for a form field, a table or a list,
   look through `app/src/lib/components/` (or `make storybook`, `http://localhost:6006`) and extend
   what is there instead of writing a second one. No list of components is kept anywhere else; it
