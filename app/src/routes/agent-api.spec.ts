@@ -353,6 +353,35 @@ describe('POST /mcp', () => {
 		return { error: result.isError as boolean, text: result.content[0].text as string };
 	}
 
+	it('refuses a batch of messages and runs none of them', async () => {
+		const query = (n: number) => ({
+			jsonrpc: '2.0',
+			id: n,
+			method: 'tools/call',
+			params: { name: 'query', arguments: { query: 'zebracrossing' } }
+		});
+		const request = new Request('https://grimoire.example/mcp', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				Accept: 'application/json, text/event-stream',
+				Authorization: `Bearer ${allKey}`
+			},
+			body: JSON.stringify([query(1), query(2)])
+		});
+		const response = await mcp({ request } as never);
+
+		expect(response.status).toBe(400);
+		expect((await response.json()).error).toEqual({
+			code: -32600,
+			message: 'Invalid Request: send one message per request, not a batch'
+		});
+		// A query without results is recorded: none ran.
+		expect(listMissedQueries(db)).toEqual([]);
+		await tool('query', { query: 'zebracrossing' });
+		expect(listMissedQueries(db)).toHaveLength(1);
+	});
+
 	it('rejects a missing or unknown key before any MCP message', async () => {
 		for (const key of [null, 'grimoire_unknown']) {
 			const response = await call('tools/list', {}, key);

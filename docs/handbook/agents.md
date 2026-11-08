@@ -37,7 +37,8 @@ Edit: https://git.example.com/platform/auth-service.git (main) docs/deploy.md
 
 Endpoint `/mcp`, Streamable HTTP, tools `sources`, `index`, `query` and `read`. `query` takes the
 sources to search as a list, `sources: ["auth-service", "gateway"]`, and the budget as `tokens`. Authentication
-is the API key header only, without OAuth. With Claude Code:
+is the API key header only, without OAuth. Each request carries one JSON-RPC message; a batch is
+refused with `400`. With Claude Code:
 
 ```bash
 claude mcp add --transport http --scope user grimoire https://grimoire.example.com/mcp \

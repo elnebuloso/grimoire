@@ -88,14 +88,30 @@ export async function mcpResponse(request: Request): Promise<Response> {
 		const db = database();
 		const result = scopeForRequest(db, request);
 		if (!result) return unauthorizedResponse();
+		let parsedBody: unknown;
+		try {
+			parsedBody = JSON.parse(await request.text());
+		} catch {
+			return jsonRpcError(-32700, 'Parse error: Invalid JSON');
+		}
+		// The transport runs up to 100 batched calls in a row on the only thread; the limits of a
+		// single query bound what one request costs only while a request holds one message.
+		if (Array.isArray(parsedBody) && parsedBody.length > 1) {
+			return jsonRpcError(-32600, 'Invalid Request: send one message per request, not a batch');
+		}
 		const transport = new WebStandardStreamableHTTPServerTransport({
 			sessionIdGenerator: undefined,
 			enableJsonResponse: true
 		});
 		await createMcpServer(db, result.scope, INSTANCE_NAME).connect(transport);
-		return await transport.handleRequest(request);
+		return await transport.handleRequest(request, { parsedBody });
 	} catch (error) {
 		log.error({ err: error }, `${request.method} ${new URL(request.url).pathname} failed`);
 		return markdownResponse(SERVER_FAILED, 500);
 	}
+}
+
+/** A JSON-RPC error answered with 400, as the transport answers a message it cannot take. */
+function jsonRpcError(code: number, message: string): Response {
+	return Response.json({ jsonrpc: '2.0', error: { code, message }, id: null }, { status: 400 });
 }
