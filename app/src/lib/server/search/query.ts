@@ -173,6 +173,8 @@ export function searchHits(db: DatabaseSync, options: SearchOptions): SearchResu
 	const expressions: string[] = [];
 	const unknown: string[] = [];
 	const notes: string[] = [];
+	// Each word missing here, with the likely correction when only another source might hold it.
+	const missed: string[][] = [];
 	for (const term of searchTerms(options.query)) {
 		const exact = toMatchExpression([term]);
 		if (occursHere(exact)) {
@@ -180,13 +182,18 @@ export function searchHits(db: DatabaseSync, options: SearchOptions): SearchResu
 			continue;
 		}
 		unknown.push(term);
-		const fallback = searchInstead(db, term, occursHere);
+		const candidates =
+			term.length >= MIN_TYPO_LENGTH
+				? termsOneEditAway(db, term).slice(0, MAX_TYPO_CANDIDATES)
+				: [];
+		const fallback = searchInstead(term, candidates, occursHere);
+		missed.push(fallback ? [term] : [term, ...candidates.slice(0, 1)]);
 		expressions.push(...(fallback ? [fallback.match] : []));
 		notes.push(fallback ? `${term} (searched as ${fallback.shown})` : term);
 	}
 	const elsewhere =
 		sources && unknown.length > 0
-			? otherSourcesContaining(db, unknown, options.sources ?? [], options.allowedSources)
+			? otherSourcesContaining(db, missed, options.sources ?? [], options.allowedSources)
 			: [];
 	const nothing = { hits: [], skipped: [], unknown: [], elsewhere, markdown: '' };
 	if (expressions.length === 0) return nothing;
@@ -236,7 +243,7 @@ const MAX_OTHER_SOURCES = 5;
 // named are checked with one.
 function otherSourcesContaining(
 	db: DatabaseSync,
-	words: string[],
+	words: string[][],
 	searched: string[],
 	scope: SourceScope
 ): string[] {
@@ -247,9 +254,9 @@ function otherSourcesContaining(
 	if (others.length === 0) return [];
 	const found = new Map<SourceRange, { words: number; matches: number }>();
 	const lookup = db.prepare('SELECT rowid FROM snippets_fts WHERE snippets_fts MATCH :match');
-	for (const word of words) {
+	for (const forms of words) {
 		const counted = new Set<SourceRange>();
-		for (const { rowid } of lookup.iterate({ match: toMatchExpression([word]) }) as Iterable<{
+		for (const { rowid } of lookup.iterate({ match: toMatchExpression(forms) }) as Iterable<{
 			rowid: number;
 		}>) {
 			const range = rangeHolding(others, rowid);
@@ -263,7 +270,7 @@ function otherSourcesContaining(
 			found.set(range, tally);
 		}
 	}
-	const match = toMatchExpression(words);
+	const match = toMatchExpression(words.flat());
 	const named: string[] = [];
 	const ranked = [...found].sort(
 		([a, tallyA], [b, tallyB]) =>
@@ -287,16 +294,12 @@ const MIN_PREFIX_LENGTH = 5;
 
 /** What to search for a word no searched source contains: the closest index term, else its prefix. */
 function searchInstead(
-	db: DatabaseSync,
 	term: string,
+	candidates: string[],
 	occursHere: (match: string) => boolean
 ): { match: string; shown: string } | null {
-	if (term.length >= MIN_TYPO_LENGTH) {
-		const closest = termsOneEditAway(db, term)
-			.slice(0, MAX_TYPO_CANDIDATES)
-			.find((candidate) => occursHere(toMatchExpression([candidate])));
-		if (closest) return { match: toMatchExpression([closest]), shown: closest };
-	}
+	const closest = candidates.find((candidate) => occursHere(toMatchExpression([candidate])));
+	if (closest) return { match: toMatchExpression([closest]), shown: closest };
 	if (term.length >= MIN_PREFIX_LENGTH && occursHere(`"${term}"*`)) {
 		return { match: `"${term}"*`, shown: `${term}*` };
 	}

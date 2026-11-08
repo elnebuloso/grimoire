@@ -302,6 +302,19 @@ describe('searchSnippets', () => {
 			).toEqual(['ops-handbook', 'api-docs', 'web-docs']);
 		});
 
+		it('names them for a typo that only another source corrects', () => {
+			const found = searchHits(db, {
+				query: 'terraforn',
+				sources: ['platform-docs'],
+				allowedSources: ['platform-docs', 'billing-docs']
+			});
+
+			expect(found.elsewhere).toEqual(['billing-docs']);
+			expect(searchHits(db, { query: 'terraforn', allowedSources: 'all' }).unknown).toEqual([
+				'terraforn'
+			]);
+		});
+
 		it('names them also when nothing was found', () => {
 			expect(
 				searchHits(db, { query: 'terraform', sources: ['platform-docs'], allowedSources: 'all' })
@@ -388,17 +401,21 @@ describe('searchSnippets', () => {
 		addPage(addSource('platform-docs'), 'a.md', { title: 'Rollback' });
 		addPage(addSource('billing-docs'), 'b.md', { title: 'Invoices', text: 'invoices' });
 
-		for (const found of [
-			searchHits(db, { query: 'rollback invoicez', allowedSources: ['platform-docs'] }),
-			searchHits(db, {
-				query: 'rollback invoicez',
-				sources: ['platform-docs'],
-				allowedSources: 'all'
-			})
-		]) {
-			expect(sourceIds(found.markdown)).toEqual(['platform-docs/a']);
-			expect(found.markdown).toMatch(/Not in any searched source: invoicez$/);
-		}
+		const hidden = searchHits(db, {
+			query: 'rollback invoicez',
+			allowedSources: ['platform-docs']
+		});
+		expect(sourceIds(hidden.markdown)).toEqual(['platform-docs/a']);
+		expect(hidden.markdown).toMatch(/Not in any searched source: invoicez$/);
+		const restricted = searchHits(db, {
+			query: 'rollback invoicez',
+			sources: ['platform-docs'],
+			allowedSources: 'all'
+		});
+		expect(sourceIds(restricted.markdown)).toEqual(['platform-docs/a']);
+		expect(restricted.markdown).toMatch(
+			/Not in any searched source: invoicez\nFound in other sources: billing-docs$/
+		);
 		expect(
 			searchHits(db, { query: 'rollback invoicez', allowedSources: 'all' }).markdown
 		).toContain('invoicez (searched as invoices)');

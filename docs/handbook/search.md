@@ -56,9 +56,9 @@ rarer they are across all snippets, the higher it ranks.
   searched in its place, as the rules above describe. Only the sources the reader may see count,
   also for a replacement.
 - A question restricted to sources, whose words are missing there, also names up to five other
-  sources the reader may see that contain them, those holding the most of the missing words first:
-  `Found in other sources: infra-docs, billing-docs`. Search those sources, or ask without
-  sources.
+  sources the reader may see that contain them, or the word one edit away for a typo, those
+  holding the most of the missing words first: `Found in other sources: infra-docs, billing-docs`.
+  Search those sources, or ask without sources.
 - Because any one word matches, a question about something the documentation does not cover
   usually still returns snippets that share a word with it. That line tells the agent which part
   of the question is not covered: a topic the documentation lacks, a typo, or a question in
