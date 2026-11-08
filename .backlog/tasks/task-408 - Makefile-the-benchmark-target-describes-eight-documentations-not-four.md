@@ -1,9 +1,11 @@
 ---
 id: TASK-408
 title: 'Makefile: the benchmark target describes eight documentations, not four'
-status: To Do
-assignee: []
+status: Done
+assignee:
+  - '@claude'
 created_date: '2026-11-08 19:51'
+updated_date: '2026-11-08 20:58'
 labels:
   - ops
 dependencies: []
@@ -20,6 +22,12 @@ Found by the audit of 2026-11-08 (three independent reviewers, the severe findin
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 The description of `benchmark` in `Makefile` names eight documentations or no number
-- [ ] #2 `make help` shows the new text
+- [x] #1 The description of `benchmark` in `Makefile` names eight documentations or no number
+- [x] #2 `make help` shows the new text
 <!-- AC:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+The description of the benchmark target in the Makefile names eight documentations, as app/benchmark/documentations.ts lists; make help shows it.
+<!-- SECTION:FINAL_SUMMARY:END -->

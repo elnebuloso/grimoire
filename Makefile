@@ -31,7 +31,7 @@ NO_CORE_DUMP := $(if $(shell command -v prlimit),prlimit --core=1,)
 test: ## Run the unit tests and the component stories once (TEST=… narrows the run)
 	cd app && npx playwright install chromium && $(NO_CORE_DUMP) npm test -- $(TEST)
 
-benchmark: ## Index the four vendored documentations and compare with the baseline in app/benchmark (network on the first run only)
+benchmark: ## Index the eight vendored documentations and compare with the baseline in app/benchmark (network on the first run only)
 	cd app && BENCHMARK=1 TZ=UTC LANG=C $(NO_CORE_DUMP) npx vitest --run --project=benchmark
 
 benchmark-update: ## Write the baseline of make benchmark anew, for an intended change
