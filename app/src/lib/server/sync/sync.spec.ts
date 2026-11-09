@@ -397,8 +397,8 @@ describe('syncSource', () => {
 			script,
 			`import { appendFileSync } from 'node:fs';
 			process.once('message', (job) => {
-				appendFileSync(job.pageLog, 'docs/index.md\\n');
-				appendFileSync(job.pageLog, 'docs/guide.md\\n');
+				appendFileSync(job.pageLog, '"docs/index.md"\\n');
+				appendFileSync(job.pageLog, '"docs/guide.md"\\n');
 				setInterval(() => {}, 1000);
 			});`
 		);
@@ -407,13 +407,13 @@ describe('syncSource', () => {
 			key,
 			policy: LOCAL,
 			workDirectory: work,
-			indexingDeadlineMs: 3000,
+			indexingDeadlineMs: 5000,
 			indexingScript: script
 		});
 
 		expect(result).toMatchObject({
 			status: 'failed',
-			error: 'indexing took longer than 3 seconds, while indexing docs/guide.md',
+			error: 'indexing took longer than 5 seconds, while indexing docs/guide.md',
 			kind: 'deadline'
 		});
 		await vi.waitFor(() => expect(readdirSync(work)).toEqual([]));

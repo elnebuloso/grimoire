@@ -190,8 +190,8 @@ while agents searched every 25 ms:
 
 For documentation of that size, use `limits: { cpu: "1", memory: 512Mi }` with
 `requests: { cpu: 250m, memory: 512Mi }`. From 512 MiB on, a sync that no longer fits fails with
-`indexing ended with … before it finished, out of memory for example`, naming the page it was
-indexing; the source keeps its previous index, and grimoire keeps answering. Below 512 MiB, syncs
+`indexing ended with … before it finished, out of memory for example`, naming the page when it
+ran out while parsing one; the source keeps its previous index, and grimoire keeps answering. Below 512 MiB, syncs
 get slower, and one that does not fit can be stopped by the kernel instead: on Kubernetes 1.28 and
 later with cgroup v2, that restarts the whole container, and the sync records no error. On less CPU, a large source can outlast the
 indexing deadline; raise `INDEXING_DEADLINE_MINUTES`. Below one CPU, searches during a sync wait

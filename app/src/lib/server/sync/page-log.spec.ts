@@ -33,15 +33,21 @@ describe('pageBeingIndexed', () => {
 		expect(pageBeingIndexed(log)).toBeUndefined();
 	});
 
+	it('names a page whose file name holds a newline', () => {
+		notePage(log, 'docs/release\nnotes.md');
+
+		expect(pageBeingIndexed(log)).toBe('docs/release\nnotes.md');
+	});
+
 	it('ignores a line torn by a process killed while writing it', () => {
 		notePage(log, 'docs/index.md');
-		appendFileSync(log, 'docs/ap');
+		appendFileSync(log, '"docs/ap');
 
 		expect(pageBeingIndexed(log)).toBe('docs/index.md');
 	});
 
 	it('names no page when only a torn line was written', () => {
-		appendFileSync(log, 'docs/ap');
+		appendFileSync(log, '"docs/ap');
 
 		expect(pageBeingIndexed(log)).toBeUndefined();
 	});

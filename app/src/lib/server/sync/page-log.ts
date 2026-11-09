@@ -4,8 +4,9 @@
 // Plain Node loads this module in the indexing process; it imports nothing Vite resolves.
 import { appendFileSync, readFileSync, writeFileSync } from 'node:fs';
 
+// As JSON, so a newline Git allows in a file name cannot split one path into two lines.
 export function notePage(log: string, path: string) {
-	appendFileSync(log, `${path}\n`);
+	appendFileSync(log, `${JSON.stringify(path)}\n`);
 }
 
 /** After the last page: an early end from now on is not one while parsing a page. */
@@ -23,6 +24,6 @@ export function pageBeingIndexed(log: string): string | undefined {
 		return undefined;
 	}
 	// A process killed mid-write leaves a torn last line; only lines ending in a newline count.
-	const lines = content.split('\n');
-	return lines.at(-2) || undefined;
+	const last = content.split('\n').at(-2);
+	return last ? (JSON.parse(last) as string) : undefined;
 }
