@@ -37,7 +37,10 @@ export interface PagesToIndex extends PreparedSource {
  * A page that cannot be processed is skipped with a warning. When pages were found but none could
  * be processed, it throws instead: an empty index would replace the working one.
  */
-export function indexPages(job: PagesToIndex): Omit<SourceIndex, 'commit'> {
+export function indexPages(
+	job: PagesToIndex,
+	onPage: (path: string) => void = () => {}
+): Omit<SourceIndex, 'commit'> {
 	const warnings = [...job.warnings];
 	let slugify: Slugify = pythonMarkdownSlugify;
 	if (job.siteConfig) {
@@ -49,6 +52,7 @@ export function indexPages(job: PagesToIndex): Omit<SourceIndex, 'commit'> {
 	const indexed: Omit<IndexedPage, 'searchTexts'>[] = [];
 	for (const { file, markdown, navPosition, includeWarnings } of job.pages) {
 		warnings.push(...includeWarnings);
+		onPage(posix.join(job.sourcePath, file));
 		try {
 			const metadata = preprocessPage(markdown);
 			const chunked = chunkPage(metadata, file, slugify);

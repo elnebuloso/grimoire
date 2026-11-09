@@ -21,6 +21,7 @@ import { syncErrorKind } from './error-kind';
 import { SyncFailure, TIMED_OUT, type SyncErrorKind } from './failure';
 import { headCommit, redact, remoteCommit, sparseClone, type GitRemote } from './git';
 import type { IndexJob, IndexOutcome } from './index-worker';
+import { pageBeingIndexed } from './page-log';
 import type { SyncLanes } from './queue';
 
 const IMMEDIATELY: SyncLanes = { check: (work) => work(), sync: (work) => work() };
@@ -135,6 +136,7 @@ async function checkAndSync(
 		cloningCommit = latest;
 		const synced = await lanes.sync(async () => {
 			const checkout = await mkdtemp(join(options.workDirectory ?? tmpdir(), 'grimoire-sync-'));
+			const pageLog = `${checkout}.pages`;
 			try {
 				await sparseClone(remote, source.branch, source.path, checkout);
 				const commit = await headCommit(checkout);
@@ -149,7 +151,8 @@ async function checkAndSync(
 						sourceId,
 						branch: source.branch,
 						commit,
-						serverPid: process.pid
+						serverPid: process.pid,
+						pageLog
 					},
 					options.indexingDeadlineMs ?? INDEXING_DEADLINE_MS,
 					options.indexingHeapMb,
@@ -158,6 +161,7 @@ async function checkAndSync(
 				return { status: 'synced' as const, commit, ...indexed };
 			} finally {
 				await rm(checkout, { recursive: true, force: true });
+				await rm(pageLog, { force: true });
 			}
 		});
 		if (indexSettingsChanged(db, source)) forgetIndexedCommit(db, sourceId);
@@ -248,7 +252,10 @@ function indexInProcess(
 		// already committed belong to a generation that never went live and go with the next sync.
 		const deadline = setTimeout(() => {
 			reject(
-				new SyncFailure('deadline', `indexing took longer than ${formatDuration(deadlineMs)}`)
+				new SyncFailure(
+					'deadline',
+					`indexing took longer than ${formatDuration(deadlineMs)}${whileIndexing(job.pageLog)}`
+				)
 			);
 			killGroup(child.pid);
 		}, deadlineMs);
@@ -265,11 +272,16 @@ function indexInProcess(
 			reject(
 				new SyncFailure(
 					'aborted',
-					`indexing ended with ${ending} before it finished, out of memory for example`
+					`indexing ended with ${ending} before it finished${whileIndexing(job.pageLog)}, out of memory for example`
 				)
 			);
 		});
 	});
+}
+
+function whileIndexing(pageLog: string): string {
+	const page = pageBeingIndexed(pageLog);
+	return page === undefined ? '' : `, while indexing ${page}`;
 }
 
 function killGroup(pid: number | undefined) {

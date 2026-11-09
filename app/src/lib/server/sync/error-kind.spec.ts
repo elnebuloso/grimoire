@@ -40,6 +40,11 @@ describe('syncErrorKind', () => {
 		['getaddrinfo ENOTFOUND git.example.com', 'noAddress'],
 		['indexing took longer than 10 minutes', 'deadline'],
 		['indexing ended with SIGKILL before it finished, out of memory for example', 'aborted'],
+		['indexing took longer than 10 minutes, while indexing docs/api.md', 'deadline'],
+		[
+			'indexing ended with SIGABRT before it finished, while indexing docs/api.md, out of memory for example',
+			'aborted'
+		],
 		['no page could be indexed, docs/a.md: skipped, bad front matter', 'noPage'],
 		['a source can only be indexed into a database file', 'unknown']
 	])('recognises %j as %s', (message, kind) => {

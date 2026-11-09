@@ -63,7 +63,8 @@ child.send({
 	sourceId: 1,
 	branch: 'main',
 	commit: 'smoke',
-	serverPid: process.pid
+	serverPid: process.pid,
+	pageLog: '/tmp/checkout.pages'
 });
 const result = await new Promise((resolve, reject) => {
 	child.once('message', resolve);

@@ -7,6 +7,7 @@ import { addSparseDirectories, type GitRemote } from './git.ts';
 import { indexPages } from './index-pages.ts';
 import { SyncFailure, type SyncErrorKind } from './failure.ts';
 import { prepareCheckout, type IndexedSource } from './index-source.ts';
+import { clearPageLog, notePage } from './page-log.ts';
 import { fetchInclude } from './url-include.ts';
 
 /** Sent by the server over the IPC channel, not as arguments: it can carry the Git token. */
@@ -24,6 +25,8 @@ export interface IndexJob {
 	commit: string;
 	/** The server process that waits for the result. */
 	serverPid: number;
+	/** File the path of each page goes to before it is parsed; see `page-log.ts`. */
+	pageLog: string;
 }
 
 export type IndexOutcome =
@@ -42,7 +45,8 @@ async function index(job: IndexJob): Promise<IndexOutcome> {
 		(directories) => addSparseDirectories(job.remote, job.checkout, directories),
 		(url) => fetchInclude(url, job.allowedIncludeOrigins)
 	);
-	const index = indexPages(prepared);
+	const index = indexPages(prepared, (path) => notePage(job.pageLog, path));
+	clearPageLog(job.pageLog);
 	// A server that died of a signal, such as Ctrl+C, never disconnects in time: indexing runs
 	// without giving the event loop a turn, and an orphan would write while the next server starts.
 	if (process.ppid !== job.serverPid) process.exit(1);

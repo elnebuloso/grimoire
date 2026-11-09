@@ -43,7 +43,8 @@ function runWorker(serverPid: number): Promise<number | null> {
 		sourceId: 1,
 		branch: 'main',
 		commit: 'c1',
-		serverPid
+		serverPid,
+		pageLog: join(root, 'checkout.pages')
 	};
 	const child = fork(WORKER, { execArgv: [] });
 	child.on('message', () => child.disconnect());

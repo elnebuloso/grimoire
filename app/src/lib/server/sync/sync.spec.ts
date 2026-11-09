@@ -372,6 +372,53 @@ describe('syncSource', () => {
 		}
 	});
 
+	it('keeps the text of an indexing process that ends before it parses a page', async () => {
+		const script = join(root, 'dying-worker.mjs');
+		writeFileSync(script, `process.once('message', () => process.kill(process.pid, 'SIGKILL'));`);
+
+		const result = await syncSource(db, source, {
+			key,
+			policy: LOCAL,
+			workDirectory: work,
+			indexingScript: script
+		});
+
+		expect(result).toMatchObject({
+			status: 'failed',
+			error: 'indexing ended with SIGKILL before it finished, out of memory for example',
+			kind: 'aborted'
+		});
+	});
+
+	it('names the page an indexing process was parsing when it outlasts the deadline', async () => {
+		// A stand-in that notes a page the way the indexing process does and then never answers.
+		const script = join(root, 'stuck-worker.mjs');
+		writeFileSync(
+			script,
+			`import { appendFileSync } from 'node:fs';
+			process.once('message', (job) => {
+				appendFileSync(job.pageLog, 'docs/index.md\\n');
+				appendFileSync(job.pageLog, 'docs/guide.md\\n');
+				setInterval(() => {}, 1000);
+			});`
+		);
+
+		const result = await syncSource(db, source, {
+			key,
+			policy: LOCAL,
+			workDirectory: work,
+			indexingDeadlineMs: 3000,
+			indexingScript: script
+		});
+
+		expect(result).toMatchObject({
+			status: 'failed',
+			error: 'indexing took longer than 3 seconds, while indexing docs/guide.md',
+			kind: 'deadline'
+		});
+		await vi.waitFor(() => expect(readdirSync(work)).toEqual([]));
+	});
+
 	// A process near its heap limit collects garbage over and over before it dies, about 2 s; a core
 	// dump would take seconds more, which `make test` turns off with `prlimit --core=1`.
 	it('fails a sync whose indexing runs out of memory and keeps syncing other sources', async () => {
@@ -388,10 +435,13 @@ describe('syncSource', () => {
 
 		expect(exhausted).toEqual({
 			status: 'failed',
-			error: expect.stringMatching(/^indexing ended with .+ before it finished, out of memory/),
+			error: expect.stringMatching(
+				/^indexing ended with .+ before it finished, while indexing docs\/huge\.md, out of memory/
+			),
 			kind: 'aborted',
 			commit: git(bare, 'rev-parse', 'main').trim()
 		});
+		expect(readdirSync(work)).toEqual([]);
 		const other = addSource(`file://${bare}`, ['docs/huge.md', 'docs/drafts/**']);
 		expect(
 			await syncSource(db, other, { key, policy: LOCAL, workDirectory: work, indexingHeapMb: 32 })
