@@ -73,9 +73,7 @@ export async function prepareCheckout(
 		}
 		const size = sizeInside(root, posix.join(sourcePath, file));
 		if (size !== undefined && size > MAX_PAGE_BYTES) {
-			warnings.push(
-				`${posix.join(sourcePath, file)}: larger than ${MAX_PAGE_BYTES / 1_000_000} MB, skipped`
-			);
+			warnings.push(tooLarge(posix.join(sourcePath, file)));
 			continue;
 		}
 		const content = read(posix.join(sourcePath, file));
@@ -122,7 +120,8 @@ export async function prepareCheckout(
 					raw.get(file)!,
 					{ path: posix.join(sourcePath, file), sourcePath },
 					read,
-					readUrl
+					readUrl,
+					(path) => sizeInside(root, path)
 				)
 			])
 		);
@@ -153,13 +152,24 @@ export async function prepareCheckout(
 
 	const navPositions = new Map<string, number>();
 	if (config) navOrder(config, sourcePath)?.forEach((file, index) => navPositions.set(file, index));
-	const pages = files.map((file) => ({
-		file,
-		markdown: included.get(file)!.markdown,
-		navPosition: navPositions.get(file),
-		includeWarnings: included.get(file)!.warnings
-	}));
+	const pages = [];
+	for (const file of files) {
+		const { markdown, warnings: includeWarnings } = included.get(file)!;
+		// Its includes count too: parsing costs memory by what the page holds once they are in.
+		if (Buffer.byteLength(markdown) > MAX_PAGE_BYTES) {
+			warnings.push(tooLarge(posix.join(sourcePath, file)));
+			continue;
+		}
+		pages.push({ file, markdown, navPosition: navPositions.get(file), includeWarnings });
+	}
+	if (pages.length === 0) {
+		throw new SyncFailure('noPage', `no page could be indexed, ${warnings.at(-1)}`);
+	}
 	return { pages, siteConfig: config, warnings, sourcePath };
+}
+
+function tooLarge(path: string): string {
+	return `${path}: larger than ${MAX_PAGE_BYTES / 1_000_000} MB, skipped`;
 }
 
 /** What `fetch` answers, or `late` once `deadline` (a time in milliseconds) has passed. */

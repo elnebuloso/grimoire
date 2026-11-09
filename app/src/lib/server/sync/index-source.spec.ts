@@ -190,6 +190,20 @@ describe('indexCheckout with "#" in a file name', () => {
 		expect(index.warnings).toEqual(['docs/api.md: larger than 1 MB, skipped']);
 	});
 
+	it('skips a page that its includes take past the limit', async () => {
+		const half = 'x'.repeat(MAX_PAGE_BYTES * 0.6);
+		write({
+			'docs/index.md': '# Home\n',
+			'docs/api.md': `# API\n\n${half}\n--8<-- "docs/tables.txt"\n`,
+			'docs/tables.txt': half
+		});
+
+		const index = await indexCheckout(async () => ({ content: '' }));
+
+		expect(index.pages.map((page) => page.file)).toEqual(['index.md']);
+		expect(index.warnings).toEqual(['docs/api.md: larger than 1 MB, skipped']);
+	});
+
 	it('throws when the source path holds no Markdown file, so the working index stays', async () => {
 		write({ 'docs/api.markdown': '# API\n', 'docs/drafts/.keep': '' });
 

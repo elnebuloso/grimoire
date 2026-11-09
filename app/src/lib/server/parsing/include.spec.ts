@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { MAX_INCLUDED_CHARACTERS, resolveIncludes, type UrlContent } from './include';
 
 const page = { path: 'docs/deploy.md', sourcePath: 'docs/' };
@@ -57,6 +57,23 @@ describe('resolveIncludes', () => {
 		expect(result.warnings[0]).toMatch(
 			new RegExp(`^docs/deploy.md: includes exceed ${MAX_INCLUDED_CHARACTERS} characters, `)
 		);
+	});
+
+	it('leaves out a file too large for the budget without reading it', () => {
+		const read = vi.fn(() => 'never read');
+		const result = resolveIncludes(
+			'# Deploy\n\n--8<-- "docs/huge.log"\n--8<-- "docs/small.md"\n',
+			{ path: 'docs/deploy.md', sourcePath: 'docs' },
+			read,
+			undefined,
+			(path) => (path === 'docs/huge.log' ? 300_000_000 : 10)
+		);
+
+		expect(read).not.toHaveBeenCalled();
+		expect(result.markdown).toBe('# Deploy\n\n');
+		expect(result.warnings).toEqual([
+			`docs/deploy.md: includes exceed ${MAX_INCLUDED_CHARACTERS} characters, "docs/huge.log" and every later include not inserted`
+		]);
 	});
 
 	it('includes the same file twice when it is not part of a cycle', () => {

@@ -18,6 +18,8 @@ export interface IncludeResult {
 
 /** Returns the content of a file relative to the repository root, or undefined if it does not exist. */
 export type ReadFile = (path: string) => string | undefined;
+/** The size of a file in bytes; undefined when it is not there. */
+export type SizeOf = (path: string) => number | undefined;
 
 /** A fetched URL include: its content, or why there is none. */
 export type UrlContent = { content: string } | { problem: string };
@@ -55,6 +57,8 @@ const SECTION_MARKER =
  * as warnings and left out, and so is every include once the included text of the page exceeds
  * `MAX_INCLUDED_CHARACTERS`.
  *
+ * With `sizeOf`, a file too large to fit the budget is left out without being read.
+ *
  * URL includes come from `readUrl`, which is passed only when the site allows them
  * (`url_download`); a file included by URL may include further URLs only, as in pymdownx.
  */
@@ -62,7 +66,8 @@ export function resolveIncludes(
 	source: string,
 	page: IncludePage,
 	read: ReadFile,
-	readUrl?: ReadUrl
+	readUrl?: ReadUrl,
+	sizeOf?: SizeOf
 ): IncludeResult {
 	const warnings: string[] = [];
 	const outside = new Set<string>();
@@ -129,6 +134,8 @@ export function resolveIncludes(
 			return [];
 		}
 		if (includedCharacters > MAX_INCLUDED_CHARACTERS) return [];
+		// Even at four bytes a character, such a file exceeds the budget: it is not read at all.
+		if (!isUrl && (sizeOf?.(target) ?? 0) > MAX_INCLUDED_CHARACTERS * 4) return overBudget(target);
 
 		const content = isUrl ? fetched(target) : readLocal(target);
 		if (content === undefined) return [];
@@ -144,15 +151,18 @@ export function resolveIncludes(
 			lines = selected;
 		}
 		includedCharacters += lines.reduce((sum, line) => sum + line.length + 1, 0);
-		if (includedCharacters > MAX_INCLUDED_CHARACTERS) {
-			warnings.push(
-				`${page.path}: includes exceed ${MAX_INCLUDED_CHARACTERS} characters, "${target}" and every later include not inserted`
-			);
-			return [];
-		}
+		if (includedCharacters > MAX_INCLUDED_CHARACTERS) return overBudget(target);
 		return expand(lines.join('\n'), [...chain, target], section !== undefined).map((line) =>
 			line === '' ? line : indent + line
 		);
+	}
+
+	function overBudget(target: string): string[] {
+		includedCharacters = MAX_INCLUDED_CHARACTERS + 1;
+		warnings.push(
+			`${page.path}: includes exceed ${MAX_INCLUDED_CHARACTERS} characters, "${target}" and every later include not inserted`
+		);
+		return [];
 	}
 
 	function readLocal(target: string): string | undefined {

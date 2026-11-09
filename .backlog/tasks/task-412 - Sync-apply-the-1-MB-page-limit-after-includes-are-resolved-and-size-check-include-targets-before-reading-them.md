@@ -3,10 +3,11 @@ id: TASK-412
 title: >-
   Sync: apply the 1 MB page limit after includes are resolved, and size-check
   include targets before reading them
-status: To Do
-assignee: []
+status: In Progress
+assignee:
+  - '@claude'
 created_date: '2026-11-09 10:17'
-updated_date: '2026-11-09 10:20'
+updated_date: '2026-11-09 10:51'
 labels:
   - sync
   - parsing
@@ -39,7 +40,21 @@ The 512 MiB floor the handbook names does not hold for pages with includes; such
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 A page whose resolved Markdown exceeds MAX_PAGE_BYTES is skipped with the 'larger than 1 MB, skipped' warning
-- [ ] #2 An include target larger than MAX_INCLUDED_CHARACTERS is not read into memory
+- [x] #1 A page whose resolved Markdown exceeds MAX_PAGE_BYTES is skipped with the 'larger than 1 MB, skipped' warning
+- [x] #2 An include target larger than MAX_INCLUDED_CHARACTERS is not read into memory
 - [ ] #3 Specs cover both cases; make benchmark shows no unintended difference
 <!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. prepareCheckout: skip a page whose resolved Markdown exceeds MAX_PAGE_BYTES (same warning)
+2. resolveIncludes: optional sizeOf; a local target over 4x MAX_INCLUDED_CHARACTERS bytes is left out unread with the over-budget warning
+3. Specs in index-source.spec.ts and include.spec.ts; handbook writing.md
+<!-- SECTION:PLAN:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+The 1 MB page limit now also applies after includes are resolved: prepareCheckout skips a page whose Markdown with its includes exceeds MAX_PAGE_BYTES, with the same warning (`<path>: larger than 1 MB, skipped`), and still refuses an empty index. resolveIncludes takes an optional sizeOf; a local include target larger than 4 x MAX_INCLUDED_CHARACTERS bytes (beyond the budget even at four bytes a character) is left out without being read, with the existing over-budget warning. Tests: include.spec.ts, index-source.spec.ts, sync.spec.ts pass. Handbook writing.md says includes count toward the limit. make benchmark still to run before the push (parsing changed).
+<!-- SECTION:FINAL_SUMMARY:END -->
