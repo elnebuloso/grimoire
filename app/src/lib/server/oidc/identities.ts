@@ -1,6 +1,12 @@
 import type { DatabaseSync } from 'node:sqlite';
 import { inTransaction } from '../db/transaction.ts';
-import { accountExists, endSessions, hasPassword, insertUser } from '../auth/auth.ts';
+import {
+	accountExists,
+	endSessions,
+	hasPassword,
+	insertUser,
+	normalizeEmail
+} from '../auth/auth.ts';
 
 /** The user `subject` at `issuer` is linked to; undefined for none. */
 export function linkedUser(db: DatabaseSync, issuer: string, subject: string): number | undefined {
@@ -12,7 +18,8 @@ export function linkedUser(db: DatabaseSync, issuer: string, subject: string): n
 
 /**
  * Creates an account without role and password, linked to the identity; undefined when another
- * request took the address or the identity in the meantime.
+ * request took the address or the identity in the meantime. A pending invitation to the address
+ * goes: its link could only end in "account exists" now.
  */
 export function createLinkedUser(
 	db: DatabaseSync,
@@ -22,6 +29,7 @@ export function createLinkedUser(
 ): number | undefined {
 	return inTransaction(db, () => {
 		if (accountExists(db, email) || linkedUser(db, issuer, subject) !== undefined) return undefined;
+		db.prepare('DELETE FROM invitations WHERE email = ?').run(normalizeEmail(email));
 		return insertLinkedUser(db, email, issuer, subject);
 	});
 }

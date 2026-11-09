@@ -3,7 +3,14 @@ import type { DatabaseSync } from 'node:sqlite';
 import { openDatabase } from '../db/schema';
 import { createSession, sessionUser } from '../auth/auth';
 import { createPasswordLink } from '../auth/password-reset';
-import { linkedIssuers, linkIdentity, removeIdentity, unlinkIdentity } from './identities';
+import { inviteUser, listInvitations } from '../admin/invitations';
+import {
+	createLinkedUser,
+	linkedIssuers,
+	linkIdentity,
+	removeIdentity,
+	unlinkIdentity
+} from './identities';
 
 const GITLAB = 'https://gitlab.example.com';
 const ENTRA = 'https://login.microsoftonline.com/7f1d3a52-9b1e-4c8a-a6f0-2d5e8b9c1a44/v2.0';
@@ -13,6 +20,19 @@ beforeEach(() => {
 	db = openDatabase(':memory:');
 	db.exec(`INSERT INTO users (id, email, password_hash) VALUES
 		(1, 'ada@example.com', 'hash'), (2, 'grace@example.com', NULL)`);
+});
+
+describe('createLinkedUser', () => {
+	it('withdraws a pending invitation to the address it creates an account for', () => {
+		inviteUser(db, 'Partner@Partner.example', 1);
+		inviteUser(db, 'other@partner.example', 1);
+
+		createLinkedUser(db, 'partner@partner.example', GITLAB, 'partner');
+
+		expect(listInvitations(db).map((invitation) => invitation.email)).toEqual([
+			'other@partner.example'
+		]);
+	});
 });
 
 describe('linkIdentity', () => {

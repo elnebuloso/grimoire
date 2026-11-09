@@ -3,10 +3,11 @@ id: TASK-415
 title: >-
   OIDC: remove a pending invitation when its address signs up through an
   identity provider
-status: To Do
-assignee: []
+status: Done
+assignee:
+  - '@claude'
 created_date: '2026-11-09 10:17'
-updated_date: '2026-11-09 10:20'
+updated_date: '2026-11-09 10:55'
 labels:
   - admin
 dependencies: []
@@ -36,6 +37,12 @@ A dead invitation sits in the list, and resending it confuses the invited person
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 createLinkedUser deletes invitations for the new account's address in the same transaction
-- [ ] #2 identities.spec.ts covers it
+- [x] #1 createLinkedUser deletes invitations for the new account's address in the same transaction
+- [x] #2 identities.spec.ts covers it
 <!-- AC:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+createLinkedUser now deletes pending invitations to the new account's address (normalised as on invite) in the same transaction, so an invitation does not stay pending after its address signed up through an identity provider. Spec in identities.spec.ts (case-insensitive match, other invitations stay).
+<!-- SECTION:FINAL_SUMMARY:END -->
