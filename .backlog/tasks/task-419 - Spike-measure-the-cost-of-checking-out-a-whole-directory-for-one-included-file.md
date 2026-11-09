@@ -7,7 +7,7 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-11-09 10:17'
-updated_date: '2026-11-09 11:00'
+updated_date: '2026-11-09 11:28'
 labels:
   - sync
 dependencies: []
@@ -56,6 +56,8 @@ Fixture: docs/index.md includes packages/core/README.md (40 bytes); packages/cor
 Confirmed: an include of one file checks out its whole directory tree (blobs fetched and written to the worktree, about twice the 200 MB). Over a network the 200 MB transfer dominates (e.g. ~30 s at 50 Mbit/s) and counts against INDEXING_DEADLINE_MINUTES; a monorepo with GBs below the included directory could hit the deadline. An include of a missing file costs the same, since its directory is fetched first.
 
 Recommendation (not built, owner decides): read include targets outside the source path as single blobs (git show / cat-file HEAD:<path>, lazily fetched in the partial clone) instead of adding their directories to the sparse checkout. Keep addSparseDirectories for symlinked directories (fetchLinkTargets), which need a real tree. Trade-off: a second read path next to readInside, and symlinks among include targets must be resolved in the Git tree rather than on disk; worth it only if monorepo sources with cross-directory includes are expected. Cheaper interim option: none that keeps includes working.
+
+Follow-up for building it: TASK-420.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
