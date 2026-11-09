@@ -2,18 +2,15 @@
 
 ## Where we stand
 
-- **The audit of 2026-11-08 is done and released in 1.14.0** (release notes summary written):
-  TASK-398 … TASK-405, TASK-407, TASK-408 Done; TASK-406 dropped by the owner and archived.
-- **TASK-392 decided: keep the ranking.** The two `i-doit-de` questions lose rank 1 to short
-  on-topic sections that carry the last word in their title; no change.
+- **1.15.0 is released** with its release notes summary: sync errors name the page that was being
+  parsed when indexing ran out of memory or past the deadline (TASK-409, Done). The handbook now
+  names 512 MiB as the memory floor (`docker.md`, Memory and CPU limits).
 - Nothing is in progress.
 
 ## Next: ask the owner
 
 Open tasks, none started; work on them only on the owner's word:
 
-- **TASK-409** (follow-up of TASK-404): name the page in `indexing ended with … before it
-  finished` errors.
 - **Spikes TASK-393** (BM25 length normalisation), **TASK-394** (frontmatter fields to agents),
   **TASK-395** (what to fix next, from agent use), **TASK-396** (sources for the code an agent
   works on): only create/notes, no code.
@@ -23,26 +20,38 @@ Open tasks, none started; work on them only on the owner's word:
   `svelte-check`/`typescript-eslint` support TypeScript 7, `vitest` 5 not before ~16.11 and once
   `@storybook/addon-vitest` fits, `@inlang/paraglide-js` 3 last. `@types/node` stays 24.
 
+## Decided on 2026-11-09, don't reopen
+
+- **No page is skipped after an indexing crash** ("a documentation with skipped pages is half the
+  truth"); the source stays on its old index until the page is split or memory raised. The 1 MB
+  skip (`MAX_PAGE_BYTES`) stays.
+- **No own heap limit for the indexing child:** Node 24 already sizes the default heap to about
+  half the cgroup limit (measured in `node:24-trixie-slim`: 512m → 259 MB, 1g → 560 MB), so from
+  512 MiB on the child dies alone (`SIGABRT`). Below that the kernel kills first; on Kubernetes
+  ≥ 1.28 with cgroup v2 the whole container. Any future heap limit may only lower, never raise
+  Node's default.
+
 ## Watch out
 
+- **The page file** (`page-log.ts`): one JSON string per line, `<checkout>.pages` next to the
+  checkout, emptied after parsing, removed with the checkout. A file, not IPC: queued IPC
+  messages are lost when the child dies. Stand-ins in `sync.spec.ts` write that JSON format.
+- **The named page is where memory or time ran out, not proven guilty:** `indexPages` keeps all
+  parsed pages until the write, so memory grows over the whole source. Texts say "while indexing".
 - **Search lookups run on rowid ranges per source** (`liveRanges`, `readableSources`,
   `occursIn` in `query.ts`), cached per source `index_generation`. Correct only because every
   write of pages/snippets goes through `replaceSourceIndex`, which raises the generation: a new
   write path must do the same.
-- **`MAX_PAGE_BYTES` (1 MB) is not a memory guarantee:** table-heavy Markdown costs ~1 GB and
-  25 s per MB to parse; on 512 MiB a page from ~0.4 MB can still abort indexing (TASK-409).
 - **The out-of-memory spec in `sync.spec.ts` uses a 0.74 MB page** on purpose: above
   `MAX_PAGE_BYTES` it would be skipped and the spec would stop testing an abort.
-- **Benchmark timing is noisy:** `fastapi` search p95 failed once at 2.3x while the machine was
-  busy and passed when rerun alone. Rerun one documentation with
-  `cd app && BENCHMARK=1 TZ=UTC LANG=C npx vitest --run --project=benchmark -t "^fastapi "`.
-- **`make test TEST="<file> -t '<two words>'"` breaks** on the space; filter by one word.
-- **Playwright MCP screenshots** may only be written below the repository (`.playwright-mcp/`,
-  ignored), not to the scratchpad.
 - **A new field on `IndexJob` must also go into `scripts/image-smoke.sh`**; run `make image &&
   make image-smoke` before pushing such a change.
+- **Benchmark timing is noisy:** rerun one documentation with
+  `cd app && BENCHMARK=1 TZ=UTC LANG=C npx vitest --run --project=benchmark -t "^fastapi "`.
+- **`make test TEST="<file> -t '<two words>'"` breaks** on the space; filter by one word.
+- **Playwright MCP screenshots** may only be written below the repository (`.playwright-mcp/`).
 - **Probing search on one documentation:** a temporary `app/benchmark/probe.spec.ts` beats a full
-  `make benchmark` (~16 min); delete it afterwards, and never leave it in while the benchmark runs.
+  `make benchmark` (~11 min); delete it afterwards.
 - **Not bugs, decided on purpose:** visitors see internal source names and stats on the start page
   (ADR 0012); "Did not fit" / "Not in any searched source" / "Found in other sources" come on top
   of the token budget; OIDC-only accounts need a password before linking or exporting; exclusions
