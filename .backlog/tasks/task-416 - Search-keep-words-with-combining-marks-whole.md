@@ -1,10 +1,11 @@
 ---
 id: TASK-416
 title: 'Search: keep words with combining marks whole'
-status: To Do
-assignee: []
+status: In Progress
+assignee:
+  - '@claude'
 created_date: '2026-11-09 10:17'
-updated_date: '2026-11-09 10:20'
+updated_date: '2026-11-09 10:56'
 labels:
   - search
 dependencies: []
@@ -34,7 +35,13 @@ No effect until an organisation indexes documentation in such a script; then sea
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 SEARCH_WORD includes \p{M}
-- [ ] #2 A spec finds a Devanagari word as a whole word
+- [x] #1 SEARCH_WORD includes \p{M}
+- [x] #2 A spec finds a Devanagari word as a whole word
 - [ ] #3 make benchmark shows no difference
 <!-- AC:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+SEARCH_WORD now includes \p{M}, so a word with vowel signs (Devanagari, Thai) is one search term as FTS5's unicode61 tokenizer keeps it, not loose letters. Regression test in query.spec.ts (a Hindi word finds only its snippet), confirmed to fail before. Slug generation (slugs.ts) is unchanged on purpose: it mirrors Python-Markdown, whose \w drops combining marks too.
+<!-- SECTION:FINAL_SUMMARY:END -->

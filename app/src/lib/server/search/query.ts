@@ -508,7 +508,8 @@ function toSnippetHit({ title_path, part, parts, ...row }: SnippetRow): SnippetH
 // terms took over a minute on 50,000 snippets. A question rarely needs more than a few words.
 const MAX_SEARCH_TERMS = 16;
 
-const SEARCH_WORD = /[\p{L}\p{N}_]+/gu;
+// Marks (`\p{M}`) stay in a word: the vowel signs of Devanagari or Thai, as FTS keeps them.
+const SEARCH_WORD = /[\p{L}\p{M}\p{N}_]+/gu;
 
 /** Whether `query` has a word to search for; a question of punctuation alone searches nothing. */
 export function hasSearchTerms(query: string): boolean {

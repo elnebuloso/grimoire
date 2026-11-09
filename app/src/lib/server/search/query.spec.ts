@@ -358,6 +358,16 @@ describe('searchSnippets', () => {
 		);
 	});
 
+	it('searches a word with vowel signs as one word, not as its loose letters', () => {
+		const source = addSource('hindi-docs');
+		addPage(source, 'a.md', { anchor: 'hindi', title: 'भाषा', text: 'यह हिन्दी में लिखा है।' });
+		addPage(source, 'b.md', { anchor: 'door', title: 'दरवाज़ा', text: 'न ह द' });
+
+		const found = searchHits(db, { query: 'हिन्दी', allowedSources: 'all' });
+
+		expect(sourceIds(found.markdown)).toEqual(['hindi-docs/a#hindi']);
+	});
+
 	it('finds the term one edit away for a word typed with umlauts', () => {
 		addPage(addSource('billing-docs'), 'a.md', {
 			title: 'Änderungen',
