@@ -179,6 +179,7 @@
 	"source_preview_intro_after": "returns it:",
 	"source_preview_missing": "This source has no page {file}.",
 	"source_settings": "Settings",
+	"source_required_legend": "* Required field",
 	"source_section_general": "General",
 	"source_section_repository": "Repository",
 	"source_section_repository_lead": "Where grimoire reads the documentation from: the branch, and in it the folder that holds the Markdown files.",

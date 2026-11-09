@@ -111,5 +111,10 @@
 	play={async ({ canvas }) => {
 		await expect(canvas.getByRole('button', { name: 'Create source' })).toBeVisible();
 		await expect(canvas.getByLabelText('Access token (none stored)')).toBeVisible();
+		await expect(canvas.getByText('* Required field')).toBeVisible();
+		for (const label of ['Name', 'Git URL (HTTPS)', 'Branch']) {
+			await expect(canvas.getByLabelText(label)).toBeRequired();
+		}
+		await expect(canvas.getByLabelText(/^Path in the repository/)).not.toBeRequired();
 	}}
 />

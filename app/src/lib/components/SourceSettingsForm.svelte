@@ -119,6 +119,7 @@ scrolled to; saving a new source leads to it. -->
 		message={overlapAsked || ownMessage(refusal?.field) ? undefined : refusal?.error}
 		id="source-error"
 	/>
+	<p class="hint">{m.source_required_legend()}</p>
 	<FormSection title={m.source_section_general()}>
 		<div class="fields">
 			{#if source}
@@ -321,6 +322,10 @@ scrolled to; saving a new source leads to it. -->
 		display: flex;
 		flex-wrap: wrap;
 		gap: var(--s3);
+	}
+	/* The empty alternative keeps the star out of the accessible name; `required` is announced. */
+	.source-form :global(label:has(:required) > span::after) {
+		content: ' *' / '';
 	}
 	.hint {
 		color: var(--ink-2);
