@@ -119,7 +119,8 @@ scrolled to; saving a new source leads to it. -->
 		message={overlapAsked || ownMessage(refusal?.field) ? undefined : refusal?.error}
 		id="source-error"
 	/>
-	<p class="hint">{m.source_required_legend()}</p>
+	<!-- Hidden like the stars it explains; screen readers announce `required` instead. -->
+	<p class="hint" aria-hidden="true">{m.source_required_legend()}</p>
 	<FormSection title={m.source_section_general()}>
 		<div class="fields">
 			{#if source}
