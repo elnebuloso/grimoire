@@ -65,7 +65,7 @@ export async function prepareCheckout(
 	const warnings: string[] = [];
 	const raw = new Map<string, string>();
 	await fetchLinkTargets(root, sourcePath, fetchDirectories);
-	const listed = listPages(checkout, sourcePath, source.exclusions);
+	const { pages: listed, found } = listPages(checkout, sourcePath, source.exclusions);
 	for (const file of listed) {
 		if (!hasGrimoireId(file)) {
 			warnings.push(`${posix.join(sourcePath, file)}: "#" in the file name, skipped`);
@@ -84,6 +84,12 @@ export async function prepareCheckout(
 	const files = [...raw.keys()];
 	// An empty index would replace the working one, also when the path holds no page at all: a
 	// folder turned into a submodule or pages renamed to `.markdown` look just like that.
+	if (found > 0 && listed.length === 0) {
+		throw new SyncFailure(
+			'noPage',
+			`no page could be indexed, the exclusions exclude every Markdown file below the source path "${sourcePath}"`
+		);
+	}
 	if (listed.length === 0) {
 		throw new SyncFailure(
 			'noPage',
@@ -236,7 +242,12 @@ function missingLinkTargets(root: string, path: string): string[] {
 }
 
 /** Markdown files below the source path, relative to it, without excluded ones. */
-function listPages(checkout: string, sourcePath: string, exclusions: string[]): string[] {
+/** The pages below the source path that the exclusions leave, and how many were found before. */
+function listPages(
+	checkout: string,
+	sourcePath: string,
+	exclusions: string[]
+): { pages: string[]; found: number } {
 	const root = realpathSync(checkout);
 	const start = realInside(root, join(root, sourcePath));
 	if (start === undefined || !statSync(start).isDirectory()) {
@@ -283,10 +294,11 @@ function listPages(checkout: string, sourcePath: string, exclusions: string[]): 
 	// Excluded by where it is listed or where it really lies: a link must not bring an excluded
 	// directory back.
 	const excluded = (file: string) => exclusions.some((pattern) => matchesGlob(file, pattern));
-	return files
+	const pages = files
 		.filter((file) => !excluded(posix.join(sourcePath, file.path)) && !excluded(file.real))
 		.map((file) => file.path)
 		.sort();
+	return { pages, found: files.length };
 }
 
 /** The real path of `path` when it lies inside `root`, symlinks resolved; else undefined. */

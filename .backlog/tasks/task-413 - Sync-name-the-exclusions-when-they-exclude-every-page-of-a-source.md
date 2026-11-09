@@ -1,10 +1,11 @@
 ---
 id: TASK-413
 title: 'Sync: name the exclusions when they exclude every page of a source'
-status: To Do
-assignee: []
+status: Done
+assignee:
+  - '@claude'
 created_date: '2026-11-09 10:17'
-updated_date: '2026-11-09 10:20'
+updated_date: '2026-11-09 10:52'
 labels:
   - sync
   - admin
@@ -37,7 +38,21 @@ An admin with a wrong exclusion looks for the error in the wrong field.
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 When Markdown files exist but all are excluded, the noPage error names the exclusions, not the path
-- [ ] #2 en and de texts follow the glossary
-- [ ] #3 A spec covers the all-excluded case
+- [x] #1 When Markdown files exist but all are excluded, the noPage error names the exclusions, not the path
+- [x] #2 en and de texts follow the glossary
+- [x] #3 A spec covers the all-excluded case
 <!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. listPages returns the pages and how many it found before the exclusions
+2. prepareCheckout throws a noPage failure naming the exclusions when all found pages are excluded
+3. Spec in index-source.spec.ts; handbook admin.md error table
+<!-- SECTION:PLAN:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+When Markdown files exist below the source path but the exclusions remove all of them, the sync now fails with `no page could be indexed, the exclusions exclude every Markdown file below the source path "docs"` instead of claiming the path holds no Markdown. Kind stays noPage (message prefix unchanged), so the existing hint, which already names the exclusions, applies; no new translated text was needed. Spec in index-source.spec.ts; handbook admin.md lists the new message.
+<!-- SECTION:FINAL_SUMMARY:END -->

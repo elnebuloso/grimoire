@@ -204,6 +204,22 @@ describe('indexCheckout with "#" in a file name', () => {
 		expect(index.warnings).toEqual(['docs/api.md: larger than 1 MB, skipped']);
 	});
 
+	it('names the exclusions when they exclude every page', async () => {
+		write({ 'docs/index.md': '# Home\n', 'docs/api/auth.md': '# Auth\n' });
+
+		const excludingAll = { path: 'docs/', exclusions: ['docs/**'] };
+		await expect(
+			prepareCheckout(
+				checkout,
+				excludingAll,
+				async () => {},
+				async () => ({ content: '' })
+			)
+		).rejects.toThrow(
+			'no page could be indexed, the exclusions exclude every Markdown file below the source path "docs"'
+		);
+	});
+
 	it('throws when the source path holds no Markdown file, so the working index stays', async () => {
 		write({ 'docs/api.markdown': '# API\n', 'docs/drafts/.keep': '' });
 
