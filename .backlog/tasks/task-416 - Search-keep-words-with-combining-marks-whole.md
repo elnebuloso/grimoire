@@ -1,11 +1,11 @@
 ---
 id: TASK-416
 title: 'Search: keep words with combining marks whole'
-status: In Progress
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-11-09 10:17'
-updated_date: '2026-11-09 10:56'
+updated_date: '2026-11-09 11:08'
 labels:
   - search
 dependencies: []
@@ -37,8 +37,14 @@ No effect until an organisation indexes documentation in such a script; then sea
 <!-- AC:BEGIN -->
 - [x] #1 SEARCH_WORD includes \p{M}
 - [x] #2 A spec finds a Devanagari word as a whole word
-- [ ] #3 make benchmark shows no difference
+- [x] #3 make benchmark shows no difference
 <!-- AC:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+make benchmark after the change: 24 of 24 passed, no difference to the baseline (697 s).
+<!-- SECTION:NOTES:END -->
 
 ## Final Summary
 

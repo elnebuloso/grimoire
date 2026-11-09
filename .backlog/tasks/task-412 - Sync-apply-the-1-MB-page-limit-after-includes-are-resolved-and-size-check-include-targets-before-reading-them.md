@@ -3,11 +3,11 @@ id: TASK-412
 title: >-
   Sync: apply the 1 MB page limit after includes are resolved, and size-check
   include targets before reading them
-status: In Progress
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-11-09 10:17'
-updated_date: '2026-11-09 10:51'
+updated_date: '2026-11-09 11:08'
 labels:
   - sync
   - parsing
@@ -42,7 +42,7 @@ The 512 MiB floor the handbook names does not hold for pages with includes; such
 <!-- AC:BEGIN -->
 - [x] #1 A page whose resolved Markdown exceeds MAX_PAGE_BYTES is skipped with the 'larger than 1 MB, skipped' warning
 - [x] #2 An include target larger than MAX_INCLUDED_CHARACTERS is not read into memory
-- [ ] #3 Specs cover both cases; make benchmark shows no unintended difference
+- [x] #3 Specs cover both cases; make benchmark shows no unintended difference
 <!-- AC:END -->
 
 ## Implementation Plan
@@ -52,6 +52,12 @@ The 512 MiB floor the handbook names does not hold for pages with includes; such
 2. resolveIncludes: optional sizeOf; a local target over 4x MAX_INCLUDED_CHARACTERS bytes is left out unread with the over-budget warning
 3. Specs in index-source.spec.ts and include.spec.ts; handbook writing.md
 <!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+make benchmark after the change: 24 of 24 passed, no difference to the baseline (697 s).
+<!-- SECTION:NOTES:END -->
 
 ## Final Summary
 
