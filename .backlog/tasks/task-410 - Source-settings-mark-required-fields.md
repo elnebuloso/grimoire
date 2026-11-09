@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-11-09 09:45'
-updated_date: '2026-11-09 09:48'
+updated_date: '2026-11-09 09:56'
 labels:
   - admin
 dependencies: []
@@ -35,6 +35,12 @@ The source settings form (`/manage/sources/<id>/settings`, `/manage/sources/new`
 3. Extend the SourceSettingsForm story play function
 4. Check in the agent environment, light and dark
 <!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+After review: the legend is aria-hidden too, so screen readers don't hear a star that no field announces.
+<!-- SECTION:NOTES:END -->
 
 ## Final Summary
 
