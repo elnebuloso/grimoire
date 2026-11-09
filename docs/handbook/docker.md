@@ -189,10 +189,11 @@ while agents searched every 25 ms:
 | 0.5 CPU, 256 MiB | 426 s | 178 ms / 953 ms | 256 MiB, at the limit |
 
 For documentation of that size, use `limits: { cpu: "1", memory: 512Mi }` with
-`requests: { cpu: 250m, memory: 512Mi }`. A lower memory limit makes syncs slower until one no
-longer fits; then that sync fails with
-`indexing ended with … before it finished, out of memory for example`, the source keeps its
-previous index, and grimoire keeps answering. On less CPU, a large source can outlast the
+`requests: { cpu: 250m, memory: 512Mi }`. From 512 MiB on, a sync that no longer fits fails with
+`indexing ended with … before it finished, out of memory for example`, naming the page it was
+indexing; the source keeps its previous index, and grimoire keeps answering. Below 512 MiB, syncs
+get slower, and one that does not fit can be stopped by the kernel instead: on Kubernetes 1.28 and
+later with cgroup v2, that restarts the whole container, and the sync records no error. On less CPU, a large source can outlast the
 indexing deadline; raise `INDEXING_DEADLINE_MINUTES`. Below one CPU, searches during a sync wait
 for CPU time.
 
