@@ -6,6 +6,7 @@ title: >-
 status: To Do
 assignee: []
 created_date: '2026-11-09 10:17'
+updated_date: '2026-11-09 10:20'
 labels:
   - sync
   - parsing
@@ -26,11 +27,14 @@ The 1 MB check in `prepareCheckout` looks only at the page's own file size (`siz
 
 ### Fix
 1. After includes are resolved (where the prepared `pages` are built in `prepareCheckout`), skip a page whose resolved Markdown is longer than `MAX_PAGE_BYTES`, with the same warning text as for the file size (`<path>: larger than 1 MB, skipped`).
-2. Before reading an include target, check its size with `sizeInside` and refuse it like an over-long include when it exceeds `MAX_INCLUDED_CHARACTERS`.
+2. Before reading an include target, check its size with `sizeInside` and when it exceeds `MAX_INCLUDED_CHARACTERS`, do not read it: handle it the way `include.ts` already handles an include that would pass the cap (it adds a warning and leaves the include out, around `app/src/lib/server/parsing/include.ts:148`), with the same warning wording.
 Specs go next to the existing size cases in `app/src/lib/server/sync/index-source.spec.ts`. Run `make benchmark` afterwards: parsing changed.
 
 ### If we skip it
 The 512 MiB floor the handbook names does not hold for pages with includes; such a source keeps failing with an out-of-memory abort.
+
+### Notes for the implementer
+- Commit type: `fix` (released behaviour changes), so pushing it cuts a release; afterwards write the release-notes summary per `.claude/rules/release-notes.md`.
 <!-- SECTION:DESCRIPTION:END -->
 
 ## Acceptance Criteria

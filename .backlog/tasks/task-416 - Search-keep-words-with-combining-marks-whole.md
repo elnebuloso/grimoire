@@ -4,6 +4,7 @@ title: 'Search: keep words with combining marks whole'
 status: To Do
 assignee: []
 created_date: '2026-11-09 10:17'
+updated_date: '2026-11-09 10:20'
 labels:
   - search
 dependencies: []
@@ -26,6 +27,9 @@ Combining marks (`\p{M}`, such as vowel signs in Devanagari or Thai) are not in 
 
 ### If we skip it
 No effect until an organisation indexes documentation in such a script; then search for it is effectively broken.
+
+### Notes for the implementer
+- Commit type: `fix` (released behaviour changes), so pushing it cuts a release; afterwards write the release-notes summary per `.claude/rules/release-notes.md`.
 <!-- SECTION:DESCRIPTION:END -->
 
 ## Acceptance Criteria

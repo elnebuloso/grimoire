@@ -6,6 +6,7 @@ title: >-
 status: To Do
 assignee: []
 created_date: '2026-11-09 10:17'
+updated_date: '2026-11-09 10:20'
 labels:
   - admin
 dependencies: []
@@ -28,6 +29,9 @@ In the transaction of `createLinkedUser`, also run `DELETE FROM invitations WHER
 
 ### If we skip it
 A dead invitation sits in the list, and resending it confuses the invited person.
+
+### Notes for the implementer
+- Commit type: `fix` (released behaviour changes), so pushing it cuts a release; afterwards write the release-notes summary per `.claude/rules/release-notes.md`.
 <!-- SECTION:DESCRIPTION:END -->
 
 ## Acceptance Criteria

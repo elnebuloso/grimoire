@@ -6,6 +6,7 @@ title: >-
 status: To Do
 assignee: []
 created_date: '2026-11-09 10:17'
+updated_date: '2026-11-09 10:20'
 labels:
   - sync
 dependencies: []
@@ -35,3 +36,9 @@ Slow syncs, or deadline failures, for monorepos whose docs include files from ot
 - [ ] #1 Time and clone size are measured for an include across directories in a monorepo-like fixture
 - [ ] #2 Findings and a recommendation are in the task notes; nothing is built without the owner's decision
 <!-- AC:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Commit type for whatever follows the spike: decided with the owner; the spike itself is a chore(backlog) note.
+<!-- SECTION:NOTES:END -->

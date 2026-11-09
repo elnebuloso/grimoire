@@ -6,6 +6,7 @@ title: >-
 status: To Do
 assignee: []
 created_date: '2026-11-09 10:17'
+updated_date: '2026-11-09 10:20'
 labels:
   - admin
 dependencies: []
@@ -26,10 +27,19 @@ The same open session can get around that check without a password, in two ways,
 2. Create a password link (`passwordLink`) for *another* admin. Only the own account is refused (`id === locals.user!.id`); the link is valid for 24 h and takes that admin's account over.
 
 ### Fix
-Ask for the current password with `checkCurrentPassword` in `promote`, and in `passwordLink` when the target user is an admin. Both actions already run through a confirmation dialog (`ConfirmAction`, which takes `children` as extra form fields); each gets one password field named `current`, as on `app/src/routes/manage/settings/+page.svelte` and `app/src/routes/account/+page.svelte`. A wrong password is refused at the field, as with the export. An admin without a password (OIDC only) cannot promote or create a link for another admin until they set one, the same rule the export already applies.
+Ask for the current password with `checkCurrentPassword` in `promote`, and in `passwordLink` when the target user is an admin. Both actions already run through a confirmation dialog: `ConfirmAction` (`app/src/lib/components/ConfirmAction.svelte`) on `app/src/routes/manage/users/+page.svelte` (`?/promote`, and the password-link action). `ConfirmAction` takes `children` as the form's extra fields; put a password `TextField` named `current` there, as on `app/src/routes/manage/settings/+page.svelte` (export). A refusal comes back as `fail(…, { error })` and `ConfirmAction` shows `data.error` inside the dialog (it has no per-field display); use `authMessage('wrong-current-password')` / `'blocked'`, as the export does. An admin without a password (OIDC only) cannot promote or create a link for another admin until they set one, the same rule the export already applies.
+
+New texts: a label for the password field in the two dialogs, as keys in `app/messages/en.json` and `de.json` (German per `.claude/rules/glossary-de.md`); reuse the existing current-password label key if it fits.
+
+Tests: `app/src/routes/manage/users/users.spec.ts` for the actions (refused without, wrong and right password; a password link for a non-admin still needs none). No e2e test covers promote today (`app/src/routes/manage/manage.e2e.ts` covers inviting); the story or e2e of the dialog only if the markup changes beyond adding the field.
+
+Handbook: `docs/handbook/admin.md` (users section, **Make admin** and `### Password link`, around lines 302–331) must say that both ask for the admin's current password, and that an admin without a password sets one first.
 
 ### If we skip it
 The password checks on export and on linking do not protect what they were built for: a found session can still reach every Git token or take over another admin.
+
+### Notes for the implementer
+- Commit type: `fix` (released behaviour changes), so pushing it cuts a release; afterwards write the release-notes summary per `.claude/rules/release-notes.md`.
 <!-- SECTION:DESCRIPTION:END -->
 
 ## Acceptance Criteria

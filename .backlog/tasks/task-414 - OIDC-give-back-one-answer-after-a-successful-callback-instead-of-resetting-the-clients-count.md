@@ -6,6 +6,7 @@ title: >-
 status: To Do
 assignee: []
 created_date: '2026-11-09 10:17'
+updated_date: '2026-11-09 10:20'
 labels:
   - admin
 dependencies: []
@@ -24,10 +25,13 @@ The OIDC callback (`app/src/routes/auth/oidc/[key]/callback/+page.server.ts`) li
 After a successful login it calls `answers.forget(client)` (twice, in the linking and the login branch), which resets the client's whole count. A client with its own provider account can send 29 junk callbacks, log in once for real, and repeat; it is never stopped. The password login handles the same case with `giveBack`, which returns just that one attempt (`attemptSucceeded` in `app/src/lib/server/auth/auth.ts`).
 
 ### Fix
-Replace both `answers.forget(client)` calls with `answers.giveBack(client)`. Add a case to `app/src/routes/auth/oidc/[key]/callback/callback.spec.ts` that mixes failures and a success and expects the 31st answer to be refused.
+Replace both `answers.forget(client)` calls with `answers.giveBack(client)`. Add a case to `describe('the attempt limit of the callback')` in `app/src/routes/auth/oidc/[key]/callback/callback.spec.ts`: 29 failing answers, one successful login, then failing answers again; the client must be stopped once it has used up 30 failures. The limit is module state; the spec's `beforeEach` already calls `vi.resetModules()` so each test starts fresh, and the existing tests show how a failing and a successful answer are built.
 
 ### If we skip it
 The stated limit on callbacks does not hold; a client can make grimoire send unbounded token requests to the identity provider.
+
+### Notes for the implementer
+- Commit type: `fix` (released behaviour changes), so pushing it cuts a release; afterwards write the release-notes summary per `.claude/rules/release-notes.md`.
 <!-- SECTION:DESCRIPTION:END -->
 
 ## Acceptance Criteria
