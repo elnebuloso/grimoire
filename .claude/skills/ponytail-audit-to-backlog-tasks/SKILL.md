@@ -13,17 +13,7 @@ so and stop.
 The goal is a task anyone can work on **without the audit and without this conversation**. A task
 that only makes sense next to the report is not done.
 
-## 1. Read the project's rules first
-
-- `backlog instructions overview` and `backlog instructions task-creation` (plus
-  `backlog task create --help` for the configured types and priorities).
-- The project's agent instructions (`CLAUDE.md`, `AGENTS.md`, `.claude/rules/`, or the equivalent):
-  language of tasks, commit conventions, release rules, testing strategy, where user docs live.
-  Everything they require of a task applies here.
-- The labels already in use: read them off existing tasks. Reuse them; a label only one task
-  carries filters nothing.
-
-## 2. Propose
+## 1. Propose
 
 For every finding, decide *take*, *take as spike* or *skip*, with a one-line reason:
 
@@ -36,7 +26,7 @@ For every finding, decide *take*, *take as spike* or *skip*, with a one-line rea
 - **No concrete case:** skip; the audit's own rule is "no case, no finding".
 - Otherwise: take.
 
-## 3. Ask
+## 2. Ask
 
 Use AskUserQuestion with one question per group (Must fix, Should fix, Nice to have), skipping
 empty groups, `multiSelect: true`. Each option is one finding: label `<number> <short title>`,
@@ -47,7 +37,7 @@ A question holds at most four options. A group with more findings is split into 
 questions ("Nice to have 1/2", "2/2"); at most four questions go in one call, so make a second
 call for the rest. Take only what the user selected.
 
-## 4. Re-check and enrich each chosen finding
+## 3. Re-check and enrich each chosen finding
 
 Read the code yourself; the report may be wrong or out of date. For each finding:
 
@@ -68,7 +58,7 @@ Read the code yourself; the report may be wrong or out of date. For each finding
 - **Commit type** per the project's release rules (for example `fix` for released behaviour,
   which may cut a release).
 
-## 5. Create the tasks
+## 4. Create the tasks
 
 One task per finding, created with the backlog CLI only, never by editing its files.
 
@@ -76,7 +66,7 @@ One task per finding, created with the backlog CLI only, never by editing its fi
 - **Type and priority:** Must fix → `High`, Should fix → `Medium`, Nice to have → `Low`. Type
   from the configured ones: a defect is `bug`, an improvement `enhancement`, a spike `spike`.
   Never leave either off.
-- **Labels** from the vocabulary already in use; none rather than a new one.
+- **Labels** from the vocabulary already in use (read them off existing tasks); none rather than a new one.
 - **Description**, in this order, each section a `###` heading:
   1. `### What this is`: the part of the system and what it is for, so a stranger understands it.
   2. `### Problem`: the concrete case, input or situation leading to the wrong result, with the
@@ -94,7 +84,7 @@ One task per finding, created with the backlog CLI only, never by editing its fi
 Write the description to a temporary file in the scratchpad and pass it with
 `-d "$(cat <file>)"`; quoting Markdown on the command line breaks it.
 
-## 6. Check every task against a stranger
+## 5. Check every task against a stranger
 
 Read each task with `backlog task view <id> --plain` and ask: could someone who has never seen the
 audit or this conversation do this, without searching for anything the task could have told them?
@@ -102,7 +92,7 @@ Typical gaps: a test location that was only guessed, "do it like X" without sayi
 user-doc page not named, a claim from the report taken over unchecked. Close the gaps with
 `backlog task edit <id> -d …` before reporting.
 
-## 7. Finish
+## 6. Finish
 
 - Commit the new task files on their own, if the project commits its backlog
   (`chore(backlog): …`, plus the project's attribution lines). Never push.
