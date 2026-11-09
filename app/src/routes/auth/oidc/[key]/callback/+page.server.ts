@@ -109,7 +109,7 @@ export const load: PageServerLoad = async ({ params, url, cookies, getClientAddr
 			...flowCookieOptions,
 			maxAge: 60
 		});
-		answers.forget(client);
+		answers.giveBack(client);
 		return { next: '/account/link' };
 	}
 
@@ -137,7 +137,7 @@ export const load: PageServerLoad = async ({ params, url, cookies, getClientAddr
 	if (flow.replaces) deleteSessionByHash(db, flow.replaces);
 	const session = createSession(db, userId, now);
 	cookies.set(SESSION_COOKIE, session, sessionCookieOptions);
-	answers.forget(client);
+	answers.giveBack(client);
 	const home = isNewAccount ? WELCOME_PAGE : homeOf(sessionUser(db, session, now)!);
 	return { next: flow.next || home };
 };

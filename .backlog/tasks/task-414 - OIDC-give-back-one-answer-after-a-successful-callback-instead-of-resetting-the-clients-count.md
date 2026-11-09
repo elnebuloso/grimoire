@@ -3,10 +3,11 @@ id: TASK-414
 title: >-
   OIDC: give back one answer after a successful callback instead of resetting
   the client's count
-status: To Do
-assignee: []
+status: Done
+assignee:
+  - '@claude'
 created_date: '2026-11-09 10:17'
-updated_date: '2026-11-09 10:20'
+updated_date: '2026-11-09 10:54'
 labels:
   - admin
 dependencies: []
@@ -36,6 +37,12 @@ The stated limit on callbacks does not hold; a client can make grimoire send unb
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Both success paths call answers.giveBack(client)
-- [ ] #2 callback.spec.ts covers failures mixed with a success and the limit still stopping the client
+- [x] #1 Both success paths call answers.giveBack(client)
+- [x] #2 callback.spec.ts covers failures mixed with a success and the limit still stopping the client
 <!-- AC:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Both success paths of the OIDC callback now call answers.giveBack(client) instead of answers.forget(client): a success returns only its own attempt, so failures before it keep counting, as with the password login. New case in callback.spec.ts (29 failures, a success, then the limit still stops the client), confirmed to fail with forget.
+<!-- SECTION:FINAL_SUMMARY:END -->

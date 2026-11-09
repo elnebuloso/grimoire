@@ -168,6 +168,20 @@ describe('the attempt limit of the callback', () => {
 			'OIDC login through gitlab refused: too many failed logins from the client'
 		);
 	});
+
+	it('keeps counting failures across a success in between', async () => {
+		createLinkedUser(db, 'ada@example.com', ISSUER, 'ada');
+		const fail = async () => {
+			finishFlow.mockRejectedValueOnce(new Error('invalid_grant'));
+			return answer('203.0.113.10');
+		};
+
+		for (let attempt = 0; attempt < 29; attempt++) await fail();
+		finishFlow.mockResolvedValueOnce({ iss: ISSUER, sub: 'ada' });
+		expect(await answer('203.0.113.10')).toBe('/');
+		expect(await fail()).toBe('/login?problem=oidc-failed');
+		expect(await fail()).toBe('/login?problem=oidc-blocked');
+	});
 });
 
 describe('a callback without a flow', () => {
