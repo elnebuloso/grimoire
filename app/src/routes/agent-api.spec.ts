@@ -468,6 +468,13 @@ describe('POST /mcp', () => {
 		});
 	});
 
+	it('refuses a question of only spaces, as the HTTP route does', async () => {
+		const result = await tool('query', { query: '   ' });
+
+		expect(result.error).toBe(true);
+		expect(result.text).not.toContain('No results');
+	});
+
 	it('reads a section by an ID with #anchor', async () => {
 		const section = await tool('read', { id: 'platform-docs/run books/deploy#upgrade' });
 

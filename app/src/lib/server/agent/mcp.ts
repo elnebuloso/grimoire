@@ -57,7 +57,7 @@ export function createMcpServer(db: DatabaseSync, scope: SourceScope, name: stri
 			description:
 				'Searches all sources, or the given ones, and returns matching sections within a token budget.',
 			inputSchema: z.object({
-				query: z.string().min(1),
+				query: z.string().trim().min(1),
 				sources: z.array(z.string()).optional(),
 				tokens: z.number().int().positive().optional().describe('Default 3000')
 			})

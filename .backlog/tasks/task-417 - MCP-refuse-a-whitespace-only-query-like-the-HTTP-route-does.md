@@ -1,10 +1,11 @@
 ---
 id: TASK-417
 title: 'MCP: refuse a whitespace-only query like the HTTP route does'
-status: To Do
-assignee: []
+status: Done
+assignee:
+  - '@claude'
 created_date: '2026-11-09 10:17'
-updated_date: '2026-11-09 10:20'
+updated_date: '2026-11-09 10:53'
 labels:
   - agent-api
 dependencies: []
@@ -34,6 +35,12 @@ Agents get a misleading answer for an empty question; nothing else breaks.
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 The MCP query tool rejects a query of only whitespace
-- [ ] #2 A test covers it
+- [x] #1 The MCP query tool rejects a query of only whitespace
+- [x] #2 A test covers it
 <!-- AC:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+The MCP query tool's schema is now z.string().trim().min(1), so a question of only whitespace is refused as a tool error instead of answering 'No results for ""'. Regression test in agent-api.spec.ts (POST /mcp), confirmed to fail without the fix.
+<!-- SECTION:FINAL_SUMMARY:END -->
