@@ -7,6 +7,7 @@ import type { DatabaseSync } from 'node:sqlite';
 import { fileURLToPath } from 'node:url';
 import {
 	clearSyncError,
+	deleteStaleIndex,
 	forgetIndexedCommit,
 	indexSettingsChanged,
 	recordCheck,
@@ -118,6 +119,8 @@ async function checkAndSync(
 		});
 		if (latest === source.lastCommit && !options.force) {
 			clearSyncError(db, sourceId);
+			// An indexing process stopped after its index went live leaves the one before behind.
+			await deleteStaleIndex(db, sourceId);
 			return { status: 'unchanged', commit: latest };
 		}
 		// Indexing the same commit again fails the same way, and a run up to the deadline would

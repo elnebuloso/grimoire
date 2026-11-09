@@ -229,6 +229,23 @@ describe('syncSource', () => {
 		]);
 	});
 
+	it('clears what an earlier index left behind when the branch is unchanged', async () => {
+		await syncSource(db, source, { key, policy: LOCAL, workDirectory: work });
+		const live = rows('SELECT id, file FROM pages ORDER BY id');
+		// What an indexing process stopped after its index went live leaves: the generation before.
+		db.exec(`INSERT INTO pages (id, source_id, generation, file, title, content)
+			VALUES (900, ${source}, 0, 'old.md', 'Old', '');
+			INSERT INTO snippets (id, page_id, position, title_path, content, tokens)
+			VALUES (900, 900, 0, '["Old"]', 'stale words', 2);
+			INSERT INTO snippets_fts (rowid, title_path, text, code) VALUES (900, 'Old', 'stale words', '')`);
+
+		expect(await syncSource(db, source, { key, policy: LOCAL, workDirectory: work })).toMatchObject(
+			{ status: 'unchanged' }
+		);
+		expect(rows('SELECT id, file FROM pages ORDER BY id')).toEqual(live);
+		expect(rows("SELECT rowid FROM snippets_fts WHERE snippets_fts MATCH 'stale'")).toEqual([]);
+	});
+
 	it('keeps the last good index when writing the new one fails in the indexing process', async () => {
 		await syncSource(db, source, { key, policy: LOCAL, workDirectory: work });
 		commitFiles({ 'docs/index.md': '# Home again\n' });

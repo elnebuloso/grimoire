@@ -264,6 +264,19 @@ function deleteStalePages(db: DatabaseSync, sourceId: number, snippetsPerBatch: 
 }
 
 /**
+ * Deletes what is left of earlier generations of a source's index, in short transactions with
+ * other requests answered between them. Only a run of the same source writes a generation that is
+ * not live yet, and the sync queue never runs two of those at once.
+ */
+export async function deleteStaleIndex(
+	db: DatabaseSync,
+	sourceId: number,
+	{ snippetsPerBatch = SNIPPETS_PER_BATCH } = {}
+) {
+	while (deletePageBatch(db, sourceId, 'stale', snippetsPerBatch)) await nextTurn();
+}
+
+/**
  * Deletes a source with its index and history. The index goes in short transactions, and other
  * requests are answered between them: a large source has tens of thousands of snippets.
  */

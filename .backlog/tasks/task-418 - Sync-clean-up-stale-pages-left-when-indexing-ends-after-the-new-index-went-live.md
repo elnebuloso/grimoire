@@ -3,10 +3,11 @@ id: TASK-418
 title: >-
   Sync: clean up stale pages left when indexing ends after the new index went
   live
-status: To Do
-assignee: []
+status: Done
+assignee:
+  - '@claude'
 created_date: '2026-11-09 10:17'
-updated_date: '2026-11-09 10:20'
+updated_date: '2026-11-09 10:59'
 labels:
   - sync
 dependencies: []
@@ -38,6 +39,21 @@ A rare false sync error that disappears on the next check, and stale rows on dis
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Leftover rows of an old generation are removed by the next sync, also when the branch is unchanged
-- [ ] #2 sync.spec.ts covers the leftover case
+- [x] #1 Leftover rows of an old generation are removed by the next sync, also when the branch is unchanged
+- [x] #2 sync.spec.ts covers the leftover case
 <!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. Confirm in queue.ts that runs of one source never overlap (they are chained per source; the only caller of syncSource is the queue in sync/index.ts)
+2. deleteStaleIndex in db/sources.ts: deletes non-live generations in batches with a turn between them
+3. Call it on the unchanged path of syncSource next to clearSyncError
+4. sync.spec.ts: leftover rows of an old generation go with the next unchanged check
+<!-- SECTION:PLAN:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+A check that finds the branch unchanged now also deletes what earlier generations of the source's index left behind (deleteStaleIndex, batched like deleteSource so requests are answered in between). Safe because the queue chains the runs of a source: no run of the same source can be writing a not-yet-live generation at that moment, and syncSource has no caller outside the queue. The false error was already cleared on that path by clearSyncError. Test in sync.spec.ts inserts an old-generation page, snippet and FTS entry and expects them gone after an unchanged check with the live index untouched; confirmed to fail without the cleanup.
+<!-- SECTION:FINAL_SUMMARY:END -->
