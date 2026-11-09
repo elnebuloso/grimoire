@@ -177,6 +177,7 @@
 						{:else}
 							<ConfirmAction
 								action="?/promote"
+								password
 								title={m.users_promote_title({ email: user.email })}
 								consequence={m.users_promote_consequence()}
 								label={m.users_promote()}
@@ -189,6 +190,7 @@
 						{#if user.id !== data.me}
 							<ConfirmAction
 								action="?/passwordLink"
+								password={isAdmin(user)}
 								title={m.users_password_link_title({ email: user.email })}
 								consequence={m.users_password_link_consequence({ email: user.email })}
 								confirmLabel={m.users_password_link_confirm()}

@@ -1,9 +1,9 @@
-import { error, fail } from '@sveltejs/kit';
+import { error, fail, type Cookies } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { INSTANCE_TITLE } from '$app/env/private';
 import { database } from '#lib/server/db/index.js';
 import { authMessage } from '#lib/server/auth/auth-messages.js';
-import { SESSION_COOKIE } from '#lib/server/auth/auth.js';
+import { checkCurrentPassword, SESSION_COOKIE } from '#lib/server/auth/auth.js';
 import {
 	inviteUser,
 	listInvitations,
@@ -11,7 +11,13 @@ import {
 	revokeInvitation,
 	type InvitationLink
 } from '#lib/server/admin/invitations.js';
-import { deleteUser, listUsers, setAdmin, type UserRefusal } from '#lib/server/admin/users.js';
+import {
+	deleteUser,
+	isAdmin,
+	listUsers,
+	setAdmin,
+	type UserRefusal
+} from '#lib/server/admin/users.js';
 import { mailer } from '#lib/server/mail/index.js';
 import { createPasswordLink } from '#lib/server/auth/password-reset.js';
 import { log } from '#lib/server/log.js';
@@ -54,6 +60,21 @@ const REFUSALS: Record<Exclude<UserRefusal['error'], 'unknown-user'>, () => stri
 function refused(refusal: UserRefusal) {
 	if (refusal.error === 'unknown-user') error(404);
 	return fail(400, { error: REFUSALS[refusal.error]() });
+}
+
+/**
+ * Why the current password in `data` does not confirm the admin; undefined when it does. A second
+ * admin account, or a password link for another admin, would get an open session left behind past
+ * the password checks of export and linking.
+ */
+async function passwordRefusal(data: FormData, cookies: Cookies, client: string) {
+	const checked = await checkCurrentPassword(
+		database(),
+		client,
+		cookies.get(SESSION_COOKIE) ?? '',
+		String(data.get('current') ?? '')
+	);
+	return 'error' in checked ? fail(400, { error: authMessage(checked.error) }) : undefined;
 }
 
 async function idOf(request: Request): Promise<number> {
@@ -107,8 +128,11 @@ export const actions = {
 		// Accepted or withdrawn in another window.
 		if (!revokeInvitation(database(), await idOf(request))) error(404);
 	},
-	promote: async ({ request }) => {
-		const problem = setAdmin(database(), await idOf(request), true);
+	promote: async ({ request, cookies, getClientAddress }) => {
+		const data = await request.formData();
+		const refusal = await passwordRefusal(data, cookies, getClientAddress());
+		if (refusal) return refusal;
+		const problem = setAdmin(database(), Number(data.get('id')), true);
 		if (problem) return refused(problem);
 	},
 	demote: async ({ request }) => {
@@ -121,11 +145,16 @@ export const actions = {
 		const issuer = String(data.get('issuer') ?? '');
 		if (!removeIdentity(database(), id, issuer, cookies.get(SESSION_COOKIE))) error(404);
 	},
-	passwordLink: async ({ request, locals, url }) => {
-		const id = await idOf(request);
+	passwordLink: async ({ request, locals, url, cookies, getClientAddress }) => {
+		const data = await request.formData();
+		const id = Number(data.get('id'));
 		// The page offers none for the own account: a found session would get past the password
-		// checks of export and linking with it.
+		// checks of export and linking with it. Another admin's account would do the same.
 		if (id === locals.user!.id) error(403);
+		if (isAdmin(database(), id)) {
+			const refusal = await passwordRefusal(data, cookies, getClientAddress());
+			if (refusal) return refusal;
+		}
 		const link = createPasswordLink(database(), id);
 		if (!link) error(404);
 		log.info(`password link for user ${id} created by user ${locals.user!.id}`);

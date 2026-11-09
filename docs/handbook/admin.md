@@ -333,12 +333,16 @@ one, or a forgotten password when the instance sends no mail. With mail set up, 
 account's address and you never see it; without, it is shown once, to pass on yourself. It works
 once, within 24 hours; a new link voids the earlier ones. The current password stays valid until
 the link is used, and using it ends every session of the account. Whoever holds the link can take
-over the account, admins included: pass it on only to its owner. Your own account has no such link;
+over the account, admins included: pass it on only to its owner. For another admin's account it
+asks for your current password first. Your own account has no such link;
 change your password under **Login and password**. Each link is logged with who created it for whom.
 
 ### Roles
 
-**Make admin** gives a user everything this page describes. **Remove admin role** leaves the
+**Make admin** gives a user everything this page describes, and asks for your current password
+first, so that a browser left logged in cannot create a second admin. `Wrong current password.`
+leaves the dialog open to try again; an account that logs in only through an identity provider
+sets a password under **Login and password** before it can make admins. **Remove admin role** leaves the
 account and its keys as they are and closes the management area to it.
 
 `The last admin keeps the role: make another user an admin first.`: an instance without admin

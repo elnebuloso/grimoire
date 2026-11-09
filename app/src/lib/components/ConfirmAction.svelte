@@ -18,6 +18,7 @@
 		confirmLabel = label,
 		danger = false,
 		typed,
+		password = false,
 		success,
 		children
 	}: {
@@ -31,6 +32,8 @@
 		confirmLabel?: string;
 		danger?: boolean;
 		typed?: { value: string; label: string };
+		/** Asks for the current password in the dialog, posted as `current`. */
+		password?: boolean;
 		/** The toast after the action succeeded, or how to tell it from the answer. */
 		success: string | ((result: ActionResult) => string | undefined);
 		children?: Snippet;
@@ -99,6 +102,7 @@
 	{confirmLabel}
 	{danger}
 	{typed}
+	{password}
 	{formId}
 	{busy}
 	{error}

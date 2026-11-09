@@ -5,6 +5,8 @@ import { openDatabase } from '#lib/server/db/schema.js';
 import { invitedEmail, inviteUser, listInvitations } from '#lib/server/admin/invitations.js';
 import { listUsers } from '#lib/server/admin/users.js';
 import { resetLinkValid } from '#lib/server/auth/password-reset.js';
+import { login } from '#lib/server/auth/auth.js';
+import { createUser } from '#lib/server/auth/test-user.js';
 import * as page from './+page.server';
 
 let db: DatabaseSync;
@@ -14,6 +16,8 @@ vi.mock('#lib/server/mail/index.js', () => ({ mailer: () => undefined }));
 vi.mock('$app/env/private', () => ({ INSTANCE_TITLE: 'Acme Docs', BASE_URL: '' }));
 
 const ADMIN = { id: 1, email: 'admin@example.com', roles: ['admin'] };
+const PASSWORD = 'correct horse battery';
+let session: string;
 
 function action(name: keyof typeof page.actions, id: number, fields: Record<string, string> = {}) {
 	return page.actions[name]({
@@ -22,16 +26,19 @@ function action(name: keyof typeof page.actions, id: number, fields: Record<stri
 			body: new URLSearchParams({ id: String(id), ...fields })
 		}),
 		locals: { user: ADMIN },
-		cookies: { get: () => undefined },
+		cookies: { get: (name: string) => (name === 'grimoire_session' ? session : undefined) },
+		getClientAddress: () => '203.0.113.7',
 		url: new URL(`https://grimoire.example/manage/users?/${name}`)
 	} as never) as Promise<Record<string, unknown> | undefined>;
 }
 
-beforeEach(() => {
+beforeEach(async () => {
 	db = openDatabase(':memory:');
-	db.exec(`INSERT INTO users (id, email, password_hash) VALUES
-		(1, 'admin@example.com', 'hash'), (2, 'writer@example.com', 'hash');
-		INSERT INTO user_roles VALUES (1, 'admin');`);
+	await createUser(db, { email: ADMIN.email, password: PASSWORD, roles: ['admin'] });
+	db.exec("INSERT INTO users (id, email, password_hash) VALUES (2, 'writer@example.com', 'hash')");
+	const loggedIn = await login(db, 'admin-pc', { email: ADMIN.email, password: PASSWORD });
+	if (!('session' in loggedIn)) throw new Error(loggedIn.error);
+	session = loggedIn.session;
 });
 
 describe('users page', () => {
@@ -112,7 +119,7 @@ describe('users page', () => {
 	});
 
 	it('makes a user an admin and takes the role away, but not from the last admin', async () => {
-		await action('promote', 2);
+		await action('promote', 2, { current: PASSWORD });
 		expect(listUsers(db)[1].roles).toEqual(['admin']);
 		await action('demote', 2);
 		expect(await action('demote', 1)).toMatchObject({
@@ -120,6 +127,29 @@ describe('users page', () => {
 			data: { error: 'The last admin keeps the role: make another user an admin first.' }
 		});
 		expect(listUsers(db)[0].roles).toEqual(['admin']);
+	});
+
+	it('makes nobody an admin without the current password of the admin', async () => {
+		for (const current of [undefined, 'wrong password']) {
+			expect(await action('promote', 2, current ? { current } : {})).toMatchObject({
+				status: 400,
+				data: { error: 'Wrong current password.' }
+			});
+		}
+		expect(listUsers(db)[1].roles).toEqual([]);
+	});
+
+	it('asks for the current password before a password link for another admin only', async () => {
+		db.exec("INSERT INTO user_roles VALUES (2, 'admin')");
+		expect(await action('passwordLink', 2)).toMatchObject({
+			status: 400,
+			data: { error: 'Wrong current password.' }
+		});
+		expect(db.prepare('SELECT count(*) AS n FROM password_resets').get()).toEqual({ n: 0 });
+		expect(await action('passwordLink', 2, { current: PASSWORD })).toHaveProperty('passwordLink');
+
+		db.exec('DELETE FROM user_roles WHERE user_id = 2');
+		expect(await action('passwordLink', 2)).toHaveProperty('passwordLink');
 	});
 
 	it('deletes another user, but not the own account', async () => {

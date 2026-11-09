@@ -46,7 +46,7 @@ export function listUsers(db: DatabaseSync): UserSummary[] {
 	}));
 }
 
-function isAdmin(db: DatabaseSync, userId: number): boolean {
+export function isAdmin(db: DatabaseSync, userId: number): boolean {
 	return (
 		db.prepare("SELECT 1 FROM user_roles WHERE user_id = ? AND role = 'admin'").get(userId) !==
 		undefined

@@ -91,3 +91,28 @@
 		</ConfirmAction>
 	{/snippet}
 </Story>
+
+<Story
+	name="Asks for the current password"
+	args={{
+		action: '?/promote',
+		label: 'Make admin',
+		title: 'Make ada@example.com an admin?',
+		consequence: 'Admins manage the sources, users, all API keys and the settings.',
+		password: true,
+		success: 'ada@example.com is an admin now.'
+	}}
+	play={async ({ canvas }) => {
+		const submitted = recordSubmits();
+		// The empty password field does not keep the dialog from opening.
+		await userEvent.click(canvas.getByRole('button', { name: 'Make admin' }));
+		const dialog = canvas.getByRole('dialog', { name: 'Make ada@example.com an admin?' });
+		const confirm = canvas.getAllByRole('button', { name: 'Make admin' }).at(-1)!;
+		await expect(dialog).toContainElement(confirm);
+		await userEvent.click(confirm);
+		await expect(submitted).not.toHaveBeenCalled();
+		await userEvent.type(canvas.getByLabelText('Current password'), 'correct horse battery');
+		await userEvent.click(confirm);
+		await waitFor(() => expect(submitted).toHaveBeenCalledOnce());
+	}}
+/>

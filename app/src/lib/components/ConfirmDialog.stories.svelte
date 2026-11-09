@@ -33,6 +33,25 @@
 />
 
 <Story
+	name="Asks for the current password"
+	args={{
+		title: 'Make anna@example.com an admin?',
+		consequence:
+			'Admins manage the sources, users, all API keys and the settings of this instance.',
+		confirmLabel: 'Make admin',
+		password: true
+	}}
+	play={async ({ canvas }) => {
+		const field = canvas.getByLabelText('Current password');
+		await expect(field).toBeRequired();
+		await expect(field).toHaveAttribute('type', 'password');
+		await expect(field).toHaveAttribute('name', 'current');
+		// The field to type into has the focus, not the safe choice.
+		await waitFor(() => expect(field).toHaveFocus());
+	}}
+/>
+
+<Story
 	name="Cancelled"
 	args={{
 		title: 'Make anna@example.com an admin?',

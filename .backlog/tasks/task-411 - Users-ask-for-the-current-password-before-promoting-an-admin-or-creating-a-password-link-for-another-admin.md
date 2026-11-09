@@ -3,10 +3,11 @@ id: TASK-411
 title: >-
   Users: ask for the current password before promoting an admin or creating a
   password link for another admin
-status: To Do
-assignee: []
+status: Done
+assignee:
+  - '@claude'
 created_date: '2026-11-09 10:17'
-updated_date: '2026-11-09 10:20'
+updated_date: '2026-11-09 10:48'
 labels:
   - admin
 dependencies: []
@@ -44,7 +45,21 @@ The password checks on export and on linking do not protect what they were built
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 promote refuses without the correct current password; the refusal shows at the password field
-- [ ] #2 passwordLink for an admin target refuses without the correct current password; for a non-admin target nothing changes
-- [ ] #3 Specs cover both refusals and the success with the right password
+- [x] #1 promote refuses without the correct current password; the refusal shows at the password field
+- [x] #2 passwordLink for an admin target refuses without the correct current password; for a non-admin target nothing changes
+- [x] #3 Specs cover both refusals and the success with the right password
 <!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. ConfirmDialog/ConfirmAction: optional password field (name current) inside the dialog, rendered only while open
+2. users actions: promote always, passwordLink for an admin target, checked with checkCurrentPassword
+3. users.spec.ts with a real admin session; stories for the dialog; handbook admin.md
+<!-- SECTION:PLAN:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+promote and passwordLink (for an admin target) now ask for the admin's current password via checkCurrentPassword, so an open session left behind can neither create a second admin nor take over another admin to get past the export's password check. ConfirmDialog and ConfirmAction got a `password` option: a required field `current` inside the dialog, rendered only while open (a hidden required field would fail the validity check of the button that opens the dialog; caught in the browser). A wrong password shows in the dialog (`Wrong current password.`). Tests: users.spec.ts (refusals and success with a real session), ConfirmDialog and ConfirmAction stories; checked by hand in the agent environment. Handbook admin.md updated.
+<!-- SECTION:FINAL_SUMMARY:END -->

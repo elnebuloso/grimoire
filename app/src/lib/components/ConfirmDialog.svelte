@@ -7,7 +7,9 @@
 	/**
 	 * Asks before an action: its question, what follows from it, and a button named after it. With
 	 * `typed`, the button stays locked until that text is typed, for actions that destroy data or
-	 * break what others use. The button submits the form `formId` names, or calls `onconfirm`.
+	 * break what others use. With `password`, it asks for the current password, for actions an open
+	 * session left behind must not take. The button submits the form `formId` names, or calls
+	 * `onconfirm`.
 	 */
 	let {
 		open = $bindable(false),
@@ -16,6 +18,7 @@
 		confirmLabel,
 		danger = false,
 		typed,
+		password = false,
 		formId,
 		onconfirm,
 		busy = false,
@@ -28,6 +31,8 @@
 		danger?: boolean;
 		/** Text to type before the button unlocks, posted as `confirmation`. */
 		typed?: { value: string; label: string };
+		/** Asks for the current password, posted as `current`. */
+		password?: boolean;
 		formId?: string;
 		onconfirm?: () => void;
 		/** The action is running. */
@@ -41,12 +46,12 @@
 	let box = $state<HTMLDivElement>();
 	const locked = $derived(typed !== undefined && typedValue !== typed.value);
 
-	// Every opening starts empty, with a new field, and on the safe choice: cancel, or the field to
-	// type into.
+	// Every opening starts empty, with new fields, and on the safe choice: cancel, or the first field
+	// to type into.
 	$effect(() => {
 		if (!open) return;
 		typedValue = '';
-		queueMicrotask(() => (typed ? box?.querySelector('input') : cancel)?.focus());
+		queueMicrotask(() => (typed || password ? box?.querySelector('input') : cancel)?.focus());
 	});
 </script>
 
@@ -66,6 +71,19 @@
 					oninput={(event) => (typedValue = event.currentTarget.value)}
 				/>
 			{/key}
+		{/if}
+		<!-- Only while open: a required field of the form, it would fail the check the button that
+		opens the dialog runs on the form's fields. -->
+		{#if password && open}
+			<TextField
+				label={m.password_current()}
+				name="current"
+				type="password"
+				form={formId}
+				required
+				autocomplete="current-password"
+				value=""
+			/>
 		{/if}
 	</div>
 	{#snippet actions()}
